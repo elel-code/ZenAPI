@@ -94,19 +94,16 @@ component ButtonSlot inherits Rectangle {
     height: root.slot-height;
     vertical-stretch: 0;
 
-    VerticalLayout {
-        alignment: center;
-
-        ActionButton {
-            text: root.text;
-            enabled: root.enabled;
-            primary: root.primary;
-            dark: root.dark;
-            width: root.button-width;
-            height: root.button-height;
-            clicked => {
-                root.clicked();
-            }
+    ActionButton {
+        y: (root.slot-height - root.button-height) / 2;
+        text: root.text;
+        enabled: root.enabled;
+        primary: root.primary;
+        dark: root.dark;
+        width: root.button-width;
+        height: root.button-height;
+        clicked => {
+            root.clicked();
         }
     }
 }
