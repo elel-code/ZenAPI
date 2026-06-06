@@ -505,6 +505,7 @@ component TopBar inherits Rectangle {
                     Text {
                         text: root.spec-loaded ? root.spec-label : "No specification loaded";
                         color: root.spec-loaded ? #374151 : #6b7280;
+                        font-family: root.spec-loaded ? "Noto Sans Mono" : "Inter";
                         font-size: 13px;
                         font-italic: !root.spec-loaded;
                         horizontal-stretch: 1;
