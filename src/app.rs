@@ -13,8 +13,8 @@ use crate::ui::AppWindow;
 pub fn run() -> Result<()> {
     let runtime = Arc::new(Runtime::new()?);
     let state = Arc::new(Mutex::new(AppState::default()));
-    let app = AppWindow::new().map_err(|err| anyhow!(err.to_string()))?;
     fonts::register_app_fonts();
+    let app = AppWindow::new().map_err(|err| anyhow!(err.to_string()))?;
 
     app.set_response_body(
         "Import an OpenAPI file, select a route, then send a request or start the mock server."

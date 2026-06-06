@@ -20,6 +20,8 @@ stable dimensions, and clear state over explanatory in-app copy.
   critical UI text.
 - Register bundled fonts at startup and reference explicit app families in
   Slint. The current app families are `Zen Sans` and `Zen Mono`.
+- Register bundled fonts before creating any Slint components so first paint
+  does not fall back to system fonts.
 - Keep font sizes fixed per component type. Do not scale text with viewport
   width.
 - Prefer concise labels that fit at the minimum window size. Use elision for
