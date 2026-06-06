@@ -8,6 +8,14 @@ export struct RouteRow {
     summary: string,
 }
 
+component UiText inherits Text {
+    font-family: "Inter";
+    font-size: 13px;
+    font-weight: 500;
+    color: #111827;
+    letter-spacing: 0px;
+}
+
 component PaneHeader inherits Rectangle {
     in property <string> text;
 
@@ -20,7 +28,7 @@ component PaneHeader inherits Rectangle {
         padding-right: 14px;
         alignment: center;
 
-        Text {
+        UiText {
             text: root.text;
             height: root.height;
             color: #111827;
@@ -71,7 +79,7 @@ component ActionButton inherits Rectangle {
         }
     }
 
-    Text {
+    UiText {
         text: root.text;
         width: parent.width;
         height: parent.height;
@@ -141,7 +149,7 @@ component TextFieldShell inherits Rectangle {
         spacing: 10px;
         alignment: center;
 
-        if root.show-label: Text {
+        if root.show-label: UiText {
             text: root.label;
             width: 30px;
             height: root.height;
@@ -164,6 +172,8 @@ component TextFieldShell inherits Rectangle {
                 color: #9ca3af;
                 font-family: root.mono ? "Noto Sans Mono" : "Inter";
                 font-size: 13px;
+                font-weight: root.mono ? 400 : 500;
+                letter-spacing: 0px;
                 horizontal-alignment: left;
                 vertical-alignment: center;
                 overflow: elide;
@@ -177,6 +187,8 @@ component TextFieldShell inherits Rectangle {
                 single-line: true;
                 font-family: root.mono ? "Noto Sans Mono" : "Inter";
                 font-size: 13px;
+                font-weight: root.mono ? 400 : 500;
+                letter-spacing: 0px;
                 color: #111827;
                 selection-background-color: #2563eb;
                 selection-foreground-color: #ffffff;
@@ -216,7 +228,7 @@ component MethodOption inherits Rectangle {
         spacing: 8px;
         alignment: center;
 
-        Text {
+        UiText {
             text: root.value;
             width: 62px;
             height: root.height;
@@ -286,7 +298,7 @@ component MethodSelector inherits Rectangle {
         spacing: 8px;
         alignment: center;
 
-        Text {
+        UiText {
             text: root.method;
             width: 58px;
             height: root.height;
@@ -424,6 +436,7 @@ component CodePane inherits Rectangle {
                 font-family: "Noto Sans Mono";
                 font-size: 13px;
                 font-weight: 400;
+                letter-spacing: 0px;
                 color: #111827;
                 selection-background-color: #2563eb;
                 selection-foreground-color: #ffffff;
@@ -463,7 +476,7 @@ component TopBar inherits Rectangle {
                 padding-right: 14px;
                 alignment: center;
 
-                Text {
+                UiText {
                     text: "ZenAPI";
                     font-size: 16px;
                     font-weight: 800;
@@ -498,7 +511,7 @@ component TopBar inherits Rectangle {
                     spacing: 0px;
                     alignment: center;
 
-                    Text {
+                    UiText {
                         text: root.spec-loaded ? root.spec-label : "No specification loaded";
                         color: root.spec-loaded ? #374151 : #6b7280;
                         font-family: root.spec-loaded ? "Noto Sans Mono" : "Inter";
@@ -532,7 +545,7 @@ component TopBar inherits Rectangle {
             spacing: 8px;
             alignment: center;
 
-            Text {
+            UiText {
                 text: root.server-running ? root.server-status : "";
                 width: 112px;
                 height: 34px;
@@ -573,7 +586,7 @@ component TopBar inherits Rectangle {
                 padding: 10px;
                 spacing: 8px;
 
-                Text {
+                UiText {
                     text: "OpenAPI specification";
                     height: 18px;
                     font-size: 12px;
@@ -636,7 +649,7 @@ component Sidebar inherits Rectangle {
         HorizontalLayout {
             spacing: 8px;
 
-            Text {
+            UiText {
                 text: "Endpoints";
                 font-size: 13px;
                 font-weight: 700;
@@ -649,7 +662,7 @@ component Sidebar inherits Rectangle {
                 horizontal-stretch: 1;
             }
 
-            Text {
+            UiText {
                 text: root.total-route-count == 0 ? "" : root.routes.length + "/" + root.total-route-count;
                 font-size: 12px;
                 color: #6b7280;
@@ -681,7 +694,7 @@ component Sidebar inherits Rectangle {
                 spacing: 0px;
                 alignment: center;
 
-                Text {
+                UiText {
                     text: root.routes.length == 0 ? (root.total-route-count == 0 ? "No endpoints" : "No matches") : "";
                     height: 20px;
                     font-size: 13px;
@@ -724,7 +737,7 @@ component Sidebar inherits Rectangle {
                         border-radius: 4px;
                         background: route.method == "GET" ? #ecfdf5 : route.method == "POST" ? #fffbeb : route.method == "PUT" ? #eff6ff : route.method == "PATCH" ? #f5f3ff : route.method == "DELETE" ? #fef2f2 : #f3f4f6;
 
-                        Text {
+                        UiText {
                             text: route.method;
                             width: parent.width;
                             height: parent.height;
@@ -745,7 +758,7 @@ component Sidebar inherits Rectangle {
                             spacing: 0px;
                             alignment: center;
 
-                            Text {
+                            UiText {
                                 text: route.path;
                                 height: 18px;
                                 font-family: "Noto Sans Mono";
@@ -756,7 +769,7 @@ component Sidebar inherits Rectangle {
                                 vertical-alignment: center;
                             }
 
-                            Text {
+                            UiText {
                                 text: route.summary;
                                 height: route.summary == "" ? 0px : 14px;
                                 font-size: 10px;
@@ -912,7 +925,7 @@ component ResponsePanel inherits Rectangle {
                     horizontal-stretch: 1;
                 }
 
-                Text {
+                UiText {
                     text: root.response-status + (root.response-meta == "" ? "" : " - " + root.response-meta);
                     width: 260px;
                     height: 30px;

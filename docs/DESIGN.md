@@ -20,6 +20,10 @@ stable dimensions, and clear state over explanatory in-app copy.
   critical UI text.
 - Import bundled font files from Slint and reference explicit families. The
   current app families are `Inter` for UI text and `Noto Sans Mono` for code.
+- Ordinary UI copy should go through a local text wrapper that sets `Inter`,
+  font size, font weight, text color, and `letter-spacing: 0px` explicitly.
+  Window-level defaults are only a fallback, not the primary styling mechanism
+  for component text.
 - Technical strings such as URLs, filenames, file paths, API paths, and local
   server addresses should use `Noto Sans Mono`, not the UI text face.
 - Placeholder text should use the same family as the eventual input value so
