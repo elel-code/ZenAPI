@@ -16,6 +16,16 @@ component UiText inherits Text {
     letter-spacing: 0px;
 }
 
+global MethodStyle {
+    public pure function text-color(method: string) -> color {
+        return method == "GET" ? #059669 : method == "POST" ? #d97706 : method == "PUT" ? #2563eb : method == "PATCH" ? #7c3aed : method == "DELETE" ? #dc2626 : #6b7280;
+    }
+
+    public pure function background-color(method: string) -> color {
+        return method == "GET" ? #ecfdf5 : method == "POST" ? #fffbeb : method == "PUT" ? #eff6ff : method == "PATCH" ? #f5f3ff : method == "DELETE" ? #fef2f2 : #f3f4f6;
+    }
+}
+
 component PaneHeader inherits Rectangle {
     in property <string> text;
 
@@ -236,7 +246,7 @@ component MethodOption inherits Rectangle {
             height: root.height;
             font-size: 12px;
             font-weight: 800;
-            color: root.value == "GET" ? #059669 : root.value == "POST" ? #d97706 : root.value == "PUT" ? #2563eb : root.value == "PATCH" ? #7c3aed : root.value == "DELETE" ? #dc2626 : #6b7280;
+            color: MethodStyle.text-color(root.value);
             vertical-alignment: center;
         }
 
@@ -306,7 +316,7 @@ component MethodSelector inherits Rectangle {
             height: root.height;
             font-size: 12px;
             font-weight: 800;
-            color: root.method == "GET" ? #059669 : root.method == "POST" ? #d97706 : root.method == "PUT" ? #2563eb : root.method == "PATCH" ? #7c3aed : root.method == "DELETE" ? #dc2626 : #6b7280;
+            color: MethodStyle.text-color(root.method);
             vertical-alignment: center;
         }
 
@@ -742,7 +752,7 @@ component Sidebar inherits Rectangle {
                         width: 45px;
                         height: 22px;
                         border-radius: 4px;
-                        background: route.method == "GET" ? #ecfdf5 : route.method == "POST" ? #fffbeb : route.method == "PUT" ? #eff6ff : route.method == "PATCH" ? #f5f3ff : route.method == "DELETE" ? #fef2f2 : #f3f4f6;
+                        background: MethodStyle.background-color(route.method);
 
                         UiText {
                             text: route.method;
@@ -750,7 +760,7 @@ component Sidebar inherits Rectangle {
                             height: parent.height;
                             font-size: 11px;
                             font-weight: 800;
-                            color: route.method == "GET" ? #059669 : route.method == "POST" ? #d97706 : route.method == "PUT" ? #2563eb : route.method == "PATCH" ? #7c3aed : route.method == "DELETE" ? #dc2626 : #6b7280;
+                            color: MethodStyle.text-color(route.method);
                             horizontal-alignment: center;
                             vertical-alignment: center;
                         }

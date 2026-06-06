@@ -99,6 +99,9 @@ stable dimensions, and clear state over explanatory in-app copy.
 - Use functional accents sparingly: green for selected/ready states, blue for
   primary request actions, amber for waiting or mock-stop actions, and red for
   errors.
+- HTTP method colors and method pill backgrounds must come from one shared
+  token/helper. The sidebar list, method picker, and request method selector
+  should never duplicate separate GET/POST/etc. color maps.
 - Response status color must come from explicit state/tone, not from broad text
   assumptions. Use neutral gray for idle, filtering, and route-selection states;
   amber for in-progress work; green for successful import or 2xx/3xx responses;
