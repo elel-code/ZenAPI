@@ -12,8 +12,8 @@ component Tab inherits Rectangle {
     callback clicked();
 
     width: 86px;
-    height: 40px;
-    background: root.selected ? #f7f7f4 : #eceee9;
+    height: 36px;
+    background: #151720;
 
     TouchArea {
         clicked => {
@@ -25,7 +25,7 @@ component Tab inherits Rectangle {
         text: root.text;
         width: parent.width;
         height: parent.height;
-        color: root.selected ? #0f172a : #64748b;
+        color: root.selected ? #e2e8f0 : #64748b;
         font-weight: root.selected ? 700 : 500;
         font-size: 13px;
         horizontal-alignment: center;
@@ -37,7 +37,7 @@ component Tab inherits Rectangle {
 
         Rectangle {
             height: 2px;
-            background: root.selected ? #2f6b3a : #eceee9;
+            background: root.selected ? #10b981 : transparent;
         }
     }
 }
@@ -46,15 +46,17 @@ component ActionButton inherits Rectangle {
     in property <string> text;
     in property <bool> enabled: true;
     in property <bool> primary: false;
+    in property <bool> warning: false;
     in property <bool> dark: false;
+    in property <bool> embedded: false;
     callback clicked();
 
     height: 34px;
     width: 104px;
-    border-radius: 6px;
-    border-width: 1px;
-    border-color: !root.enabled ? #94a3b8 : root.primary ? #1d4ed8 : root.dark ? #475569 : #cbd5e1;
-    background: !root.enabled ? #cbd5e1 : root.primary ? (touch.pressed ? #1e40af : touch.has-hover ? #2563eb : #1d4ed8) : root.dark ? (touch.pressed ? #334155 : touch.has-hover ? #475569 : #334155) : (touch.pressed ? #cbd5e1 : touch.has-hover ? #e2e8f0 : #f8fafc);
+    border-radius: root.embedded ? 4px : 6px;
+    border-width: root.embedded ? 0px : 1px;
+    border-color: !root.enabled ? #252936 : root.warning ? #92400e : root.primary ? #1d4ed8 : #343946;
+    background: !root.enabled ? #20242b : root.warning ? (touch.pressed ? #92400e : touch.has-hover ? #d97706 : #b45309) : root.primary ? (touch.pressed ? #1d4ed8 : touch.has-hover ? #3b82f6 : #2563eb) : (touch.pressed ? #151720 : touch.has-hover ? #252936 : #1a1d26);
     opacity: root.enabled ? 1 : 0.65;
 
     touch := TouchArea {
@@ -71,7 +73,7 @@ component ActionButton inherits Rectangle {
         text: root.text;
         width: parent.width;
         height: parent.height;
-        color: root.primary || root.dark ? #ffffff : #0f172a;
+        color: !root.enabled ? #64748b : root.primary || root.warning ? #ffffff : #e2e8f0;
         font-size: 13px;
         font-weight: 700;
         horizontal-alignment: center;
@@ -84,6 +86,7 @@ component ButtonSlot inherits Rectangle {
     in property <string> text;
     in property <bool> enabled: true;
     in property <bool> primary: false;
+    in property <bool> warning: false;
     in property <bool> dark: false;
     in property <length> button-width: 104px;
     in property <length> button-height: 34px;
@@ -99,6 +102,7 @@ component ButtonSlot inherits Rectangle {
         text: root.text;
         enabled: root.enabled;
         primary: root.primary;
+        warning: root.warning;
         dark: root.dark;
         width: root.button-width;
         height: root.button-height;
@@ -114,15 +118,16 @@ component TextFieldShell inherits Rectangle {
     in property <bool> dark: false;
     in property <bool> show-label: false;
     in property <string> label: "";
+    in property <bool> embedded: false;
     callback edited();
 
     height: 36px;
     horizontal-stretch: 1;
     vertical-stretch: 0;
-    border-radius: 6px;
-    border-width: 1px;
-    border-color: text-input.has-focus ? (root.dark ? #60a5fa : #2563eb) : (root.dark ? #475569 : #94a3b8);
-    background: root.dark ? (text-input.has-focus ? #111827 : #0f172a) : #ffffff;
+    border-radius: root.embedded ? 0px : 6px;
+    border-width: root.embedded ? 0px : 1px;
+    border-color: text-input.has-focus ? #3b82f6 : #252936;
+    background: root.embedded ? transparent : (text-input.has-focus ? #1f2430 : #1a1d26);
 
     HorizontalLayout {
         padding-left: 12px;
@@ -136,7 +141,7 @@ component TextFieldShell inherits Rectangle {
             height: root.height;
             font-size: 11px;
             font-weight: 800;
-            color: root.dark ? #cbd5e1 : #475569;
+            color: root.dark ? #94a3b8 : #64748b;
             horizontal-alignment: center;
             vertical-alignment: center;
         }
@@ -150,7 +155,7 @@ component TextFieldShell inherits Rectangle {
                 text: root.text == "" ? root.placeholder : "";
                 width: parent.width;
                 height: parent.height;
-                color: root.dark ? #94a3b8 : #64748b;
+                color: #64748b;
                 font-size: 13px;
                 horizontal-alignment: left;
                 vertical-alignment: center;
@@ -164,7 +169,7 @@ component TextFieldShell inherits Rectangle {
                 single-line: true;
                 font-family: "Zen Sans";
                 font-size: 13px;
-                color: root.dark ? #f8fafc : #0f172a;
+                color: #e2e8f0;
                 selection-background-color: #2563eb;
                 selection-foreground-color: #ffffff;
                 vertical-alignment: center;
@@ -184,7 +189,7 @@ component MethodOption inherits Rectangle {
     height: 32px;
     horizontal-stretch: 1;
     border-radius: 4px;
-    background: root.selected ? #dbeafe : option-touch.has-hover ? #f1f5f9 : #ffffff;
+    background: root.selected ? #1f2937 : option-touch.has-hover ? #20242b : #151720;
 
     option-touch := TouchArea {
         mouse-cursor: pointer;
@@ -205,7 +210,7 @@ component MethodOption inherits Rectangle {
             height: root.height;
             font-size: 12px;
             font-weight: 800;
-            color: root.value == "GET" ? #059669 : root.value == "POST" ? #d97706 : root.value == "PUT" ? #2563eb : root.value == "PATCH" ? #7c3aed : root.value == "DELETE" ? #dc2626 : #475569;
+            color: root.value == "GET" ? #10b981 : root.value == "POST" ? #f59e0b : root.value == "PUT" ? #3b82f6 : root.value == "PATCH" ? #a78bfa : root.value == "DELETE" ? #ef4444 : #94a3b8;
             vertical-alignment: center;
         }
 
@@ -217,20 +222,21 @@ component MethodOption inherits Rectangle {
             width: root.selected ? 7px : 0px;
             height: 7px;
             border-radius: 4px;
-            background: root.selected ? #2563eb : transparent;
+            background: root.selected ? #10b981 : transparent;
         }
     }
 }
 
 component MethodSelector inherits Rectangle {
     in-out property <string> method;
+    in property <bool> embedded: false;
 
-    width: 124px;
-    height: 40px;
-    border-radius: 6px;
-    border-width: 1px;
-    border-color: #020617;
-    background: picker-touch.pressed ? #0f172a : picker-touch.has-hover ? #1e293b : #111827;
+    width: 98px;
+    height: 36px;
+    border-radius: root.embedded ? 0px : 6px;
+    border-width: root.embedded ? 0px : 1px;
+    border-color: #252936;
+    background: root.embedded ? (picker-touch.pressed ? #0e1015 : picker-touch.has-hover ? #20242b : transparent) : (picker-touch.pressed ? #0e1015 : picker-touch.has-hover ? #20242b : #1a1d26);
 
     picker-touch := TouchArea {
         mouse-cursor: pointer;
@@ -247,11 +253,11 @@ component MethodSelector inherits Rectangle {
 
         Text {
             text: root.method;
-            width: 78px;
+            width: 58px;
             height: root.height;
             font-size: 12px;
             font-weight: 800;
-            color: root.method == "GET" ? #34d399 : root.method == "POST" ? #fbbf24 : root.method == "PUT" ? #60a5fa : root.method == "PATCH" ? #c084fc : root.method == "DELETE" ? #f87171 : #cbd5e1;
+            color: root.method == "GET" ? #10b981 : root.method == "POST" ? #f59e0b : root.method == "PUT" ? #3b82f6 : root.method == "PATCH" ? #a78bfa : root.method == "DELETE" ? #ef4444 : #94a3b8;
             vertical-alignment: center;
         }
 
@@ -277,11 +283,11 @@ component MethodSelector inherits Rectangle {
         Rectangle {
             width: method-popup.width;
             height: method-popup.height;
-            background: #ffffff;
+            background: #151720;
             border-radius: 6px;
             border-width: 1px;
-            border-color: #94a3b8;
-            drop-shadow-color: #47556980;
+            border-color: #252936;
+            drop-shadow-color: #00000080;
             drop-shadow-blur: 14px;
             drop-shadow-offset-y: 4px;
 
@@ -366,10 +372,10 @@ component CodePane inherits Rectangle {
     in-out property <string> text;
     in property <bool> read-only;
 
-    background: #111827;
-    border-color: #293548;
+    background: #1a1d26;
+    border-color: #252936;
     border-width: 1px;
-    border-radius: 6px;
+    border-radius: 4px;
 
     VerticalLayout {
         padding: 0px;
@@ -400,37 +406,37 @@ component CodePane inherits Rectangle {
 
 component TopBar inherits Rectangle {
     in-out property <string> file-path;
-    in property <string> server-status;
+    in property <string> spec-label;
+    in property <bool> spec-loaded;
     in property <bool> server-running;
     in property <int> route-count;
     in property <bool> busy;
     callback import-openapi(string);
     callback toggle-server();
 
-    height: 58px;
-    background: #20242b;
+    height: 48px;
+    background: #151720;
 
     HorizontalLayout {
         padding-left: 0px;
-        padding-right: 12px;
+        padding-right: 14px;
         spacing: 0px;
         alignment: center;
 
         Rectangle {
-            width: 312px;
-            background: #151922;
+            width: 260px;
+            background: #151720;
 
             HorizontalLayout {
-                padding-left: 18px;
-                padding-right: 16px;
-                spacing: 12px;
+                padding-left: 16px;
+                padding-right: 14px;
                 alignment: center;
 
                 Text {
                     text: "ZenAPI";
-                    font-size: 18px;
+                    font-size: 16px;
                     font-weight: 800;
-                    color: #f8fafc;
+                    color: #e2e8f0;
                     vertical-alignment: center;
                 }
 
@@ -442,69 +448,151 @@ component TopBar inherits Rectangle {
 
         Rectangle {
             width: 1px;
-            background: #343946;
+            background: #252936;
         }
 
         HorizontalLayout {
-            padding-left: 12px;
-            padding-right: 12px;
+            padding-left: 14px;
+            padding-right: 14px;
             spacing: 8px;
             alignment: center;
             horizontal-stretch: 1;
 
-            TextFieldShell {
-                text <=> root.file-path;
-                placeholder: "OpenAPI JSON/YAML file path";
-                dark: true;
-                show-label: true;
-                label: "SPEC";
-                horizontal-stretch: 1;
-                height: 36px;
+            Rectangle {
+                width: 360px;
+                height: 34px;
+                border-radius: 6px;
+                border-width: 1px;
+                border-color: #252936;
+                background: #1a1d26;
+
+                HorizontalLayout {
+                    padding-left: 12px;
+                    padding-right: 12px;
+                    spacing: 8px;
+                    alignment: center;
+
+                    Rectangle {
+                        width: 7px;
+                        height: 7px;
+                        border-radius: 4px;
+                        background: root.spec-loaded ? #10b981 : #64748b;
+                    }
+
+                    Text {
+                        text: root.spec-loaded ? root.spec-label : "No specification loaded";
+                        color: root.spec-loaded ? #cbd5e1 : #64748b;
+                        font-size: 13px;
+                        font-italic: !root.spec-loaded;
+                        horizontal-stretch: 1;
+                        overflow: elide;
+                        vertical-alignment: center;
+                    }
+                }
             }
 
-            ButtonSlot {
+            ActionButton {
                 text: "Import";
                 enabled: !root.busy;
+                width: 78px;
+                height: 34px;
                 dark: true;
-                button-width: 78px;
-                button-height: 36px;
-                slot-height: root.height;
                 clicked => {
-                    root.import-openapi(root.file-path);
+                    import-popup.show();
                 }
+            }
+
+            Rectangle {
+                horizontal-stretch: 1;
             }
         }
 
         HorizontalLayout {
-            width: 292px;
+            width: 174px;
             spacing: 8px;
             alignment: center;
 
-            Rectangle {
-                width: 8px;
-                height: 8px;
-                border-radius: 4px;
-                background: root.server-running ? #10b981 : #94a3b8;
-            }
-
             Text {
-                text: root.server-status;
-                color: root.server-running ? #d1fae5 : root.route-count == 0 ? #f8d49b : #d2d7df;
-                font-size: 13px;
-                horizontal-stretch: 1;
-                overflow: elide;
+                text: root.server-running ? "Port 8080" : "";
+                width: 56px;
+                height: 34px;
+                color: #94a3b8;
+                font-size: 12px;
+                horizontal-alignment: right;
                 vertical-alignment: center;
             }
 
             ButtonSlot {
                 text: root.server-running ? "Stop Mock" : "Start Mock";
                 enabled: !root.busy && (root.server-running || root.route-count > 0);
+                warning: root.server-running;
                 dark: true;
                 button-width: 110px;
-                button-height: 36px;
+                button-height: 34px;
                 slot-height: root.height;
                 clicked => {
                     root.toggle-server();
+                }
+            }
+        }
+    }
+
+    import-popup := PopupWindow {
+        x: 274px;
+        y: root.height + 4px;
+        width: 520px;
+        height: 92px;
+        close-policy: close-on-click-outside;
+
+        Rectangle {
+            width: import-popup.width;
+            height: import-popup.height;
+            background: #151720;
+            border-radius: 6px;
+            border-width: 1px;
+            border-color: #252936;
+            drop-shadow-color: #00000080;
+            drop-shadow-blur: 14px;
+            drop-shadow-offset-y: 4px;
+
+            VerticalLayout {
+                padding: 10px;
+                spacing: 8px;
+
+                Text {
+                    text: "OpenAPI specification";
+                    height: 18px;
+                    font-size: 12px;
+                    font-weight: 700;
+                    color: #94a3b8;
+                    vertical-alignment: center;
+                }
+
+                HorizontalLayout {
+                    spacing: 8px;
+                    alignment: center;
+
+                    TextFieldShell {
+                        text <=> root.file-path;
+                        placeholder: "Local JSON or YAML file path";
+                        dark: true;
+                        show-label: true;
+                        label: "PATH";
+                        height: 34px;
+                        horizontal-stretch: 1;
+                    }
+
+                    ActionButton {
+                        text: "Import";
+                        enabled: !root.busy;
+                        primary: true;
+                        width: 78px;
+                        height: 34px;
+                        clicked => {
+                            import-popup.close();
+                            root.import-openapi(root.file-path);
+                        }
+                    }
                 }
             }
         }
@@ -519,12 +607,12 @@ component Sidebar inherits Rectangle {
     callback select-route(int);
     callback filter-routes(string);
 
-    width: 312px;
-    background: #f1f3f0;
+    width: 260px;
+    background: #151720;
 
     VerticalLayout {
-        padding: 16px;
-        spacing: 10px;
+        padding: 12px;
+        spacing: 8px;
 
         HorizontalLayout {
             spacing: 8px;
@@ -533,7 +621,7 @@ component Sidebar inherits Rectangle {
                 text: "Endpoints";
                 font-size: 13px;
                 font-weight: 700;
-                color: #20242b;
+                color: #e2e8f0;
                 height: 22px;
                 vertical-alignment: center;
             }
@@ -545,7 +633,7 @@ component Sidebar inherits Rectangle {
             Text {
                 text: root.total-route-count == 0 ? "" : root.routes.length + "/" + root.total-route-count;
                 font-size: 12px;
-                color: #475569;
+                color: #64748b;
                 height: 22px;
                 vertical-alignment: center;
             }
@@ -553,7 +641,7 @@ component Sidebar inherits Rectangle {
 
         Rectangle {
             height: 1px;
-            background: #d5d9d2;
+            background: #252936;
         }
 
         TextFieldShell {
@@ -561,7 +649,7 @@ component Sidebar inherits Rectangle {
             placeholder: "Filter method, path, or summary";
             show-label: true;
             label: "FIND";
-            height: 34px;
+            height: 32px;
             visible: root.total-route-count > 0;
             edited => {
                 root.filter-routes(root.route-filter);
@@ -569,31 +657,21 @@ component Sidebar inherits Rectangle {
         }
 
         Rectangle {
-            height: root.routes.length == 0 ? 132px : 0px;
-            background: #ffffff;
-            border-radius: 8px;
+            height: root.routes.length == 0 ? 96px : 0px;
+            background: #151720;
+            border-radius: 4px;
             border-width: root.routes.length == 0 ? 1px : 0px;
-            border-color: #c7cdc5;
+            border-color: #252936;
 
             VerticalLayout {
-                padding: 16px;
-                spacing: 8px;
+                padding: 12px;
+                spacing: 4px;
                 alignment: center;
 
                 Rectangle {
-                    width: 46px;
-                    height: 26px;
-                    border-radius: 5px;
-                    background: #e6f4d7;
-
-                    Text {
-                        text: "API";
-                        font-size: 11px;
-                        font-weight: 800;
-                        color: #2f6b3a;
-                        horizontal-alignment: center;
-                        vertical-alignment: center;
-                    }
+                    width: 42px;
+                    height: 1px;
+                    background: #343946;
                 }
 
                 Text {
@@ -601,16 +679,16 @@ component Sidebar inherits Rectangle {
                     height: 20px;
                     font-size: 13px;
                     font-weight: 700;
-                    color: #30363a;
+                    color: #e2e8f0;
                     horizontal-alignment: center;
                     vertical-alignment: center;
                 }
 
                 Text {
-                    text: root.routes.length == 0 ? (root.total-route-count == 0 ? "Import an OpenAPI file\nto populate routes." : "Adjust the filter\nto show endpoints.") : "";
-                    height: 34px;
+                    text: root.routes.length == 0 ? (root.total-route-count == 0 ? "Spec not loaded" : "Filter returned none") : "";
+                    height: 18px;
                     font-size: 12px;
-                    color: #68706c;
+                    color: #64748b;
                     horizontal-alignment: center;
                     vertical-alignment: center;
                 }
@@ -619,9 +697,9 @@ component Sidebar inherits Rectangle {
 
         ListView {
             for route[i] in root.routes: Rectangle {
-                height: 54px;
-                border-radius: 6px;
-                background: root.selected-route == i ? #e6f4d7 : (route-touch.has-hover ? #e2e6df : #f1f3f0);
+                height: 38px;
+                border-radius: 4px;
+                background: root.selected-route == i ? #1f2937 : (route-touch.has-hover ? #20242b : #151720);
 
                 route-touch := TouchArea {
                     clicked => {
@@ -631,16 +709,16 @@ component Sidebar inherits Rectangle {
                 }
 
                 HorizontalLayout {
-                    padding-left: 8px;
-                    padding-right: 10px;
-                    spacing: 10px;
+                    padding-left: 6px;
+                    padding-right: 8px;
+                    spacing: 8px;
                     alignment: center;
 
                     Rectangle {
-                        width: 58px;
-                        height: 26px;
-                        border-radius: 5px;
-                        background: route.method == "GET" ? #dff7e8 : route.method == "POST" ? #fff0d4 : route.method == "PUT" ? #e0ecff : route.method == "PATCH" ? #efe5ff : route.method == "DELETE" ? #ffe4e6 : #e8ece8;
+                        width: 45px;
+                        height: 22px;
+                        border-radius: 4px;
+                        background: route.method == "GET" ? #0b2f26 : route.method == "POST" ? #33240b : route.method == "PUT" ? #102445 : route.method == "PATCH" ? #281945 : route.method == "DELETE" ? #3a1117 : #20242b;
 
                         Text {
                             text: route.method;
@@ -648,7 +726,7 @@ component Sidebar inherits Rectangle {
                             height: parent.height;
                             font-size: 11px;
                             font-weight: 800;
-                            color: route.method == "GET" ? #047857 : route.method == "POST" ? #b45309 : route.method == "PUT" ? #1d4ed8 : route.method == "PATCH" ? #6d28d9 : route.method == "DELETE" ? #dc2626 : #475569;
+                            color: route.method == "GET" ? #10b981 : route.method == "POST" ? #f59e0b : route.method == "PUT" ? #3b82f6 : route.method == "PATCH" ? #a78bfa : route.method == "DELETE" ? #ef4444 : #94a3b8;
                             horizontal-alignment: center;
                             vertical-alignment: center;
                         }
@@ -656,29 +734,29 @@ component Sidebar inherits Rectangle {
 
                     Rectangle {
                         horizontal-stretch: 1;
-                        height: 42px;
+                        height: 32px;
                         background: transparent;
 
                         VerticalLayout {
-                            spacing: 2px;
+                            spacing: 0px;
                             alignment: center;
 
                             Text {
                                 text: route.path;
-                                height: 20px;
-                                font-size: 13px;
+                                height: 18px;
+                                font-size: 12px;
                                 font-weight: 700;
-                                color: root.selected-route == i ? #2f6b3a : #20242b;
+                                color: root.selected-route == i ? #e2e8f0 : #cbd5e1;
                                 overflow: elide;
                                 vertical-alignment: center;
                             }
 
                             Text {
                                 text: route.summary == "" ? "No summary" : route.summary;
-                                height: 18px;
-                                font-size: 11px;
+                                height: 14px;
+                                font-size: 10px;
                                 font-weight: 500;
-                                color: #68706c;
+                                color: #64748b;
                                 overflow: elide;
                                 vertical-alignment: center;
                             }
@@ -696,28 +774,38 @@ component RequestBar inherits Rectangle {
     in property <bool> busy;
     callback send-request();
 
-    height: 72px;
-    background: #ece7dc;
-    border-color: #c9c1b3;
+    height: 52px;
+    background: #11131a;
+    border-color: #252936;
     border-width: 1px;
-    border-radius: 8px;
+    border-radius: 0px;
 
     VerticalLayout {
-        padding-left: 12px;
-        padding-right: 12px;
+        padding-left: 14px;
+        padding-right: 14px;
         alignment: center;
 
         Rectangle {
-            height: 40px;
+            height: 36px;
             horizontal-stretch: 1;
-            background: transparent;
+            background: #1a1d26;
+            border-radius: 6px;
+            border-width: 1px;
+            border-color: #252936;
 
             HorizontalLayout {
-                spacing: 10px;
+                spacing: 0px;
                 alignment: center;
 
                 MethodSelector {
                     method <=> root.method;
+                    embedded: true;
+                }
+
+                Rectangle {
+                    width: 1px;
+                    height: 24px;
+                    background: #252936;
                 }
 
                 TextFieldShell {
@@ -725,16 +813,24 @@ component RequestBar inherits Rectangle {
                     placeholder: "Enter request URL";
                     show-label: true;
                     label: "URL";
-                    height: 40px;
+                    embedded: true;
+                    height: 36px;
                     horizontal-stretch: 1;
+                }
+
+                Rectangle {
+                    width: 1px;
+                    height: 24px;
+                    background: #252936;
                 }
 
                 ActionButton {
                     text: root.busy ? "Sending..." : "Send";
                     enabled: !root.busy;
                     primary: true;
+                    embedded: true;
                     width: 90px;
-                    height: 40px;
+                    height: 34px;
                     clicked => {
                         root.send-request();
                     }
@@ -749,23 +845,23 @@ component RequestPanel inherits Rectangle {
     in-out property <int> active-req-tab;
 
     vertical-stretch: 1;
-    background: #f7f7f4;
-    border-color: #d2d5ce;
+    background: #11131a;
+    border-color: #252936;
     border-width: 1px;
-    border-radius: 8px;
+    border-radius: 0px;
 
     VerticalLayout {
         padding: 0px;
         spacing: 0px;
 
         Rectangle {
-            height: 40px;
-            background: #eceee9;
-            border-radius: 8px;
+            height: 36px;
+            background: #151720;
+            border-radius: 0px;
 
             HorizontalLayout {
-                padding-left: 16px;
-                spacing: 8px;
+                padding-left: 12px;
+                spacing: 0px;
                 alignment: center;
 
                 Tab {
@@ -780,11 +876,11 @@ component RequestPanel inherits Rectangle {
 
         Rectangle {
             height: 1px;
-            background: #d2d5ce;
+            background: #252936;
         }
 
         Rectangle {
-            background: #f7f7f4;
+            background: #11131a;
 
             VerticalLayout {
                 padding: 8px;
@@ -806,24 +902,24 @@ component ResponsePanel inherits Rectangle {
     in property <string> response-tone;
 
     vertical-stretch: 1;
-    background: #f7f7f4;
-    border-color: #d2d5ce;
+    background: #11131a;
+    border-color: #252936;
     border-width: 1px;
-    border-radius: 8px;
+    border-radius: 0px;
 
     VerticalLayout {
         padding: 0px;
         spacing: 0px;
 
         Rectangle {
-            height: 40px;
-            background: #eceee9;
-            border-radius: 8px;
+            height: 36px;
+            background: #151720;
+            border-radius: 0px;
 
             HorizontalLayout {
-                padding-left: 16px;
-                padding-right: 16px;
-                spacing: 8px;
+                padding-left: 12px;
+                padding-right: 12px;
+                spacing: 0px;
                 alignment: center;
 
                 Tab {
@@ -838,7 +934,7 @@ component ResponsePanel inherits Rectangle {
                     text: root.response-status + (root.response-meta == "" ? "" : " - " + root.response-meta);
                     font-size: 12px;
                     font-weight: 600;
-                    color: root.response-tone == "error" ? #dc2626 : root.response-tone == "busy" ? #b7791f : root.response-tone == "success" ? #16825d : #68706c;
+                    color: root.response-tone == "error" ? #ef4444 : root.response-tone == "busy" ? #f59e0b : root.response-tone == "success" ? #10b981 : #64748b;
                     horizontal-stretch: 1;
                     overflow: elide;
                     horizontal-alignment: right;
@@ -849,11 +945,11 @@ component ResponsePanel inherits Rectangle {
 
         Rectangle {
             height: 1px;
-            background: #d2d5ce;
+            background: #252936;
         }
 
         Rectangle {
-            background: #f7f7f4;
+            background: #11131a;
 
             VerticalLayout {
                 padding: 8px;
@@ -880,6 +976,8 @@ export component AppWindow inherits Window {
     in-out property <[RouteRow]> routes;
     in-out property <int> selected-route: -1;
     in-out property <string> file-path;
+    in-out property <string> spec-label: "";
+    in-out property <bool> spec-loaded: false;
     in-out property <string> method: "GET";
     in-out property <string> url;
     in-out property <string> request-body;
@@ -889,7 +987,7 @@ export component AppWindow inherits Window {
     in-out property <string> response-body: "";
     in-out property <string> route-filter;
     in-out property <int> total-route-count: 0;
-    in-out property <string> server-status: "Import routes to start mock";
+    in-out property <string> server-status: "Idle";
     in-out property <bool> server-running: false;
     in-out property <bool> busy: false;
 
@@ -902,7 +1000,7 @@ export component AppWindow inherits Window {
     callback send-request();
     callback toggle-server();
 
-    background: #e7e5dd;
+    background: #0e1015;
 
     VerticalLayout {
         padding: 0px;
@@ -910,7 +1008,8 @@ export component AppWindow inherits Window {
 
         TopBar {
             file-path <=> root.file-path;
-            server-status: root.server-status;
+            spec-label: root.spec-label;
+            spec-loaded: root.spec-loaded;
             server-running: root.server-running;
             route-count: root.total-route-count;
             busy: root.busy;
@@ -924,7 +1023,7 @@ export component AppWindow inherits Window {
 
         Rectangle {
             height: 1px;
-            background: #0f172a;
+            background: #252936;
         }
 
         HorizontalLayout {
@@ -945,15 +1044,15 @@ export component AppWindow inherits Window {
 
             Rectangle {
                 width: 1px;
-                background: #d2d5ce;
+                background: #252936;
             }
 
             Rectangle {
-                background: #e7e5dd;
+                background: #0e1015;
 
                 VerticalLayout {
-                    padding: 14px;
-                    spacing: 12px;
+                    padding: 0px;
+                    spacing: 0px;
 
                     RequestBar {
                         method <=> root.method;

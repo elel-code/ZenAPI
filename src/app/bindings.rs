@@ -1,6 +1,7 @@
 use super::state::{AppState, ServerAction};
 use crate::ui::{AppWindow, RouteRow};
 use slint::{ComponentHandle, ModelRc, SharedString, VecModel};
+use std::path::Path;
 use std::sync::{Arc, Mutex};
 use tokio::runtime::Runtime;
 use zenapi::{
@@ -15,6 +16,9 @@ pub(super) fn wire_import(app: &AppWindow, runtime: Arc<Runtime>, state: Arc<Mut
         let Some(app) = weak_app.upgrade() else {
             return;
         };
+        if is_busy(&app) {
+            return;
+        }
 
         let path = path.trim();
         if path.is_empty() {
@@ -37,6 +41,7 @@ pub(super) fn wire_import(app: &AppWindow, runtime: Arc<Runtime>, state: Arc<Mut
                 });
 
                 let spec_name = display_spec_name(&spec);
+                let spec_label = display_spec_label(path);
                 let weak_app = app.as_weak();
                 runtime.spawn(async move {
                     if let Some(server) = stopped_server {
@@ -52,6 +57,8 @@ pub(super) fn wire_import(app: &AppWindow, runtime: Arc<Runtime>, state: Arc<Mut
                         app.set_selected_route(-1);
                         app.set_route_filter("".into());
                         app.set_total_route_count(routes.len() as i32);
+                        app.set_spec_label(spec_label.into());
+                        app.set_spec_loaded(true);
                         app.set_server_running(false);
                         app.set_response_status(format!("Imported {spec_name}").into());
                         app.set_response_meta(format!("{} routes", routes.len()).into());
@@ -133,6 +140,9 @@ pub(super) fn wire_request_sender(app: &AppWindow, runtime: Arc<Runtime>) {
         let Some(app) = weak_app.upgrade() else {
             return;
         };
+        if is_busy(&app) {
+            return;
+        }
 
         let method = app.get_method().to_string();
         let url = app.get_url().trim().to_string();
@@ -187,6 +197,9 @@ pub(super) fn wire_mock_server(
         let Some(app) = weak_app.upgrade() else {
             return;
         };
+        if is_busy(&app) {
+            return;
+        }
 
         app.set_busy(true);
         let weak_app = app.as_weak();
@@ -269,6 +282,15 @@ fn display_spec_name(spec: &ApiSpec) -> String {
     }
 }
 
+fn display_spec_label(path: &str) -> String {
+    Path::new(path)
+        .file_name()
+        .and_then(|name| name.to_str())
+        .filter(|name| !name.is_empty())
+        .unwrap_or(path)
+        .to_string()
+}
+
 fn route_model(routes: &[ApiRoute]) -> ModelRc<RouteRow> {
     let rows = routes.iter().map(|route| RouteRow {
         method: route.method.clone().into(),
@@ -304,6 +326,10 @@ fn response_tone(status: u16) -> &'static str {
     } else {
         "neutral"
     }
+}
+
+fn is_busy(app: &AppWindow) -> bool {
+    app.get_busy()
 }
 
 fn default_request_body(method: &str) -> &'static str {
