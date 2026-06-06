@@ -38,6 +38,8 @@ stable dimensions, and clear state over explanatory in-app copy.
   Leave absent summaries absent while preserving stable row height and alignment.
 - Empty states should be one concise status line in dense panes. Avoid stacking
   helper explanations when surrounding controls already express the next action.
+- Sidebar empty states should preserve list density. Use a muted row-height
+  placeholder instead of a taller card-like block.
 
 ## Visual System
 
