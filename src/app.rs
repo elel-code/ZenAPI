@@ -16,12 +16,6 @@ pub fn run() -> Result<()> {
     fonts::register_app_fonts();
     let app = AppWindow::new().map_err(|err| anyhow!(err.to_string()))?;
 
-    app.set_response_body(
-        "Import an OpenAPI file, select a route, then send a request or start the mock server."
-            .into(),
-    );
-    app.set_response_tone("neutral".into());
-
     bindings::wire_import(&app, runtime.clone(), state.clone());
     bindings::wire_route_filter(&app, state.clone());
     bindings::wire_route_selection(&app, state.clone());

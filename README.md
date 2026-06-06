@@ -24,8 +24,8 @@ For visual and interaction iteration guidelines, see
 cargo run
 ```
 
-Enter a local OpenAPI file path in the top bar, import it, then select a route.
-The mock server starts on `http://127.0.0.1:8080` by default.
+Use `Import` to enter a local OpenAPI file path, then select a route. The mock
+server starts on `http://127.0.0.1:8080` by default.
 
 ## Project Layout
 
