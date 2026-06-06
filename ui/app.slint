@@ -1,4 +1,6 @@
 import { ListView, ScrollView } from "std-widgets.slint";
+import "fonts/Inter-VariableFont.ttf";
+import "fonts/NotoSansMono-Regular.ttf";
 
 export struct RouteRow {
     method: string,
@@ -120,6 +122,7 @@ component TextFieldShell inherits Rectangle {
     in property <string> label: "";
     in property <bool> embedded: false;
     callback edited();
+    callback accepted();
 
     height: 36px;
     horizontal-stretch: 1;
@@ -167,7 +170,7 @@ component TextFieldShell inherits Rectangle {
                 width: parent.width;
                 height: parent.height;
                 single-line: true;
-                font-family: "Zen Sans";
+                font-family: "Inter";
                 font-size: 13px;
                 color: #e2e8f0;
                 selection-background-color: #2563eb;
@@ -175,6 +178,9 @@ component TextFieldShell inherits Rectangle {
                 vertical-alignment: center;
                 edited => {
                     root.edited();
+                }
+                accepted => {
+                    root.accepted();
                 }
             }
         }
@@ -393,7 +399,7 @@ component CodePane inherits Rectangle {
                 read-only: root.read-only;
                 single-line: false;
                 wrap: word-wrap;
-                font-family: "Zen Mono";
+                font-family: "Noto Sans Mono";
                 font-size: 13px;
                 font-weight: 400;
                 color: #d1d5db;
@@ -580,6 +586,10 @@ component TopBar inherits Rectangle {
                         label: "PATH";
                         height: 34px;
                         horizontal-stretch: 1;
+                        accepted => {
+                            import-popup.close();
+                            root.import-openapi(root.file-path);
+                        }
                     }
 
                     ActionButton {
@@ -816,6 +826,11 @@ component RequestBar inherits Rectangle {
                     embedded: true;
                     height: 36px;
                     horizontal-stretch: 1;
+                    accepted => {
+                        if !root.busy {
+                            root.send-request();
+                        }
+                    }
                 }
 
                 Rectangle {
@@ -969,7 +984,7 @@ export component AppWindow inherits Window {
     preferred-height: 800px;
     min-width: 980px;
     min-height: 640px;
-    default-font-family: "Zen Sans";
+    default-font-family: "Inter";
     default-font-size: 13px;
     default-font-weight: 500;
 

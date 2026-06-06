@@ -30,7 +30,8 @@ server starts on `http://127.0.0.1:8080` by default.
 ## Project Layout
 
 - `ui/`: Slint UI files.
-- `ui/fonts/`: bundled UI fonts registered as `Zen Sans` and `Zen Mono`.
+- `ui/fonts/`: bundled UI fonts imported by Slint as `Inter` and
+  `Noto Sans Mono`.
 - `src/app.rs` and `src/app/`: desktop application wiring and runtime state.
 - `src/openapi.rs` and `src/openapi/`: OpenAPI parsing, route extraction, and
   schema-based mock data generation.

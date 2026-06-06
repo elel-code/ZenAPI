@@ -1,5 +1,4 @@
 mod bindings;
-mod fonts;
 mod state;
 
 use anyhow::{Result, anyhow};
@@ -13,7 +12,6 @@ use crate::ui::AppWindow;
 pub fn run() -> Result<()> {
     let runtime = Arc::new(Runtime::new()?);
     let state = Arc::new(Mutex::new(AppState::default()));
-    fonts::register_app_fonts();
     let app = AppWindow::new().map_err(|err| anyhow!(err.to_string()))?;
 
     bindings::wire_import(&app, runtime.clone(), state.clone());

@@ -18,10 +18,10 @@ stable dimensions, and clear state over explanatory in-app copy.
 
 - Do not rely on OS default fonts or generic families such as `monospace` for
   critical UI text.
-- Register bundled fonts at startup and reference explicit app families in
-  Slint. The current app families are `Zen Sans` and `Zen Mono`.
-- Register bundled fonts before creating any Slint components so first paint
-  does not fall back to system fonts.
+- Import bundled font files from Slint and reference explicit families. The
+  current app families are `Inter` for UI text and `Noto Sans Mono` for code.
+- Do not register fonts through runtime APIs that require the Slint platform
+  before it is initialized.
 - Keep font sizes fixed per component type. Do not scale text with viewport
   width.
 - Prefer concise labels that fit at the minimum window size. Use elision for
@@ -29,6 +29,9 @@ stable dimensions, and clear state over explanatory in-app copy.
 
 ## Visual System
 
+- Slint-provided components are allowed when they fit the interaction. Do not
+  expose their default system font, colors, or theme chrome directly; wrap or
+  configure them so typography, palette, density, and states match ZenAPI.
 - The visual baseline is an integrated dark charcoal split-pane workstation.
   Avoid beige or light page surfaces, oversized gutters, and floating card
   stacks. Panels should meet through 1 px dividers, not broad background gaps.
@@ -51,8 +54,8 @@ stable dimensions, and clear state over explanatory in-app copy.
 - Avoid drifting back to an all blue/gray default theme. When adding surfaces,
   choose colors that fit the existing neutral, green, amber, and dark code-pane
   system.
-- Code and response bodies should use the dark code pane with `Zen Mono`, not
-  default text-editor chrome.
+- Code and response bodies should use the dark code pane with `Noto Sans Mono`,
+  not default text-editor chrome.
 - The top bar is a global console, not a form. Keep it fixed height, align the
   brand area exactly with the sidebar width, use a single bottom divider, and
   avoid explanatory status sentences. Show specification state as a compact
@@ -83,6 +86,10 @@ stable dimensions, and clear state over explanatory in-app copy.
   while filter feedback belongs in the sidebar count and empty state.
 - Avoid inactive tabs or controls that imply functionality not yet implemented.
   Add tabs only when their content and behavior exist.
+- Slint-provided and custom controls must preserve expected native keyboard
+  behavior. Single-line inputs that drive a primary action should expose
+  Enter/accepted behavior, such as importing a specification path or sending the
+  current request URL.
 
 ## Iteration And Commits
 
