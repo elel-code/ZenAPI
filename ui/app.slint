@@ -254,25 +254,17 @@ component MethodOption inherits Rectangle {
         }
     }
 
-    HorizontalLayout {
-        padding-left: 10px;
-        padding-right: 10px;
-        spacing: 8px;
-        alignment: center;
-
-        UiText {
-            text: root.value;
-            width: 62px;
-            height: root.height;
-            font-size: 12px;
-            font-weight: 800;
-            color: MethodStyle.text-color(root.value);
-            vertical-alignment: center;
-        }
-
-        Rectangle {
-            horizontal-stretch: 1;
-        }
+    UiText {
+        x: 10px;
+        y: 0px;
+        text: root.value;
+        width: root.width - 20px;
+        height: root.height;
+        font-size: 12px;
+        font-weight: 800;
+        color: MethodStyle.text-color(root.value);
+        overflow: elide;
+        vertical-alignment: center;
     }
 }
 
@@ -325,26 +317,25 @@ component MethodSelector inherits Rectangle {
         }
     }
 
-    HorizontalLayout {
-        padding-left: 12px;
-        padding-right: 12px;
-        spacing: 8px;
-        alignment: center;
+    UiText {
+        x: 12px;
+        y: 0px;
+        text: root.method;
+        width: 68px;
+        height: root.height;
+        font-size: 12px;
+        font-weight: 800;
+        color: MethodStyle.text-color(root.method);
+        overflow: elide;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+    }
 
-        UiText {
-            text: root.method;
-            width: 58px;
-            height: root.height;
-            font-size: 12px;
-            font-weight: 800;
-            color: MethodStyle.text-color(root.method);
-            vertical-alignment: center;
-        }
-
-        ChevronDown {
-            width: 10px;
-            height: 6px;
-        }
+    ChevronDown {
+        x: root.width - 22px;
+        y: (root.height - 6px) / 2;
+        width: 10px;
+        height: 6px;
     }
 
     Rectangle {
@@ -487,6 +478,42 @@ component CodePane inherits Rectangle {
     }
 }
 
+component SpecStatusSlot inherits Rectangle {
+    in property <string> text;
+    in property <bool> loaded;
+    in property <length> slot-height: 48px;
+
+    width: 360px;
+    height: root.slot-height;
+    vertical-stretch: 0;
+    background: transparent;
+
+    Rectangle {
+        y: (root.slot-height - 34px) / 2;
+        width: parent.width;
+        height: 34px;
+        vertical-stretch: 0;
+        border-radius: 6px;
+        border-width: 1px;
+        border-color: #d1d5db;
+        background: #f3f4f6;
+
+        UiText {
+            x: 12px;
+            y: 0px;
+            text: root.text;
+            width: parent.width - 24px;
+            height: parent.height;
+            color: root.loaded ? #374151 : #6b7280;
+            font-family: root.loaded ? "Noto Sans Mono" : "Inter";
+            font-size: 13px;
+            font-italic: !root.loaded;
+            overflow: elide;
+            vertical-alignment: center;
+        }
+    }
+}
+
 component TopBar inherits Rectangle {
     in-out property <string> file-path;
     in property <string> spec-label;
@@ -538,33 +565,10 @@ component TopBar inherits Rectangle {
             alignment: center;
             horizontal-stretch: 1;
 
-            Rectangle {
-                width: 360px;
-                height: 34px;
-                vertical-stretch: 0;
-                border-radius: 6px;
-                border-width: 1px;
-                border-color: #d1d5db;
-                background: #f3f4f6;
-
-                HorizontalLayout {
-                    padding-left: 12px;
-                    padding-right: 12px;
-                    spacing: 0px;
-                    alignment: center;
-
-                    UiText {
-                        text: root.spec-loaded ? root.spec-label : "No specification loaded";
-                        height: 34px;
-                        color: root.spec-loaded ? #374151 : #6b7280;
-                        font-family: root.spec-loaded ? "Noto Sans Mono" : "Inter";
-                        font-size: 13px;
-                        font-italic: !root.spec-loaded;
-                        horizontal-stretch: 1;
-                        overflow: elide;
-                        vertical-alignment: center;
-                    }
-                }
+            SpecStatusSlot {
+                text: root.spec-loaded ? root.spec-label : "No specification loaded";
+                loaded: root.spec-loaded;
+                slot-height: root.height;
             }
 
             ButtonSlot {
@@ -780,7 +784,7 @@ component Sidebar inherits Rectangle {
                     alignment: center;
 
                     Rectangle {
-                        width: 45px;
+                        width: 60px;
                         height: 22px;
                         border-radius: 4px;
                         background: MethodStyle.background-color(route.method);
@@ -792,6 +796,7 @@ component Sidebar inherits Rectangle {
                             font-size: 11px;
                             font-weight: 800;
                             color: MethodStyle.text-color(route.method);
+                            overflow: elide;
                             horizontal-alignment: center;
                             vertical-alignment: center;
                         }

@@ -88,6 +88,9 @@ stable dimensions, and clear state over explanatory in-app copy.
 - The request method selector is the left segment of the address bar, not a
   separate control. Give it stable width, no outside border while embedded, and
   put its divider on the segment boundary.
+- Method selector text, chevron, and popup option labels should use explicit
+  fixed coordinates inside the control so long methods and dropdown glyphs stay
+  visually centered and do not create stray line fragments.
 - Composite controls should change availability as one unit. During request
   sending, the method selector, URL input, and Send segment should all present a
   shared disabled state instead of leaving editable segments visually active.
@@ -96,6 +99,10 @@ stable dimensions, and clear state over explanatory in-app copy.
   control group should share the same disabled condition and callback guard.
 - Header buttons must center the actual button rectangle within the toolbar
   slot, not only center the label text inside a drifting button.
+- Top-bar inline controls must use the same visible height and slot centering.
+  A 34 px spec status field next to 34 px buttons should be positioned from the
+  48 px toolbar slot with an explicit y offset, not inferred from nested layout
+  cross-axis behavior.
 - Split panes and primary content regions must declare explicit stretch rules.
   The sidebar can be fixed width, but the main work area, route list, panels,
   and editor panes should not depend on implicit layout expansion.
@@ -108,6 +115,9 @@ stable dimensions, and clear state over explanatory in-app copy.
 - HTTP method colors and method pill backgrounds must come from one shared
   token/helper. The sidebar list, method picker, and request method selector
   should never duplicate separate GET/POST/etc. color maps.
+- HTTP method labels need stable widths and explicit overflow handling. Common
+  methods such as DELETE and OPTIONS must not compress adjacent route text or
+  change row height.
 - Response status color must come from explicit state/tone, not from broad text
   assumptions. Use neutral gray for idle, filtering, and route-selection states;
   amber for in-progress work; green for successful import or 2xx/3xx responses;
