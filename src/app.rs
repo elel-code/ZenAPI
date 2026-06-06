@@ -20,6 +20,7 @@ pub fn run() -> Result<()> {
         "Import an OpenAPI file, select a route, then send a request or start the mock server."
             .into(),
     );
+    app.set_response_tone("neutral".into());
 
     bindings::wire_import(&app, runtime.clone(), state.clone());
     bindings::wire_route_filter(&app, state.clone());

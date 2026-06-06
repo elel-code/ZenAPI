@@ -803,6 +803,7 @@ component ResponsePanel inherits Rectangle {
     in-out property <int> active-res-tab;
     in property <string> response-status;
     in property <string> response-meta;
+    in property <string> response-tone;
 
     vertical-stretch: 1;
     background: #f7f7f4;
@@ -837,7 +838,7 @@ component ResponsePanel inherits Rectangle {
                     text: root.response-status + (root.response-meta == "" ? "" : " - " + root.response-meta);
                     font-size: 12px;
                     font-weight: 600;
-                    color: root.response-status == "Request failed" || root.response-status == "Import failed" || root.response-status == "Mock server failed" || root.response-status == "Request needs a URL" || root.response-status == "Import needs a file path" || root.response-status == "Mock needs routes" ? #dc2626 : #16825d;
+                    color: root.response-tone == "error" ? #dc2626 : root.response-tone == "busy" ? #b7791f : root.response-tone == "success" ? #16825d : #68706c;
                     horizontal-stretch: 1;
                     overflow: elide;
                     horizontal-alignment: right;
@@ -884,6 +885,7 @@ export component AppWindow inherits Window {
     in-out property <string> request-body;
     in-out property <string> response-status: "Idle";
     in-out property <string> response-meta: "";
+    in-out property <string> response-tone: "neutral";
     in-out property <string> response-body: "";
     in-out property <string> route-filter;
     in-out property <int> total-route-count: 0;
@@ -972,6 +974,7 @@ export component AppWindow inherits Window {
                         active-res-tab <=> root.active-res-tab;
                         response-status: root.response-status;
                         response-meta: root.response-meta;
+                        response-tone: root.response-tone;
                     }
                 }
             }

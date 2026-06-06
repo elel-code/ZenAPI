@@ -35,6 +35,10 @@ stable dimensions, and clear state over explanatory in-app copy.
 - Use a restrained neutral workbench base with functional accents. Current
   accents are green for selected/ready states, blue for primary request action,
   amber for waiting states, and red for errors.
+- Response status color must come from explicit state/tone, not from broad text
+  assumptions. Use neutral gray for idle, filtering, and route-selection states;
+  amber for in-progress work; green for successful import or 2xx/3xx responses;
+  red for validation, transport, mock, and 4xx/5xx response failures.
 - Avoid drifting back to an all blue/gray default theme. When adding surfaces,
   choose colors that fit the existing neutral, green, amber, and dark code-pane
   system.

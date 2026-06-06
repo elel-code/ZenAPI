@@ -20,6 +20,7 @@ pub(super) fn wire_import(app: &AppWindow, runtime: Arc<Runtime>, state: Arc<Mut
         if path.is_empty() {
             app.set_response_status("Import needs a file path".into());
             app.set_response_meta("".into());
+            app.set_response_tone("error".into());
             app.set_response_body("Enter a local OpenAPI or Swagger JSON/YAML file path.".into());
             return;
         }
@@ -54,6 +55,7 @@ pub(super) fn wire_import(app: &AppWindow, runtime: Arc<Runtime>, state: Arc<Mut
                         app.set_server_running(false);
                         app.set_response_status(format!("Imported {spec_name}").into());
                         app.set_response_meta(format!("{} routes", routes.len()).into());
+                        app.set_response_tone("success".into());
                         app.set_response_body(
                             format!("Ready: {} routes parsed.", routes.len()).into(),
                         );
@@ -70,6 +72,7 @@ pub(super) fn wire_import(app: &AppWindow, runtime: Arc<Runtime>, state: Arc<Mut
             Err(error) => {
                 app.set_response_status("Import failed".into());
                 app.set_response_meta("".into());
+                app.set_response_tone("error".into());
                 app.set_response_body(error.to_string().into());
                 app.set_busy(false);
             }
@@ -100,6 +103,7 @@ pub(super) fn wire_route_filter(app: &AppWindow, state: Arc<Mutex<AppState>>) {
             "Routes filtered".into()
         });
         app.set_response_meta(format!("{} visible", filtered.len()).into());
+        app.set_response_tone("neutral".into());
     });
 }
 
@@ -124,6 +128,7 @@ pub(super) fn wire_route_selection(app: &AppWindow, state: Arc<Mutex<AppState>>)
             app.set_request_body(default_request_body(&app.get_method()).into());
             app.set_response_status("Route selected".into());
             app.set_response_meta(route.summary.into());
+            app.set_response_tone("neutral".into());
             app.set_response_body(pretty_json(&route.mock_body).into());
         }
     });
@@ -142,6 +147,7 @@ pub(super) fn wire_request_sender(app: &AppWindow, runtime: Arc<Runtime>) {
         if url.is_empty() {
             app.set_response_status("Request needs a URL".into());
             app.set_response_meta("".into());
+            app.set_response_tone("error".into());
             app.set_response_body("Enter a request URL or select an imported route first.".into());
             return;
         }
@@ -149,6 +155,7 @@ pub(super) fn wire_request_sender(app: &AppWindow, runtime: Arc<Runtime>) {
         app.set_busy(true);
         app.set_response_status("Sending".into());
         app.set_response_meta("".into());
+        app.set_response_tone("busy".into());
 
         let weak_app = app.as_weak();
         runtime.spawn(async move {
@@ -161,11 +168,13 @@ pub(super) fn wire_request_sender(app: &AppWindow, runtime: Arc<Runtime>) {
                     Ok(response) => {
                         app.set_response_status(format!("HTTP {}", response.status).into());
                         app.set_response_meta(format!("{} ms", response.elapsed_ms).into());
+                        app.set_response_tone(response_tone(response.status).into());
                         app.set_response_body(pretty_body(&response.body).into());
                     }
                     Err(error) => {
                         app.set_response_status("Request failed".into());
                         app.set_response_meta("".into());
+                        app.set_response_tone("error".into());
                         app.set_response_body(error.to_string().into());
                     }
                 }
@@ -215,6 +224,7 @@ pub(super) fn wire_mock_server(
                                 app.set_server_status("Import routes before starting mock".into());
                                 app.set_response_status("Mock needs routes".into());
                                 app.set_response_meta("".into());
+                                app.set_response_tone("error".into());
                                 app.set_response_body(
                                     "Import an OpenAPI file before starting the mock server."
                                         .into(),
@@ -246,6 +256,7 @@ pub(super) fn wire_mock_server(
                                 app.set_server_running(false);
                                 app.set_server_status("Mock server failed".into());
                                 app.set_response_status("Mock server failed".into());
+                                app.set_response_tone("error".into());
                                 app.set_response_body(error.to_string().into());
                             }
                         }
@@ -290,6 +301,16 @@ fn filter_routes(routes: &[ApiRoute], query: &str) -> Vec<ApiRoute> {
         })
         .cloned()
         .collect()
+}
+
+fn response_tone(status: u16) -> &'static str {
+    if (200..400).contains(&status) {
+        "success"
+    } else if status >= 400 {
+        "error"
+    } else {
+        "neutral"
+    }
 }
 
 fn default_request_body(method: &str) -> &'static str {
@@ -338,5 +359,14 @@ mod tests {
         ];
 
         assert_eq!(filter_routes(&routes, "   "), routes);
+    }
+
+    #[test]
+    fn maps_http_status_to_response_tone() {
+        assert_eq!(response_tone(200), "success");
+        assert_eq!(response_tone(302), "success");
+        assert_eq!(response_tone(100), "neutral");
+        assert_eq!(response_tone(404), "error");
+        assert_eq!(response_tone(500), "error");
     }
 }
