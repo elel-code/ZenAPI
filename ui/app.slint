@@ -121,6 +121,7 @@ component TextFieldShell inherits Rectangle {
     in property <string> label: "";
     in property <bool> embedded: false;
     in property <bool> mono: false;
+    out property <bool> focused: text-input.has-focus;
     callback edited();
     callback accepted();
 
@@ -790,7 +791,7 @@ component RequestBar inherits Rectangle {
             background: #ffffff;
             border-radius: 6px;
             border-width: 1px;
-            border-color: #d1d5db;
+            border-color: url-field.focused ? #2563eb : #d1d5db;
 
             HorizontalLayout {
                 spacing: 0px;
@@ -801,7 +802,7 @@ component RequestBar inherits Rectangle {
                     embedded: true;
                 }
 
-                TextFieldShell {
+                url-field := TextFieldShell {
                     text <=> root.url;
                     placeholder: "Enter request URL";
                     show-label: true;

@@ -60,6 +60,9 @@ stable dimensions, and clear state over explanatory in-app copy.
 - Fixed-height controls and list rows must explicitly center their contents
   vertically. Give text and pill contents stable heights instead of relying on
   layout defaults.
+- Composite controls must preserve visible focus. If an embedded input hides
+  its own border, export its focus state to the parent shell and render focus on
+  the shared outer border.
 - Header buttons must center the actual button rectangle within the toolbar
   slot, not only center the label text inside a drifting button.
 - Split panes and primary content regions must declare explicit stretch rules.
