@@ -79,6 +79,9 @@ stable dimensions, and clear state over explanatory in-app copy.
 - Segmented composite controls such as method + URL + Send must attach their
   children to the shared shell. Embedded command segments should use only the
   exposed outside corner radius and no competing inner border.
+- Composite controls should change availability as one unit. During request
+  sending, the method selector, URL input, and Send segment should all present a
+  shared disabled state instead of leaving editable segments visually active.
 - Header buttons must center the actual button rectangle within the toolbar
   slot, not only center the label text inside a drifting button.
 - Split panes and primary content regions must declare explicit stretch rules.
@@ -118,6 +121,9 @@ stable dimensions, and clear state over explanatory in-app copy.
 - Runtime labels in the top bar must be bound to actual application state. Do
   not hard-code server ports, filenames, counts, or statuses when the binding
   layer already knows the real value.
+- Transient popovers should use the same light surface, 1 px border, and a
+  restrained shadow token. Align popover origins to the triggering control's
+  grid position so they do not appear to drift by a pixel.
 
 ## Interaction
 

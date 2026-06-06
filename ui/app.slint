@@ -31,6 +31,17 @@ component PaneHeader inherits Rectangle {
     }
 }
 
+component PopupSurface inherits Rectangle {
+    background: #ffffff;
+    border-radius: 6px;
+    border-width: 1px;
+    border-color: #d1d5db;
+    clip: true;
+    drop-shadow-color: #0000001a;
+    drop-shadow-blur: 6px;
+    drop-shadow-offset-y: 2px;
+}
+
 component ActionButton inherits Rectangle {
     in property <string> text;
     in property <bool> enabled: true;
@@ -110,6 +121,7 @@ component TextFieldShell inherits Rectangle {
     in property <string> label: "";
     in property <bool> embedded: false;
     in property <bool> mono: false;
+    in property <bool> enabled: true;
     out property <bool> focused: text-input.has-focus;
     callback edited();
     callback accepted();
@@ -120,7 +132,8 @@ component TextFieldShell inherits Rectangle {
     border-radius: root.embedded ? 0px : 6px;
     border-width: root.embedded ? 0px : 1px;
     border-color: text-input.has-focus ? #2563eb : #d1d5db;
-    background: root.embedded ? transparent : #ffffff;
+    background: root.embedded ? transparent : root.enabled ? #ffffff : #f9fafb;
+    opacity: root.enabled ? 1 : 0.72;
 
     HorizontalLayout {
         padding-left: 12px;
@@ -160,6 +173,7 @@ component TextFieldShell inherits Rectangle {
                 text <=> root.text;
                 width: parent.width;
                 height: parent.height;
+                enabled: root.enabled;
                 single-line: true;
                 font-family: root.mono ? "Noto Sans Mono" : "Inter";
                 font-size: 13px;
@@ -246,18 +260,23 @@ component ChevronDown inherits Path {
 component MethodSelector inherits Rectangle {
     in-out property <string> method;
     in property <bool> embedded: false;
+    in property <bool> enabled: true;
 
     width: 98px;
     height: 36px;
     border-radius: root.embedded ? 0px : 6px;
     border-width: root.embedded ? 0px : 1px;
     border-color: #d1d5db;
-    background: root.embedded ? (picker-touch.pressed ? #f3f4f6 : picker-touch.has-hover ? #f9fafb : transparent) : (picker-touch.pressed ? #f3f4f6 : picker-touch.has-hover ? #f9fafb : #ffffff);
+    background: !root.enabled ? (root.embedded ? transparent : #f9fafb) : root.embedded ? (picker-touch.pressed ? #f3f4f6 : picker-touch.has-hover ? #f9fafb : transparent) : (picker-touch.pressed ? #f3f4f6 : picker-touch.has-hover ? #f9fafb : #ffffff);
+    opacity: root.enabled ? 1 : 0.72;
 
     picker-touch := TouchArea {
-        mouse-cursor: pointer;
+        enabled: root.enabled;
+        mouse-cursor: root.enabled ? pointer : default;
         clicked => {
-            method-popup.show();
+            if root.enabled {
+                method-popup.show();
+            }
         }
     }
 
@@ -290,16 +309,9 @@ component MethodSelector inherits Rectangle {
         height: 250px;
         close-policy: close-on-click-outside;
 
-        Rectangle {
+        PopupSurface {
             width: method-popup.width;
             height: method-popup.height;
-            background: #ffffff;
-            border-radius: 6px;
-            border-width: 1px;
-            border-color: #d1d5db;
-            drop-shadow-color: #00000030;
-            drop-shadow-blur: 10px;
-            drop-shadow-offset-y: 3px;
 
             ScrollView {
                 x: 6px;
@@ -547,22 +559,15 @@ component TopBar inherits Rectangle {
     }
 
     import-popup := PopupWindow {
-        x: 274px;
+        x: 275px;
         y: root.height + 4px;
         width: 520px;
         height: 92px;
         close-policy: close-on-click-outside;
 
-        Rectangle {
+        PopupSurface {
             width: import-popup.width;
             height: import-popup.height;
-            background: #ffffff;
-            border-radius: 6px;
-            border-width: 1px;
-            border-color: #d1d5db;
-            drop-shadow-color: #00000030;
-            drop-shadow-blur: 10px;
-            drop-shadow-offset-y: 3px;
 
             VerticalLayout {
                 padding: 10px;
@@ -789,10 +794,10 @@ component RequestBar inherits Rectangle {
         Rectangle {
             height: 36px;
             horizontal-stretch: 1;
-            background: #ffffff;
+            background: root.busy ? #f9fafb : #ffffff;
             border-radius: 6px;
             border-width: 1px;
-            border-color: url-field.focused ? #2563eb : #d1d5db;
+            border-color: !root.busy && url-field.focused ? #2563eb : root.busy ? #e5e7eb : #d1d5db;
             clip: true;
 
             HorizontalLayout {
@@ -802,6 +807,7 @@ component RequestBar inherits Rectangle {
                 MethodSelector {
                     method <=> root.method;
                     embedded: true;
+                    enabled: !root.busy;
                 }
 
                 url-field := TextFieldShell {
@@ -811,6 +817,7 @@ component RequestBar inherits Rectangle {
                     label: "URL";
                     embedded: true;
                     mono: true;
+                    enabled: !root.busy;
                     height: 36px;
                     horizontal-stretch: 1;
                     accepted => {
