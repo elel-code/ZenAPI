@@ -117,6 +117,9 @@ stable dimensions, and clear state over explanatory in-app copy.
   behavior. Single-line inputs that drive a primary action should expose
   Enter/accepted behavior, such as importing a specification path or sending the
   current request URL.
+- Clickable custom controls must declare their cursor intentionally. Buttons,
+  tabs, dropdowns, and route rows should all expose pointer feedback instead of
+  relying on toolkit defaults.
 
 ## Iteration And Commits
 

@@ -18,6 +18,7 @@ component Tab inherits Rectangle {
     background: #ffffff;
 
     TouchArea {
+        mouse-cursor: pointer;
         clicked => {
             root.clicked();
         }
@@ -699,6 +700,7 @@ component Sidebar inherits Rectangle {
                 background: root.selected-route == i ? #eef2ff : (route-touch.has-hover ? #f3f4f6 : #f9fafb);
 
                 route-touch := TouchArea {
+                    mouse-cursor: pointer;
                     clicked => {
                         root.selected-route = i;
                         root.select-route(i);
