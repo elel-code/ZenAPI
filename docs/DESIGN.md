@@ -122,12 +122,15 @@ stable dimensions, and clear state over explanatory in-app copy.
 - Button state colors must come from one shared UI helper. Disabled, neutral,
   primary, warning, hover, and pressed states should not be duplicated inside
   individual button instances.
-- HTTP method colors and method pill backgrounds must come from one shared
-  token/helper. The sidebar list, method picker, and request method selector
-  should never duplicate separate GET/POST/etc. color maps.
+- HTTP method text colors must come from one shared token/helper. The sidebar
+  list, method picker, and request method selector should never duplicate
+  separate GET/POST/etc. color maps.
 - HTTP method labels need stable widths and explicit overflow handling. Common
   methods such as DELETE and OPTIONS must not compress adjacent route text or
   change row height.
+- Sidebar route methods should be text-only fixed-width markers, not filled
+  badges. The row selection and hover state already provide enough surface
+  feedback.
 - Route list rows must keep the API path on a stable baseline whether a summary
   exists or not. The optional summary belongs in a fixed secondary line and
   must not cause the path text to jump vertically between rows.

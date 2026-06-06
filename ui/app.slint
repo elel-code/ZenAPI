@@ -20,10 +20,6 @@ global MethodStyle {
     public pure function text-color(method: string) -> color {
         return method == "GET" ? #059669 : method == "POST" ? #d97706 : method == "PUT" ? #2563eb : method == "PATCH" ? #7c3aed : method == "DELETE" ? #dc2626 : #6b7280;
     }
-
-    public pure function background-color(method: string) -> color {
-        return method == "GET" ? #ecfdf5 : method == "POST" ? #fffbeb : method == "PUT" ? #eff6ff : method == "PATCH" ? #f5f3ff : method == "DELETE" ? #fef2f2 : #f3f4f6;
-    }
 }
 
 global ToneStyle {
@@ -604,25 +600,18 @@ component RouteListItem inherits Rectangle {
         }
     }
 
-    Rectangle {
+    UiText {
         x: 6px;
         y: 8px;
+        text: root.method;
         width: 60px;
         height: 22px;
-        border-radius: 4px;
-        background: MethodStyle.background-color(root.method);
-
-        UiText {
-            text: root.method;
-            width: parent.width;
-            height: parent.height;
-            font-size: 11px;
-            font-weight: 800;
-            color: MethodStyle.text-color(root.method);
-            overflow: elide;
-            horizontal-alignment: center;
-            vertical-alignment: center;
-        }
+        font-size: 11px;
+        font-weight: 800;
+        color: MethodStyle.text-color(root.method);
+        overflow: elide;
+        horizontal-alignment: center;
+        vertical-alignment: center;
     }
 
     UiText {
