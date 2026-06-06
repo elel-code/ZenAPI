@@ -28,6 +28,8 @@ stable dimensions, and clear state over explanatory in-app copy.
   long paths, statuses, and summaries.
 - Repeated list rows should not use filler copy for missing optional metadata.
   Leave absent summaries absent while preserving stable row height and alignment.
+- Empty states should be one concise status line in dense panes. Avoid stacking
+  helper explanations when surrounding controls already express the next action.
 
 ## Visual System
 

@@ -677,14 +677,14 @@ component Sidebar inherits Rectangle {
         }
 
         Rectangle {
-            height: root.routes.length == 0 ? 72px : 0px;
+            height: root.routes.length == 0 ? 44px : 0px;
             background: #f9fafb;
             border-radius: 4px;
             border-width: 0px;
 
             VerticalLayout {
                 padding: 8px;
-                spacing: 4px;
+                spacing: 0px;
                 alignment: center;
 
                 Text {
@@ -693,15 +693,6 @@ component Sidebar inherits Rectangle {
                     font-size: 13px;
                     font-weight: 700;
                     color: #111827;
-                    horizontal-alignment: center;
-                    vertical-alignment: center;
-                }
-
-                Text {
-                    text: root.routes.length == 0 ? (root.total-route-count == 0 ? "Spec not loaded" : "Filter returned none") : "";
-                    height: 18px;
-                    font-size: 12px;
-                    color: #6b7280;
                     horizontal-alignment: center;
                     vertical-alignment: center;
                 }
