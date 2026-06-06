@@ -42,23 +42,57 @@ global ButtonStyle {
     }
 }
 
-component PaneHeader inherits Rectangle {
-    in property <string> text;
+component TabHeader inherits Rectangle {
+    in property <string> tab-name;
+    in property <length> tab-width: 72px;
+    in property <string> status-text: "";
+    in property <string> status-tone: "neutral";
 
-    height: 36px;
+    height: 40px;
     horizontal-stretch: 1;
+    vertical-stretch: 0;
     background: #ffffff;
+
+    Rectangle {
+        y: parent.height - 1px;
+        width: parent.width;
+        height: 1px;
+        background: #e5e7eb;
+    }
 
     UiText {
         x: 14px;
         y: 0px;
-        text: root.text;
-        width: parent.width - 28px;
+        text: root.tab-name;
+        width: root.tab-width;
         height: parent.height;
         color: #111827;
         font-weight: 700;
         font-size: 13px;
         overflow: elide;
+        vertical-alignment: center;
+    }
+
+    Rectangle {
+        x: 14px;
+        y: parent.height - 2px;
+        width: root.tab-width;
+        height: 2px;
+        background: #2563eb;
+    }
+
+    if root.status-text != "": UiText {
+        x: parent.width - 274px;
+        y: 0px;
+        text: root.status-text;
+        width: 260px;
+        height: parent.height;
+        font-family: "Noto Sans Mono";
+        font-size: 12px;
+        font-weight: 600;
+        color: ToneStyle.color(root.status-tone);
+        overflow: elide;
+        horizontal-alignment: right;
         vertical-alignment: center;
     }
 }
@@ -466,25 +500,36 @@ component CodePane inherits Rectangle {
     }
 }
 
-component SpecStatusSlot inherits Rectangle {
+component ImportBarSlot inherits Rectangle {
     in property <string> text;
     in property <bool> loaded;
     in property <length> slot-height: 48px;
+    in property <bool> enabled: true;
+    callback clicked();
 
-    width: 360px;
+    horizontal-stretch: 1;
     height: root.slot-height;
     vertical-stretch: 0;
     background: transparent;
 
     Rectangle {
-        y: (root.slot-height - 34px) / 2;
-        width: parent.width;
-        height: 34px;
+        x: (parent.width - 400px) / 2;
+        y: (root.slot-height - 32px) / 2;
+        width: 400px;
+        height: 32px;
         vertical-stretch: 0;
         border-radius: 6px;
         border-width: 1px;
-        border-color: #d1d5db;
-        background: #f3f4f6;
+        border-color: #e5e7eb;
+        background: root.enabled && import-touch.has-hover ? #e5e7eb : #f3f4f6;
+
+        import-touch := TouchArea {
+            enabled: root.enabled;
+            mouse-cursor: root.enabled ? pointer : default;
+            clicked => {
+                root.clicked();
+            }
+        }
 
         UiText {
             x: 12px;
@@ -497,6 +542,7 @@ component SpecStatusSlot inherits Rectangle {
             font-size: 13px;
             font-italic: !root.loaded;
             overflow: elide;
+            horizontal-alignment: center;
             vertical-alignment: center;
         }
     }
@@ -600,6 +646,15 @@ component RouteListItem inherits Rectangle {
         }
     }
 
+    Rectangle {
+        x: 0px;
+        y: 4px;
+        width: 3px;
+        height: 30px;
+        background: #2563eb;
+        visible: root.selected;
+    }
+
     UiText {
         x: 6px;
         y: 8px;
@@ -639,6 +694,29 @@ component RouteListItem inherits Rectangle {
         color: #6b7280;
         visible: root.summary != "";
         overflow: elide;
+        vertical-alignment: center;
+    }
+}
+
+component SidebarEmptyRow inherits Rectangle {
+    in property <string> text;
+
+    height: 38px;
+    horizontal-stretch: 1;
+    vertical-stretch: 0;
+    background: #f9fafb;
+
+    UiText {
+        x: 0px;
+        y: 9px;
+        text: root.text;
+        width: parent.width;
+        height: 20px;
+        font-size: 13px;
+        font-weight: 500;
+        color: #6b7280;
+        overflow: elide;
+        horizontal-alignment: center;
         vertical-alignment: center;
     }
 }
@@ -684,32 +762,14 @@ component TopBar inherits Rectangle {
             }
         }
 
-        HorizontalLayout {
-            padding-left: 15px;
-            padding-right: 14px;
-            spacing: 8px;
-            alignment: center;
+        ImportBarSlot {
+            text: root.spec-loaded ? root.spec-label : "Import OpenAPI Spec";
+            loaded: root.spec-loaded;
+            enabled: !root.busy;
+            slot-height: root.height;
             horizontal-stretch: 1;
-
-            SpecStatusSlot {
-                text: root.spec-loaded ? root.spec-label : "No specification loaded";
-                loaded: root.spec-loaded;
-                slot-height: root.height;
-            }
-
-            ButtonSlot {
-                text: "Import";
-                enabled: !root.busy;
-                button-width: 78px;
-                button-height: 34px;
-                slot-height: root.height;
-                clicked => {
-                    import-popup.show();
-                }
-            }
-
-            Rectangle {
-                horizontal-stretch: 1;
+            clicked => {
+                import-popup.show();
             }
         }
 
@@ -726,7 +786,7 @@ component TopBar inherits Rectangle {
     }
 
     import-popup := PopupWindow {
-        x: 275px;
+        x: 260px + (root.width - 260px - 230px - 14px - 520px) / 2;
         y: root.height + 4px;
         width: 520px;
         height: 80px;
@@ -810,9 +870,7 @@ component Sidebar inherits Rectangle {
 
         TextFieldShell {
             text <=> root.route-filter;
-            placeholder: "Filter method, path, or summary";
-            show-label: true;
-            label: "FIND";
+            placeholder: "Filter APIs...";
             height: root.total-route-count > 0 ? 32px : 0px;
             visible: root.total-route-count > 0;
             edited => {
@@ -820,27 +878,10 @@ component Sidebar inherits Rectangle {
             }
         }
 
-        Rectangle {
+        SidebarEmptyRow {
             height: root.routes.length == 0 ? 38px : 0px;
-            background: #f9fafb;
-            border-radius: 0px;
-            border-width: 0px;
-
-            VerticalLayout {
-                padding: 0px;
-                spacing: 0px;
-                alignment: center;
-
-                UiText {
-                    text: root.routes.length == 0 ? (root.total-route-count == 0 ? "No endpoints" : "No matches") : "";
-                    height: 20px;
-                    font-size: 13px;
-                    font-weight: 500;
-                    color: #6b7280;
-                    horizontal-alignment: center;
-                    vertical-alignment: center;
-                }
-            }
+            visible: root.routes.length == 0;
+            text: root.total-route-count == 0 ? "No endpoints" : "No matches";
         }
 
         ListView {
@@ -899,8 +940,6 @@ component RequestBar inherits Rectangle {
             url-field := TextFieldShell {
                 text <=> root.url;
                 placeholder: "Enter request URL";
-                show-label: true;
-                label: "URL";
                 embedded: true;
                 mono: true;
                 enabled: !root.busy;
@@ -942,13 +981,9 @@ component RequestPanel inherits Rectangle {
         padding: 0px;
         spacing: 0px;
 
-        PaneHeader {
-            text: "Body";
-        }
-
-        Rectangle {
-            height: 1px;
-            background: #e5e7eb;
+        TabHeader {
+            tab-name: "Body";
+            tab-width: 38px;
         }
 
         Rectangle {
@@ -964,31 +999,6 @@ component RequestPanel inherits Rectangle {
                 }
             }
         }
-    }
-}
-
-component ResponseStatusSlot inherits Rectangle {
-    in property <string> response-status;
-    in property <string> response-meta;
-    in property <string> response-tone;
-
-    height: 52px;
-    horizontal-stretch: 1;
-    vertical-stretch: 0;
-    background: #ffffff;
-
-    UiText {
-        x: root.width - 274px;
-        y: (root.height - 30px) / 2;
-        text: root.response-status + (root.response-meta == "" ? "" : " - " + root.response-meta);
-        width: 260px;
-        height: 30px;
-        font-size: 12px;
-        font-weight: 600;
-        color: ToneStyle.color(root.response-tone);
-        overflow: elide;
-        horizontal-alignment: right;
-        vertical-alignment: center;
     }
 }
 
@@ -1008,19 +1018,11 @@ component ResponsePanel inherits Rectangle {
         padding: 0px;
         spacing: 0px;
 
-        ResponseStatusSlot {
-            response-status: root.response-status;
-            response-meta: root.response-meta;
-            response-tone: root.response-tone;
-        }
-
-        PaneHeader {
-            text: "Response";
-        }
-
-        Rectangle {
-            height: 1px;
-            background: #e5e7eb;
+        TabHeader {
+            tab-name: "Response";
+            tab-width: 70px;
+            status-text: root.response-status + (root.response-meta == "" ? "" : " - " + root.response-meta);
+            status-tone: root.response-tone;
         }
 
         Rectangle {

@@ -38,8 +38,9 @@ stable dimensions, and clear state over explanatory in-app copy.
   Leave absent summaries absent while preserving stable row height and alignment.
 - Empty states should be one concise status line in dense panes. Avoid stacking
   helper explanations when surrounding controls already express the next action.
-- Sidebar empty states should preserve list density. Use a muted row-height
-  placeholder instead of a taller card-like block.
+- Sidebar empty states should preserve list density. Use a muted fixed row
+  placeholder instead of a taller card-like block, with explicit text
+  coordinates matching route-row rhythm.
 
 ## Visual System
 
@@ -64,12 +65,13 @@ stable dimensions, and clear state over explanatory in-app copy.
   Status should be expressed through button state, concise text, or color on an
   existing control; lines are only for region splits, control borders, and tab
   underlines.
-- Do not use tab underlines for a pane with only one implemented content view.
-  Present it as a compact pane title instead; a single short underline reads as
-  decoration rather than navigation.
-- Request and Response must share the same vertical rhythm. Their top utility
-  bands are 52 px high, their pane title or tab rows are 36 px high, and
-  editor/content panes must start on the same y-axis.
+- Single-view panes may use a Postman-style active tab row when it anchors the
+  editor surface or carries nearby status metadata. Do not add inactive tabs
+  unless their content and behavior exist.
+- Request and Response should preserve a compact Postman-like rhythm. Request
+  keeps a 52 px address utility band; request/response content uses 40 px tab
+  headers; response status metadata belongs in the Response tab row instead of
+  a separate 52 px status band.
 - Use the current light palette consistently: app and editor surfaces
   `#ffffff`, toolbar/sidebar surfaces `#f9fafb`, subtle control fills
   `#f3f4f6`, split dividers and borders `#e5e7eb` / `#d1d5db`, primary text
@@ -82,6 +84,10 @@ stable dimensions, and clear state over explanatory in-app copy.
 - Text input shells should use explicit coordinates for label and value text.
   Labeled inputs reserve a 30 px label slot, a 10 px gap, and stable horizontal
   insets so PATH, FIND, and URL fields share the same baseline and value start.
+- Compact address/search inputs should not show large inline labels. The
+  request URL field and sidebar route filter use only concise placeholders so
+  the controls read like address/search bars, while the import popover keeps a
+  PATH label because it is a focused file-path form.
 - Composite controls must preserve visible focus. If an embedded input hides
   its own border, export its focus state to the parent shell and render focus on
   the shared outer border.
@@ -102,17 +108,16 @@ stable dimensions, and clear state over explanatory in-app copy.
   control group should share the same disabled condition and callback guard.
 - Header buttons must center the actual button rectangle within the toolbar
   slot, not only center the label text inside a drifting button.
-- Top-bar inline controls must use the same visible height and slot centering.
-  A 34 px spec status field next to 34 px buttons should be positioned from the
-  48 px toolbar slot with an explicit y offset, not inferred from nested layout
-  cross-axis behavior.
+- Top-bar inline controls must use fixed visible heights and slot centering.
+  The centered Import bar is a 32 px control inside the 48 px toolbar slot; mock
+  actions remain 34 px controls in the same toolbar row.
 - Top-bar brand text and right-side mock controls should use fixed toolbar
   slots. The mock status/control group is a 112 px status label, an 8 px gap,
   and a 110 px button, all centered inside the 48 px toolbar row.
-- Sidebar headers and response status bands should also use fixed-height slots
-  with explicit left/right text coordinates. Avoid using stretch spacers to
-  push counters or response metadata into place, because content changes can
-  shift perceived baselines.
+- Sidebar headers and status/tab bands should also use fixed-height slots with
+  explicit left/right text coordinates. Avoid using stretch spacers to push
+  counters or response metadata into place, because content changes can shift
+  perceived baselines.
 - Split panes and primary content regions must declare explicit stretch rules.
   The sidebar can be fixed width, but the main work area, route list, panels,
   and editor panes should not depend on implicit layout expansion.
@@ -131,6 +136,8 @@ stable dimensions, and clear state over explanatory in-app copy.
 - Sidebar route methods should be text-only fixed-width markers, not filled
   badges. The row selection and hover state already provide enough surface
   feedback.
+- Selected sidebar routes should use a restrained 3 px primary-color left
+  marker plus row background, not another pill or decorative badge.
 - Route list rows must keep the API path on a stable baseline whether a summary
   exists or not. The optional summary belongs in a fixed secondary line and
   must not cause the path text to jump vertically between rows.
@@ -157,18 +164,17 @@ stable dimensions, and clear state over explanatory in-app copy.
 - The top bar is a global console, not a form. Keep it fixed height, align the
   brand area exactly with the sidebar width, use a single bottom divider, avoid
   internal structural split lines, and avoid explanatory status sentences. Show
-  specification state as a compact read-only label plus an Import action; keep
-  path entry inside an import affordance instead of making it the persistent
+  specification state and import action as one centered search-like Import bar;
+  keep path entry inside the import popover instead of making it the persistent
   visual center.
 - The request address bar should be positioned as one 36 px shell inside its
   52 px utility band with an explicit y offset. Do not rely on a nested layout
   to vertically center the visible address-bar rectangle.
-- Response status metadata is a 260 px right-aligned text slot inside the
-  52 px response utility band, with a 14 px right inset and explicit vertical
-  centering.
-- Pane title rows are 36 px fixed-height slots. Title text should use explicit
-  x/y coordinates, left/right insets, and elision instead of an inner layout
-  just to center one label.
+- Response status metadata is a 260 px right-aligned text slot inside the 40 px
+  Response tab row, with a 14 px right inset and explicit vertical centering.
+- Pane tab rows are 40 px fixed-height slots with a 1 px bottom divider and a
+  2 px active underline. Title and status text should use explicit x/y
+  coordinates, left/right insets, and elision instead of inner layout centering.
 - Top-bar status labels must use fixed-height, non-stretching slots and explicit
   text height so the label rectangle and its contents are both vertically
   centered against neighboring buttons.
