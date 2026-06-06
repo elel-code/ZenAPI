@@ -910,7 +910,7 @@ export component AppWindow inherits Window {
             file-path <=> root.file-path;
             server-status: root.server-status;
             server-running: root.server-running;
-            route-count: root.routes.length;
+            route-count: root.total-route-count;
             busy: root.busy;
             import-openapi(path) => {
                 root.import-openapi(path);

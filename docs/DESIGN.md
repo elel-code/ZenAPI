@@ -52,6 +52,8 @@ stable dimensions, and clear state over explanatory in-app copy.
   list, status text, and actual running service must describe the same spec.
 - Route lists should remain manageable for large specs. Filtering by method,
   path, or summary is part of the MVP workstation behavior.
+- Filtering is a view state only. Global actions such as starting the mock
+  server must use the imported route count, not the current visible match count.
 - Avoid inactive tabs or controls that imply functionality not yet implemented.
   Add tabs only when their content and behavior exist.
 
