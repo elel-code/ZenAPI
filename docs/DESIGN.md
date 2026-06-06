@@ -33,20 +33,38 @@ stable dimensions, and clear state over explanatory in-app copy.
   expose their default system font, colors, or theme chrome directly; wrap or
   configure them so typography, palette, density, and states match ZenAPI.
 - Slint scroll containers may be used for behavior, but default scrollbar
-  chrome must be disabled or replaced with a ZenAPI-styled dark scrollbar before
-  it is exposed in the UI.
-- The visual baseline is an integrated dark charcoal split-pane workstation.
-  Avoid beige or light page surfaces, oversized gutters, and floating card
-  stacks. Panels should meet through 1 px dividers, not broad background gaps.
-- Use the current dark palette consistently: app background `#0e1015`,
-  toolbar/sidebar/panel surfaces `#151720`, editor and input surfaces
-  `#1a1d26`, split dividers and borders `#252936`, primary text `#e2e8f0`,
-  and secondary text `#64748b`.
+  chrome must be disabled or replaced with a ZenAPI-styled scrollbar before it
+  is exposed in the UI.
+- The visual baseline is a modern light split-pane workstation inspired by
+  Postman: flat white and near-white surfaces, no floating cards, no heavy
+  shadows, and 1 px dividers instead of broad gutters.
+- Below the global top bar, the app is organized into three coordinated regions:
+  Endpoints, Request, and Response. These regions are peers separated by 1 px
+  dividers; do not stack Response under Request as a secondary afterthought.
+- Region lines must have a single owner. The app shell owns the top-bar bottom
+  rule and the vertical split rules between Endpoints, Request, and Response;
+  child panels should not add competing outside borders on the same edges.
+- Do not add ornamental dots, short divider strokes, or stray line fragments.
+  Status should be expressed through button state, concise text, or color on an
+  existing control; lines are only for region splits, control borders, and tab
+  underlines.
+- Request and Response must share the same vertical rhythm. Their top utility
+  bands are 52 px high, their tab rows are 36 px high, and editor/content panes
+  must start on the same y-axis.
+- Use the current light palette consistently: app and editor surfaces
+  `#ffffff`, toolbar/sidebar surfaces `#f9fafb`, subtle control fills
+  `#f3f4f6`, split dividers and borders `#e5e7eb` / `#d1d5db`, primary text
+  `#111827`, and secondary text `#6b7280` / `#9ca3af`.
 - Keep controls compact: most buttons should stay at 34-40 px height with a
   maximum 8 px radius.
 - Fixed-height controls and list rows must explicitly center their contents
   vertically. Give text and pill contents stable heights instead of relying on
   layout defaults.
+- Header buttons must center the actual button rectangle within the toolbar
+  slot, not only center the label text inside a drifting button.
+- Split panes and primary content regions must declare explicit stretch rules.
+  The sidebar can be fixed width, but the main work area, route list, panels,
+  and editor panes should not depend on implicit layout expansion.
 - Use functional accents sparingly: green for selected/ready states, blue for
   primary request actions, amber for waiting or mock-stop actions, and red for
   errors.
@@ -54,11 +72,11 @@ stable dimensions, and clear state over explanatory in-app copy.
   assumptions. Use neutral gray for idle, filtering, and route-selection states;
   amber for in-progress work; green for successful import or 2xx/3xx responses;
   red for validation, transport, mock, and 4xx/5xx response failures.
-- Avoid drifting back to an all blue/gray default theme. When adding surfaces,
-  choose colors that fit the existing neutral, green, amber, and dark code-pane
-  system.
-- Code and response bodies should use the dark code pane with `Noto Sans Mono`,
-  not default text-editor chrome.
+- Avoid drifting into unstyled system theme defaults. When adding surfaces,
+  choose colors that fit the light neutral workbench plus green, blue, amber,
+  and red functional accents.
+- Code and response bodies should use explicit ZenAPI editor chrome with
+  `Noto Sans Mono`, not default text-editor chrome.
 - The top bar is a global console, not a form. Keep it fixed height, align the
   brand area exactly with the sidebar width, use a single bottom divider, and
   avoid explanatory status sentences. Show specification state as a compact

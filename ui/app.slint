@@ -15,7 +15,7 @@ component Tab inherits Rectangle {
 
     width: 86px;
     height: 36px;
-    background: #151720;
+    background: #ffffff;
 
     TouchArea {
         clicked => {
@@ -27,7 +27,7 @@ component Tab inherits Rectangle {
         text: root.text;
         width: parent.width;
         height: parent.height;
-        color: root.selected ? #e2e8f0 : #64748b;
+        color: root.selected ? #111827 : #6b7280;
         font-weight: root.selected ? 700 : 500;
         font-size: 13px;
         horizontal-alignment: center;
@@ -39,7 +39,7 @@ component Tab inherits Rectangle {
 
         Rectangle {
             height: 2px;
-            background: root.selected ? #10b981 : transparent;
+            background: root.selected ? #2563eb : transparent;
         }
     }
 }
@@ -57,8 +57,8 @@ component ActionButton inherits Rectangle {
     width: 104px;
     border-radius: root.embedded ? 4px : 6px;
     border-width: root.embedded ? 0px : 1px;
-    border-color: !root.enabled ? #252936 : root.warning ? #92400e : root.primary ? #1d4ed8 : #343946;
-    background: !root.enabled ? #20242b : root.warning ? (touch.pressed ? #92400e : touch.has-hover ? #d97706 : #b45309) : root.primary ? (touch.pressed ? #1d4ed8 : touch.has-hover ? #3b82f6 : #2563eb) : (touch.pressed ? #151720 : touch.has-hover ? #252936 : #1a1d26);
+    border-color: !root.enabled ? #d1d5db : root.warning ? #b45309 : root.primary ? #1d4ed8 : #d1d5db;
+    background: !root.enabled ? #f3f4f6 : root.warning ? (touch.pressed ? #92400e : touch.has-hover ? #d97706 : #b45309) : root.primary ? (touch.pressed ? #1d4ed8 : touch.has-hover ? #3b82f6 : #2563eb) : (touch.pressed ? #e5e7eb : touch.has-hover ? #f3f4f6 : #ffffff);
     opacity: root.enabled ? 1 : 0.65;
 
     touch := TouchArea {
@@ -75,7 +75,7 @@ component ActionButton inherits Rectangle {
         text: root.text;
         width: parent.width;
         height: parent.height;
-        color: !root.enabled ? #64748b : root.primary || root.warning ? #ffffff : #e2e8f0;
+        color: !root.enabled ? #9ca3af : root.primary || root.warning ? #ffffff : #374151;
         font-size: 13px;
         font-weight: 700;
         horizontal-alignment: center;
@@ -90,6 +90,7 @@ component ButtonSlot inherits Rectangle {
     in property <bool> primary: false;
     in property <bool> warning: false;
     in property <bool> dark: false;
+    in property <bool> embedded: false;
     in property <length> button-width: 104px;
     in property <length> button-height: 34px;
     in property <length> slot-height: 40px;
@@ -106,6 +107,7 @@ component ButtonSlot inherits Rectangle {
         primary: root.primary;
         warning: root.warning;
         dark: root.dark;
+        embedded: root.embedded;
         width: root.button-width;
         height: root.button-height;
         clicked => {
@@ -121,6 +123,7 @@ component TextFieldShell inherits Rectangle {
     in property <bool> show-label: false;
     in property <string> label: "";
     in property <bool> embedded: false;
+    in property <bool> mono: false;
     callback edited();
     callback accepted();
 
@@ -129,8 +132,8 @@ component TextFieldShell inherits Rectangle {
     vertical-stretch: 0;
     border-radius: root.embedded ? 0px : 6px;
     border-width: root.embedded ? 0px : 1px;
-    border-color: text-input.has-focus ? #3b82f6 : #252936;
-    background: root.embedded ? transparent : (text-input.has-focus ? #1f2430 : #1a1d26);
+    border-color: text-input.has-focus ? #2563eb : #d1d5db;
+    background: root.embedded ? transparent : #ffffff;
 
     HorizontalLayout {
         padding-left: 12px;
@@ -144,7 +147,7 @@ component TextFieldShell inherits Rectangle {
             height: root.height;
             font-size: 11px;
             font-weight: 800;
-            color: root.dark ? #94a3b8 : #64748b;
+            color: #6b7280;
             horizontal-alignment: center;
             vertical-alignment: center;
         }
@@ -158,7 +161,7 @@ component TextFieldShell inherits Rectangle {
                 text: root.text == "" ? root.placeholder : "";
                 width: parent.width;
                 height: parent.height;
-                color: #64748b;
+                color: #9ca3af;
                 font-size: 13px;
                 horizontal-alignment: left;
                 vertical-alignment: center;
@@ -170,9 +173,9 @@ component TextFieldShell inherits Rectangle {
                 width: parent.width;
                 height: parent.height;
                 single-line: true;
-                font-family: "Inter";
+                font-family: root.mono ? "Noto Sans Mono" : "Inter";
                 font-size: 13px;
-                color: #e2e8f0;
+                color: #111827;
                 selection-background-color: #2563eb;
                 selection-foreground-color: #ffffff;
                 vertical-alignment: center;
@@ -195,7 +198,7 @@ component MethodOption inherits Rectangle {
     height: 32px;
     horizontal-stretch: 1;
     border-radius: 4px;
-    background: root.selected ? #1f2937 : option-touch.has-hover ? #20242b : #151720;
+    background: root.selected ? #eef2ff : option-touch.has-hover ? #f3f4f6 : #ffffff;
 
     option-touch := TouchArea {
         mouse-cursor: pointer;
@@ -216,19 +219,12 @@ component MethodOption inherits Rectangle {
             height: root.height;
             font-size: 12px;
             font-weight: 800;
-            color: root.value == "GET" ? #10b981 : root.value == "POST" ? #f59e0b : root.value == "PUT" ? #3b82f6 : root.value == "PATCH" ? #a78bfa : root.value == "DELETE" ? #ef4444 : #94a3b8;
+            color: root.value == "GET" ? #059669 : root.value == "POST" ? #d97706 : root.value == "PUT" ? #2563eb : root.value == "PATCH" ? #7c3aed : root.value == "DELETE" ? #dc2626 : #6b7280;
             vertical-alignment: center;
         }
 
         Rectangle {
             horizontal-stretch: 1;
-        }
-
-        Rectangle {
-            width: root.selected ? 7px : 0px;
-            height: 7px;
-            border-radius: 4px;
-            background: root.selected ? #10b981 : transparent;
         }
     }
 }
@@ -241,8 +237,8 @@ component MethodSelector inherits Rectangle {
     height: 36px;
     border-radius: root.embedded ? 0px : 6px;
     border-width: root.embedded ? 0px : 1px;
-    border-color: #252936;
-    background: root.embedded ? (picker-touch.pressed ? #0e1015 : picker-touch.has-hover ? #20242b : transparent) : (picker-touch.pressed ? #0e1015 : picker-touch.has-hover ? #20242b : #1a1d26);
+    border-color: #d1d5db;
+    background: root.embedded ? (picker-touch.pressed ? #f3f4f6 : picker-touch.has-hover ? #f9fafb : transparent) : (picker-touch.pressed ? #f3f4f6 : picker-touch.has-hover ? #f9fafb : #ffffff);
 
     picker-touch := TouchArea {
         mouse-cursor: pointer;
@@ -263,7 +259,7 @@ component MethodSelector inherits Rectangle {
             height: root.height;
             font-size: 12px;
             font-weight: 800;
-            color: root.method == "GET" ? #10b981 : root.method == "POST" ? #f59e0b : root.method == "PUT" ? #3b82f6 : root.method == "PATCH" ? #a78bfa : root.method == "DELETE" ? #ef4444 : #94a3b8;
+            color: root.method == "GET" ? #059669 : root.method == "POST" ? #d97706 : root.method == "PUT" ? #2563eb : root.method == "PATCH" ? #7c3aed : root.method == "DELETE" ? #dc2626 : #6b7280;
             vertical-alignment: center;
         }
 
@@ -273,7 +269,7 @@ component MethodSelector inherits Rectangle {
             height: root.height;
             font-size: 10px;
             font-weight: 700;
-            color: #94a3b8;
+            color: #6b7280;
             horizontal-alignment: right;
             vertical-alignment: center;
         }
@@ -289,13 +285,13 @@ component MethodSelector inherits Rectangle {
         Rectangle {
             width: method-popup.width;
             height: method-popup.height;
-            background: #151720;
+            background: #ffffff;
             border-radius: 6px;
             border-width: 1px;
-            border-color: #252936;
-            drop-shadow-color: #00000080;
-            drop-shadow-blur: 14px;
-            drop-shadow-offset-y: 4px;
+            border-color: #d1d5db;
+            drop-shadow-color: #00000030;
+            drop-shadow-blur: 10px;
+            drop-shadow-offset-y: 3px;
 
             ScrollView {
                 x: 6px;
@@ -380,8 +376,10 @@ component CodePane inherits Rectangle {
     in-out property <string> text;
     in property <bool> read-only;
 
-    background: #1a1d26;
-    border-color: #252936;
+    horizontal-stretch: 1;
+    vertical-stretch: 1;
+    background: #ffffff;
+    border-color: #e5e7eb;
     border-width: 1px;
     border-radius: 4px;
 
@@ -406,7 +404,7 @@ component CodePane inherits Rectangle {
                 font-family: "Noto Sans Mono";
                 font-size: 13px;
                 font-weight: 400;
-                color: #d1d5db;
+                color: #111827;
                 selection-background-color: #2563eb;
                 selection-foreground-color: #ffffff;
             }
@@ -425,7 +423,8 @@ component TopBar inherits Rectangle {
     callback toggle-server();
 
     height: 48px;
-    background: #151720;
+    horizontal-stretch: 1;
+    background: #f9fafb;
 
     HorizontalLayout {
         padding-left: 0px;
@@ -435,7 +434,7 @@ component TopBar inherits Rectangle {
 
         Rectangle {
             width: 260px;
-            background: #151720;
+            background: #f9fafb;
 
             HorizontalLayout {
                 padding-left: 16px;
@@ -446,7 +445,7 @@ component TopBar inherits Rectangle {
                     text: "ZenAPI";
                     font-size: 16px;
                     font-weight: 800;
-                    color: #e2e8f0;
+                    color: #111827;
                     vertical-alignment: center;
                 }
 
@@ -458,7 +457,7 @@ component TopBar inherits Rectangle {
 
         Rectangle {
             width: 1px;
-            background: #252936;
+            background: #e5e7eb;
         }
 
         HorizontalLayout {
@@ -473,25 +472,18 @@ component TopBar inherits Rectangle {
                 height: 34px;
                 border-radius: 6px;
                 border-width: 1px;
-                border-color: #252936;
-                background: #1a1d26;
+                border-color: #d1d5db;
+                background: #f3f4f6;
 
                 HorizontalLayout {
                     padding-left: 12px;
                     padding-right: 12px;
-                    spacing: 8px;
+                    spacing: 0px;
                     alignment: center;
-
-                    Rectangle {
-                        width: 7px;
-                        height: 7px;
-                        border-radius: 4px;
-                        background: root.spec-loaded ? #10b981 : #64748b;
-                    }
 
                     Text {
                         text: root.spec-loaded ? root.spec-label : "No specification loaded";
-                        color: root.spec-loaded ? #cbd5e1 : #64748b;
+                        color: root.spec-loaded ? #374151 : #6b7280;
                         font-size: 13px;
                         font-italic: !root.spec-loaded;
                         horizontal-stretch: 1;
@@ -501,11 +493,12 @@ component TopBar inherits Rectangle {
                 }
             }
 
-            ActionButton {
+            ButtonSlot {
                 text: "Import";
                 enabled: !root.busy;
-                width: 78px;
-                height: 34px;
+                button-width: 78px;
+                button-height: 34px;
+                slot-height: root.height;
                 dark: true;
                 clicked => {
                     import-popup.show();
@@ -526,7 +519,7 @@ component TopBar inherits Rectangle {
                 text: root.server-running ? "Port 8080" : "";
                 width: 56px;
                 height: 34px;
-                color: #94a3b8;
+                color: #6b7280;
                 font-size: 12px;
                 horizontal-alignment: right;
                 vertical-alignment: center;
@@ -557,13 +550,13 @@ component TopBar inherits Rectangle {
         Rectangle {
             width: import-popup.width;
             height: import-popup.height;
-            background: #151720;
+            background: #ffffff;
             border-radius: 6px;
             border-width: 1px;
-            border-color: #252936;
-            drop-shadow-color: #00000080;
-            drop-shadow-blur: 14px;
-            drop-shadow-offset-y: 4px;
+            border-color: #d1d5db;
+            drop-shadow-color: #00000030;
+            drop-shadow-blur: 10px;
+            drop-shadow-offset-y: 3px;
 
             VerticalLayout {
                 padding: 10px;
@@ -574,7 +567,7 @@ component TopBar inherits Rectangle {
                     height: 18px;
                     font-size: 12px;
                     font-weight: 700;
-                    color: #94a3b8;
+                    color: #6b7280;
                     vertical-alignment: center;
                 }
 
@@ -622,7 +615,8 @@ component Sidebar inherits Rectangle {
     callback filter-routes(string);
 
     width: 260px;
-    background: #151720;
+    vertical-stretch: 1;
+    background: #f9fafb;
 
     VerticalLayout {
         padding: 12px;
@@ -635,7 +629,7 @@ component Sidebar inherits Rectangle {
                 text: "Endpoints";
                 font-size: 13px;
                 font-weight: 700;
-                color: #e2e8f0;
+                color: #111827;
                 height: 22px;
                 vertical-alignment: center;
             }
@@ -647,15 +641,10 @@ component Sidebar inherits Rectangle {
             Text {
                 text: root.total-route-count == 0 ? "" : root.routes.length + "/" + root.total-route-count;
                 font-size: 12px;
-                color: #64748b;
+                color: #6b7280;
                 height: 22px;
                 vertical-alignment: center;
             }
-        }
-
-        Rectangle {
-            height: 1px;
-            background: #252936;
         }
 
         TextFieldShell {
@@ -663,7 +652,7 @@ component Sidebar inherits Rectangle {
             placeholder: "Filter method, path, or summary";
             show-label: true;
             label: "FIND";
-            height: 32px;
+            height: root.total-route-count > 0 ? 32px : 0px;
             visible: root.total-route-count > 0;
             edited => {
                 root.filter-routes(root.route-filter);
@@ -671,29 +660,22 @@ component Sidebar inherits Rectangle {
         }
 
         Rectangle {
-            height: root.routes.length == 0 ? 96px : 0px;
-            background: #151720;
+            height: root.routes.length == 0 ? 72px : 0px;
+            background: #f9fafb;
             border-radius: 4px;
-            border-width: root.routes.length == 0 ? 1px : 0px;
-            border-color: #252936;
+            border-width: 0px;
 
             VerticalLayout {
-                padding: 12px;
+                padding: 8px;
                 spacing: 4px;
                 alignment: center;
-
-                Rectangle {
-                    width: 42px;
-                    height: 1px;
-                    background: #343946;
-                }
 
                 Text {
                     text: root.routes.length == 0 ? (root.total-route-count == 0 ? "No endpoints" : "No matches") : "";
                     height: 20px;
                     font-size: 13px;
                     font-weight: 700;
-                    color: #e2e8f0;
+                    color: #111827;
                     horizontal-alignment: center;
                     vertical-alignment: center;
                 }
@@ -702,7 +684,7 @@ component Sidebar inherits Rectangle {
                     text: root.routes.length == 0 ? (root.total-route-count == 0 ? "Spec not loaded" : "Filter returned none") : "";
                     height: 18px;
                     font-size: 12px;
-                    color: #64748b;
+                    color: #6b7280;
                     horizontal-alignment: center;
                     vertical-alignment: center;
                 }
@@ -710,13 +692,15 @@ component Sidebar inherits Rectangle {
         }
 
         ListView {
+            horizontal-stretch: 1;
+            vertical-stretch: 1;
             vertical-scrollbar-policy: ScrollBarPolicy.always-off;
             horizontal-scrollbar-policy: ScrollBarPolicy.always-off;
 
             for route[i] in root.routes: Rectangle {
                 height: 38px;
                 border-radius: 4px;
-                background: root.selected-route == i ? #1f2937 : (route-touch.has-hover ? #20242b : #151720);
+                background: root.selected-route == i ? #eef2ff : (route-touch.has-hover ? #f3f4f6 : #f9fafb);
 
                 route-touch := TouchArea {
                     clicked => {
@@ -735,7 +719,7 @@ component Sidebar inherits Rectangle {
                         width: 45px;
                         height: 22px;
                         border-radius: 4px;
-                        background: route.method == "GET" ? #0b2f26 : route.method == "POST" ? #33240b : route.method == "PUT" ? #102445 : route.method == "PATCH" ? #281945 : route.method == "DELETE" ? #3a1117 : #20242b;
+                        background: route.method == "GET" ? #ecfdf5 : route.method == "POST" ? #fffbeb : route.method == "PUT" ? #eff6ff : route.method == "PATCH" ? #f5f3ff : route.method == "DELETE" ? #fef2f2 : #f3f4f6;
 
                         Text {
                             text: route.method;
@@ -743,7 +727,7 @@ component Sidebar inherits Rectangle {
                             height: parent.height;
                             font-size: 11px;
                             font-weight: 800;
-                            color: route.method == "GET" ? #10b981 : route.method == "POST" ? #f59e0b : route.method == "PUT" ? #3b82f6 : route.method == "PATCH" ? #a78bfa : route.method == "DELETE" ? #ef4444 : #94a3b8;
+                            color: route.method == "GET" ? #059669 : route.method == "POST" ? #d97706 : route.method == "PUT" ? #2563eb : route.method == "PATCH" ? #7c3aed : route.method == "DELETE" ? #dc2626 : #6b7280;
                             horizontal-alignment: center;
                             vertical-alignment: center;
                         }
@@ -763,7 +747,7 @@ component Sidebar inherits Rectangle {
                                 height: 18px;
                                 font-size: 12px;
                                 font-weight: 700;
-                                color: root.selected-route == i ? #e2e8f0 : #cbd5e1;
+                                color: root.selected-route == i ? #111827 : #374151;
                                 overflow: elide;
                                 vertical-alignment: center;
                             }
@@ -773,7 +757,7 @@ component Sidebar inherits Rectangle {
                                 height: 14px;
                                 font-size: 10px;
                                 font-weight: 500;
-                                color: #64748b;
+                                color: #6b7280;
                                 overflow: elide;
                                 vertical-alignment: center;
                             }
@@ -792,9 +776,9 @@ component RequestBar inherits Rectangle {
     callback send-request();
 
     height: 52px;
-    background: #11131a;
-    border-color: #252936;
-    border-width: 1px;
+    horizontal-stretch: 1;
+    background: #ffffff;
+    border-width: 0px;
     border-radius: 0px;
 
     VerticalLayout {
@@ -805,10 +789,10 @@ component RequestBar inherits Rectangle {
         Rectangle {
             height: 36px;
             horizontal-stretch: 1;
-            background: #1a1d26;
+            background: #ffffff;
             border-radius: 6px;
             border-width: 1px;
-            border-color: #252936;
+            border-color: #d1d5db;
 
             HorizontalLayout {
                 spacing: 0px;
@@ -819,18 +803,13 @@ component RequestBar inherits Rectangle {
                     embedded: true;
                 }
 
-                Rectangle {
-                    width: 1px;
-                    height: 24px;
-                    background: #252936;
-                }
-
                 TextFieldShell {
                     text <=> root.url;
                     placeholder: "Enter request URL";
                     show-label: true;
                     label: "URL";
                     embedded: true;
+                    mono: true;
                     height: 36px;
                     horizontal-stretch: 1;
                     accepted => {
@@ -840,19 +819,14 @@ component RequestBar inherits Rectangle {
                     }
                 }
 
-                Rectangle {
-                    width: 1px;
-                    height: 24px;
-                    background: #252936;
-                }
-
-                ActionButton {
+                ButtonSlot {
                     text: root.busy ? "Sending..." : "Send";
                     enabled: !root.busy;
                     primary: true;
                     embedded: true;
-                    width: 90px;
-                    height: 34px;
+                    button-width: 90px;
+                    button-height: 34px;
+                    slot-height: 36px;
                     clicked => {
                         root.send-request();
                     }
@@ -866,10 +840,10 @@ component RequestPanel inherits Rectangle {
     in-out property <string> request-body;
     in-out property <int> active-req-tab;
 
+    horizontal-stretch: 1;
     vertical-stretch: 1;
-    background: #11131a;
-    border-color: #252936;
-    border-width: 1px;
+    background: #ffffff;
+    border-width: 0px;
     border-radius: 0px;
 
     VerticalLayout {
@@ -878,7 +852,7 @@ component RequestPanel inherits Rectangle {
 
         Rectangle {
             height: 36px;
-            background: #151720;
+            background: #ffffff;
             border-radius: 0px;
 
             HorizontalLayout {
@@ -898,11 +872,12 @@ component RequestPanel inherits Rectangle {
 
         Rectangle {
             height: 1px;
-            background: #252936;
+            background: #e5e7eb;
         }
 
         Rectangle {
-            background: #11131a;
+            vertical-stretch: 1;
+            background: #ffffff;
 
             VerticalLayout {
                 padding: 8px;
@@ -923,10 +898,10 @@ component ResponsePanel inherits Rectangle {
     in property <string> response-meta;
     in property <string> response-tone;
 
+    horizontal-stretch: 1;
     vertical-stretch: 1;
-    background: #11131a;
-    border-color: #252936;
-    border-width: 1px;
+    background: #ffffff;
+    border-width: 0px;
     border-radius: 0px;
 
     VerticalLayout {
@@ -934,8 +909,36 @@ component ResponsePanel inherits Rectangle {
         spacing: 0px;
 
         Rectangle {
+            height: 52px;
+            background: #ffffff;
+
+            HorizontalLayout {
+                padding-left: 14px;
+                padding-right: 14px;
+                spacing: 8px;
+                alignment: center;
+
+                Rectangle {
+                    horizontal-stretch: 1;
+                }
+
+                Text {
+                    text: root.response-status + (root.response-meta == "" ? "" : " - " + root.response-meta);
+                    width: 260px;
+                    height: 30px;
+                    font-size: 12px;
+                    font-weight: 600;
+                    color: root.response-tone == "error" ? #dc2626 : root.response-tone == "busy" ? #d97706 : root.response-tone == "success" ? #059669 : #6b7280;
+                    overflow: elide;
+                    horizontal-alignment: right;
+                    vertical-alignment: center;
+                }
+            }
+        }
+
+        Rectangle {
             height: 36px;
-            background: #151720;
+            background: #ffffff;
             border-radius: 0px;
 
             HorizontalLayout {
@@ -951,27 +954,17 @@ component ResponsePanel inherits Rectangle {
                         root.active-res-tab = 0;
                     }
                 }
-
-                Text {
-                    text: root.response-status + (root.response-meta == "" ? "" : " - " + root.response-meta);
-                    font-size: 12px;
-                    font-weight: 600;
-                    color: root.response-tone == "error" ? #ef4444 : root.response-tone == "busy" ? #f59e0b : root.response-tone == "success" ? #10b981 : #64748b;
-                    horizontal-stretch: 1;
-                    overflow: elide;
-                    horizontal-alignment: right;
-                    vertical-alignment: center;
-                }
             }
         }
 
         Rectangle {
             height: 1px;
-            background: #252936;
+            background: #e5e7eb;
         }
 
         Rectangle {
-            background: #11131a;
+            vertical-stretch: 1;
+            background: #ffffff;
 
             VerticalLayout {
                 padding: 8px;
@@ -1022,7 +1015,7 @@ export component AppWindow inherits Window {
     callback send-request();
     callback toggle-server();
 
-    background: #0e1015;
+    background: #ffffff;
 
     VerticalLayout {
         padding: 0px;
@@ -1045,11 +1038,12 @@ export component AppWindow inherits Window {
 
         Rectangle {
             height: 1px;
-            background: #252936;
+            background: #e5e7eb;
         }
 
         HorizontalLayout {
             spacing: 0px;
+            vertical-stretch: 1;
 
             Sidebar {
                 routes <=> root.routes;
@@ -1066,28 +1060,46 @@ export component AppWindow inherits Window {
 
             Rectangle {
                 width: 1px;
-                background: #252936;
+                background: #e5e7eb;
             }
 
             Rectangle {
-                background: #0e1015;
+                horizontal-stretch: 1;
+                vertical-stretch: 1;
+                background: #ffffff;
 
-                VerticalLayout {
+                HorizontalLayout {
                     padding: 0px;
                     spacing: 0px;
 
-                    RequestBar {
-                        method <=> root.method;
-                        url <=> root.url;
-                        busy: root.busy;
-                        send-request => {
-                            root.send-request();
+                    Rectangle {
+                        horizontal-stretch: 1;
+                        vertical-stretch: 1;
+                        background: #ffffff;
+
+                        VerticalLayout {
+                            padding: 0px;
+                            spacing: 0px;
+
+                            RequestBar {
+                                method <=> root.method;
+                                url <=> root.url;
+                                busy: root.busy;
+                                send-request => {
+                                    root.send-request();
+                                }
+                            }
+
+                            RequestPanel {
+                                request-body <=> root.request-body;
+                                active-req-tab <=> root.active-req-tab;
+                            }
                         }
                     }
 
-                    RequestPanel {
-                        request-body <=> root.request-body;
-                        active-req-tab <=> root.active-req-tab;
+                    Rectangle {
+                        width: 1px;
+                        background: #e5e7eb;
                     }
 
                     ResponsePanel {
