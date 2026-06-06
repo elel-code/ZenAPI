@@ -302,6 +302,8 @@ component MethodSelector inherits Rectangle {
                 y: 6px;
                 width: parent.width - 12px;
                 height: parent.height - 12px;
+                vertical-scrollbar-policy: ScrollBarPolicy.always-off;
+                horizontal-scrollbar-policy: ScrollBarPolicy.always-off;
 
                 VerticalLayout {
                     spacing: 2px;
@@ -389,6 +391,8 @@ component CodePane inherits Rectangle {
         ScrollView {
             viewport-width: max(self.visible-width, code-input.preferred-width + 28px);
             viewport-height: max(self.visible-height, code-input.preferred-height + 24px);
+            vertical-scrollbar-policy: ScrollBarPolicy.always-off;
+            horizontal-scrollbar-policy: ScrollBarPolicy.always-off;
 
             code-input := TextInput {
                 x: 14px;
@@ -706,6 +710,9 @@ component Sidebar inherits Rectangle {
         }
 
         ListView {
+            vertical-scrollbar-policy: ScrollBarPolicy.always-off;
+            horizontal-scrollbar-policy: ScrollBarPolicy.always-off;
+
             for route[i] in root.routes: Rectangle {
                 height: 38px;
                 border-radius: 4px;

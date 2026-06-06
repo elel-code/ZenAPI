@@ -32,6 +32,9 @@ stable dimensions, and clear state over explanatory in-app copy.
 - Slint-provided components are allowed when they fit the interaction. Do not
   expose their default system font, colors, or theme chrome directly; wrap or
   configure them so typography, palette, density, and states match ZenAPI.
+- Slint scroll containers may be used for behavior, but default scrollbar
+  chrome must be disabled or replaced with a ZenAPI-styled dark scrollbar before
+  it is exposed in the UI.
 - The visual baseline is an integrated dark charcoal split-pane workstation.
   Avoid beige or light page surfaces, oversized gutters, and floating card
   stacks. Panels should meet through 1 px dividers, not broad background gaps.
