@@ -75,6 +75,9 @@ stable dimensions, and clear state over explanatory in-app copy.
 - Avoid drifting into unstyled system theme defaults. When adding surfaces,
   choose colors that fit the light neutral workbench plus green, blue, amber,
   and red functional accents.
+- Component APIs should not keep unused theme switches such as stale `dark`
+  flags. If a component needs variants, each variant must map to visible tokens
+  and be used intentionally.
 - Code and response bodies should use explicit ZenAPI editor chrome with
   `Noto Sans Mono`, not default text-editor chrome.
 - The top bar is a global console, not a form. Keep it fixed height, align the

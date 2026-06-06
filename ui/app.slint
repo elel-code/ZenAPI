@@ -49,7 +49,6 @@ component ActionButton inherits Rectangle {
     in property <bool> enabled: true;
     in property <bool> primary: false;
     in property <bool> warning: false;
-    in property <bool> dark: false;
     in property <bool> embedded: false;
     callback clicked();
 
@@ -89,7 +88,6 @@ component ButtonSlot inherits Rectangle {
     in property <bool> enabled: true;
     in property <bool> primary: false;
     in property <bool> warning: false;
-    in property <bool> dark: false;
     in property <bool> embedded: false;
     in property <length> button-width: 104px;
     in property <length> button-height: 34px;
@@ -106,7 +104,6 @@ component ButtonSlot inherits Rectangle {
         enabled: root.enabled;
         primary: root.primary;
         warning: root.warning;
-        dark: root.dark;
         embedded: root.embedded;
         width: root.button-width;
         height: root.button-height;
@@ -119,7 +116,6 @@ component ButtonSlot inherits Rectangle {
 component TextFieldShell inherits Rectangle {
     in-out property <string> text;
     in property <string> placeholder;
-    in property <bool> dark: false;
     in property <bool> show-label: false;
     in property <string> label: "";
     in property <bool> embedded: false;
@@ -500,7 +496,6 @@ component TopBar inherits Rectangle {
                 button-width: 78px;
                 button-height: 34px;
                 slot-height: root.height;
-                dark: true;
                 clicked => {
                     import-popup.show();
                 }
@@ -532,7 +527,6 @@ component TopBar inherits Rectangle {
                 text: root.server-running ? "Stop Mock" : "Start Mock";
                 enabled: !root.busy && (root.server-running || root.route-count > 0);
                 warning: root.server-running;
-                dark: true;
                 button-width: 110px;
                 button-height: 34px;
                 slot-height: root.height;
@@ -581,7 +575,6 @@ component TopBar inherits Rectangle {
                     TextFieldShell {
                         text <=> root.file-path;
                         placeholder: "Local JSON or YAML file path";
-                        dark: true;
                         show-label: true;
                         label: "PATH";
                         height: 34px;
