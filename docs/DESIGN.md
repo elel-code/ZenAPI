@@ -106,6 +106,8 @@ stable dimensions, and clear state over explanatory in-app copy.
   assumptions. Use neutral gray for idle, filtering, and route-selection states;
   amber for in-progress work; green for successful import or 2xx/3xx responses;
   red for validation, transport, mock, and 4xx/5xx response failures.
+- Response tone color mapping should also live in one shared UI helper. Rust may
+  emit tone names, but Slint owns the visual token mapping for those names.
 - Avoid drifting into unstyled system theme defaults. When adding surfaces,
   choose colors that fit the light neutral workbench plus green, blue, amber,
   and red functional accents.

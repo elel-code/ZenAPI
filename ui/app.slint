@@ -26,6 +26,12 @@ global MethodStyle {
     }
 }
 
+global ToneStyle {
+    public pure function color(tone: string) -> color {
+        return tone == "error" ? #dc2626 : tone == "busy" ? #d97706 : tone == "success" ? #059669 : #6b7280;
+    }
+}
+
 component PaneHeader inherits Rectangle {
     in property <string> text;
 
@@ -948,7 +954,7 @@ component ResponsePanel inherits Rectangle {
                     height: 30px;
                     font-size: 12px;
                     font-weight: 600;
-                    color: root.response-tone == "error" ? #dc2626 : root.response-tone == "busy" ? #d97706 : root.response-tone == "success" ? #059669 : #6b7280;
+                    color: ToneStyle.color(root.response-tone);
                     overflow: elide;
                     horizontal-alignment: right;
                     vertical-alignment: center;
