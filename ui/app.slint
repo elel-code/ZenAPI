@@ -592,6 +592,76 @@ component SidebarHeaderSlot inherits Rectangle {
     }
 }
 
+component RouteListItem inherits Rectangle {
+    in property <string> method;
+    in property <string> path;
+    in property <string> summary;
+    in property <bool> selected;
+    callback picked();
+
+    height: 38px;
+    horizontal-stretch: 1;
+    vertical-stretch: 0;
+    border-radius: 4px;
+    background: root.selected ? #eef2ff : (row-touch.has-hover ? #f3f4f6 : #f9fafb);
+
+    row-touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.picked();
+        }
+    }
+
+    Rectangle {
+        x: 6px;
+        y: 8px;
+        width: 60px;
+        height: 22px;
+        border-radius: 4px;
+        background: MethodStyle.background-color(root.method);
+
+        UiText {
+            text: root.method;
+            width: parent.width;
+            height: parent.height;
+            font-size: 11px;
+            font-weight: 800;
+            color: MethodStyle.text-color(root.method);
+            overflow: elide;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+        }
+    }
+
+    UiText {
+        x: 74px;
+        y: 4px;
+        text: root.path;
+        width: parent.width - 82px;
+        height: 18px;
+        font-family: "Noto Sans Mono";
+        font-size: 12px;
+        font-weight: 700;
+        color: root.selected ? #111827 : #374151;
+        overflow: elide;
+        vertical-alignment: center;
+    }
+
+    UiText {
+        x: 74px;
+        y: 22px;
+        text: root.summary;
+        width: parent.width - 82px;
+        height: 14px;
+        font-size: 10px;
+        font-weight: 500;
+        color: #6b7280;
+        visible: root.summary != "";
+        overflow: elide;
+        vertical-alignment: center;
+    }
+}
+
 component TopBar inherits Rectangle {
     in-out property <string> file-path;
     in property <string> spec-label;
@@ -800,76 +870,14 @@ component Sidebar inherits Rectangle {
             vertical-scrollbar-policy: ScrollBarPolicy.always-off;
             horizontal-scrollbar-policy: ScrollBarPolicy.always-off;
 
-            for route[i] in root.routes: Rectangle {
-                height: 38px;
-                border-radius: 4px;
-                background: root.selected-route == i ? #eef2ff : (route-touch.has-hover ? #f3f4f6 : #f9fafb);
-
-                route-touch := TouchArea {
-                    mouse-cursor: pointer;
-                    clicked => {
-                        root.selected-route = i;
-                        root.select-route(i);
-                    }
-                }
-
-                HorizontalLayout {
-                    padding-left: 6px;
-                    padding-right: 8px;
-                    spacing: 8px;
-                    alignment: center;
-
-                    Rectangle {
-                        width: 60px;
-                        height: 22px;
-                        border-radius: 4px;
-                        background: MethodStyle.background-color(route.method);
-
-                        UiText {
-                            text: route.method;
-                            width: parent.width;
-                            height: parent.height;
-                            font-size: 11px;
-                            font-weight: 800;
-                            color: MethodStyle.text-color(route.method);
-                            overflow: elide;
-                            horizontal-alignment: center;
-                            vertical-alignment: center;
-                        }
-                    }
-
-                    Rectangle {
-                        horizontal-stretch: 1;
-                        height: 32px;
-                        background: transparent;
-
-                        VerticalLayout {
-                            spacing: 0px;
-                            alignment: center;
-
-                            UiText {
-                                text: route.path;
-                                height: 18px;
-                                font-family: "Noto Sans Mono";
-                                font-size: 12px;
-                                font-weight: 700;
-                                color: root.selected-route == i ? #111827 : #374151;
-                                overflow: elide;
-                                vertical-alignment: center;
-                            }
-
-                            UiText {
-                                text: route.summary;
-                                height: route.summary == "" ? 0px : 14px;
-                                font-size: 10px;
-                                font-weight: 500;
-                                color: #6b7280;
-                                visible: route.summary != "";
-                                overflow: elide;
-                                vertical-alignment: center;
-                            }
-                        }
-                    }
+            for route[i] in root.routes: RouteListItem {
+                method: route.method;
+                path: route.path;
+                summary: route.summary;
+                selected: root.selected-route == i;
+                picked => {
+                    root.selected-route = i;
+                    root.select-route(i);
                 }
             }
         }

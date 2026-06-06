@@ -125,6 +125,9 @@ stable dimensions, and clear state over explanatory in-app copy.
 - HTTP method labels need stable widths and explicit overflow handling. Common
   methods such as DELETE and OPTIONS must not compress adjacent route text or
   change row height.
+- Route list rows must keep the API path on a stable baseline whether a summary
+  exists or not. The optional summary belongs in a fixed secondary line and
+  must not cause the path text to jump vertically between rows.
 - Response status color must come from explicit state/tone, not from broad text
   assumptions. Use neutral gray for idle, filtering, and route-selection states;
   amber for in-progress work; green for successful import or 2xx/3xx responses;
