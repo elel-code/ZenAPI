@@ -771,11 +771,12 @@ component Sidebar inherits Rectangle {
                             }
 
                             Text {
-                                text: route.summary == "" ? "No summary" : route.summary;
-                                height: 14px;
+                                text: route.summary;
+                                height: route.summary == "" ? 0px : 14px;
                                 font-size: 10px;
                                 font-weight: 500;
                                 color: #6b7280;
+                                visible: route.summary != "";
                                 overflow: elide;
                                 vertical-alignment: center;
                             }

@@ -26,6 +26,8 @@ stable dimensions, and clear state over explanatory in-app copy.
   width.
 - Prefer concise labels that fit at the minimum window size. Use elision for
   long paths, statuses, and summaries.
+- Repeated list rows should not use filler copy for missing optional metadata.
+  Leave absent summaries absent while preserving stable row height and alignment.
 
 ## Visual System
 
