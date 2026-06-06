@@ -108,8 +108,10 @@ stable dimensions, and clear state over explanatory in-app copy.
   assets, not improvised from text glyphs whose shape depends on the font.
 - Code and response bodies should use explicit ZenAPI editor chrome with
   `Noto Sans Mono`, not default text-editor chrome.
-- Editor panes must show focus through their ZenAPI border color. Do not rely
-  on the embedded text editor's native focus chrome.
+- Editable editor panes must show focus through their ZenAPI border color. Do
+  not rely on the embedded text editor's native focus chrome. Read-only response
+  viewers should keep text selection but must not show editing affordances such
+  as an insertion cursor or blue editing focus border.
 - The top bar is a global console, not a form. Keep it fixed height, align the
   brand area exactly with the sidebar width, use a single bottom divider, avoid
   internal structural split lines, and avoid explanatory status sentences. Show

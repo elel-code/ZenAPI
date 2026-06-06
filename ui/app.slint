@@ -411,7 +411,7 @@ component CodePane inherits Rectangle {
     horizontal-stretch: 1;
     vertical-stretch: 1;
     background: #ffffff;
-    border-color: code-input.has-focus ? #2563eb : #e5e7eb;
+    border-color: !root.read-only && code-input.has-focus ? #2563eb : #e5e7eb;
     border-width: 1px;
     border-radius: 4px;
 
@@ -440,7 +440,7 @@ component CodePane inherits Rectangle {
                 color: #111827;
                 selection-background-color: #2563eb;
                 selection-foreground-color: #ffffff;
-                text-cursor-width: 2px;
+                text-cursor-width: root.read-only ? 0px : 2px;
             }
         }
     }
