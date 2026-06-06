@@ -58,6 +58,9 @@ stable dimensions, and clear state over explanatory in-app copy.
   path, or summary is part of the MVP workstation behavior.
 - Filtering is a view state only. Global actions such as starting the mock
   server must use the imported route count, not the current visible match count.
+- Filtering must not overwrite the response panel status or body. The response
+  panel represents the latest import, route selection, request, or mock error,
+  while filter feedback belongs in the sidebar count and empty state.
 - Avoid inactive tabs or controls that imply functionality not yet implemented.
   Add tabs only when their content and behavior exist.
 

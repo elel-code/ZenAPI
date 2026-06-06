@@ -97,13 +97,6 @@ pub(super) fn wire_route_filter(app: &AppWindow, state: Arc<Mutex<AppState>>) {
 
         app.set_routes(route_model(&filtered));
         app.set_selected_route(-1);
-        app.set_response_status(if query.trim().is_empty() {
-            "Filter cleared".into()
-        } else {
-            "Routes filtered".into()
-        });
-        app.set_response_meta(format!("{} visible", filtered.len()).into());
-        app.set_response_tone("neutral".into());
     });
 }
 
