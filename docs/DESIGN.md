@@ -22,6 +22,8 @@ stable dimensions, and clear state over explanatory in-app copy.
   current app families are `Inter` for UI text and `Noto Sans Mono` for code.
 - Technical strings such as URLs, file paths, API paths, and local server
   addresses should use `Noto Sans Mono`, not the UI text face.
+- Placeholder text should use the same family as the eventual input value so
+  focused or edited controls do not shift typography mid-interaction.
 - Do not register fonts through runtime APIs that require the Slint platform
   before it is initialized.
 - Keep font sizes fixed per component type. Do not scale text with viewport
