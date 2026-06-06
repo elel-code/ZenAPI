@@ -65,7 +65,7 @@ component ActionButton inherits Rectangle {
         width: parent.width;
         height: parent.height;
         enabled: root.enabled;
-        mouse-cursor: pointer;
+        mouse-cursor: root.enabled ? pointer : default;
         clicked => {
             root.clicked();
         }

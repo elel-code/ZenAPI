@@ -120,6 +120,8 @@ stable dimensions, and clear state over explanatory in-app copy.
 - Clickable custom controls must declare their cursor intentionally. Buttons,
   tabs, dropdowns, and route rows should all expose pointer feedback instead of
   relying on toolkit defaults.
+- Disabled controls must not keep pointer feedback. Their cursor and visual
+  state should both communicate that the action is unavailable.
 
 ## Iteration And Commits
 
