@@ -468,7 +468,7 @@ component TopBar inherits Rectangle {
                 dark: true;
                 button-width: 78px;
                 button-height: 36px;
-                slot-height: 40px;
+                slot-height: root.height;
                 clicked => {
                     root.import-openapi(root.file-path);
                 }
@@ -502,7 +502,7 @@ component TopBar inherits Rectangle {
                 dark: true;
                 button-width: 110px;
                 button-height: 36px;
-                slot-height: 40px;
+                slot-height: root.height;
                 clicked => {
                     root.toggle-server();
                 }
