@@ -29,6 +29,9 @@ stable dimensions, and clear state over explanatory in-app copy.
 
 - Keep controls compact: most buttons should stay at 34-40 px height with a
   maximum 8 px radius.
+- Fixed-height controls and list rows must explicitly center their contents
+  vertically. Give text and pill contents stable heights instead of relying on
+  layout defaults.
 - Use a restrained neutral workbench base with functional accents. Current
   accents are green for selected/ready states, blue for primary request action,
   amber for waiting states, and red for errors.

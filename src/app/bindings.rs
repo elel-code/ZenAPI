@@ -281,3 +281,41 @@ fn default_request_body(method: &str) -> &'static str {
 fn pretty_json(value: &serde_json::Value) -> String {
     serde_json::to_string_pretty(value).unwrap_or_else(|_| value.to_string())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    fn route(method: &str, path: &str, summary: &str) -> ApiRoute {
+        ApiRoute {
+            method: method.to_string(),
+            path: path.to_string(),
+            summary: summary.to_string(),
+            mock_body: json!({}),
+        }
+    }
+
+    #[test]
+    fn filters_routes_by_method_path_or_summary() {
+        let routes = vec![
+            route("GET", "/users", "List accounts"),
+            route("POST", "/sessions", "Create login session"),
+            route("DELETE", "/users/{id}", "Remove account"),
+        ];
+
+        assert_eq!(filter_routes(&routes, "post"), vec![routes[1].clone()]);
+        assert_eq!(filter_routes(&routes, "sessions"), vec![routes[1].clone()]);
+        assert_eq!(filter_routes(&routes, "remove"), vec![routes[2].clone()]);
+    }
+
+    #[test]
+    fn empty_route_filter_returns_all_routes() {
+        let routes = vec![
+            route("GET", "/users", "List accounts"),
+            route("POST", "/sessions", "Create login session"),
+        ];
+
+        assert_eq!(filter_routes(&routes, "   "), routes);
+    }
+}
