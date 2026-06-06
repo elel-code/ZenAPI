@@ -106,6 +106,10 @@ stable dimensions, and clear state over explanatory in-app copy.
 - Top-bar brand text and right-side mock controls should use fixed toolbar
   slots. The mock status/control group is a 112 px status label, an 8 px gap,
   and a 110 px button, all centered inside the 48 px toolbar row.
+- Sidebar headers and response status bands should also use fixed-height slots
+  with explicit left/right text coordinates. Avoid using stretch spacers to
+  push counters or response metadata into place, because content changes can
+  shift perceived baselines.
 - Split panes and primary content regions must declare explicit stretch rules.
   The sidebar can be fixed width, but the main work area, route list, panels,
   and editor panes should not depend on implicit layout expansion.
@@ -150,6 +154,9 @@ stable dimensions, and clear state over explanatory in-app copy.
 - The request address bar should be positioned as one 36 px shell inside its
   52 px utility band with an explicit y offset. Do not rely on a nested layout
   to vertically center the visible address-bar rectangle.
+- Response status metadata is a 260 px right-aligned text slot inside the
+  52 px response utility band, with a 14 px right inset and explicit vertical
+  centering.
 - Top-bar status labels must use fixed-height, non-stretching slots and explicit
   text height so the label rectangle and its contents are both vertically
   centered against neighboring buttons.

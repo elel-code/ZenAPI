@@ -556,6 +556,42 @@ component MockControlSlot inherits Rectangle {
     }
 }
 
+component SidebarHeaderSlot inherits Rectangle {
+    in property <int> visible-count;
+    in property <int> total-count;
+
+    height: 22px;
+    horizontal-stretch: 1;
+    vertical-stretch: 0;
+    background: transparent;
+
+    UiText {
+        x: 0px;
+        y: 0px;
+        text: "Endpoints";
+        width: parent.width - 82px;
+        height: parent.height;
+        font-size: 13px;
+        font-weight: 700;
+        color: #111827;
+        overflow: elide;
+        vertical-alignment: center;
+    }
+
+    UiText {
+        x: parent.width - 74px;
+        y: 0px;
+        text: root.total-count == 0 ? "" : root.visible-count + "/" + root.total-count;
+        width: 74px;
+        height: parent.height;
+        font-size: 12px;
+        color: #6b7280;
+        overflow: elide;
+        horizontal-alignment: right;
+        vertical-alignment: center;
+    }
+}
+
 component TopBar inherits Rectangle {
     in-out property <string> file-path;
     in property <string> spec-label;
@@ -718,29 +754,9 @@ component Sidebar inherits Rectangle {
         padding: 12px;
         spacing: 8px;
 
-        HorizontalLayout {
-            spacing: 8px;
-
-            UiText {
-                text: "Endpoints";
-                font-size: 13px;
-                font-weight: 700;
-                color: #111827;
-                height: 22px;
-                vertical-alignment: center;
-            }
-
-            Rectangle {
-                horizontal-stretch: 1;
-            }
-
-            UiText {
-                text: root.total-route-count == 0 ? "" : root.routes.length + "/" + root.total-route-count;
-                font-size: 12px;
-                color: #6b7280;
-                height: 22px;
-                vertical-alignment: center;
-            }
+        SidebarHeaderSlot {
+            visible-count: root.routes.length;
+            total-count: root.total-route-count;
         }
 
         TextFieldShell {
@@ -964,6 +980,31 @@ component RequestPanel inherits Rectangle {
     }
 }
 
+component ResponseStatusSlot inherits Rectangle {
+    in property <string> response-status;
+    in property <string> response-meta;
+    in property <string> response-tone;
+
+    height: 52px;
+    horizontal-stretch: 1;
+    vertical-stretch: 0;
+    background: #ffffff;
+
+    UiText {
+        x: root.width - 274px;
+        y: (root.height - 30px) / 2;
+        text: root.response-status + (root.response-meta == "" ? "" : " - " + root.response-meta);
+        width: 260px;
+        height: 30px;
+        font-size: 12px;
+        font-weight: 600;
+        color: ToneStyle.color(root.response-tone);
+        overflow: elide;
+        horizontal-alignment: right;
+        vertical-alignment: center;
+    }
+}
+
 component ResponsePanel inherits Rectangle {
     in-out property <string> response-body;
     in property <string> response-status;
@@ -980,32 +1021,10 @@ component ResponsePanel inherits Rectangle {
         padding: 0px;
         spacing: 0px;
 
-        Rectangle {
-            height: 52px;
-            background: #ffffff;
-
-            HorizontalLayout {
-                padding-left: 14px;
-                padding-right: 14px;
-                spacing: 8px;
-                alignment: center;
-
-                Rectangle {
-                    horizontal-stretch: 1;
-                }
-
-                UiText {
-                    text: root.response-status + (root.response-meta == "" ? "" : " - " + root.response-meta);
-                    width: 260px;
-                    height: 30px;
-                    font-size: 12px;
-                    font-weight: 600;
-                    color: ToneStyle.color(root.response-tone);
-                    overflow: elide;
-                    horizontal-alignment: right;
-                    vertical-alignment: center;
-                }
-            }
+        ResponseStatusSlot {
+            response-status: root.response-status;
+            response-meta: root.response-meta;
+            response-tone: root.response-tone;
         }
 
         PaneHeader {
