@@ -38,6 +38,8 @@ stable dimensions, and clear state over explanatory in-app copy.
 - Slint-provided components are allowed when they fit the interaction. Do not
   expose their default system font, colors, or theme chrome directly; wrap or
   configure them so typography, palette, density, and states match ZenAPI.
+- Embedded `TextInput` instances must set selection colors and cursor width
+  explicitly instead of inheriting toolkit style metrics.
 - Slint scroll containers may be used for behavior, but default scrollbar
   chrome must be disabled or replaced with a ZenAPI-styled scrollbar before it
   is exposed in the UI.
