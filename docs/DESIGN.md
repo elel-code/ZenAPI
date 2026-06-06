@@ -47,6 +47,9 @@ stable dimensions, and clear state over explanatory in-app copy.
   UI, such as starting the mock server before routes are imported.
 - Still keep server-side or binding-side validation for all disabled actions,
   because state can change asynchronously.
+- Importing a new specification while the mock server is running must stop the
+  existing mock server and return the UI to a ready-but-stopped state. The route
+  list, status text, and actual running service must describe the same spec.
 - Route lists should remain manageable for large specs. Filtering by method,
   path, or summary is part of the MVP workstation behavior.
 - Avoid inactive tabs or controls that imply functionality not yet implemented.

@@ -9,7 +9,7 @@ use zenapi::{
     openapi::{ApiRoute, ApiSpec, load_openapi_file},
 };
 
-pub(super) fn wire_import(app: &AppWindow, state: Arc<Mutex<AppState>>) {
+pub(super) fn wire_import(app: &AppWindow, runtime: Arc<Runtime>, state: Arc<Mutex<AppState>>) {
     let weak_app = app.as_weak();
     app.on_import_openapi(move |path| {
         let Some(app) = weak_app.upgrade() else {
@@ -28,31 +28,52 @@ pub(super) fn wire_import(app: &AppWindow, state: Arc<Mutex<AppState>>) {
         match load_openapi_file(path) {
             Ok(spec) => {
                 let routes = spec.routes.clone();
-                app.set_routes(route_model(&routes));
-                app.set_selected_route(-1);
-                app.set_route_filter("".into());
-                app.set_total_route_count(routes.len() as i32);
-                app.set_response_status(format!("Imported {}", display_spec_name(&spec)).into());
-                app.set_response_meta(format!("{} routes", routes.len()).into());
-                app.set_response_body(format!("Ready: {} routes parsed.", routes.len()).into());
-                app.set_server_status(if routes.is_empty() {
-                    "No mock routes in imported spec".into()
-                } else {
-                    "Mock server ready".into()
+                let stopped_server = state.lock().ok().and_then(|mut state| {
+                    let stopped_server = state.server.take();
+                    state.routes = routes.clone();
+                    state.visible_routes = routes.clone();
+                    stopped_server
                 });
 
-                if let Ok(mut state) = state.lock() {
-                    state.routes = routes.clone();
-                    state.visible_routes = routes;
-                }
+                let spec_name = display_spec_name(&spec);
+                let weak_app = app.as_weak();
+                runtime.spawn(async move {
+                    if let Some(server) = stopped_server {
+                        server.stop().await;
+                    }
+
+                    let _ = slint::invoke_from_event_loop(move || {
+                        let Some(app) = weak_app.upgrade() else {
+                            return;
+                        };
+
+                        app.set_routes(route_model(&routes));
+                        app.set_selected_route(-1);
+                        app.set_route_filter("".into());
+                        app.set_total_route_count(routes.len() as i32);
+                        app.set_server_running(false);
+                        app.set_response_status(format!("Imported {spec_name}").into());
+                        app.set_response_meta(format!("{} routes", routes.len()).into());
+                        app.set_response_body(
+                            format!("Ready: {} routes parsed.", routes.len()).into(),
+                        );
+                        app.set_server_status(if routes.is_empty() {
+                            "No mock routes in imported spec".into()
+                        } else {
+                            "Mock server ready".into()
+                        });
+                        app.set_busy(false);
+                    });
+                });
+                return;
             }
             Err(error) => {
                 app.set_response_status("Import failed".into());
                 app.set_response_meta("".into());
                 app.set_response_body(error.to_string().into());
+                app.set_busy(false);
             }
         }
-        app.set_busy(false);
     });
 }
 

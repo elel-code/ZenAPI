@@ -21,7 +21,7 @@ pub fn run() -> Result<()> {
             .into(),
     );
 
-    bindings::wire_import(&app, state.clone());
+    bindings::wire_import(&app, runtime.clone(), state.clone());
     bindings::wire_route_filter(&app, state.clone());
     bindings::wire_route_selection(&app, state.clone());
     bindings::wire_request_sender(&app, runtime.clone());
