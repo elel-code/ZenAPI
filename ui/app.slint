@@ -139,7 +139,7 @@ component TextFieldShell inherits Rectangle {
     vertical-stretch: 0;
     border-radius: root.embedded ? 0px : 6px;
     border-width: root.embedded ? 0px : 1px;
-    border-color: text-input.has-focus ? #2563eb : #d1d5db;
+    border-color: root.enabled && text-input.has-focus ? #2563eb : root.enabled ? #d1d5db : #e5e7eb;
     background: root.embedded ? transparent : root.enabled ? #ffffff : #f9fafb;
     opacity: root.enabled ? 1 : 0.72;
 
@@ -198,7 +198,9 @@ component TextFieldShell inherits Rectangle {
                     root.edited();
                 }
                 accepted => {
-                    root.accepted();
+                    if root.enabled {
+                        root.accepted();
+                    }
                 }
             }
         }
@@ -605,11 +607,14 @@ component TopBar inherits Rectangle {
                         show-label: true;
                         label: "PATH";
                         mono: true;
+                        enabled: !root.busy;
                         height: 34px;
                         horizontal-stretch: 1;
                         accepted => {
-                            import-popup.close();
-                            root.import-openapi(root.file-path);
+                            if !root.busy {
+                                import-popup.close();
+                                root.import-openapi(root.file-path);
+                            }
                         }
                     }
 
@@ -620,8 +625,10 @@ component TopBar inherits Rectangle {
                         width: 78px;
                         height: 34px;
                         clicked => {
-                            import-popup.close();
-                            root.import-openapi(root.file-path);
+                            if !root.busy {
+                                import-popup.close();
+                                root.import-openapi(root.file-path);
+                            }
                         }
                     }
                 }

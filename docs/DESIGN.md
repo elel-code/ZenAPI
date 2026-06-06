@@ -86,6 +86,9 @@ stable dimensions, and clear state over explanatory in-app copy.
 - Composite controls should change availability as one unit. During request
   sending, the method selector, URL input, and Send segment should all present a
   shared disabled state instead of leaving editable segments visually active.
+- Disabled input shells must suppress editing affordances, including blue focus
+  borders and Enter/accepted submission. Any neighboring action in the same
+  control group should share the same disabled condition and callback guard.
 - Header buttons must center the actual button rectangle within the toolbar
   slot, not only center the label text inside a drifting button.
 - Split panes and primary content regions must declare explicit stretch rules.
