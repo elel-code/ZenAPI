@@ -85,6 +85,9 @@ stable dimensions, and clear state over explanatory in-app copy.
 - Mock controls should communicate state through enabled/disabled state, button
   text, concise short labels such as a port number, and accent color. Do not add
   long helper text to explain why a disabled action is unavailable.
+- Runtime labels in the top bar must be bound to actual application state. Do
+  not hard-code server ports, filenames, counts, or statuses when the binding
+  layer already knows the real value.
 
 ## Interaction
 

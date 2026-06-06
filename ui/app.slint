@@ -417,6 +417,7 @@ component TopBar inherits Rectangle {
     in property <string> spec-label;
     in property <bool> spec-loaded;
     in property <bool> server-running;
+    in property <string> server-status;
     in property <int> route-count;
     in property <bool> busy;
     callback import-openapi(string);
@@ -511,16 +512,18 @@ component TopBar inherits Rectangle {
         }
 
         HorizontalLayout {
-            width: 174px;
+            width: 232px;
             spacing: 8px;
             alignment: center;
 
             Text {
-                text: root.server-running ? "Port 8080" : "";
-                width: 56px;
+                text: root.server-running ? root.server-status : "";
+                width: 112px;
                 height: 34px;
                 color: #6b7280;
+                font-family: "Noto Sans Mono";
                 font-size: 12px;
+                overflow: elide;
                 horizontal-alignment: right;
                 vertical-alignment: center;
             }
@@ -1026,6 +1029,7 @@ export component AppWindow inherits Window {
             spec-label: root.spec-label;
             spec-loaded: root.spec-loaded;
             server-running: root.server-running;
+            server-status: root.server-status;
             route-count: root.total-route-count;
             busy: root.busy;
             import-openapi(path) => {

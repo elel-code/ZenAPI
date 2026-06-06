@@ -254,9 +254,7 @@ pub(super) fn wire_mock_server(
                                     guard.server = Some(server);
                                 }
                                 app.set_server_running(true);
-                                app.set_server_status(
-                                    format!("Mock server at http://{addr}").into(),
-                                );
+                                app.set_server_status(addr.to_string().into());
                             }
                             Err(error) => {
                                 app.set_server_running(false);
