@@ -81,13 +81,14 @@ stable dimensions, and clear state over explanatory in-app copy.
 - Fixed-height controls and list rows must explicitly center their contents
   vertically. Give text and pill contents stable heights instead of relying on
   layout defaults.
-- Text input shells should use explicit coordinates for label and value text.
-  Labeled inputs reserve a 30 px label slot, a 10 px gap, and stable horizontal
-  insets so PATH, FIND, and URL fields share the same baseline and value start.
+- Text input shells should use explicit coordinates for optional labels and
+  value text. When a labeled variant is deliberately used, reserve a 30 px
+  label slot, a 10 px gap, and stable horizontal insets so label and value
+  baselines do not drift.
 - Compact address/search inputs should not show large inline labels. The
-  request URL field and sidebar route filter use only concise placeholders so
-  the controls read like address/search bars, while the import popover keeps a
-  PATH label because it is a focused file-path form.
+  request URL field, sidebar route filter, and import popover path field use
+  only concise placeholders so controls read like address/search bars instead
+  of small labeled form fragments.
 - Composite controls must preserve visible focus. If an embedded input hides
   its own border, export its focus state to the parent shell and render focus on
   the shared outer border.
@@ -95,8 +96,9 @@ stable dimensions, and clear state over explanatory in-app copy.
   children to the shared shell. Embedded command segments should use only the
   exposed outside corner radius and no competing inner border.
 - The request method selector is the left segment of the address bar, not a
-  separate control. Give it stable width, no outside border while embedded, and
-  put its divider on the segment boundary.
+  separate control. Give it a stable 100 px width, no outside border while
+  embedded, fixed text and chevron coordinates, and a single divider on the
+  segment boundary.
 - Method selector text, chevron, and popup option labels should use explicit
   fixed coordinates inside the control so long methods and dropdown glyphs stay
   visually centered and do not create stray line fragments.
@@ -190,10 +192,10 @@ stable dimensions, and clear state over explanatory in-app copy.
 - Transient popovers should use the same light surface and 1 px border without
   drop shadows. Align popover origins to the triggering control's grid position
   so they do not appear to drift by a pixel.
-- The import popover is a compact 520 x 80 px surface: 10 px inset, 18 px title
-  row, 8 px gap, and a 34 px path/action row. Path input and Import button
-  positions should be explicit so their rectangles align, not inferred from
-  nested layout centering.
+- The import popover is a compact 520 x 58 px surface: 10 px horizontal inset
+  and one vertically centered 34 px path/action row. Do not add a title row or
+  PATH label; the popup belongs to the Import bar and should not become a
+  miniature form with extra alignment targets.
 
 ## Interaction
 

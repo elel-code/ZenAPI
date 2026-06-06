@@ -320,9 +320,10 @@ component MethodSelector inherits Rectangle {
     in property <bool> embedded: false;
     in property <bool> enabled: true;
 
-    width: 108px;
+    width: 100px;
     height: 36px;
     vertical-stretch: 0;
+    clip: true;
     border-radius: root.embedded ? 0px : 6px;
     border-width: root.embedded ? 0px : 1px;
     border-color: #d1d5db;
@@ -340,21 +341,21 @@ component MethodSelector inherits Rectangle {
     }
 
     UiText {
-        x: 12px;
+        x: 14px;
         y: 0px;
         text: root.method;
-        width: 68px;
+        width: root.width - 44px;
         height: root.height;
         font-size: 12px;
         font-weight: 800;
         color: MethodStyle.text-color(root.method);
         overflow: elide;
-        horizontal-alignment: center;
+        horizontal-alignment: left;
         vertical-alignment: center;
     }
 
     ChevronDown {
-        x: root.width - 22px;
+        x: root.width - 24px;
         y: (root.height - 6px) / 2;
         width: 10px;
         height: 6px;
@@ -362,9 +363,10 @@ component MethodSelector inherits Rectangle {
 
     Rectangle {
         x: root.width - 1px;
+        y: 1px;
         width: 1px;
-        height: root.height;
-        background: #e5e7eb;
+        height: root.height - 2px;
+        background: #d1d5db;
         visible: root.embedded;
     }
 
@@ -787,35 +789,21 @@ component TopBar inherits Rectangle {
 
     import-popup := PopupWindow {
         x: 260px + (root.width - 260px - 230px - 14px - 520px) / 2;
-        y: root.height + 4px;
+        y: root.height + 6px;
         width: 520px;
-        height: 80px;
+        height: 58px;
         close-policy: close-on-click-outside;
 
         PopupSurface {
             width: import-popup.width;
             height: import-popup.height;
 
-            UiText {
-                x: 10px;
-                y: 10px;
-                text: "OpenAPI specification";
-                width: parent.width - 20px;
-                height: 18px;
-                font-size: 12px;
-                font-weight: 700;
-                color: #6b7280;
-                overflow: elide;
-                vertical-alignment: center;
-            }
-
             TextFieldShell {
                 x: 10px;
-                y: 36px;
+                y: 12px;
                 text <=> root.file-path;
                 placeholder: "Local JSON or YAML file path";
-                show-label: true;
-                label: "PATH";
+                show-label: false;
                 mono: true;
                 enabled: !root.busy;
                 width: parent.width - 108px;
@@ -830,7 +818,7 @@ component TopBar inherits Rectangle {
 
             ActionButton {
                 x: parent.width - 88px;
-                y: 36px;
+                y: 12px;
                 text: "Import";
                 enabled: !root.busy;
                 primary: true;
