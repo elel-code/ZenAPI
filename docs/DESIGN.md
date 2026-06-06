@@ -20,6 +20,8 @@ stable dimensions, and clear state over explanatory in-app copy.
   critical UI text.
 - Import bundled font files from Slint and reference explicit families. The
   current app families are `Inter` for UI text and `Noto Sans Mono` for code.
+- Technical strings such as URLs, file paths, API paths, and local server
+  addresses should use `Noto Sans Mono`, not the UI text face.
 - Do not register fonts through runtime APIs that require the Slint platform
   before it is initialized.
 - Keep font sizes fixed per component type. Do not scale text with viewport

@@ -598,6 +598,7 @@ component TopBar inherits Rectangle {
                         placeholder: "Local JSON or YAML file path";
                         show-label: true;
                         label: "PATH";
+                        mono: true;
                         height: 34px;
                         horizontal-stretch: 1;
                         accepted => {
@@ -754,6 +755,7 @@ component Sidebar inherits Rectangle {
                             Text {
                                 text: route.path;
                                 height: 18px;
+                                font-family: "Noto Sans Mono";
                                 font-size: 12px;
                                 font-weight: 700;
                                 color: root.selected-route == i ? #111827 : #374151;
