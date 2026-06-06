@@ -954,6 +954,13 @@ component RequestBar inherits Rectangle {
             }
         }
     }
+
+    Rectangle {
+        y: root.height - 1px;
+        width: root.width;
+        height: 1px;
+        background: #e5e7eb;
+    }
 }
 
 component RequestPanel inherits Rectangle {
@@ -1117,44 +1124,39 @@ export component AppWindow inherits Window {
                 vertical-stretch: 1;
                 background: #ffffff;
 
-                HorizontalLayout {
+                VerticalLayout {
                     padding: 0px;
                     spacing: 0px;
 
-                    Rectangle {
-                        horizontal-stretch: 1;
-                        vertical-stretch: 1;
-                        background: #ffffff;
-
-                        VerticalLayout {
-                            padding: 0px;
-                            spacing: 0px;
-
-                            RequestBar {
-                                method <=> root.method;
-                                url <=> root.url;
-                                busy: root.busy;
-                                send-request => {
-                                    root.send-request();
-                                }
-                            }
-
-                            RequestPanel {
-                                request-body <=> root.request-body;
-                            }
+                    RequestBar {
+                        method <=> root.method;
+                        url <=> root.url;
+                        busy: root.busy;
+                        send-request => {
+                            root.send-request();
                         }
                     }
 
-                    Rectangle {
-                        width: 1px;
-                        background: #e5e7eb;
-                    }
+                    HorizontalLayout {
+                        padding: 0px;
+                        spacing: 0px;
+                        vertical-stretch: 1;
 
-                    ResponsePanel {
-                        response-body <=> root.response-body;
-                        response-status: root.response-status;
-                        response-meta: root.response-meta;
-                        response-tone: root.response-tone;
+                        RequestPanel {
+                            request-body <=> root.request-body;
+                        }
+
+                        Rectangle {
+                            width: 1px;
+                            background: #e5e7eb;
+                        }
+
+                        ResponsePanel {
+                            response-body <=> root.response-body;
+                            response-status: root.response-status;
+                            response-meta: root.response-meta;
+                            response-tone: root.response-tone;
+                        }
                     }
                 }
             }

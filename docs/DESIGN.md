@@ -55,12 +55,15 @@ stable dimensions, and clear state over explanatory in-app copy.
 - The visual baseline is a modern light split-pane workstation inspired by
   Postman: flat white and near-white surfaces, no floating cards, no heavy
   shadows, and 1 px dividers instead of broad gutters.
-- Below the global top bar, the app is organized into three coordinated regions:
-  Endpoints, Request, and Response. These regions are peers separated by 1 px
-  dividers; do not stack Response under Request as a secondary afterthought.
+- Below the global top bar, the app uses a fixed Endpoints sidebar and a main
+  workspace. The main workspace starts with one shared 52 px request address
+  utility band; below that band, Request and Response are peer editor regions
+  separated by a 1 px divider.
 - Region lines must have a single owner. The app shell owns the top-bar bottom
-  rule and the vertical split rules between Endpoints, Request, and Response;
-  child panels should not add competing outside borders on the same edges.
+  rule and the Endpoints/main split. The shared request utility band owns its
+  bottom rule, and the Request/Response vertical divider starts below that
+  band; child panels should not add competing outside borders on the same
+  edges.
 - Do not add ornamental dots, short divider strokes, or stray line fragments.
   Status should be expressed through button state, concise text, or color on an
   existing control; lines are only for region splits, control borders, and tab
@@ -68,10 +71,10 @@ stable dimensions, and clear state over explanatory in-app copy.
 - Single-view panes may use a Postman-style active tab row when it anchors the
   editor surface or carries nearby status metadata. Do not add inactive tabs
   unless their content and behavior exist.
-- Request and Response should preserve a compact Postman-like rhythm. Request
-  keeps a 52 px address utility band; request/response content uses 40 px tab
-  headers; response status metadata belongs in the Response tab row instead of
-  a separate 52 px status band.
+- Request and Response should preserve a compact Postman-like rhythm. The
+  shared main-workspace address utility band is 52 px; request/response content
+  starts below it with aligned 40 px tab headers. Response status metadata
+  belongs in the Response tab row instead of a separate 52 px status band.
 - Use the current light palette consistently: app and editor surfaces
   `#ffffff`, toolbar/sidebar surfaces `#f9fafb`, subtle control fills
   `#f3f4f6`, split dividers and borders `#e5e7eb` / `#d1d5db`, primary text
@@ -169,9 +172,9 @@ stable dimensions, and clear state over explanatory in-app copy.
   specification state and import action as one centered search-like Import bar;
   keep path entry inside the import popover instead of making it the persistent
   visual center.
-- The request address bar should be positioned as one 36 px shell inside its
-  52 px utility band with an explicit y offset. Do not rely on a nested layout
-  to vertically center the visible address-bar rectangle.
+- The request address bar should span the main workspace as one 36 px shell
+  inside a shared 52 px utility band with an explicit y offset. Do not rely on
+  a nested layout to vertically center the visible address-bar rectangle.
 - Response status metadata is a 260 px right-aligned text slot inside the 40 px
   Response tab row, with a 14 px right inset and explicit vertical centering.
 - Pane tab rows are 40 px fixed-height slots with a 1 px bottom divider and a
