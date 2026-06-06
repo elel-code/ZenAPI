@@ -79,6 +79,9 @@ stable dimensions, and clear state over explanatory in-app copy.
 - Fixed-height controls and list rows must explicitly center their contents
   vertically. Give text and pill contents stable heights instead of relying on
   layout defaults.
+- Text input shells should use explicit coordinates for label and value text.
+  Labeled inputs reserve a 30 px label slot, a 10 px gap, and stable horizontal
+  insets so PATH, FIND, and URL fields share the same baseline and value start.
 - Composite controls must preserve visible focus. If an embedded input hides
   its own border, export its focus state to the parent shell and render focus on
   the shared outer border.
