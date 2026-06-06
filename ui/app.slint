@@ -1,0 +1,947 @@
+import { ListView, ScrollView } from "std-widgets.slint";
+
+export struct RouteRow {
+    method: string,
+    path: string,
+    summary: string,
+}
+
+component Tab inherits Rectangle {
+    in property <string> text;
+    in property <bool> selected;
+    callback clicked();
+
+    width: 86px;
+    height: 40px;
+    background: root.selected ? #f7f7f4 : #eceee9;
+
+    TouchArea {
+        clicked => {
+            root.clicked();
+        }
+    }
+
+    Text {
+        text: root.text;
+        color: root.selected ? #0f172a : #64748b;
+        font-weight: root.selected ? 700 : 500;
+        font-size: 13px;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+    }
+
+    VerticalLayout {
+        alignment: end;
+
+        Rectangle {
+            height: 2px;
+            background: root.selected ? #2f6b3a : #eceee9;
+        }
+    }
+}
+
+component ActionButton inherits Rectangle {
+    in property <string> text;
+    in property <bool> enabled: true;
+    in property <bool> primary: false;
+    in property <bool> dark: false;
+    callback clicked();
+
+    height: 34px;
+    width: 104px;
+    border-radius: 6px;
+    border-width: 1px;
+    border-color: !root.enabled ? #94a3b8 : root.primary ? #1d4ed8 : root.dark ? #475569 : #cbd5e1;
+    background: !root.enabled ? #cbd5e1 : root.primary ? (touch.pressed ? #1e40af : touch.has-hover ? #2563eb : #1d4ed8) : root.dark ? (touch.pressed ? #334155 : touch.has-hover ? #475569 : #334155) : (touch.pressed ? #cbd5e1 : touch.has-hover ? #e2e8f0 : #f8fafc);
+    opacity: root.enabled ? 1 : 0.65;
+
+    touch := TouchArea {
+        enabled: root.enabled;
+        mouse-cursor: pointer;
+        clicked => {
+            root.clicked();
+        }
+    }
+
+    Text {
+        text: root.text;
+        width: parent.width;
+        height: parent.height;
+        color: root.primary || root.dark ? #ffffff : #0f172a;
+        font-size: 13px;
+        font-weight: 700;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+}
+
+component ButtonSlot inherits Rectangle {
+    in property <string> text;
+    in property <bool> enabled: true;
+    in property <bool> primary: false;
+    in property <bool> dark: false;
+    in property <length> button-width: 104px;
+    in property <length> button-height: 34px;
+    in property <length> slot-height: 40px;
+    callback clicked();
+
+    width: root.button-width;
+    height: root.slot-height;
+    vertical-stretch: 0;
+
+    VerticalLayout {
+        alignment: center;
+
+        ActionButton {
+            text: root.text;
+            enabled: root.enabled;
+            primary: root.primary;
+            dark: root.dark;
+            width: root.button-width;
+            height: root.button-height;
+            clicked => {
+                root.clicked();
+            }
+        }
+    }
+}
+
+component TextFieldShell inherits Rectangle {
+    in-out property <string> text;
+    in property <string> placeholder;
+    in property <bool> dark: false;
+    in property <bool> show-label: false;
+    in property <string> label: "";
+    callback edited();
+
+    height: 36px;
+    horizontal-stretch: 1;
+    vertical-stretch: 0;
+    border-radius: 6px;
+    border-width: 1px;
+    border-color: text-input.has-focus ? (root.dark ? #60a5fa : #2563eb) : (root.dark ? #475569 : #94a3b8);
+    background: root.dark ? (text-input.has-focus ? #111827 : #0f172a) : #ffffff;
+
+    HorizontalLayout {
+        padding-left: 12px;
+        padding-right: 12px;
+        spacing: 10px;
+        alignment: center;
+
+        if root.show-label: Text {
+            text: root.label;
+            width: 30px;
+            height: root.height;
+            font-size: 11px;
+            font-weight: 800;
+            color: root.dark ? #cbd5e1 : #475569;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+        }
+
+        Rectangle {
+            horizontal-stretch: 1;
+            height: parent.height;
+            background: transparent;
+
+            Text {
+                text: root.text == "" ? root.placeholder : "";
+                width: parent.width;
+                height: parent.height;
+                color: root.dark ? #94a3b8 : #64748b;
+                font-size: 13px;
+                horizontal-alignment: left;
+                vertical-alignment: center;
+                overflow: elide;
+            }
+
+            text-input := TextInput {
+                text <=> root.text;
+                width: parent.width;
+                height: parent.height;
+                single-line: true;
+                font-family: "Zen Sans";
+                font-size: 13px;
+                color: root.dark ? #f8fafc : #0f172a;
+                selection-background-color: #2563eb;
+                selection-foreground-color: #ffffff;
+                vertical-alignment: center;
+                edited => {
+                    root.edited();
+                }
+            }
+        }
+    }
+}
+
+component MethodOption inherits Rectangle {
+    in property <string> value;
+    in property <bool> selected;
+    callback picked(string);
+
+    height: 32px;
+    horizontal-stretch: 1;
+    border-radius: 4px;
+    background: root.selected ? #dbeafe : option-touch.has-hover ? #f1f5f9 : #ffffff;
+
+    option-touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.picked(root.value);
+        }
+    }
+
+    HorizontalLayout {
+        padding-left: 10px;
+        padding-right: 10px;
+        spacing: 8px;
+        alignment: center;
+
+        Text {
+            text: root.value;
+            width: 62px;
+            height: root.height;
+            font-size: 12px;
+            font-weight: 800;
+            color: root.value == "GET" ? #059669 : root.value == "POST" ? #d97706 : root.value == "PUT" ? #2563eb : root.value == "PATCH" ? #7c3aed : root.value == "DELETE" ? #dc2626 : #475569;
+            vertical-alignment: center;
+        }
+
+        Rectangle {
+            horizontal-stretch: 1;
+        }
+
+        Rectangle {
+            width: root.selected ? 7px : 0px;
+            height: 7px;
+            border-radius: 4px;
+            background: root.selected ? #2563eb : transparent;
+        }
+    }
+}
+
+component MethodSelector inherits Rectangle {
+    in-out property <string> method;
+
+    width: 124px;
+    height: 40px;
+    border-radius: 6px;
+    border-width: 1px;
+    border-color: #020617;
+    background: picker-touch.pressed ? #0f172a : picker-touch.has-hover ? #1e293b : #111827;
+
+    picker-touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            method-popup.show();
+        }
+    }
+
+    HorizontalLayout {
+        padding-left: 12px;
+        padding-right: 11px;
+        spacing: 8px;
+        alignment: center;
+
+        Text {
+            text: root.method;
+            width: 78px;
+            height: root.height;
+            font-size: 12px;
+            font-weight: 800;
+            color: root.method == "GET" ? #34d399 : root.method == "POST" ? #fbbf24 : root.method == "PUT" ? #60a5fa : root.method == "PATCH" ? #c084fc : root.method == "DELETE" ? #f87171 : #cbd5e1;
+            vertical-alignment: center;
+        }
+
+        Text {
+            text: "v";
+            width: 12px;
+            height: root.height;
+            font-size: 10px;
+            font-weight: 700;
+            color: #94a3b8;
+            horizontal-alignment: right;
+            vertical-alignment: center;
+        }
+    }
+
+    method-popup := PopupWindow {
+        x: 0px;
+        y: root.height + 6px;
+        width: root.width;
+        height: 250px;
+        close-policy: close-on-click-outside;
+
+        Rectangle {
+            width: method-popup.width;
+            height: method-popup.height;
+            background: #ffffff;
+            border-radius: 6px;
+            border-width: 1px;
+            border-color: #94a3b8;
+            drop-shadow-color: #47556980;
+            drop-shadow-blur: 14px;
+            drop-shadow-offset-y: 4px;
+
+            ScrollView {
+                x: 6px;
+                y: 6px;
+                width: parent.width - 12px;
+                height: parent.height - 12px;
+
+                VerticalLayout {
+                    spacing: 2px;
+
+                    MethodOption {
+                        value: "GET";
+                        selected: root.method == "GET";
+                        picked(value) => {
+                            root.method = value;
+                            method-popup.close();
+                        }
+                    }
+
+                    MethodOption {
+                        value: "POST";
+                        selected: root.method == "POST";
+                        picked(value) => {
+                            root.method = value;
+                            method-popup.close();
+                        }
+                    }
+
+                    MethodOption {
+                        value: "PUT";
+                        selected: root.method == "PUT";
+                        picked(value) => {
+                            root.method = value;
+                            method-popup.close();
+                        }
+                    }
+
+                    MethodOption {
+                        value: "PATCH";
+                        selected: root.method == "PATCH";
+                        picked(value) => {
+                            root.method = value;
+                            method-popup.close();
+                        }
+                    }
+
+                    MethodOption {
+                        value: "DELETE";
+                        selected: root.method == "DELETE";
+                        picked(value) => {
+                            root.method = value;
+                            method-popup.close();
+                        }
+                    }
+
+                    MethodOption {
+                        value: "HEAD";
+                        selected: root.method == "HEAD";
+                        picked(value) => {
+                            root.method = value;
+                            method-popup.close();
+                        }
+                    }
+
+                    MethodOption {
+                        value: "OPTIONS";
+                        selected: root.method == "OPTIONS";
+                        picked(value) => {
+                            root.method = value;
+                            method-popup.close();
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+component CodePane inherits Rectangle {
+    in-out property <string> text;
+    in property <bool> read-only;
+
+    background: #111827;
+    border-color: #293548;
+    border-width: 1px;
+    border-radius: 6px;
+
+    VerticalLayout {
+        padding: 0px;
+
+        ScrollView {
+            viewport-width: max(self.visible-width, code-input.preferred-width + 28px);
+            viewport-height: max(self.visible-height, code-input.preferred-height + 24px);
+
+            code-input := TextInput {
+                x: 14px;
+                y: 12px;
+                width: max(parent.visible-width - 28px, self.preferred-width);
+                height: max(parent.visible-height - 24px, self.preferred-height);
+                text <=> root.text;
+                read-only: root.read-only;
+                single-line: false;
+                wrap: word-wrap;
+                font-family: "Zen Mono";
+                font-size: 13px;
+                font-weight: 400;
+                color: #d1d5db;
+                selection-background-color: #2563eb;
+                selection-foreground-color: #ffffff;
+            }
+        }
+    }
+}
+
+component TopBar inherits Rectangle {
+    in-out property <string> file-path;
+    in property <string> server-status;
+    in property <bool> server-running;
+    in property <int> route-count;
+    in property <bool> busy;
+    callback import-openapi(string);
+    callback toggle-server();
+
+    height: 58px;
+    background: #20242b;
+
+    HorizontalLayout {
+        padding-left: 0px;
+        padding-right: 12px;
+        spacing: 0px;
+        alignment: center;
+
+        Rectangle {
+            width: 312px;
+            background: #151922;
+
+            HorizontalLayout {
+                padding-left: 18px;
+                padding-right: 16px;
+                spacing: 12px;
+                alignment: center;
+
+                Text {
+                    text: "ZenAPI";
+                    font-size: 18px;
+                    font-weight: 800;
+                    color: #f8fafc;
+                    vertical-alignment: center;
+                }
+
+                Rectangle {
+                    horizontal-stretch: 1;
+                }
+            }
+        }
+
+        Rectangle {
+            width: 1px;
+            background: #343946;
+        }
+
+        HorizontalLayout {
+            padding-left: 12px;
+            padding-right: 12px;
+            spacing: 8px;
+            alignment: center;
+            horizontal-stretch: 1;
+
+            TextFieldShell {
+                text <=> root.file-path;
+                placeholder: "OpenAPI JSON/YAML file path";
+                dark: true;
+                show-label: true;
+                label: "SPEC";
+                horizontal-stretch: 1;
+                height: 36px;
+            }
+
+            ButtonSlot {
+                text: "Import";
+                enabled: !root.busy;
+                dark: true;
+                button-width: 78px;
+                button-height: 36px;
+                slot-height: 40px;
+                clicked => {
+                    root.import-openapi(root.file-path);
+                }
+            }
+        }
+
+        HorizontalLayout {
+            width: 292px;
+            spacing: 8px;
+            alignment: center;
+
+            Rectangle {
+                width: 8px;
+                height: 8px;
+                border-radius: 4px;
+                background: root.server-running ? #10b981 : #94a3b8;
+            }
+
+            Text {
+                text: root.server-status;
+                color: root.server-running ? #d1fae5 : root.route-count == 0 ? #f8d49b : #d2d7df;
+                font-size: 13px;
+                horizontal-stretch: 1;
+                overflow: elide;
+                vertical-alignment: center;
+            }
+
+            ButtonSlot {
+                text: root.server-running ? "Stop Mock" : "Start Mock";
+                enabled: !root.busy && (root.server-running || root.route-count > 0);
+                dark: true;
+                button-width: 110px;
+                button-height: 36px;
+                slot-height: 40px;
+                clicked => {
+                    root.toggle-server();
+                }
+            }
+        }
+    }
+}
+
+component Sidebar inherits Rectangle {
+    in-out property <[RouteRow]> routes;
+    in-out property <int> selected-route;
+    in-out property <string> route-filter;
+    in property <int> total-route-count;
+    callback select-route(int);
+    callback filter-routes(string);
+
+    width: 312px;
+    background: #f1f3f0;
+
+    VerticalLayout {
+        padding: 16px;
+        spacing: 10px;
+
+        HorizontalLayout {
+            spacing: 8px;
+
+            Text {
+                text: "Endpoints";
+                font-size: 13px;
+                font-weight: 700;
+                color: #20242b;
+                height: 22px;
+                vertical-alignment: center;
+            }
+
+            Rectangle {
+                horizontal-stretch: 1;
+            }
+
+            Text {
+                text: root.total-route-count == 0 ? "" : root.routes.length + "/" + root.total-route-count;
+                font-size: 12px;
+                color: #475569;
+                height: 22px;
+                vertical-alignment: center;
+            }
+        }
+
+        Rectangle {
+            height: 1px;
+            background: #d5d9d2;
+        }
+
+        TextFieldShell {
+            text <=> root.route-filter;
+            placeholder: "Filter method, path, or summary";
+            show-label: true;
+            label: "FIND";
+            height: 34px;
+            visible: root.total-route-count > 0;
+            edited => {
+                root.filter-routes(root.route-filter);
+            }
+        }
+
+        Rectangle {
+            height: root.routes.length == 0 ? 132px : 0px;
+            background: #ffffff;
+            border-radius: 8px;
+            border-width: root.routes.length == 0 ? 1px : 0px;
+            border-color: #c7cdc5;
+
+            VerticalLayout {
+                padding: 16px;
+                spacing: 8px;
+                alignment: center;
+
+                Rectangle {
+                    width: 46px;
+                    height: 26px;
+                    border-radius: 5px;
+                    background: #e6f4d7;
+
+                    Text {
+                        text: "API";
+                        font-size: 11px;
+                        font-weight: 800;
+                        color: #2f6b3a;
+                        horizontal-alignment: center;
+                        vertical-alignment: center;
+                    }
+                }
+
+                Text {
+                    text: root.routes.length == 0 ? (root.total-route-count == 0 ? "No endpoints" : "No matches") : "";
+                    font-size: 13px;
+                    font-weight: 700;
+                    color: #30363a;
+                    horizontal-alignment: center;
+                    vertical-alignment: center;
+                }
+
+                Text {
+                    text: root.routes.length == 0 ? (root.total-route-count == 0 ? "Import an OpenAPI file\nto populate routes." : "Adjust the filter\nto show endpoints.") : "";
+                    font-size: 12px;
+                    color: #68706c;
+                    horizontal-alignment: center;
+                    vertical-alignment: center;
+                }
+            }
+        }
+
+        ListView {
+            for route[i] in root.routes: Rectangle {
+                height: 40px;
+                border-radius: 6px;
+                background: root.selected-route == i ? #e6f4d7 : (route-touch.has-hover ? #e2e6df : #f1f3f0);
+
+                route-touch := TouchArea {
+                    clicked => {
+                        root.selected-route = i;
+                        root.select-route(i);
+                    }
+                }
+
+                HorizontalLayout {
+                    padding-left: 8px;
+                    padding-right: 8px;
+                    spacing: 12px;
+                    alignment: center;
+
+                    Text {
+                        text: route.method;
+                        width: 52px;
+                        font-size: 11px;
+                        font-weight: 800;
+                        color: route.method == "GET" ? #059669 : route.method == "POST" ? #d97706 : route.method == "PUT" ? #2563eb : route.method == "DELETE" ? #dc2626 : #475569;
+                        horizontal-alignment: left;
+                        vertical-alignment: center;
+                    }
+
+                    Text {
+                        text: route.path;
+                        font-size: 13px;
+                        font-weight: 500;
+                        color: root.selected-route == i ? #2f6b3a : #20242b;
+                        overflow: elide;
+                        vertical-alignment: center;
+                    }
+                }
+            }
+        }
+    }
+}
+
+component RequestBar inherits Rectangle {
+    in-out property <string> method;
+    in-out property <string> url;
+    in property <bool> busy;
+    callback send-request();
+
+    height: 72px;
+    background: #ece7dc;
+    border-color: #c9c1b3;
+    border-width: 1px;
+    border-radius: 8px;
+
+    VerticalLayout {
+        padding-left: 12px;
+        padding-right: 12px;
+        alignment: center;
+
+        Rectangle {
+            height: 40px;
+            horizontal-stretch: 1;
+            background: transparent;
+
+            HorizontalLayout {
+                spacing: 10px;
+                alignment: center;
+
+                MethodSelector {
+                    method <=> root.method;
+                }
+
+                TextFieldShell {
+                    text <=> root.url;
+                    placeholder: "Enter request URL";
+                    show-label: true;
+                    label: "URL";
+                    height: 40px;
+                    horizontal-stretch: 1;
+                }
+
+                ActionButton {
+                    text: root.busy ? "Sending..." : "Send";
+                    enabled: !root.busy;
+                    primary: true;
+                    width: 90px;
+                    height: 40px;
+                    clicked => {
+                        root.send-request();
+                    }
+                }
+            }
+        }
+    }
+}
+
+component RequestPanel inherits Rectangle {
+    in-out property <string> request-body;
+    in-out property <int> active-req-tab;
+
+    vertical-stretch: 1;
+    background: #f7f7f4;
+    border-color: #d2d5ce;
+    border-width: 1px;
+    border-radius: 8px;
+
+    VerticalLayout {
+        padding: 0px;
+        spacing: 0px;
+
+        Rectangle {
+            height: 40px;
+            background: #eceee9;
+            border-radius: 8px;
+
+            HorizontalLayout {
+                padding-left: 16px;
+                spacing: 8px;
+                alignment: center;
+
+                Tab {
+                    text: "Body";
+                    selected: true;
+                    clicked => {
+                        root.active-req-tab = 0;
+                    }
+                }
+            }
+        }
+
+        Rectangle {
+            height: 1px;
+            background: #d2d5ce;
+        }
+
+        Rectangle {
+            background: #f7f7f4;
+
+            VerticalLayout {
+                padding: 8px;
+
+                CodePane {
+                    text <=> root.request-body;
+                    read-only: false;
+                }
+            }
+        }
+    }
+}
+
+component ResponsePanel inherits Rectangle {
+    in-out property <string> response-body;
+    in-out property <int> active-res-tab;
+    in property <string> response-status;
+    in property <string> response-meta;
+
+    vertical-stretch: 1;
+    background: #f7f7f4;
+    border-color: #d2d5ce;
+    border-width: 1px;
+    border-radius: 8px;
+
+    VerticalLayout {
+        padding: 0px;
+        spacing: 0px;
+
+        Rectangle {
+            height: 40px;
+            background: #eceee9;
+            border-radius: 8px;
+
+            HorizontalLayout {
+                padding-left: 16px;
+                padding-right: 16px;
+                spacing: 8px;
+                alignment: center;
+
+                Tab {
+                    text: "Response";
+                    selected: true;
+                    clicked => {
+                        root.active-res-tab = 0;
+                    }
+                }
+
+                Text {
+                    text: root.response-status + (root.response-meta == "" ? "" : " - " + root.response-meta);
+                    font-size: 12px;
+                    font-weight: 600;
+                    color: root.response-status == "Request failed" || root.response-status == "Import failed" || root.response-status == "Mock server failed" || root.response-status == "Request needs a URL" || root.response-status == "Import needs a file path" || root.response-status == "Mock needs routes" ? #dc2626 : #16825d;
+                    horizontal-stretch: 1;
+                    overflow: elide;
+                    horizontal-alignment: right;
+                    vertical-alignment: center;
+                }
+            }
+        }
+
+        Rectangle {
+            height: 1px;
+            background: #d2d5ce;
+        }
+
+        Rectangle {
+            background: #f7f7f4;
+
+            VerticalLayout {
+                padding: 8px;
+
+                CodePane {
+                    text <=> root.response-body;
+                    read-only: true;
+                }
+            }
+        }
+    }
+}
+
+export component AppWindow inherits Window {
+    title: "ZenAPI";
+    preferred-width: 1280px;
+    preferred-height: 800px;
+    min-width: 980px;
+    min-height: 640px;
+    default-font-family: "Zen Sans";
+    default-font-size: 13px;
+    default-font-weight: 500;
+
+    in-out property <[RouteRow]> routes;
+    in-out property <int> selected-route: -1;
+    in-out property <string> file-path;
+    in-out property <string> method: "GET";
+    in-out property <string> url;
+    in-out property <string> request-body;
+    in-out property <string> response-status: "Idle";
+    in-out property <string> response-meta: "";
+    in-out property <string> response-body: "";
+    in-out property <string> route-filter;
+    in-out property <int> total-route-count: 0;
+    in-out property <string> server-status: "Import routes to start mock";
+    in-out property <bool> server-running: false;
+    in-out property <bool> busy: false;
+
+    in-out property <int> active-req-tab: 0;
+    in-out property <int> active-res-tab: 0;
+
+    callback import-openapi(string);
+    callback filter-routes(string);
+    callback select-route(int);
+    callback send-request();
+    callback toggle-server();
+
+    background: #e7e5dd;
+
+    VerticalLayout {
+        padding: 0px;
+        spacing: 0px;
+
+        TopBar {
+            file-path <=> root.file-path;
+            server-status: root.server-status;
+            server-running: root.server-running;
+            route-count: root.routes.length;
+            busy: root.busy;
+            import-openapi(path) => {
+                root.import-openapi(path);
+            }
+            toggle-server => {
+                root.toggle-server();
+            }
+        }
+
+        Rectangle {
+            height: 1px;
+            background: #0f172a;
+        }
+
+        HorizontalLayout {
+            spacing: 0px;
+
+            Sidebar {
+                routes <=> root.routes;
+                selected-route <=> root.selected-route;
+                route-filter <=> root.route-filter;
+                total-route-count: root.total-route-count;
+                filter-routes(query) => {
+                    root.filter-routes(query);
+                }
+                select-route(index) => {
+                    root.select-route(index);
+                }
+            }
+
+            Rectangle {
+                width: 1px;
+                background: #d2d5ce;
+            }
+
+            Rectangle {
+                background: #e7e5dd;
+
+                VerticalLayout {
+                    padding: 14px;
+                    spacing: 12px;
+
+                    RequestBar {
+                        method <=> root.method;
+                        url <=> root.url;
+                        busy: root.busy;
+                        send-request => {
+                            root.send-request();
+                        }
+                    }
+
+                    RequestPanel {
+                        request-body <=> root.request-body;
+                        active-req-tab <=> root.active-req-tab;
+                    }
+
+                    ResponsePanel {
+                        response-body <=> root.response-body;
+                        active-res-tab <=> root.active-res-tab;
+                        response-status: root.response-status;
+                        response-meta: root.response-meta;
+                    }
+                }
+            }
+        }
+    }
+}
