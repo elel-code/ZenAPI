@@ -103,6 +103,9 @@ stable dimensions, and clear state over explanatory in-app copy.
   A 34 px spec status field next to 34 px buttons should be positioned from the
   48 px toolbar slot with an explicit y offset, not inferred from nested layout
   cross-axis behavior.
+- Top-bar brand text and right-side mock controls should use fixed toolbar
+  slots. The mock status/control group is a 112 px status label, an 8 px gap,
+  and a 110 px button, all centered inside the 48 px toolbar row.
 - Split panes and primary content regions must declare explicit stretch rules.
   The sidebar can be fixed width, but the main work area, route list, panels,
   and editor panes should not depend on implicit layout expansion.
@@ -144,6 +147,9 @@ stable dimensions, and clear state over explanatory in-app copy.
   specification state as a compact read-only label plus an Import action; keep
   path entry inside an import affordance instead of making it the persistent
   visual center.
+- The request address bar should be positioned as one 36 px shell inside its
+  52 px utility band with an explicit y offset. Do not rely on a nested layout
+  to vertically center the visible address-bar rectangle.
 - Top-bar status labels must use fixed-height, non-stretching slots and explicit
   text height so the label rectangle and its contents are both vertically
   centered against neighboring buttons.

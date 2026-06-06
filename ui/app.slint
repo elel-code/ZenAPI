@@ -514,6 +514,48 @@ component SpecStatusSlot inherits Rectangle {
     }
 }
 
+component MockControlSlot inherits Rectangle {
+    in property <bool> server-running;
+    in property <string> server-status;
+    in property <int> route-count;
+    in property <bool> busy;
+    in property <length> slot-height: 48px;
+    callback toggled();
+
+    width: 230px;
+    height: root.slot-height;
+    vertical-stretch: 0;
+    background: transparent;
+
+    UiText {
+        x: 0px;
+        y: (root.slot-height - 34px) / 2;
+        text: root.server-running ? root.server-status : "";
+        width: 112px;
+        height: 34px;
+        color: #6b7280;
+        font-family: "Noto Sans Mono";
+        font-size: 12px;
+        overflow: elide;
+        horizontal-alignment: right;
+        vertical-alignment: center;
+    }
+
+    ButtonSlot {
+        x: 120px;
+        y: 0px;
+        text: root.server-running ? "Stop Mock" : "Start Mock";
+        enabled: !root.busy && (root.server-running || root.route-count > 0);
+        warning: root.server-running;
+        button-width: 110px;
+        button-height: 34px;
+        slot-height: root.slot-height;
+        clicked => {
+            root.toggled();
+        }
+    }
+}
+
 component TopBar inherits Rectangle {
     in-out property <string> file-path;
     in property <string> spec-label;
@@ -537,24 +579,21 @@ component TopBar inherits Rectangle {
 
         Rectangle {
             width: 260px;
+            height: root.height;
+            vertical-stretch: 0;
             background: #f9fafb;
 
-            HorizontalLayout {
-                padding-left: 16px;
-                padding-right: 14px;
-                alignment: center;
-
-                UiText {
-                    text: "ZenAPI";
-                    font-size: 16px;
-                    font-weight: 800;
-                    color: #111827;
-                    vertical-alignment: center;
-                }
-
-                Rectangle {
-                    horizontal-stretch: 1;
-                }
+            UiText {
+                x: 16px;
+                y: 0px;
+                text: "ZenAPI";
+                width: parent.width - 30px;
+                height: parent.height;
+                font-size: 16px;
+                font-weight: 800;
+                color: #111827;
+                overflow: elide;
+                vertical-alignment: center;
             }
         }
 
@@ -587,33 +626,14 @@ component TopBar inherits Rectangle {
             }
         }
 
-        HorizontalLayout {
-            width: 232px;
-            spacing: 8px;
-            alignment: center;
-
-            UiText {
-                text: root.server-running ? root.server-status : "";
-                width: 112px;
-                height: 34px;
-                color: #6b7280;
-                font-family: "Noto Sans Mono";
-                font-size: 12px;
-                overflow: elide;
-                horizontal-alignment: right;
-                vertical-alignment: center;
-            }
-
-            ButtonSlot {
-                text: root.server-running ? "Stop Mock" : "Start Mock";
-                enabled: !root.busy && (root.server-running || root.route-count > 0);
-                warning: root.server-running;
-                button-width: 110px;
-                button-height: 34px;
-                slot-height: root.height;
-                clicked => {
-                    root.toggle-server();
-                }
+        MockControlSlot {
+            server-running: root.server-running;
+            server-status: root.server-status;
+            route-count: root.route-count;
+            busy: root.busy;
+            slot-height: root.height;
+            toggled => {
+                root.toggle-server();
             }
         }
     }
@@ -852,58 +872,54 @@ component RequestBar inherits Rectangle {
     border-width: 0px;
     border-radius: 0px;
 
-    VerticalLayout {
-        padding-left: 14px;
-        padding-right: 14px;
-        alignment: center;
+    Rectangle {
+        x: 14px;
+        y: (root.height - 36px) / 2;
+        width: root.width - 28px;
+        height: 36px;
+        background: root.busy ? #f9fafb : #ffffff;
+        border-radius: 6px;
+        border-width: 1px;
+        border-color: !root.busy && url-field.focused ? #2563eb : root.busy ? #e5e7eb : #d1d5db;
+        clip: true;
 
-        Rectangle {
-            height: 36px;
-            horizontal-stretch: 1;
-            background: root.busy ? #f9fafb : #ffffff;
-            border-radius: 6px;
-            border-width: 1px;
-            border-color: !root.busy && url-field.focused ? #2563eb : root.busy ? #e5e7eb : #d1d5db;
-            clip: true;
+        HorizontalLayout {
+            spacing: 0px;
+            alignment: center;
 
-            HorizontalLayout {
-                spacing: 0px;
-                alignment: center;
+            MethodSelector {
+                method <=> root.method;
+                embedded: true;
+                enabled: !root.busy;
+            }
 
-                MethodSelector {
-                    method <=> root.method;
-                    embedded: true;
-                    enabled: !root.busy;
-                }
-
-                url-field := TextFieldShell {
-                    text <=> root.url;
-                    placeholder: "Enter request URL";
-                    show-label: true;
-                    label: "URL";
-                    embedded: true;
-                    mono: true;
-                    enabled: !root.busy;
-                    height: 36px;
-                    horizontal-stretch: 1;
-                    accepted => {
-                        if !root.busy {
-                            root.send-request();
-                        }
-                    }
-                }
-
-                ButtonSlot {
-                    text: "Send";
-                    enabled: !root.busy;
-                    primary: true;
-                    embedded: true;
-                    button-width: 90px;
-                    button-height: 34px;
-                    slot-height: 36px;
-                    clicked => {
+            url-field := TextFieldShell {
+                text <=> root.url;
+                placeholder: "Enter request URL";
+                show-label: true;
+                label: "URL";
+                embedded: true;
+                mono: true;
+                enabled: !root.busy;
+                height: 36px;
+                horizontal-stretch: 1;
+                accepted => {
+                    if !root.busy {
                         root.send-request();
                     }
+                }
+            }
+
+            ButtonSlot {
+                text: "Send";
+                enabled: !root.busy;
+                primary: true;
+                embedded: true;
+                button-width: 90px;
+                button-height: 34px;
+                slot-height: 36px;
+                clicked => {
+                    root.send-request();
                 }
             }
         }
