@@ -160,6 +160,9 @@ stable dimensions, and clear state over explanatory in-app copy.
 - Response status metadata is a 260 px right-aligned text slot inside the
   52 px response utility band, with a 14 px right inset and explicit vertical
   centering.
+- Pane title rows are 36 px fixed-height slots. Title text should use explicit
+  x/y coordinates, left/right insets, and elision instead of an inner layout
+  just to center one label.
 - Top-bar status labels must use fixed-height, non-stretching slots and explicit
   text height so the label rectangle and its contents are both vertically
   centered against neighboring buttons.
@@ -175,6 +178,10 @@ stable dimensions, and clear state over explanatory in-app copy.
 - Transient popovers should use the same light surface, 1 px border, and a
   restrained shadow token. Align popover origins to the triggering control's
   grid position so they do not appear to drift by a pixel.
+- The import popover is a compact 520 x 80 px surface: 10 px inset, 18 px title
+  row, 8 px gap, and a 34 px path/action row. Path input and Import button
+  positions should be explicit so their rectangles align, not inferred from
+  nested layout centering.
 
 ## Interaction
 

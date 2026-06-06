@@ -53,19 +53,17 @@ component PaneHeader inherits Rectangle {
     horizontal-stretch: 1;
     background: #ffffff;
 
-    HorizontalLayout {
-        padding-left: 14px;
-        padding-right: 14px;
-        alignment: center;
-
-        UiText {
-            text: root.text;
-            height: root.height;
-            color: #111827;
-            font-weight: 700;
-            font-size: 13px;
-            vertical-alignment: center;
-        }
+    UiText {
+        x: 14px;
+        y: 0px;
+        text: root.text;
+        width: parent.width - 28px;
+        height: parent.height;
+        color: #111827;
+        font-weight: 700;
+        font-size: 13px;
+        overflow: elide;
+        vertical-alignment: center;
     }
 }
 
@@ -748,59 +746,57 @@ component TopBar inherits Rectangle {
         x: 275px;
         y: root.height + 4px;
         width: 520px;
-        height: 92px;
+        height: 80px;
         close-policy: close-on-click-outside;
 
         PopupSurface {
             width: import-popup.width;
             height: import-popup.height;
 
-            VerticalLayout {
-                padding: 10px;
-                spacing: 8px;
+            UiText {
+                x: 10px;
+                y: 10px;
+                text: "OpenAPI specification";
+                width: parent.width - 20px;
+                height: 18px;
+                font-size: 12px;
+                font-weight: 700;
+                color: #6b7280;
+                overflow: elide;
+                vertical-alignment: center;
+            }
 
-                UiText {
-                    text: "OpenAPI specification";
-                    height: 18px;
-                    font-size: 12px;
-                    font-weight: 700;
-                    color: #6b7280;
-                    vertical-alignment: center;
-                }
-
-                HorizontalLayout {
-                    spacing: 8px;
-                    alignment: center;
-
-                    TextFieldShell {
-                        text <=> root.file-path;
-                        placeholder: "Local JSON or YAML file path";
-                        show-label: true;
-                        label: "PATH";
-                        mono: true;
-                        enabled: !root.busy;
-                        height: 34px;
-                        horizontal-stretch: 1;
-                        accepted => {
-                            if !root.busy {
-                                import-popup.close();
-                                root.import-openapi(root.file-path);
-                            }
-                        }
+            TextFieldShell {
+                x: 10px;
+                y: 36px;
+                text <=> root.file-path;
+                placeholder: "Local JSON or YAML file path";
+                show-label: true;
+                label: "PATH";
+                mono: true;
+                enabled: !root.busy;
+                width: parent.width - 108px;
+                height: 34px;
+                accepted => {
+                    if !root.busy {
+                        import-popup.close();
+                        root.import-openapi(root.file-path);
                     }
+                }
+            }
 
-                    ActionButton {
-                        text: "Import";
-                        enabled: !root.busy;
-                        primary: true;
-                        width: 78px;
-                        height: 34px;
-                        clicked => {
-                            if !root.busy {
-                                import-popup.close();
-                                root.import-openapi(root.file-path);
-                            }
-                        }
+            ActionButton {
+                x: parent.width - 88px;
+                y: 36px;
+                text: "Import";
+                enabled: !root.busy;
+                primary: true;
+                width: 78px;
+                height: 34px;
+                clicked => {
+                    if !root.busy {
+                        import-popup.close();
+                        root.import-openapi(root.file-path);
                     }
                 }
             }
