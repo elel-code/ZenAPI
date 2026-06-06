@@ -81,6 +81,8 @@ stable dimensions, and clear state over explanatory in-app copy.
 - Component APIs should not keep unused theme switches such as stale `dark`
   flags. If a component needs variants, each variant must map to visible tokens
   and be used intentionally.
+- Fixed control icons should be drawn with stable icon components or bundled
+  assets, not improvised from text glyphs whose shape depends on the font.
 - Code and response bodies should use explicit ZenAPI editor chrome with
   `Noto Sans Mono`, not default text-editor chrome.
 - The top bar is a global console, not a form. Keep it fixed height, align the

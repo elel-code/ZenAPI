@@ -227,6 +227,31 @@ component MethodOption inherits Rectangle {
     }
 }
 
+component ChevronDown inherits Path {
+    width: 10px;
+    height: 6px;
+    viewbox-width: 10;
+    viewbox-height: 6;
+    fill: transparent;
+    stroke: #6b7280;
+    stroke-width: 1.5px;
+
+    MoveTo {
+        x: 1;
+        y: 1;
+    }
+
+    LineTo {
+        x: 5;
+        y: 5;
+    }
+
+    LineTo {
+        x: 9;
+        y: 1;
+    }
+}
+
 component MethodSelector inherits Rectangle {
     in-out property <string> method;
     in property <bool> embedded: false;
@@ -261,15 +286,9 @@ component MethodSelector inherits Rectangle {
             vertical-alignment: center;
         }
 
-        Text {
-            text: "v";
-            width: 12px;
-            height: root.height;
-            font-size: 10px;
-            font-weight: 700;
-            color: #6b7280;
-            horizontal-alignment: right;
-            vertical-alignment: center;
+        ChevronDown {
+            width: 10px;
+            height: 6px;
         }
     }
 
