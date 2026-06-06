@@ -178,9 +178,9 @@ stable dimensions, and clear state over explanatory in-app copy.
 - Runtime labels in the top bar must be bound to actual application state. Do
   not hard-code server ports, filenames, counts, or statuses when the binding
   layer already knows the real value.
-- Transient popovers should use the same light surface, 1 px border, and a
-  restrained shadow token. Align popover origins to the triggering control's
-  grid position so they do not appear to drift by a pixel.
+- Transient popovers should use the same light surface and 1 px border without
+  drop shadows. Align popover origins to the triggering control's grid position
+  so they do not appear to drift by a pixel.
 - The import popover is a compact 520 x 80 px surface: 10 px inset, 18 px title
   row, 8 px gap, and a 34 px path/action row. Path input and Import button
   positions should be explicit so their rectangles align, not inferred from
