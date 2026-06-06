@@ -8,39 +8,25 @@ export struct RouteRow {
     summary: string,
 }
 
-component Tab inherits Rectangle {
+component PaneHeader inherits Rectangle {
     in property <string> text;
-    in property <bool> selected;
-    callback clicked();
 
-    width: 86px;
     height: 36px;
+    horizontal-stretch: 1;
     background: #ffffff;
 
-    TouchArea {
-        mouse-cursor: pointer;
-        clicked => {
-            root.clicked();
-        }
-    }
+    HorizontalLayout {
+        padding-left: 14px;
+        padding-right: 14px;
+        alignment: center;
 
-    Text {
-        text: root.text;
-        width: parent.width;
-        height: parent.height;
-        color: root.selected ? #111827 : #6b7280;
-        font-weight: root.selected ? 700 : 500;
-        font-size: 13px;
-        horizontal-alignment: center;
-        vertical-alignment: center;
-    }
-
-    VerticalLayout {
-        alignment: end;
-
-        Rectangle {
-            height: 2px;
-            background: root.selected ? #2563eb : transparent;
+        Text {
+            text: root.text;
+            height: root.height;
+            color: #111827;
+            font-weight: 700;
+            font-size: 13px;
+            vertical-alignment: center;
         }
     }
 }
@@ -55,7 +41,10 @@ component ActionButton inherits Rectangle {
 
     height: 34px;
     width: 104px;
-    border-radius: root.embedded ? 4px : 6px;
+    border-top-left-radius: root.embedded ? 0px : 6px;
+    border-bottom-left-radius: root.embedded ? 0px : 6px;
+    border-top-right-radius: root.embedded ? 5px : 6px;
+    border-bottom-right-radius: root.embedded ? 5px : 6px;
     border-width: root.embedded ? 0px : 1px;
     border-color: !root.enabled ? #d1d5db : root.warning ? #b45309 : root.primary ? #1d4ed8 : #d1d5db;
     background: !root.enabled ? #f3f4f6 : root.warning ? (touch.pressed ? #92400e : touch.has-hover ? #d97706 : #b45309) : root.primary ? (touch.pressed ? #1d4ed8 : touch.has-hover ? #3b82f6 : #2563eb) : (touch.pressed ? #e5e7eb : touch.has-hover ? #f3f4f6 : #ffffff);
@@ -476,13 +465,8 @@ component TopBar inherits Rectangle {
             }
         }
 
-        Rectangle {
-            width: 1px;
-            background: #e5e7eb;
-        }
-
         HorizontalLayout {
-            padding-left: 14px;
+            padding-left: 15px;
             padding-right: 14px;
             spacing: 8px;
             alignment: center;
@@ -809,6 +793,7 @@ component RequestBar inherits Rectangle {
             border-radius: 6px;
             border-width: 1px;
             border-color: url-field.focused ? #2563eb : #d1d5db;
+            clip: true;
 
             HorizontalLayout {
                 spacing: 0px;
@@ -854,7 +839,6 @@ component RequestBar inherits Rectangle {
 
 component RequestPanel inherits Rectangle {
     in-out property <string> request-body;
-    in-out property <int> active-req-tab;
 
     horizontal-stretch: 1;
     vertical-stretch: 1;
@@ -866,24 +850,8 @@ component RequestPanel inherits Rectangle {
         padding: 0px;
         spacing: 0px;
 
-        Rectangle {
-            height: 36px;
-            background: #ffffff;
-            border-radius: 0px;
-
-            HorizontalLayout {
-                padding-left: 12px;
-                spacing: 0px;
-                alignment: center;
-
-                Tab {
-                    text: "Body";
-                    selected: true;
-                    clicked => {
-                        root.active-req-tab = 0;
-                    }
-                }
-            }
+        PaneHeader {
+            text: "Body";
         }
 
         Rectangle {
@@ -909,7 +877,6 @@ component RequestPanel inherits Rectangle {
 
 component ResponsePanel inherits Rectangle {
     in-out property <string> response-body;
-    in-out property <int> active-res-tab;
     in property <string> response-status;
     in property <string> response-meta;
     in property <string> response-tone;
@@ -952,25 +919,8 @@ component ResponsePanel inherits Rectangle {
             }
         }
 
-        Rectangle {
-            height: 36px;
-            background: #ffffff;
-            border-radius: 0px;
-
-            HorizontalLayout {
-                padding-left: 12px;
-                padding-right: 12px;
-                spacing: 0px;
-                alignment: center;
-
-                Tab {
-                    text: "Response";
-                    selected: true;
-                    clicked => {
-                        root.active-res-tab = 0;
-                    }
-                }
-            }
+        PaneHeader {
+            text: "Response";
         }
 
         Rectangle {
@@ -1021,9 +971,6 @@ export component AppWindow inherits Window {
     in-out property <string> server-status: "Idle";
     in-out property <bool> server-running: false;
     in-out property <bool> busy: false;
-
-    in-out property <int> active-req-tab: 0;
-    in-out property <int> active-res-tab: 0;
 
     callback import-openapi(string);
     callback filter-routes(string);
@@ -1109,7 +1056,6 @@ export component AppWindow inherits Window {
 
                             RequestPanel {
                                 request-body <=> root.request-body;
-                                active-req-tab <=> root.active-req-tab;
                             }
                         }
                     }
@@ -1121,7 +1067,6 @@ export component AppWindow inherits Window {
 
                     ResponsePanel {
                         response-body <=> root.response-body;
-                        active-res-tab <=> root.active-res-tab;
                         response-status: root.response-status;
                         response-meta: root.response-meta;
                         response-tone: root.response-tone;

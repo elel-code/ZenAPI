@@ -58,9 +58,12 @@ stable dimensions, and clear state over explanatory in-app copy.
   Status should be expressed through button state, concise text, or color on an
   existing control; lines are only for region splits, control borders, and tab
   underlines.
+- Do not use tab underlines for a pane with only one implemented content view.
+  Present it as a compact pane title instead; a single short underline reads as
+  decoration rather than navigation.
 - Request and Response must share the same vertical rhythm. Their top utility
-  bands are 52 px high, their tab rows are 36 px high, and editor/content panes
-  must start on the same y-axis.
+  bands are 52 px high, their pane title or tab rows are 36 px high, and
+  editor/content panes must start on the same y-axis.
 - Use the current light palette consistently: app and editor surfaces
   `#ffffff`, toolbar/sidebar surfaces `#f9fafb`, subtle control fills
   `#f3f4f6`, split dividers and borders `#e5e7eb` / `#d1d5db`, primary text
@@ -73,6 +76,9 @@ stable dimensions, and clear state over explanatory in-app copy.
 - Composite controls must preserve visible focus. If an embedded input hides
   its own border, export its focus state to the parent shell and render focus on
   the shared outer border.
+- Segmented composite controls such as method + URL + Send must attach their
+  children to the shared shell. Embedded command segments should use only the
+  exposed outside corner radius and no competing inner border.
 - Header buttons must center the actual button rectangle within the toolbar
   slot, not only center the label text inside a drifting button.
 - Split panes and primary content regions must declare explicit stretch rules.
@@ -98,10 +104,11 @@ stable dimensions, and clear state over explanatory in-app copy.
 - Editor panes must show focus through their ZenAPI border color. Do not rely
   on the embedded text editor's native focus chrome.
 - The top bar is a global console, not a form. Keep it fixed height, align the
-  brand area exactly with the sidebar width, use a single bottom divider, and
-  avoid explanatory status sentences. Show specification state as a compact
-  read-only label plus an Import action; keep path entry inside an import affordance
-  instead of making it the persistent visual center.
+  brand area exactly with the sidebar width, use a single bottom divider, avoid
+  internal structural split lines, and avoid explanatory status sentences. Show
+  specification state as a compact read-only label plus an Import action; keep
+  path entry inside an import affordance instead of making it the persistent
+  visual center.
 - Mock controls should communicate state through enabled/disabled state, button
   text, concise short labels such as a port number, and accent color. Do not add
   long helper text to explain why a disabled action is unavailable.
