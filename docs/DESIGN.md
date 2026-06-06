@@ -85,6 +85,9 @@ stable dimensions, and clear state over explanatory in-app copy.
 - Segmented composite controls such as method + URL + Send must attach their
   children to the shared shell. Embedded command segments should use only the
   exposed outside corner radius and no competing inner border.
+- The request method selector is the left segment of the address bar, not a
+  separate control. Give it stable width, no outside border while embedded, and
+  put its divider on the segment boundary.
 - Composite controls should change availability as one unit. During request
   sending, the method selector, URL input, and Send segment should all present a
   shared disabled state instead of leaving editable segments visually active.
@@ -99,6 +102,9 @@ stable dimensions, and clear state over explanatory in-app copy.
 - Use functional accents sparingly: green for selected/ready states, blue for
   primary request actions, amber for waiting or mock-stop actions, and red for
   errors.
+- Button state colors must come from one shared UI helper. Disabled, neutral,
+  primary, warning, hover, and pressed states should not be duplicated inside
+  individual button instances.
 - HTTP method colors and method pill backgrounds must come from one shared
   token/helper. The sidebar list, method picker, and request method selector
   should never duplicate separate GET/POST/etc. color maps.
@@ -128,6 +134,9 @@ stable dimensions, and clear state over explanatory in-app copy.
   specification state as a compact read-only label plus an Import action; keep
   path entry inside an import affordance instead of making it the persistent
   visual center.
+- Top-bar status labels must use fixed-height, non-stretching slots and explicit
+  text height so the label rectangle and its contents are both vertically
+  centered against neighboring buttons.
 - Mock controls should communicate state through enabled/disabled state, button
   text, concise short labels such as a port number, and accent color. Do not add
   long helper text to explain why a disabled action is unavailable.

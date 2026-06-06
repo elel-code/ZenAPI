@@ -32,6 +32,20 @@ global ToneStyle {
     }
 }
 
+global ButtonStyle {
+    public pure function border-color(enabled: bool, primary: bool, warning: bool) -> color {
+        return !enabled ? #d1d5db : warning ? #b45309 : primary ? #1d4ed8 : #d1d5db;
+    }
+
+    public pure function background-color(enabled: bool, primary: bool, warning: bool, pressed: bool, hovered: bool) -> color {
+        return !enabled ? #f3f4f6 : warning ? (pressed ? #92400e : hovered ? #d97706 : #b45309) : primary ? (pressed ? #1d4ed8 : hovered ? #3b82f6 : #2563eb) : (pressed ? #e5e7eb : hovered ? #f3f4f6 : #ffffff);
+    }
+
+    public pure function text-color(enabled: bool, primary: bool, warning: bool) -> color {
+        return !enabled ? #9ca3af : primary || warning ? #ffffff : #374151;
+    }
+}
+
 component PaneHeader inherits Rectangle {
     in property <string> text;
 
@@ -81,8 +95,8 @@ component ActionButton inherits Rectangle {
     border-top-right-radius: root.embedded ? 5px : 6px;
     border-bottom-right-radius: root.embedded ? 5px : 6px;
     border-width: root.embedded ? 0px : 1px;
-    border-color: !root.enabled ? #d1d5db : root.warning ? #b45309 : root.primary ? #1d4ed8 : #d1d5db;
-    background: !root.enabled ? #f3f4f6 : root.warning ? (touch.pressed ? #92400e : touch.has-hover ? #d97706 : #b45309) : root.primary ? (touch.pressed ? #1d4ed8 : touch.has-hover ? #3b82f6 : #2563eb) : (touch.pressed ? #e5e7eb : touch.has-hover ? #f3f4f6 : #ffffff);
+    border-color: ButtonStyle.border-color(root.enabled, root.primary, root.warning);
+    background: ButtonStyle.background-color(root.enabled, root.primary, root.warning, touch.pressed, touch.has-hover);
     opacity: root.enabled ? 1 : 0.65;
 
     touch := TouchArea {
@@ -99,7 +113,7 @@ component ActionButton inherits Rectangle {
         text: root.text;
         width: parent.width;
         height: parent.height;
-        color: !root.enabled ? #9ca3af : root.primary || root.warning ? #ffffff : #374151;
+        color: ButtonStyle.text-color(root.enabled, root.primary, root.warning);
         font-size: 13px;
         font-weight: 700;
         horizontal-alignment: center;
@@ -292,8 +306,9 @@ component MethodSelector inherits Rectangle {
     in property <bool> embedded: false;
     in property <bool> enabled: true;
 
-    width: 98px;
+    width: 108px;
     height: 36px;
+    vertical-stretch: 0;
     border-radius: root.embedded ? 0px : 6px;
     border-width: root.embedded ? 0px : 1px;
     border-color: #d1d5db;
@@ -312,7 +327,7 @@ component MethodSelector inherits Rectangle {
 
     HorizontalLayout {
         padding-left: 12px;
-        padding-right: 11px;
+        padding-right: 12px;
         spacing: 8px;
         alignment: center;
 
@@ -330,6 +345,14 @@ component MethodSelector inherits Rectangle {
             width: 10px;
             height: 6px;
         }
+    }
+
+    Rectangle {
+        x: root.width - 1px;
+        width: 1px;
+        height: root.height;
+        background: #e5e7eb;
+        visible: root.embedded;
     }
 
     method-popup := PopupWindow {
@@ -518,6 +541,7 @@ component TopBar inherits Rectangle {
             Rectangle {
                 width: 360px;
                 height: 34px;
+                vertical-stretch: 0;
                 border-radius: 6px;
                 border-width: 1px;
                 border-color: #d1d5db;
@@ -531,6 +555,7 @@ component TopBar inherits Rectangle {
 
                     UiText {
                         text: root.spec-loaded ? root.spec-label : "No specification loaded";
+                        height: 34px;
                         color: root.spec-loaded ? #374151 : #6b7280;
                         font-family: root.spec-loaded ? "Noto Sans Mono" : "Inter";
                         font-size: 13px;
