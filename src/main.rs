@@ -1,5 +1,6 @@
 mod app;
+mod cli;
 
 fn main() -> anyhow::Result<()> {
-    app::run()
+    cli::run(std::env::args().skip(1).collect())
 }

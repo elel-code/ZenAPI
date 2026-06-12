@@ -23,6 +23,8 @@
 > | **Yaak** | 隐私优先，Rust 原生桌面 | Tauri + Rust + React | 专有(源码可用) | 最近技术参照 |
 >
 > **设计参考**: 综合 Postman 的功能深度、Hoppscotch 的轻量理念、Bruno 的文件存储和 Yaak 的原生桌面体验——**目标为功能完备且启动 <1s 的原生 API 工作站**。
+>
+> **当前状态**: 已补充离线基线文档，用于固化 GPUI 重构、Linux `gpui_platform`、依赖升级策略和无 bundled font 资产等方向；实时联网截图、版本号和精确测量仍待复核。
 
 ### 0.1 布局与视觉系统调研 【UI 核心·最高优先】
 - [ ] 0.1.1 调研 Postman 布局: Header / Sidebar / Workbench(Tabs) / Footer / Right Sidebar 五区模型
@@ -35,7 +37,7 @@
 - [ ] 0.1.8 横评控件样式: 按钮(主要/次要/危险/禁用)、输入框、下拉菜单、标签页、开关
 - [ ] 0.1.9 横评图标体系: 图标风格(Material/自定义)、尺寸、用途分类
 - [ ] 0.1.10 横评响应查看器: Pretty/Raw/Preview/Headers 的视觉对比和切换
-- [ ] 0.1.11 输出 UI 视觉调研文档: `docs/RESEARCH_UI.md`
+- [~] 0.1.11 输出 UI 视觉调研文档: `docs/RESEARCH_UI.md` 离线基线已输出，实时截图/测量待复核
 
 ### 0.2 交互模式调研 【UI 核心·最高优先】
 - [ ] 0.2.1 侧边栏交互横评: 集合树展开/折叠、拖拽排序、右键菜单、搜索过滤、收藏
@@ -44,7 +46,7 @@
 - [ ] 0.2.4 双栏/单栏视图: Postman 的 Two Pane View、各客户端响应区布局策略
 - [ ] 0.2.5 键盘快捷键体系横评
 - [ ] 0.2.6 PWA/离线体验: Hoppscotch 的 Service Worker 策略启发 ZenAPI 原生离线
-- [ ] 0.2.7 输出交互调研文档: `docs/RESEARCH_INTERACTION.md`
+- [~] 0.2.7 输出交互调研文档: `docs/RESEARCH_INTERACTION.md` 离线基线已输出，实时行为复核待补齐
 
 ### 0.3 核心功能对比矩阵
 - [ ] 0.3.1 Collections 对比: 组织结构(集合→文件夹→请求)、导入导出、Postman Collection v2.1 兼容性
@@ -63,19 +65,19 @@
 - [ ] 0.3.14 调研 Bruno 的 Bru 纯文本标记语言: 语法设计、Git 友好性、人类可读性
 - [ ] 0.3.15 调研 Yaak 的插件系统: 认证插件、模板标签、UI 定制扩展点
 - [ ] 0.3.16 调研 Insomnia 的 OpenAPI 编辑器: 可视化预览、设计模式
-- [ ] 0.3.17 输出功能对比文档: `docs/RESEARCH_FEATURES.md`
+- [~] 0.3.17 输出功能对比文档: `docs/RESEARCH_FEATURES.md` 离线基线已输出，实时功能覆盖复核待补齐
 
 ### 0.4 技术架构调研
 - [ ] 0.4.1 横评技术栈: Electron(Postman/Bruno/Insomnia) vs Vue+PWA(Hoppscotch) vs Tauri+Rust(Yaak) vs GPUI+Rust(ZenAPI)
-- [ ] 0.4.2 横评应用体积: Postman ~400MB vs Hoppscotch <10MB(PWA) vs Yaak ~15MB(Tauri) vs ZenAPI 目标 ~10MB
+- [~] 0.4.2 横评应用体积: ZenAPI release 37M / stripped 28M 已测；Postman/Hoppscotch/Yaak 体积与 10MB 优化目标待联网复核
 - [ ] 0.4.3 横评启动时间、内存占用、离线能力
-- [ ] 0.4.4 输出技术架构调研文档: `docs/RESEARCH_ARCH.md`
+- [~] 0.4.4 输出技术架构调研文档: `docs/RESEARCH_ARCH.md` 离线基线已输出，体积/启动/内存实测待补齐
 
 ### 0.5 调研总结与优先级调整
-- [ ] 0.5.1 汇总调研发现，明确 ZenAPI 的优势方向: 原生 Mock Server、GPUI 原生性能、OpenAPI 深度集成
-- [ ] 0.5.2 识别当前功能缺口: 多协议(WebSocket/gRPC)、插件系统、AI 辅助
+- [~] 0.5.1 汇总调研发现，明确 ZenAPI 的优势方向: 原生 Mock Server、GPUI 原生性能、OpenAPI 深度集成（离线基线已写入）
+- [~] 0.5.2 识别当前功能缺口: 多协议(WebSocket/gRPC)、插件系统、AI 辅助（离线基线已写入）
 - [ ] 0.5.3 基于调研结果调整本文档后续阶段的优先级排序
-- [ ] 0.5.4 输出调研总结: `docs/BENCHMARK.md`
+- [~] 0.5.4 输出调研总结: `docs/BENCHMARK.md` 离线基线已输出，实测 benchmark 待补齐
 
 ---
 
@@ -117,27 +119,27 @@
 
 - [x] 3.1 实现请求方法选择器: GET/POST/PUT/PATCH/DELETE/OPTIONS/HEAD，下拉或分段控件
 - [x] 3.2 实现 URL 地址栏: 单行输入、Enter 发送、与路由选择联动
-- [~] 3.3 实现请求 Headers 编辑面板: 固定键值对表格与常用 Header 提示已支持，批量编辑待补齐
+- [x] 3.3 实现请求 Headers 编辑面板: 固定键值对表格、常用 Header 提示、剪贴板批量复制/粘贴均已支持
 - [x] 3.4 实现 Query Params 编辑面板: 键值对表格、自动拼接到 URL
-- [~] 3.5 实现 Request Body 编辑面板:
+- [x] 3.5 实现 Request Body 编辑面板:
   - [x] 3.5.1 支持 `none` / `form-data` / `x-www-form-urlencoded` / `raw` / `binary` 类型切换
-  - [~] 3.5.2 `raw` 模式下支持 JSON/XML/Text/HTML 内容类型切换，语法高亮待后续实现（预留 `syntect` 集成点）
+  - [x] 3.5.2 `raw` 模式下支持 JSON/XML/Text/HTML 内容类型切换，并提供 JSON/XML/HTML 轻量语法高亮预览（`syntect` 保留为未来增强选项）
   - [x] 3.5.3 `form-data` 支持文本字段和 `@file` 文件附件
 - [~] 3.6 实现 Authorization 面板:
   - [x] 3.6.1 Bearer Token
   - [x] 3.6.2 Basic Auth
   - [x] 3.6.3 API Key (Header/Query)
   - [ ] 3.6.4 OAuth 2.0（远期）
-  - [ ] 3.6.5 JWT（远期）
+  - [x] 3.6.5 JWT
 - [x] 3.7 实现发送请求: 通过 `reqwest` 发送，显示加载状态，按钮禁用防重入
-- [~] 3.8 实现响应查看器:
+- [x] 3.8 实现响应查看器:
   - [x] 3.8.1 状态码 + 耗时 + 响应大小元数据显示（260px 右对齐，14px 右内边距）
-  - [~] 3.8.2 响应体 Pretty 模式: JSON 格式化、缩进已支持，折叠待后续实现
+  - [x] 3.8.2 响应体 Pretty 模式: JSON 格式化、缩进与折叠摘要均已支持
   - [x] 3.8.3 响应体 Raw 模式: 原始文本
   - [x] 3.8.4 Response Headers 子标签页
-  - [ ] 3.8.5 响应编辑器使用平台 monospace 样式，只读模式（可选中文本，无编辑光标）
-- [ ] 3.9 验证: 发送真实 HTTP 请求，验证响应展示正确
-- [ ] 3.10 UI 对齐检查: Headers/Body/Response 面板间距一致性、控件颜色使用共享 UI 辅助函数（非硬编码）、HTTP 方法色映射统一；编辑器使用平台 monospace 样式、只读响应查看器可选中文本且无编辑光标（参照 3.8.5；视觉参照 `docs/RESEARCH_UI.md` 调研横评）
+  - [x] 3.8.5 响应查看器使用平台 monospace 样式，并通过专用只读可选中文本组件避免编辑光标
+- [x] 3.9 验证: 本地 Axum HTTP 请求测试覆盖状态码、响应大小、响应头、Raw body 与 Pretty body
+- [~] 3.10 UI 对齐检查: Headers/Body/Response 面板间距一致性、控件颜色使用共享 UI 辅助函数（非硬编码）、HTTP 方法色映射统一；已将 HTTP 方法标签宽度、平台 monospace、主工作区 surface/border/text/accent 色和核心列表 metric 收敛到共享常量/辅助函数，视觉参照 `docs/RESEARCH_UI.md` 调研横评仍需截图复核
 
 ---
 
@@ -164,14 +166,14 @@
 
 - [x] 5.1 设计变量数据模型: 变量名、当前值、初始值、作用域（全局/环境），参考 Bruno 的文件系统变量
 - [x] 5.2 实现变量解析引擎: `{{variableName}}` 语法替换
-- [~] 5.3 实现环境管理 UI:
-  - [~] 5.3.1 环境列表与创建/删除：已支持固定环境选择与清空 key 删除变量，任意环境创建待补齐
+- [x] 5.3 实现环境管理 UI:
+  - [x] 5.3.1 环境列表与创建/删除：支持 dev/test/prod 初始环境、任意环境创建、当前环境删除、切换时保留各环境变量
   - [x] 5.3.2 环境变量编辑器（键值对表格）
   - [x] 5.3.3 当前活跃环境指示
 - [x] 5.4 实现全局变量管理 UI
 - [x] 5.5 变量集成到请求构建器: URL/Headers/Body 中均支持 `{{var}}` 替换
 - [x] 5.6 验证: 创建环境变量，在请求 URL 中使用，确认替换正确
-- [ ] 5.7 UI 对齐检查: 变量编辑器键值表格列宽对齐、行高一致、环境选择器下拉与全局变量面板控件风格统一、删除按钮/新增行交互反馈一致（视觉参照 `docs/RESEARCH_UI.md` 调研横评）
+- [~] 5.7 UI 对齐检查: 变量编辑器键值表格列宽对齐、行高一致、环境选择器下拉与全局变量面板控件风格统一、删除按钮/新增行交互反馈一致；键值表格主列宽已抽成共享 UI metric 并增加回归测试，视觉参照 `docs/RESEARCH_UI.md` 调研横评仍需截图复核
 
 ---
 
@@ -189,8 +191,8 @@
   - [x] 6.4.3 请求拖拽移动
 - [x] 6.5 实现请求保存: 从当前请求构建器保存到集合
 - [x] 6.6 实现集合导入/导出: 兼容 Postman Collection JSON 格式
-- [~] 6.7 验证: Postman Collection JSON 模型导入/导出测试已覆盖，树结构可渲染；待人工 UI 验证
-- [ ] 6.8 UI 对齐检查: 集合树节点间距/缩进一致、展开折叠图标尺寸固定、右键菜单样式与系统其他菜单一致、拖拽排序视觉反馈平滑、空文件夹/空集合占位与侧边栏空状态风格统一（交互参照 `docs/RESEARCH_INTERACTION.md` 调研横评）
+- [x] 6.7 验证: Postman Collection JSON 模型导入/导出与集合树可见行层级均有自动化测试覆盖
+- [~] 6.8 UI 对齐检查: 集合树节点间距/缩进一致、展开折叠图标尺寸固定、右键菜单样式与系统其他菜单一致、拖拽排序视觉反馈平滑、空文件夹/空集合占位与侧边栏空状态风格统一；集合树行高/缩进/图标宽度/拖拽色已抽成共享 UI metric 并增加回归测试，交互参照 `docs/RESEARCH_INTERACTION.md` 调研横评仍需截图复核
 
 ---
 
@@ -202,7 +204,7 @@
 - [x] 7.2 实现请求自动记录: 每次发送请求后自动保存
 - [x] 7.3 实现历史侧边栏视图: 按时间倒序、搜索过滤
 - [x] 7.4 实现历史条目操作: 点击恢复请求、删除单条/批量清除
-- [~] 7.5 验证: 自动记录与过滤/恢复模型测试已覆盖，历史列表可见性待人工 UI 验证
+- [x] 7.5 验证: 自动记录、过滤/恢复模型、历史侧边栏可见行限制与无匹配空状态均有自动化测试覆盖
 
 ---
 
@@ -217,14 +219,14 @@
 
 ---
 
-## 阶段 9: 集合运行器（远期）
+## 阶段 9: 集合运行器
 
 > **目标**: 批量执行集合请求，支持顺序/并行调度。
 
-- [ ] 9.1 设计运行器调度模型: 顺序/并行执行、延迟控制、失败策略
-- [ ] 9.2 实现运行器 UI: 集合选择、执行进度、结果摘要
-- [ ] 9.3 实现 CLI 运行器: `zenapi run collection.json` 命令行入口
-- [ ] 9.4 验证: 运行整个集合，检查结果汇总
+- [x] 9.1 设计运行器调度模型: 顺序执行、请求间延迟、继续/遇错停止失败策略已实现；并行执行保留为后续增强
+- [x] 9.2 实现运行器 UI: 当前集合 Run All、遇错停止切换、执行状态与结果摘要已接入 GPUI
+- [x] 9.3 实现 CLI 运行器: `zenapi run collection.json` 命令行入口，支持 `--delay-ms` 与 `--stop-on-failure`
+- [x] 9.4 验证: 本地 Axum 集合运行测试覆盖成功/失败汇总、继续执行与遇错停止；CLI 帮助路径已验证
 
 ---
 
@@ -232,11 +234,11 @@
 
 > **目标**: 支持 Pre-request Scripts 和 Tests 脚本，实现请求前置处理和响应断言。
 
-- [ ] 10.1 评估 Rust 嵌入脚本引擎方案: Rhai / mlua / deno_core
-- [ ] 10.2 实现 Pre-request Script 编辑器和执行
-- [ ] 10.3 实现 Tests 脚本编辑器和断言 API (`pm.test`, `pm.expect`)
-- [ ] 10.4 实现测试结果展示面板
-- [ ] 10.5 验证: 编写测试脚本，断言成功/失败均有正确反馈
+- [x] 10.1 评估 Rust 嵌入脚本引擎方案: 已输出 `docs/SCRIPTING.md`，建议先定义宿主 API/结果模型，优先 Rhai，小心评估 `deno_core` 体积成本
+- [~] 10.2 实现 Pre-request Script 编辑器和执行: 已实现原生 script-lite action line，支持 method/url/header/query/body/变量覆盖，单次发送、代码生成、GPUI Runner 与 CLI Runner 共用执行路径；保存集合时保留 raw 请求字段和 action line，执行时再应用；完整脚本引擎、多行编辑器和执行日志待实现
+- [~] 10.3 实现 Tests 脚本编辑器和断言 API: 已实现原生 Tests 编辑器与 Rust 响应断言模型（状态码、Header、Body、JSON Path、耗时、大小），支持保存/恢复到集合请求；`pm.test` / `pm.expect` 脚本兼容层待实现
+- [~] 10.4 实现测试结果展示面板: 单次请求 Tests 面板、Runner 结果行与响应摘要均已展示断言通过/失败详情；Pre-request 面板已显示最近 action 执行数量或构建错误；完整脚本运行日志待实现
+- [~] 10.5 验证: 响应断言编辑器字段解析、断言成功/失败、预期 500、JSON Path 失败、runner 汇总和 pre-request script-lite 执行均有自动化测试覆盖；完整脚本引擎执行验证待实现
 
 ---
 
@@ -292,11 +294,11 @@
 - [ ] 13.3.5 可执行文件大小优化（目标 ~10 MB）
 
 ### 13.4 文档体系
-- [ ] 13.4.1 编写用户使用指南 `docs/USER_GUIDE.md`: 安装、导入规格、发送请求、启动 Mock、变量/环境、集合管理
-- [ ] 13.4.2 编写开发者文档 `docs/DEV_GUIDE.md`: 项目架构、模块职责、构建流程、贡献指南
-- [ ] 13.4.3 维护 `docs/DESIGN.md` 至最新设计决策状态：每次设计方向变化或重复决策出现时即时记录
-- [ ] 13.4.4 维护 `docs/PRD.md` 至最新产品方向，更新 Backlog 列表
-- [ ] 13.4.5 维护 `docs/TODO.md`（本文档）的任务状态与附录准确
+- [x] 13.4.1 编写用户使用指南 `docs/USER_GUIDE.md`: 安装、导入规格、发送请求、启动 Mock、变量/环境、集合管理、Runner 与 CLI 均已覆盖
+- [x] 13.4.2 编写开发者文档 `docs/DEV_GUIDE.md`: 项目架构、模块职责、构建流程、贡献指南、验证基线均已覆盖
+- [x] 13.4.3 维护 `docs/DESIGN.md` 至最新设计决策状态：已补充 Runner/CLI 与文档边界决策
+- [x] 13.4.4 维护 `docs/PRD.md` 至最新产品方向，已更新当前本地工作站能力与 Backlog
+- [x] 13.4.5 维护 `docs/TODO.md`（本文档）的任务状态与附录准确
 
 ### 13.5 跨平台验证与发布
 - [ ] 13.5.1 Linux (Wayland/X11) 构建与功能验证
@@ -317,6 +319,7 @@
 | `docs/RESEARCH_ARCH.md` | 技术架构横评 | 0.4 |
 | `docs/BENCHMARK.md` | 调研总结 | 0.5 |
 | `docs/BRU_FORMAT.md` | Bru-style 集合存储探索记录 | 6.3 |
+| `docs/SCRIPTING.md` | 脚本与测试引擎评估 | 10.1 |
 | `docs/USER_GUIDE.md` | 用户使用指南 | 13.4 |
 | `docs/DEV_GUIDE.md` | 开发者文档 | 13.4 |
 
@@ -329,11 +332,11 @@
 | HTTP 客户端 | 核心已实现，UI 细节待完善 | reqwest |
 | Mock 服务器 | 已实现 | Axum, permissive CORS |
 | UI 布局 | MVP 工作台布局已接入 | GPUI |
-| 环境变量 | 核心已实现，环境创建 UI 待补齐 | — |
+| 环境变量 | 核心与动态环境管理 UI 已实现，视觉对齐待检查 | — |
 | 集合系统 | 数据模型、Postman 导入导出、侧栏树、右键菜单、拖拽移动和保存当前请求已实现；Bru 格式实现待补齐 | serde_json |
-| 请求历史 | 数据模型与核心逻辑已实现，UI 待验证 | — |
-| 代码生成 | 核心已实现，待端到端验证 | — |
-| 集合运行器 | 远期 | — |
-| 脚本/测试 | 远期 | — |
+| 请求历史 | 数据模型、自动记录、侧边栏过滤/恢复/删除/清空与可见行测试已覆盖 | — |
+| 代码生成 | cURL/Python/JavaScript/Rust/Go 已实现，cURL 本地执行验证已覆盖 | — |
+| 集合运行器 | 顺序执行核心、GPUI 入口与 `zenapi run` CLI 已实现；并行调度待后续增强 | reqwest |
+| 脚本/测试 | Pre-request script-lite 与原生响应断言已实现；完整脚本引擎与 `pm.*` 兼容待后续评估 | — |
 | 多协议 | 远期 | — |
 | 插件系统 | 远期 | — |

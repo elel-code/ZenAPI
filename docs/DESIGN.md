@@ -98,6 +98,9 @@ architecture.
   `#ffffff`, toolbar/sidebar surfaces `#f9fafb`, subtle control fills
   `#f3f4f6`, split dividers and borders `#e5e7eb` / `#d1d5db`, primary text
   `#111827`, and secondary text `#6b7280` / `#9ca3af`.
+- Implement recurring palette values and stable layout measurements through
+  shared UI tokens/metrics in the GPUI app shell rather than inline numeric
+  literals in each panel.
 - Keep controls compact: most buttons should stay at 34-40 px height with a
   maximum 8 px radius.
 - Fixed-height controls and list rows must explicitly center their contents
@@ -250,6 +253,27 @@ architecture.
   relying on toolkit defaults.
 - Disabled controls must not keep pointer feedback. Their cursor and visual
   state should both communicate that the action is unavailable.
+- Collection runner controls belong near collection/request workflow context,
+  not in a global marketing-style area. The MVP runner should expose one clear
+  `Run All` action, a visible stop-on-failure toggle, current status, and dense
+  result rows.
+- Runner result rows should use the same fixed-width method/status rhythm as
+  mock logs and history rows. Passing/failing state should be communicated via
+  response tone colors, not separate decorative badges.
+- CLI commands must not initialize GPUI unless the user is starting the desktop
+  app. `zenapi --help` and `zenapi run --help` should remain usable in headless
+  environments.
+
+## Documentation
+
+- User-facing docs live in `docs/USER_GUIDE.md` and should describe current
+  behavior without promising roadmap items as available.
+- Developer docs live in `docs/DEV_GUIDE.md` and should track module
+  boundaries, build/test commands, dependency policy, and verification
+  expectations.
+- `docs/PRD.md` owns product scope and backlog.
+- `docs/TODO.md` remains the execution checklist and should be updated with
+  every completed implementation or verification pass.
 
 ## Iteration And Commits
 

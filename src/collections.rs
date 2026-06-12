@@ -3,6 +3,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use std::{fs, path::Path};
 
+use crate::assertions::ResponseAssertion;
+
 const POSTMAN_SCHEMA_V21: &str =
     "https://schema.getpostman.com/json/collection/v2.1.0/collection.json";
 
@@ -35,6 +37,10 @@ pub struct CollectionRequest {
     pub headers: Vec<NameValue>,
     pub query_params: Vec<NameValue>,
     pub body: CollectionBody,
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub pre_request_script: String,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub tests: Vec<ResponseAssertion>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -166,6 +172,8 @@ fn postman_item(value: &Value) -> Result<CollectionItem> {
         headers: postman_headers(request.get("header")),
         query_params: postman_query_params(request.get("url")),
         body: postman_body(request.get("body")),
+        pre_request_script: String::new(),
+        tests: Vec::new(),
     }))
 }
 
@@ -369,6 +377,8 @@ mod tests {
                 value: "20".to_string(),
             }],
             body: CollectionBody::None,
+            pre_request_script: String::new(),
+            tests: Vec::new(),
         }
     }
 

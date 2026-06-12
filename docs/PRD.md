@@ -61,6 +61,16 @@ implementation was prototype code and is not a compatibility contract.
 - Generate mock routes from imported OpenAPI paths.
 - Return JSON responses based on OpenAPI response schemas where possible.
 
+### 4. Local Workstation Features
+
+- Manage global and environment variables with `{{variable}}` replacement.
+- Store requests in local collections.
+- Import/export native ZenAPI collection JSON and Postman Collection v2.1 JSON.
+- Record request history locally and restore prior requests.
+- Generate request snippets for cURL, Python, JavaScript, Rust, and Go.
+- Run all requests in the current collection sequentially from GPUI or
+  `zenapi run`.
+
 ## Non-Functional Requirements
 
 - Produce a small native executable, targeting roughly 10 MB where practical.
@@ -78,15 +88,19 @@ implementation was prototype code and is not a compatibility contract.
 - The user can send a request and see status, timing, and response body.
 - The user can start the mock server and call generated local mock endpoints
   from a browser or frontend dev server without CORS errors.
+- The user can save requests to a local collection and import/export Postman
+  Collection v2.1 JSON.
+- The user can run a collection sequentially and inspect pass/fail summaries.
 
 ## Backlog
 
-- Environment profiles such as `dev`, `test`, and `prod`.
-- Variables such as `baseURL`.
-- JSON syntax highlighting and folding, potentially through `syntect`.
-- Schema-aware fake data generation with libraries such as `fake-rs`.
-- Smarter field-name heuristics for generated values such as `email`, `name`,
-  `phone`, and `avatar`.
+- OAuth2 authorization flow.
+- Pre-request scripts and response tests.
+- Parallel collection runner scheduling and richer runner reports.
+- GraphQL, WebSocket, SSE, and gRPC protocol workspaces.
+- Plugin system for auth, template tags, and future UI extension points.
+- Release packaging, startup timing, idle memory measurement, and binary size
+  optimization.
 
 ## Suggested Build Order
 
@@ -99,3 +113,7 @@ implementation was prototype code and is not a compatibility contract.
 6. Add request sending and response rendering.
 7. Add the local mock server with permissive CORS.
 8. Add schema-based mock response generation.
+9. Maintain local collections, variables, history, code generation, and runner
+   workflows.
+10. Add scripts/tests and additional protocols only after core REST workflows
+   stay stable.

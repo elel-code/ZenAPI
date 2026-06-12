@@ -260,6 +260,15 @@ mod tests {
         .expect("send request");
         server.abort();
 
+        assert_eq!(response.status, 200);
+        assert!(response.body_bytes > 0);
+        assert!(
+            response
+                .headers
+                .iter()
+                .any(|(name, value)| name == "content-type" && value.contains("application/json"))
+        );
+        assert!(response.body.contains('\n'));
         let body = serde_json::from_str::<Value>(&response.raw_body).expect("json body");
         assert_eq!(body["token"], "secret");
         assert_eq!(body["search"], "rust gpui");
