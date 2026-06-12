@@ -25,6 +25,11 @@ binding-layer shapes, or build scripts.
 - Display status code, elapsed time, and formatted JSON response bodies.
 - Start and stop a local Axum mock server with permissive CORS enabled.
 - Return schema-derived JSON mock responses when response schemas are available.
+- Manage global and environment variables with `{{name}}` replacement.
+- Import/export ZenAPI and Postman v2.1 collections, render a collection tree,
+  and save the current request into the active collection.
+- Keep local request history and restore previous requests from the sidebar.
+- Generate request snippets for cURL, Python, JavaScript, Rust, and Go.
 
 ## Run
 
@@ -45,3 +50,7 @@ server starts on `http://127.0.0.1:8080` by default.
   formatting.
 - `src/mock_server.rs` and `src/mock_server/`: local mock server and CORS route
   handling.
+- `src/collections.rs`: native and Postman collection import/export.
+- `src/variables.rs`: variable storage and `{{variable}}` replacement.
+- `src/history.rs`: request history model and filtering.
+- `src/codegen.rs`: request snippet generation.
