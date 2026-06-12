@@ -3,13 +3,29 @@
 ## Product Positioning
 
 ZenAPI is a fast, lightweight, local-first developer tool that combines an API
-testing client with a local mock server. It is built around Rust and Slint, with
+testing client with a local mock server. It is built around Rust and GPUI, with
 the goal of becoming a focused post-Postman API workstation: native, private,
 offline-friendly, and simple.
 
 Visual and interaction decisions are tracked in [DESIGN.md](DESIGN.md) so the
-product can keep improving without drifting back to default system themes or
-font assumptions.
+product can keep improving without drifting back to unstyled toolkit defaults.
+
+## Framework And Compatibility Policy
+
+The desktop UI is GPUI, using Zed's official repository. Linux support goes
+through `gpui_platform` with Wayland and X11 features. The former Slint
+implementation was prototype code and is not a compatibility contract.
+
+- The GPUI rewrite is a breaking replacement of the old application shell.
+- Do not reintroduce Slint UI files, generated UI modules, callback names,
+  binding-layer shapes, or build scripts for backwards compatibility.
+- Prefer deleting obsolete toolkit-specific code over adding adapters or
+  compatibility shims.
+- Keep reusable product logic in Rust modules such as OpenAPI parsing, request
+  transport, and the mock server only when it fits the GPUI architecture
+  cleanly.
+- Documentation, examples, and future implementation notes should describe the
+  GPUI architecture as the current application architecture.
 
 ## Core Problems
 
@@ -49,7 +65,7 @@ font assumptions.
 
 - Produce a small native executable, targeting roughly 10 MB where practical.
 - Keep runtime memory usage far below Chromium-based tools.
-- Support Windows, macOS, and Linux through Rust and Slint.
+- Support Windows, macOS, and Linux through Rust and GPUI.
 - Keep the UI minimal, direct, and local-first: no ads, no forced accounts, no
   cloud dependency, and no unnecessary configuration surface.
 
@@ -74,10 +90,11 @@ font assumptions.
 
 ## Suggested Build Order
 
-1. Create the Rust + Slint project skeleton.
+1. Maintain the Rust + GPUI application shell backed by Zed's official
+   `gpui` and `gpui_platform` crates.
 2. Implement OpenAPI and Swagger file import.
 3. Parse paths and methods into an internal route model.
-4. Render the route tree in Slint.
+4. Render the route tree in GPUI.
 5. Wire route selection to the request editor.
 6. Add request sending and response rendering.
 7. Add the local mock server with permissive CORS.

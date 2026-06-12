@@ -7,6 +7,14 @@ For the current product direction and MVP scope, see [docs/PRD.md](docs/PRD.md).
 For visual and interaction iteration guidelines, see
 [docs/DESIGN.md](docs/DESIGN.md).
 
+## Framework Direction
+
+ZenAPI's desktop UI is built with GPUI from Zed's official repository. Linux
+builds use `gpui_platform` with Wayland and X11 features enabled. The previous
+Slint prototype was removed as a breaking replacement, so there is no
+compatibility surface for Slint files, generated UI modules, callback names,
+binding-layer shapes, or build scripts.
+
 ## Current MVP
 
 - Import OpenAPI / Swagger documents from local JSON or YAML files.
@@ -29,10 +37,8 @@ server starts on `http://127.0.0.1:8080` by default.
 
 ## Project Layout
 
-- `ui/`: Slint UI files.
-- `ui/fonts/`: bundled UI fonts imported by Slint as `Inter` and
-  `Noto Sans Mono`.
-- `src/app.rs` and `src/app/`: desktop application wiring and runtime state.
+- `src/app.rs` and `src/app/`: GPUI application shell, input widgets, runtime
+  state, and workflow wiring.
 - `src/openapi.rs` and `src/openapi/`: OpenAPI parsing, route extraction, and
   schema-based mock data generation.
 - `src/client.rs` and `src/client/`: API client transport and response

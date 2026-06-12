@@ -14,22 +14,40 @@ The interface should be quiet, dense, and scannable. Avoid oversized decorative
 sections, floating nested cards, and one-color themes. Favor direct controls,
 stable dimensions, and clear state over explanatory in-app copy.
 
+## GPUI Rewrite Policy
+
+The UI target is GPUI from Zed's official repository. Linux builds use
+`gpui_platform` with Wayland and X11 features. Existing Slint files and
+bindings were prototype implementation details and should not constrain the
+architecture.
+
+- Treat the GPUI migration as a breaking rewrite, not an incremental compatible
+  skin over the old UI.
+- Keep Slint-specific UI files, generated modules, build steps, callback names,
+  and binding helper shapes out of the app shell.
+- Do not introduce adapter layers whose only purpose is to keep old Slint-era
+  APIs compiling.
+- Preserve product behavior and tested domain logic where useful, but allow
+  view models, state ownership, event flow, and file layout to change to match
+  GPUI.
+- New UI documentation should describe GPUI components and app state directly;
+  legacy Slint references are only useful as historical migration notes.
+
 ## Typography
 
-- Do not rely on OS default fonts or generic families such as `monospace` for
-  critical UI text.
-- Import bundled font files from Slint and reference explicit families. The
-  current app families are `Inter` for UI text and `Noto Sans Mono` for code.
-- Ordinary UI copy should go through a local text wrapper that sets `Inter`,
-  font size, font weight, text color, and `letter-spacing: 0px` explicitly.
-  Window-level defaults are only a fallback, not the primary styling mechanism
-  for component text.
+- Do not bundle application font assets for the GPUI shell unless a future
+  design pass introduces a concrete need.
+- Ordinary UI copy should go through local text helpers that set font size,
+  font weight, text color, and `letter-spacing: 0px` explicitly. Window-level
+  defaults are only a fallback, not the primary styling mechanism for component
+  text.
 - Technical strings such as URLs, filenames, file paths, API paths, and local
-  server addresses should use `Noto Sans Mono`, not the UI text face.
+  server addresses should use the platform monospace family, not the UI text
+  face.
 - Placeholder text should use the same family as the eventual input value so
   focused or edited controls do not shift typography mid-interaction.
-- Do not register fonts through runtime APIs that require the Slint platform
-  before it is initialized.
+- Do not rely on platform font registration side effects for sizing,
+  alignment, or interaction behavior.
 - Keep font sizes fixed per component type. Do not scale text with viewport
   width.
 - Prefer concise labels that fit at the minimum window size. Use elision for
@@ -44,14 +62,15 @@ stable dimensions, and clear state over explanatory in-app copy.
 
 ## Visual System
 
-- Slint-provided components are allowed when they fit the interaction. Do not
-  expose their default system font, colors, or theme chrome directly; wrap or
-  configure them so typography, palette, density, and states match ZenAPI.
+- GPUI primitives and shared components are allowed when they fit the
+  interaction. Do not expose default system font, colors, or theme chrome
+  directly; wrap or configure them so typography, palette, density, and states
+  match ZenAPI.
 - Embedded `TextInput` instances must set selection colors and cursor width
   explicitly instead of inheriting toolkit style metrics.
-- Slint scroll containers may be used for behavior, but default scrollbar
-  chrome must be disabled or replaced with a ZenAPI-styled scrollbar before it
-  is exposed in the UI.
+- GPUI scroll containers may be used for behavior, but default scrollbar chrome
+  must be disabled or replaced with a ZenAPI-styled scrollbar before it is
+  exposed in the UI.
 - The visual baseline is a modern light split-pane workstation inspired by
   Postman: flat white and near-white surfaces, no floating cards, no heavy
   shadows, and 1 px dividers instead of broad gutters.
@@ -150,8 +169,9 @@ stable dimensions, and clear state over explanatory in-app copy.
   assumptions. Use neutral gray for idle, filtering, and route-selection states;
   amber for in-progress work; green for successful import or 2xx/3xx responses;
   red for validation, transport, mock, and 4xx/5xx response failures.
-- Response tone color mapping should also live in one shared UI helper. Rust may
-  emit tone names, but Slint owns the visual token mapping for those names.
+- Response tone color mapping should also live in one shared UI helper. Domain
+  code may emit tone names, but the GPUI view layer owns the visual token
+  mapping for those names.
 - Avoid drifting into unstyled system theme defaults. When adding surfaces,
   choose colors that fit the light neutral workbench plus green, blue, amber,
   and red functional accents.
@@ -160,8 +180,8 @@ stable dimensions, and clear state over explanatory in-app copy.
   and be used intentionally.
 - Fixed control icons should be drawn with stable icon components or bundled
   assets, not improvised from text glyphs whose shape depends on the font.
-- Code and response bodies should use explicit ZenAPI editor chrome with
-  `Noto Sans Mono`, not default text-editor chrome.
+- Code and response bodies should use explicit ZenAPI editor chrome with a
+  monospace text style, not default text-editor chrome.
 - Editable editor panes must show focus through their ZenAPI border color. Do
   not rely on the embedded text editor's native focus chrome. Read-only response
   viewers should keep text selection but must not show editing affordances such
@@ -221,7 +241,7 @@ stable dimensions, and clear state over explanatory in-app copy.
   while filter feedback belongs in the sidebar count and empty state.
 - Avoid inactive tabs or controls that imply functionality not yet implemented.
   Add tabs only when their content and behavior exist.
-- Slint-provided and custom controls must preserve expected native keyboard
+- GPUI-provided and custom controls must preserve expected native keyboard
   behavior. Single-line inputs that drive a primary action should expose
   Enter/accepted behavior, such as importing a specification path or sending the
   current request URL.
