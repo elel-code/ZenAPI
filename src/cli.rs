@@ -126,6 +126,13 @@ fn format_collection_run_result(result: &CollectionRunResult) -> String {
         line.push_str(&format!(" - {error}"));
     }
 
+    if !result.pre_request_actions.is_empty() {
+        line.push_str(&format!(
+            " - pre-request {}",
+            result.pre_request_actions.len()
+        ));
+    }
+
     if !result.assertions.is_empty() {
         let failed = result
             .assertions
@@ -204,6 +211,7 @@ mod tests {
                 success: true,
                 elapsed_ms: 3,
                 body_bytes: 2,
+                pre_request_actions: vec!["set_header Authorization".to_string()],
                 assertions: Vec::new(),
                 error: None,
             }],
@@ -213,5 +221,6 @@ mod tests {
 
         assert!(output.contains("Demo: 1 passed, 0 failed, 1 total"));
         assert!(output.contains("[PASS] 200 GET http://localhost/health"));
+        assert!(output.contains("pre-request 1"));
     }
 }

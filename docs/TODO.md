@@ -237,7 +237,7 @@
 - [x] 10.1 评估 Rust 嵌入脚本引擎方案: 已输出 `docs/SCRIPTING.md`，建议先定义宿主 API/结果模型，优先 Rhai，小心评估 `deno_core` 体积成本
 - [~] 10.2 实现 Pre-request Script 编辑器和执行: 已实现原生 script-lite action line，支持 method/url/header/query/body/变量覆盖，单次发送、代码生成、GPUI Runner 与 CLI Runner 共用执行路径；保存集合时保留 raw 请求字段和 action line，执行时再应用；完整脚本引擎、多行编辑器和执行日志待实现
 - [~] 10.3 实现 Tests 脚本编辑器和断言 API: 已实现原生 Tests 编辑器与 Rust 响应断言模型（状态码、Header、Body、JSON Path、耗时、大小），支持保存/恢复到集合请求；`pm.test` / `pm.expect` 脚本兼容层待实现
-- [~] 10.4 实现测试结果展示面板: 单次请求 Tests 面板、Runner 结果行与响应摘要均已展示断言通过/失败详情；Pre-request 面板已显示最近 action 执行数量或构建错误；完整脚本运行日志待实现
+- [~] 10.4 实现测试结果展示面板: 单次请求 Tests 面板、Runner 结果行与响应摘要均已展示断言通过/失败详情；Pre-request 面板已显示最近 action 执行数量或构建错误；GPUI Runner 摘要与 CLI 输出已记录 pre-request action 名称/目标；完整脚本引擎运行日志待实现
 - [~] 10.5 验证: 响应断言编辑器字段解析、断言成功/失败、预期 500、JSON Path 失败、runner 汇总和 pre-request script-lite 执行均有自动化测试覆盖；完整脚本引擎执行验证待实现
 
 ---

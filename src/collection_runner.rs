@@ -1,6 +1,6 @@
 use std::time::Instant;
 
-use anyhow::{Result, anyhow};
+use anyhow::{Context, Result, anyhow};
 use serde::{Deserialize, Serialize};
 use tokio::time::{Duration, sleep};
 
@@ -44,8 +44,20 @@ pub struct CollectionRunResult {
     pub success: bool,
     pub elapsed_ms: u128,
     pub body_bytes: usize,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub pre_request_actions: Vec<String>,
     pub assertions: Vec<ResponseAssertionResult>,
     pub error: Option<String>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ResolvedCollectionRequest {
+    pub method: String,
+    pub url: String,
+    pub headers: Vec<(String, String)>,
+    pub query_params: Vec<(String, String)>,
+    pub body: RequestBody,
+    pub pre_request_actions: Vec<String>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -119,6 +131,21 @@ pub fn collection_request_to_client_request(
     Vec<(String, String)>,
     RequestBody,
 )> {
+    let resolved = resolve_collection_request(request, variables, active_environment)?;
+    Ok((
+        resolved.method,
+        resolved.url,
+        resolved.headers,
+        resolved.query_params,
+        resolved.body,
+    ))
+}
+
+pub fn resolve_collection_request(
+    request: &CollectionRequest,
+    variables: &VariableStore,
+    active_environment: Option<&str>,
+) -> Result<ResolvedCollectionRequest> {
     let raw_request = CodegenRequest {
         method: request.method.clone(),
         url: request.url.clone(),
@@ -131,25 +158,32 @@ pub fn collection_request_to_client_request(
         raw_request,
         variables.clone(),
         active_environment,
-    )?;
+    )
+    .with_context(|| "pre-request failed")?;
     let resolved = resolve_codegen_request_templates(
         execution.request,
         &execution.variables,
         active_environment,
-    )?;
+    )
+    .with_context(|| "request template resolution failed")?;
 
     let method = resolved.method;
     let url = resolved.url;
     if url.trim().is_empty() {
         return Err(anyhow!("collection request URL is empty"));
     }
-    Ok((
+    Ok(ResolvedCollectionRequest {
         method,
         url,
-        resolved.headers,
-        resolved.query_params,
-        resolved.body,
-    ))
+        headers: resolved.headers,
+        query_params: resolved.query_params,
+        body: resolved.body,
+        pre_request_actions: execution
+            .actions
+            .iter()
+            .map(|action| format!("{} {}", action.action, action.target))
+            .collect(),
+    })
 }
 
 impl Default for RunnerOptions {
@@ -195,10 +229,17 @@ async fn run_collection_request(
     let fallback_method = run_request.request.method.clone();
     let fallback_url = run_request.request.url.clone();
 
-    match collection_request_to_client_request(&run_request.request, variables, active_environment)
-    {
-        Ok((method, url, headers, query_params, body)) => {
-            match send_request_with_body(&method, &url, &headers, &query_params, body).await {
+    match resolve_collection_request(&run_request.request, variables, active_environment) {
+        Ok(resolved) => {
+            match send_request_with_body(
+                &resolved.method,
+                &resolved.url,
+                &resolved.headers,
+                &resolved.query_params,
+                resolved.body,
+            )
+            .await
+            {
                 Ok(response) => {
                     let assertions =
                         evaluate_response_assertions(&response, &run_request.request.tests);
@@ -213,12 +254,13 @@ async fn run_collection_request(
                         index: run_request.index,
                         path: run_request.path.clone(),
                         name: request_name,
-                        method,
-                        url,
+                        method: resolved.method,
+                        url: resolved.url,
                         status: Some(response.status),
                         success,
                         elapsed_ms: response.elapsed_ms,
                         body_bytes: response.body_bytes,
+                        pre_request_actions: resolved.pre_request_actions,
                         assertions,
                         error: (assertion_failed > 0)
                             .then(|| format!("{assertion_failed} assertion(s) failed")),
@@ -228,12 +270,13 @@ async fn run_collection_request(
                     index: run_request.index,
                     path: run_request.path.clone(),
                     name: request_name,
-                    method,
-                    url,
+                    method: resolved.method,
+                    url: resolved.url,
                     status: None,
                     success: false,
                     elapsed_ms: 0,
                     body_bytes: 0,
+                    pre_request_actions: resolved.pre_request_actions,
                     assertions: Vec::new(),
                     error: Some(error.to_string()),
                 },
@@ -249,6 +292,7 @@ async fn run_collection_request(
             success: false,
             elapsed_ms: 0,
             body_bytes: 0,
+            pre_request_actions: Vec::new(),
             assertions: Vec::new(),
             error: Some(error.to_string()),
         },
@@ -417,6 +461,18 @@ mod tests {
             vec![("debug".to_string(), "true".to_string())]
         );
         assert_eq!(body, RequestBody::None);
+
+        let resolved =
+            resolve_collection_request(&request, &variables, Some("dev")).expect("resolved");
+        assert_eq!(
+            resolved.pre_request_actions,
+            vec![
+                "set_var token".to_string(),
+                "set_method method".to_string(),
+                "set_header Authorization".to_string(),
+                "set_query debug".to_string(),
+            ]
+        );
     }
 
     #[tokio::test]

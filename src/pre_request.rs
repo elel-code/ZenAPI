@@ -11,6 +11,13 @@ pub struct PreRequestExecution {
     pub request: CodegenRequest,
     pub variables: VariableStore,
     pub actions_applied: usize,
+    pub actions: Vec<PreRequestActionRecord>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct PreRequestActionRecord {
+    pub action: String,
+    pub target: String,
 }
 
 pub fn execute_pre_request_actions(
@@ -19,47 +26,64 @@ pub fn execute_pre_request_actions(
     mut variables: VariableStore,
     active_environment: Option<&str>,
 ) -> Result<PreRequestExecution> {
-    let mut actions_applied = 0;
+    let mut actions = Vec::new();
 
     for action in script_actions(script) {
         let (name, argument) = parse_action(action)?;
+        let target;
         match name {
-            "method" | "set_method" => request.method = require_argument(argument, name)?,
-            "url" | "set_url" => request.url = require_argument(argument, name)?,
+            "method" | "set_method" => {
+                request.method = require_argument(argument, name)?;
+                target = "method".to_string();
+            }
+            "url" | "set_url" => {
+                request.url = require_argument(argument, name)?;
+                target = "url".to_string();
+            }
             "header" | "set_header" => {
                 let (key, value) = parse_assignment(argument, name)?;
+                target = key.clone();
                 upsert_pair_case_insensitive(&mut request.headers, key, value);
             }
             "query" | "set_query" => {
                 let (key, value) = parse_assignment(argument, name)?;
+                target = key.clone();
                 upsert_pair(&mut request.query_params, key, value);
             }
             "body" | "set_body" => {
                 set_raw_body(&mut request.body, require_argument(argument, name)?);
+                target = "body".to_string();
             }
             "var" | "set_var" => {
                 let (key, value) = parse_assignment(argument, name)?;
+                target = key.clone();
                 upsert_variable(&mut variables, active_environment, key, value);
             }
             "global" | "set_global" => {
                 let (key, value) = parse_assignment(argument, name)?;
+                target = key.clone();
                 upsert_global_variable(&mut variables, key, value);
             }
             "env" | "set_env" => {
                 let environment = active_environment
                     .ok_or_else(|| anyhow!("{name} requires an active environment"))?;
                 let (key, value) = parse_assignment(argument, name)?;
+                target = key.clone();
                 upsert_environment_variable(&mut variables, environment, key, value);
             }
             _ => return Err(anyhow!("unknown pre-request action: {name}")),
         }
-        actions_applied += 1;
+        actions.push(PreRequestActionRecord {
+            action: name.to_string(),
+            target,
+        });
     }
 
     Ok(PreRequestExecution {
         request,
         variables,
-        actions_applied,
+        actions_applied: actions.len(),
+        actions,
     })
 }
 
@@ -269,6 +293,27 @@ mod tests {
                 .expect("resolve");
 
         assert_eq!(execution.actions_applied, 4);
+        assert_eq!(
+            execution.actions,
+            vec![
+                PreRequestActionRecord {
+                    action: "set_var".to_string(),
+                    target: "token".to_string(),
+                },
+                PreRequestActionRecord {
+                    action: "set_header".to_string(),
+                    target: "Authorization".to_string(),
+                },
+                PreRequestActionRecord {
+                    action: "set_query".to_string(),
+                    target: "debug".to_string(),
+                },
+                PreRequestActionRecord {
+                    action: "set_method".to_string(),
+                    target: "method".to_string(),
+                },
+            ]
+        );
         assert_eq!(resolved.method, "POST");
         assert_eq!(resolved.url, "http://localhost:8080/users");
         assert_eq!(

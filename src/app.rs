@@ -4772,6 +4772,9 @@ fn runner_summary_text(summary: &CollectionRunSummary) -> String {
             line.push_str(&format!(" - {error}"));
         }
         lines.push(line);
+        for action in &result.pre_request_actions {
+            lines.push(format!("  [PASS] pre-request {action}"));
+        }
         for assertion in &result.assertions {
             let outcome = if assertion.passed { "PASS" } else { "FAIL" };
             let mut line = format!("  [{outcome}] test {}", assertion.name);
@@ -4829,6 +4832,15 @@ fn runner_result_row(result: CollectionRunResult) -> impl IntoElement {
                 .text_color(ui_text_secondary())
                 .child(format_bytes(result.body_bytes)),
         )
+        .when(!result.pre_request_actions.is_empty(), |row| {
+            row.child(
+                div()
+                    .w(px(52.))
+                    .text_right()
+                    .text_color(ResponseTone::Success.color())
+                    .child(format!("pre {}", result.pre_request_actions.len())),
+            )
+        })
         .when(!result.assertions.is_empty(), |row| {
             let failed = result
                 .assertions
@@ -5499,6 +5511,40 @@ mod tests {
     fn formats_response_meta_with_elapsed_time_and_size() {
         assert_eq!(format_response_meta(42, 17), "42 ms | 17 B");
         assert_eq!(format_response_meta(5, 2048), "5 ms | 2.0 KB");
+    }
+
+    #[test]
+    fn runner_summary_includes_pre_request_action_log() {
+        let summary = CollectionRunSummary {
+            collection_name: "Demo".to_string(),
+            total: 1,
+            passed: 1,
+            failed: 0,
+            stopped_early: false,
+            elapsed_ms: 7,
+            results: vec![CollectionRunResult {
+                index: 0,
+                path: vec!["Demo".to_string(), "Health".to_string()],
+                name: "Health".to_string(),
+                method: "GET".to_string(),
+                url: "http://localhost/health".to_string(),
+                status: Some(200),
+                success: true,
+                elapsed_ms: 3,
+                body_bytes: 2,
+                pre_request_actions: vec![
+                    "set_var token".to_string(),
+                    "set_header Authorization".to_string(),
+                ],
+                assertions: Vec::new(),
+                error: None,
+            }],
+        };
+
+        let text = runner_summary_text(&summary);
+
+        assert!(text.contains("[PASS] pre-request set_var token"));
+        assert!(text.contains("[PASS] pre-request set_header Authorization"));
     }
 
     #[test]

@@ -1,2 +1,4 @@
 /target/
 .codewhale/
+.codex/
+.agents/
