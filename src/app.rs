@@ -6,8 +6,8 @@ use anyhow::Result;
 use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64_STANDARD};
 use gpui::prelude::*;
 use gpui::{
-    App, Bounds, ClipboardItem, Context, Entity, FontWeight, Hsla, MouseButton, MouseUpEvent,
-    Render, SharedString, Window, WindowBounds, WindowOptions, div, px, rgb, size,
+    App, Bounds, ClipboardItem, Context, Entity, FontWeight, Hsla, MouseButton, MouseDownEvent,
+    MouseUpEvent, Render, SharedString, Window, WindowBounds, WindowOptions, div, px, rgb, size,
 };
 use tokio::{
     runtime::Runtime,
@@ -56,6 +56,7 @@ struct ZenApiApp {
     runtime: Arc<Runtime>,
     import_path: Entity<TextInput>,
     collection_path: Entity<TextInput>,
+    collection_rename_input: Entity<TextInput>,
     route_filter: Entity<TextInput>,
     history_filter: Entity<TextInput>,
     url: Entity<TextInput>,
@@ -83,6 +84,7 @@ struct ZenApiApp {
     collection: ApiCollection,
     expanded_collection_nodes: Vec<String>,
     collection_status: String,
+    collection_context_menu: Option<CollectionContextMenu>,
     method: String,
     spec_label: String,
     response_status: String,
@@ -108,10 +110,35 @@ struct KeyValueRow {
     value: Entity<TextInput>,
 }
 
+#[derive(Clone)]
+struct CollectionContextMenu {
+    node_id: String,
+    label: String,
+    kind: CollectionNodeKind,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum CollectionNodeKind {
+    Root,
+    Folder,
+    Request,
+}
+
+#[derive(Clone)]
+struct DraggedCollectionNode {
+    node_id: String,
+    label: String,
+}
+
+struct CollectionDragPreview {
+    label: String,
+}
+
 impl ZenApiApp {
     fn new(runtime: Arc<Runtime>, cx: &mut Context<Self>) -> Self {
         let import_path = cx.new(|cx| TextInput::new(cx, "OpenAPI / Swagger file path", true));
         let collection_path = cx.new(|cx| TextInput::new(cx, "Collection JSON path", true));
+        let collection_rename_input = cx.new(|cx| TextInput::new(cx, "Collection item name", true));
         let route_filter =
             cx.new(|cx| TextInput::new(cx, "Filter method, path, or summary", false));
         let history_filter = cx.new(|cx| TextInput::new(cx, "Filter history", false));
@@ -184,6 +211,14 @@ impl ZenApiApp {
         )
         .detach();
 
+        cx.subscribe(
+            &collection_rename_input,
+            |app, _input, _event: &TextAccepted, cx| {
+                app.rename_collection_target(cx);
+            },
+        )
+        .detach();
+
         cx.subscribe(&route_filter, |app, _input, event: &TextChanged, cx| {
             app.apply_route_filter(&event.text);
             cx.notify();
@@ -205,6 +240,7 @@ impl ZenApiApp {
             runtime,
             import_path,
             collection_path,
+            collection_rename_input,
             route_filter,
             history_filter,
             url,
@@ -232,6 +268,7 @@ impl ZenApiApp {
             collection: ApiCollection::new("ZenAPI Collection"),
             expanded_collection_nodes: vec!["collection".to_string()],
             collection_status: "No collection file".to_string(),
+            collection_context_menu: None,
             method: "GET".to_string(),
             spec_label: "No spec loaded".to_string(),
             response_status: "Idle".to_string(),
@@ -420,6 +457,121 @@ impl ZenApiApp {
             "Saved current request to collection.",
         );
         cx.notify();
+    }
+
+    fn open_collection_menu(&mut self, menu: CollectionContextMenu, cx: &mut Context<Self>) {
+        let label = menu.label.clone();
+        self.collection_rename_input
+            .update(cx, |input, cx| input.set_text(label, cx));
+        self.collection_context_menu = Some(menu);
+        cx.notify();
+    }
+
+    fn close_collection_menu(&mut self, cx: &mut Context<Self>) {
+        self.collection_context_menu = None;
+        cx.notify();
+    }
+
+    fn add_collection_request(&mut self, target_id: String, cx: &mut Context<Self>) {
+        let request = CollectionItem::Request(blank_collection_request());
+        if insert_collection_item(&mut self.collection.items, &target_id, request) {
+            self.ensure_collection_node_expanded(target_id);
+            self.refresh_collection_status("Request created");
+        } else {
+            self.collection_status = "Create failed".to_string();
+        }
+        cx.notify();
+    }
+
+    fn add_collection_folder(&mut self, target_id: String, cx: &mut Context<Self>) {
+        let folder = CollectionItem::Folder(CollectionFolder {
+            name: "New Folder".to_string(),
+            description: String::new(),
+            items: Vec::new(),
+        });
+        if insert_collection_item(&mut self.collection.items, &target_id, folder) {
+            self.ensure_collection_node_expanded(target_id);
+            self.refresh_collection_status("Folder created");
+        } else {
+            self.collection_status = "Create failed".to_string();
+        }
+        cx.notify();
+    }
+
+    fn copy_collection_target(&mut self, target_id: String, cx: &mut Context<Self>) {
+        if duplicate_collection_item(&mut self.collection.items, &target_id) {
+            self.refresh_collection_status("Item copied");
+            self.collection_context_menu = None;
+        } else {
+            self.collection_status = "Copy failed".to_string();
+        }
+        cx.notify();
+    }
+
+    fn delete_collection_target(&mut self, target_id: String, cx: &mut Context<Self>) {
+        if remove_collection_item(&mut self.collection.items, &target_id).is_some() {
+            self.expanded_collection_nodes
+                .retain(|node| !node.starts_with(&target_id));
+            self.refresh_collection_status("Item deleted");
+            self.collection_context_menu = None;
+        } else {
+            self.collection_status = "Delete failed".to_string();
+        }
+        cx.notify();
+    }
+
+    fn move_collection_target(
+        &mut self,
+        source_id: String,
+        target_id: String,
+        cx: &mut Context<Self>,
+    ) {
+        if move_collection_item(&mut self.collection.items, &source_id, &target_id) {
+            self.ensure_collection_node_expanded("collection".to_string());
+            self.refresh_collection_status("Item moved");
+            self.collection_context_menu = None;
+        } else if source_id != target_id {
+            self.collection_status = "Move failed".to_string();
+        }
+        cx.notify();
+    }
+
+    fn rename_collection_target(&mut self, cx: &mut Context<Self>) {
+        let Some(menu) = self.collection_context_menu.clone() else {
+            return;
+        };
+        let name = self.collection_rename_input.read(cx).text();
+        let name = name.trim();
+        if name.is_empty() {
+            self.collection_status = "Name needed".to_string();
+            cx.notify();
+            return;
+        }
+
+        if rename_collection_node(&mut self.collection, &menu.node_id, name) {
+            self.refresh_collection_status("Item renamed");
+            self.collection_context_menu = None;
+        } else {
+            self.collection_status = "Rename failed".to_string();
+        }
+        cx.notify();
+    }
+
+    fn ensure_collection_node_expanded(&mut self, node_id: String) {
+        if !self
+            .expanded_collection_nodes
+            .iter()
+            .any(|expanded| expanded == &node_id)
+        {
+            self.expanded_collection_nodes.push(node_id);
+        }
+    }
+
+    fn refresh_collection_status(&mut self, prefix: &str) {
+        self.collection_status = format!(
+            "{prefix}: {} requests",
+            collection_item_count(&self.collection.items)
+        );
     }
 
     fn toggle_collection_node(&mut self, id: String, cx: &mut Context<Self>) {
@@ -1224,6 +1376,132 @@ impl ZenApiApp {
                                 .child("No collection requests"),
                         )
                     }),
+            )
+            .when(self.collection_context_menu.is_some(), |section| {
+                let menu = self
+                    .collection_context_menu
+                    .clone()
+                    .expect("checked collection context menu");
+                section.child(self.render_collection_context_menu(menu, cx))
+            })
+    }
+
+    fn render_collection_context_menu(
+        &self,
+        menu: CollectionContextMenu,
+        cx: &mut Context<Self>,
+    ) -> impl IntoElement {
+        let can_mutate_item = menu.kind != CollectionNodeKind::Root;
+        let new_request_target = menu.node_id.clone();
+        let new_folder_target = menu.node_id.clone();
+        let copy_target = menu.node_id.clone();
+        let delete_target = menu.node_id.clone();
+
+        div()
+            .flex()
+            .flex_col()
+            .gap_2()
+            .rounded(px(5.))
+            .border_1()
+            .border_color(rgb(0xd1d5db))
+            .bg(rgb(0xffffff))
+            .p_2()
+            .child(
+                div()
+                    .flex()
+                    .items_center()
+                    .justify_between()
+                    .child(
+                        div()
+                            .truncate()
+                            .text_size(px(12.))
+                            .font_weight(FontWeight::BOLD)
+                            .text_color(rgb(0x374151))
+                            .child(menu.label),
+                    )
+                    .child(
+                        div()
+                            .flex()
+                            .items_center()
+                            .justify_center()
+                            .h(px(22.))
+                            .w(px(44.))
+                            .rounded(px(4.))
+                            .border_1()
+                            .border_color(rgb(0xd1d5db))
+                            .bg(rgb(0xf9fafb))
+                            .text_size(px(11.))
+                            .text_color(rgb(0x6b7280))
+                            .cursor_pointer()
+                            .on_mouse_up(
+                                MouseButton::Left,
+                                cx.listener(|app, _event: &MouseUpEvent, _window, cx| {
+                                    app.close_collection_menu(cx);
+                                }),
+                            )
+                            .child("Close"),
+                    ),
+            )
+            .child(
+                div()
+                    .flex()
+                    .items_center()
+                    .gap_2()
+                    .child(self.sidebar_action_button(
+                        "New Req",
+                        72.,
+                        true,
+                        ButtonTone::Neutral,
+                        move |app, _event, _window, cx| {
+                            app.add_collection_request(new_request_target.clone(), cx);
+                        },
+                        cx,
+                    ))
+                    .child(self.sidebar_action_button(
+                        "New Dir",
+                        72.,
+                        true,
+                        ButtonTone::Neutral,
+                        move |app, _event, _window, cx| {
+                            app.add_collection_folder(new_folder_target.clone(), cx);
+                        },
+                        cx,
+                    ))
+                    .child(self.sidebar_action_button(
+                        "Copy",
+                        52.,
+                        can_mutate_item,
+                        ButtonTone::Neutral,
+                        move |app, _event, _window, cx| {
+                            app.copy_collection_target(copy_target.clone(), cx);
+                        },
+                        cx,
+                    ))
+                    .child(self.sidebar_action_button(
+                        "Delete",
+                        58.,
+                        can_mutate_item,
+                        ButtonTone::Warning,
+                        move |app, _event, _window, cx| {
+                            app.delete_collection_target(delete_target.clone(), cx);
+                        },
+                        cx,
+                    )),
+            )
+            .child(
+                div()
+                    .flex()
+                    .items_center()
+                    .gap_2()
+                    .child(div().flex_1().child(self.collection_rename_input.clone()))
+                    .child(self.sidebar_action_button(
+                        "Rename",
+                        70.,
+                        true,
+                        ButtonTone::Primary,
+                        |app, _event, _window, cx| app.rename_collection_target(cx),
+                        cx,
+                    )),
             )
     }
 
@@ -2062,6 +2340,25 @@ impl Render for ZenApiApp {
     }
 }
 
+impl Render for CollectionDragPreview {
+    fn render(&mut self, _window: &mut Window, _cx: &mut Context<Self>) -> impl IntoElement {
+        div()
+            .flex()
+            .items_center()
+            .h(px(28.))
+            .max_w(px(220.))
+            .rounded(px(5.))
+            .border_1()
+            .border_color(rgb(0x2563eb))
+            .bg(rgb(0xeff6ff))
+            .px_2()
+            .text_size(px(12.))
+            .font_weight(FontWeight::BOLD)
+            .text_color(rgb(0x1d4ed8))
+            .child(self.label.clone())
+    }
+}
+
 impl ZenApiApp {
     fn render_status_bar(&self) -> impl IntoElement {
         let route_status = if self.routes.is_empty() {
@@ -2442,6 +2739,271 @@ fn raw_format_from_content_type(content_type: &str) -> RawBodyFormat {
     }
 }
 
+fn blank_collection_request() -> CollectionRequest {
+    CollectionRequest {
+        name: "New Request".to_string(),
+        method: "GET".to_string(),
+        url: "https://api.example.com/request".to_string(),
+        headers: Vec::new(),
+        query_params: Vec::new(),
+        body: CollectionBody::None,
+    }
+}
+
+fn insert_collection_item(
+    items: &mut Vec<CollectionItem>,
+    target_id: &str,
+    item: CollectionItem,
+) -> bool {
+    let Some(indices) = collection_node_indices(target_id) else {
+        return false;
+    };
+    let Some(target_items) = collection_insertion_items_mut(items, &indices) else {
+        return false;
+    };
+    target_items.push(item);
+    true
+}
+
+fn rename_collection_node(collection: &mut ApiCollection, node_id: &str, name: &str) -> bool {
+    if node_id == "collection" {
+        collection.name = name.to_string();
+        return true;
+    }
+
+    let Some(indices) = collection_node_indices(node_id) else {
+        return false;
+    };
+    let Some(item) = collection_item_mut(&mut collection.items, &indices) else {
+        return false;
+    };
+
+    match item {
+        CollectionItem::Folder(folder) => folder.name = name.to_string(),
+        CollectionItem::Request(request) => request.name = name.to_string(),
+    }
+    true
+}
+
+fn remove_collection_item(
+    items: &mut Vec<CollectionItem>,
+    node_id: &str,
+) -> Option<CollectionItem> {
+    let indices = collection_node_indices(node_id)?;
+    remove_collection_item_by_indices(items, &indices)
+}
+
+fn remove_collection_item_by_indices(
+    items: &mut Vec<CollectionItem>,
+    indices: &[usize],
+) -> Option<CollectionItem> {
+    if indices.is_empty() {
+        return None;
+    }
+
+    let index = *indices.last()?;
+    let parent = collection_parent_items_mut(items, &indices)?;
+    (index < parent.len()).then(|| parent.remove(index))
+}
+
+fn duplicate_collection_item(items: &mut Vec<CollectionItem>, node_id: &str) -> bool {
+    let Some(indices) = collection_node_indices(node_id) else {
+        return false;
+    };
+    if indices.is_empty() {
+        return false;
+    }
+
+    let Some(item) = collection_item_ref(items, &indices).cloned() else {
+        return false;
+    };
+    let item = collection_item_copy(item);
+    let Some(index) = indices.last().copied() else {
+        return false;
+    };
+    let Some(parent) = collection_parent_items_mut(items, &indices) else {
+        return false;
+    };
+
+    parent.insert(index + 1, item);
+    true
+}
+
+fn move_collection_item(items: &mut Vec<CollectionItem>, source_id: &str, target_id: &str) -> bool {
+    let Some(source_indices) = collection_node_indices(source_id) else {
+        return false;
+    };
+    let Some(mut target_indices) = collection_node_indices(target_id) else {
+        return false;
+    };
+    if source_indices.is_empty()
+        || collection_path_contains(&source_indices, &target_indices)
+        || (!target_indices.is_empty() && collection_item_ref(items, &target_indices).is_none())
+    {
+        return false;
+    }
+
+    let Some(item) = remove_collection_item_by_indices(items, &source_indices) else {
+        return false;
+    };
+    adjust_collection_indices_after_removal(&source_indices, &mut target_indices);
+
+    if insert_collection_item_for_drop(items, &target_indices, item) {
+        true
+    } else {
+        false
+    }
+}
+
+fn collection_path_contains(source: &[usize], target: &[usize]) -> bool {
+    target.len() >= source.len() && target[..source.len()] == *source
+}
+
+fn adjust_collection_indices_after_removal(source: &[usize], target: &mut [usize]) {
+    if source.is_empty() || target.len() < source.len() {
+        return;
+    }
+
+    let source_parent_len = source.len() - 1;
+    if target[..source_parent_len] == source[..source_parent_len]
+        && target[source_parent_len] > source[source_parent_len]
+    {
+        target[source_parent_len] -= 1;
+    }
+}
+
+fn insert_collection_item_for_drop(
+    items: &mut Vec<CollectionItem>,
+    target_indices: &[usize],
+    item: CollectionItem,
+) -> bool {
+    if target_indices.is_empty() {
+        items.push(item);
+        return true;
+    }
+
+    let target_is_folder = matches!(
+        collection_item_ref(items, target_indices),
+        Some(CollectionItem::Folder(_))
+    );
+    if target_is_folder {
+        let Some(CollectionItem::Folder(folder)) = collection_item_mut(items, target_indices)
+        else {
+            return false;
+        };
+        folder.items.push(item);
+        return true;
+    }
+
+    let Some(index) = target_indices.last().copied() else {
+        return false;
+    };
+    let Some(parent) = collection_parent_items_mut(items, target_indices) else {
+        return false;
+    };
+    let insert_at = (index + 1).min(parent.len());
+    parent.insert(insert_at, item);
+    true
+}
+
+fn collection_item_copy(mut item: CollectionItem) -> CollectionItem {
+    match &mut item {
+        CollectionItem::Folder(folder) => folder.name = format!("{} Copy", folder.name),
+        CollectionItem::Request(request) => request.name = format!("{} Copy", request.name),
+    }
+    item
+}
+
+fn collection_node_indices(node_id: &str) -> Option<Vec<usize>> {
+    if node_id == "collection" {
+        return Some(Vec::new());
+    }
+
+    let path = node_id.strip_prefix("collection/")?;
+    path.split('/')
+        .map(|segment| segment.parse::<usize>().ok())
+        .collect()
+}
+
+fn collection_item_ref<'a>(
+    items: &'a [CollectionItem],
+    indices: &[usize],
+) -> Option<&'a CollectionItem> {
+    let (index, rest) = indices.split_first()?;
+    let item = items.get(*index)?;
+    if rest.is_empty() {
+        return Some(item);
+    }
+
+    match item {
+        CollectionItem::Folder(folder) => collection_item_ref(&folder.items, rest),
+        CollectionItem::Request(_) => None,
+    }
+}
+
+fn collection_item_mut<'a>(
+    items: &'a mut Vec<CollectionItem>,
+    indices: &[usize],
+) -> Option<&'a mut CollectionItem> {
+    let (index, rest) = indices.split_first()?;
+    let item = items.get_mut(*index)?;
+    if rest.is_empty() {
+        return Some(item);
+    }
+
+    match item {
+        CollectionItem::Folder(folder) => collection_item_mut(&mut folder.items, rest),
+        CollectionItem::Request(_) => None,
+    }
+}
+
+fn collection_parent_items_mut<'a>(
+    items: &'a mut Vec<CollectionItem>,
+    indices: &[usize],
+) -> Option<&'a mut Vec<CollectionItem>> {
+    if indices.is_empty() || indices.len() == 1 {
+        return Some(items);
+    }
+
+    let index = indices[0];
+    match items.get_mut(index)? {
+        CollectionItem::Folder(folder) => {
+            collection_parent_items_mut(&mut folder.items, &indices[1..])
+        }
+        CollectionItem::Request(_) => None,
+    }
+}
+
+fn collection_insertion_items_mut<'a>(
+    items: &'a mut Vec<CollectionItem>,
+    indices: &[usize],
+) -> Option<&'a mut Vec<CollectionItem>> {
+    if indices.is_empty() {
+        return Some(items);
+    }
+
+    if indices.len() == 1 {
+        let index = indices[0];
+        let target_is_folder = matches!(items.get(index)?, CollectionItem::Folder(_));
+        if !target_is_folder {
+            return Some(items);
+        }
+
+        return match items.get_mut(index)? {
+            CollectionItem::Folder(folder) => Some(&mut folder.items),
+            CollectionItem::Request(_) => None,
+        };
+    }
+
+    let index = indices[0];
+    match items.get_mut(index)? {
+        CollectionItem::Folder(folder) => {
+            collection_insertion_items_mut(&mut folder.items, &indices[1..])
+        }
+        CollectionItem::Request(_) => None,
+    }
+}
+
 fn preview_pairs(pairs: &[(String, String)]) -> String {
     preview_text(
         &pairs
@@ -2723,7 +3285,7 @@ fn history_row(
 }
 
 fn append_collection_rows(
-    rows: &mut Vec<gpui::Div>,
+    rows: &mut Vec<gpui::AnyElement>,
     items: &[CollectionItem],
     parent_id: &str,
     depth: usize,
@@ -2759,8 +3321,9 @@ fn collection_root_row(
     item_count: usize,
     expanded: bool,
     cx: &mut Context<ZenApiApp>,
-) -> gpui::Div {
+) -> gpui::AnyElement {
     let marker = if expanded { "v" } else { ">" };
+    let menu_label = name.clone();
 
     div()
         .flex()
@@ -2776,6 +3339,26 @@ fn collection_root_row(
             MouseButton::Left,
             cx.listener(|app, _event: &MouseUpEvent, _window, cx| {
                 app.toggle_collection_node("collection".to_string(), cx);
+            }),
+        )
+        .on_mouse_down(
+            MouseButton::Right,
+            cx.listener(move |app, _event: &MouseDownEvent, window, cx| {
+                window.prevent_default();
+                app.open_collection_menu(
+                    CollectionContextMenu {
+                        node_id: "collection".to_string(),
+                        label: menu_label.clone(),
+                        kind: CollectionNodeKind::Root,
+                    },
+                    cx,
+                );
+            }),
+        )
+        .drag_over::<DraggedCollectionNode>(|row, _dragged, _window, _cx| row.bg(rgb(0xeff6ff)))
+        .on_drop(
+            cx.listener(|app, dragged: &DraggedCollectionNode, _window, cx| {
+                app.move_collection_target(dragged.node_id.clone(), "collection".to_string(), cx);
             }),
         )
         .child(
@@ -2799,6 +3382,7 @@ fn collection_root_row(
                 .text_color(rgb(0x9ca3af))
                 .child(item_count.to_string()),
         )
+        .into_any()
 }
 
 fn collection_folder_row(
@@ -2808,11 +3392,21 @@ fn collection_folder_row(
     item_count: usize,
     expanded: bool,
     cx: &mut Context<ZenApiApp>,
-) -> gpui::Div {
+) -> gpui::AnyElement {
     let id = id.to_string();
     let marker = if expanded { "v" } else { ">" };
+    let element_id = format!("collection-folder:{id}");
+    let toggle_id = id.clone();
+    let menu_id = id.clone();
+    let menu_label = folder.name.clone();
+    let drop_id = id.clone();
+    let drag_value = DraggedCollectionNode {
+        node_id: id,
+        label: folder.name.clone(),
+    };
 
     div()
+        .id(element_id)
         .flex()
         .items_center()
         .h(px(30.))
@@ -2826,7 +3420,32 @@ fn collection_folder_row(
         .on_mouse_up(
             MouseButton::Left,
             cx.listener(move |app, _event: &MouseUpEvent, _window, cx| {
-                app.toggle_collection_node(id.clone(), cx);
+                app.toggle_collection_node(toggle_id.clone(), cx);
+            }),
+        )
+        .on_mouse_down(
+            MouseButton::Right,
+            cx.listener(move |app, _event: &MouseDownEvent, window, cx| {
+                window.prevent_default();
+                app.open_collection_menu(
+                    CollectionContextMenu {
+                        node_id: menu_id.clone(),
+                        label: menu_label.clone(),
+                        kind: CollectionNodeKind::Folder,
+                    },
+                    cx,
+                );
+            }),
+        )
+        .on_drag(drag_value, |dragged, _offset, _window, cx| {
+            cx.new(|_| CollectionDragPreview {
+                label: dragged.label.clone(),
+            })
+        })
+        .drag_over::<DraggedCollectionNode>(|row, _dragged, _window, _cx| row.bg(rgb(0xeff6ff)))
+        .on_drop(
+            cx.listener(move |app, dragged: &DraggedCollectionNode, _window, cx| {
+                app.move_collection_target(dragged.node_id.clone(), drop_id.clone(), cx);
             }),
         )
         .child(
@@ -2850,19 +3469,30 @@ fn collection_folder_row(
                 .text_color(rgb(0x9ca3af))
                 .child(item_count.to_string()),
         )
+        .into_any()
 }
 
 fn collection_request_row(
-    _id: &str,
+    id: &str,
     request: CollectionRequest,
     depth: usize,
     cx: &mut Context<ZenApiApp>,
-) -> gpui::Div {
+) -> gpui::AnyElement {
+    let menu_id = id.to_string();
+    let element_id = format!("collection-request:{id}");
     let method = request.method.clone();
     let name = request.name.clone();
     let url = request.url.clone();
+    let menu_label = request.name.clone();
+    let drop_id = menu_id.clone();
+    let drag_value = DraggedCollectionNode {
+        node_id: menu_id.clone(),
+        label: request.name.clone(),
+    };
+    let restore_request = request.clone();
 
     div()
+        .id(element_id)
         .flex()
         .items_center()
         .h(px(36.))
@@ -2875,7 +3505,32 @@ fn collection_request_row(
         .on_mouse_up(
             MouseButton::Left,
             cx.listener(move |app, _event: &MouseUpEvent, _window, cx| {
-                app.restore_collection_request(request.clone(), cx);
+                app.restore_collection_request(restore_request.clone(), cx);
+            }),
+        )
+        .on_mouse_down(
+            MouseButton::Right,
+            cx.listener(move |app, _event: &MouseDownEvent, window, cx| {
+                window.prevent_default();
+                app.open_collection_menu(
+                    CollectionContextMenu {
+                        node_id: menu_id.clone(),
+                        label: menu_label.clone(),
+                        kind: CollectionNodeKind::Request,
+                    },
+                    cx,
+                );
+            }),
+        )
+        .on_drag(drag_value, |dragged, _offset, _window, cx| {
+            cx.new(|_| CollectionDragPreview {
+                label: dragged.label.clone(),
+            })
+        })
+        .drag_over::<DraggedCollectionNode>(|row, _dragged, _window, _cx| row.bg(rgb(0xeff6ff)))
+        .on_drop(
+            cx.listener(move |app, dragged: &DraggedCollectionNode, _window, cx| {
+                app.move_collection_target(dragged.node_id.clone(), drop_id.clone(), cx);
             }),
         )
         .child(
@@ -2907,6 +3562,7 @@ fn collection_request_row(
                         .child(url),
                 ),
         )
+        .into_any()
 }
 
 fn collection_item_count(items: &[CollectionItem]) -> usize {
@@ -3300,5 +3956,128 @@ mod tests {
         })];
 
         assert_eq!(collection_item_count(&items), 2);
+    }
+
+    #[test]
+    fn parses_collection_node_ids() {
+        assert_eq!(collection_node_indices("collection"), Some(Vec::new()));
+        assert_eq!(collection_node_indices("collection/0/2"), Some(vec![0, 2]));
+        assert_eq!(collection_node_indices("routes/0"), None);
+    }
+
+    #[test]
+    fn mutates_collection_items_for_context_menu_actions() {
+        let mut collection = ApiCollection {
+            name: "Demo".to_string(),
+            description: String::new(),
+            items: vec![CollectionItem::Folder(CollectionFolder {
+                name: "Users".to_string(),
+                description: String::new(),
+                items: Vec::new(),
+            })],
+        };
+
+        assert!(insert_collection_item(
+            &mut collection.items,
+            "collection/0",
+            CollectionItem::Request(blank_collection_request())
+        ));
+        assert_eq!(collection_item_count(&collection.items), 1);
+
+        assert!(rename_collection_node(
+            &mut collection,
+            "collection/0/0",
+            "List users"
+        ));
+        let CollectionItem::Folder(folder) = &collection.items[0] else {
+            panic!("expected folder");
+        };
+        let CollectionItem::Request(request) = &folder.items[0] else {
+            panic!("expected request");
+        };
+        assert_eq!(request.name, "List users");
+
+        assert!(duplicate_collection_item(
+            &mut collection.items,
+            "collection/0/0"
+        ));
+        let CollectionItem::Folder(folder) = &collection.items[0] else {
+            panic!("expected folder");
+        };
+        assert_eq!(folder.items.len(), 2);
+
+        assert!(remove_collection_item(&mut collection.items, "collection/0/1").is_some());
+        assert_eq!(collection_item_count(&collection.items), 1);
+    }
+
+    #[test]
+    fn moves_collection_items_for_drag_and_drop() {
+        let mut items = vec![
+            CollectionItem::Folder(CollectionFolder {
+                name: "Users".to_string(),
+                description: String::new(),
+                items: Vec::new(),
+            }),
+            CollectionItem::Request(CollectionRequest {
+                name: "List users".to_string(),
+                method: "GET".to_string(),
+                url: "https://api.example.com/users".to_string(),
+                headers: Vec::new(),
+                query_params: Vec::new(),
+                body: CollectionBody::None,
+            }),
+            CollectionItem::Request(CollectionRequest {
+                name: "Create user".to_string(),
+                method: "POST".to_string(),
+                url: "https://api.example.com/users".to_string(),
+                headers: Vec::new(),
+                query_params: Vec::new(),
+                body: CollectionBody::None,
+            }),
+        ];
+
+        assert!(move_collection_item(
+            &mut items,
+            "collection/1",
+            "collection/0"
+        ));
+        let CollectionItem::Folder(folder) = &items[0] else {
+            panic!("expected folder");
+        };
+        assert_eq!(folder.items.len(), 1);
+
+        assert!(move_collection_item(
+            &mut items,
+            "collection/1",
+            "collection/0/0"
+        ));
+        let CollectionItem::Folder(folder) = &items[0] else {
+            panic!("expected folder");
+        };
+        assert_eq!(folder.items.len(), 2);
+        let CollectionItem::Request(request) = &folder.items[1] else {
+            panic!("expected request");
+        };
+        assert_eq!(request.name, "Create user");
+    }
+
+    #[test]
+    fn rejects_moving_collection_folder_into_itself() {
+        let mut items = vec![CollectionItem::Folder(CollectionFolder {
+            name: "Users".to_string(),
+            description: String::new(),
+            items: vec![CollectionItem::Folder(CollectionFolder {
+                name: "Nested".to_string(),
+                description: String::new(),
+                items: Vec::new(),
+            })],
+        })];
+
+        assert!(!move_collection_item(
+            &mut items,
+            "collection/0",
+            "collection/0/0"
+        ));
+        assert_eq!(collection_item_count(&items), 0);
     }
 }

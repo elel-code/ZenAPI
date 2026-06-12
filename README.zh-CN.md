@@ -1,0 +1,110 @@
+# ZenAPI
+
+基于 Rust 和 GPUI 构建的快速、轻量、本地优先的 API 工作站 — 将 API 测试客户端
+和本地 Mock 服务器整合为一个原生可执行文件。
+
+[文档](docs/) · [设计笔记](docs/DESIGN.md) · [开发路线图](docs/TODO.md)
+
+## 特性
+
+- **OpenAPI / Swagger 导入** — 加载本地 JSON 或 YAML 规格文件，解析路由并构建
+  交互式 API 树。
+- **HTTP 客户端** — 通过 `reqwest` 发送请求，完整支持 Method、Headers、Query
+  Params、Body 和 Authorization。
+- **响应查看器** — 格式化 JSON、原始文本、响应头、状态码、耗时和响应大小。
+- **本地 Mock 服务器** — 一键启动 Axum 服务器，默认开启 CORS，基于 Schema 生成
+  JSON 响应，非常适合前端开发。
+- **环境与变量** — 全局和按环境的变量管理，支持 `{{name}}` 语法在 URL、Headers
+  和 Body 中替换。
+- **集合系统** — 将请求组织为集合 → 文件夹 → 请求三级结构，支持 Postman
+  Collection v2.1 JSON 导入/导出，可从侧栏保存当前请求，使用右键菜单管理条目，
+  并通过拖拽移动条目。
+- **请求历史** — 本地自动记录历史，支持搜索和一键恢复。
+- **代码生成** — 从任意请求生成 cURL、Python、JavaScript、Rust 和 Go 代码片段。
+- **Rust + GPUI 原生桌面** — 原生性能，亚秒启动，目标体积约 10 MB，无 Chromium
+  依赖。
+
+## 快速开始
+
+### 前置依赖
+
+- [Rust](https://rustup.rs/)（stable，1.80+）
+- Linux: `cmake`、`pkg-config`、`libfontconfig-dev`、`libxkbcommon-dev`、
+  `libwayland-dev`（Wayland）、`libx11-dev`（X11）
+
+### 构建与运行
+
+```bash
+git clone https://github.com/your-org/ZenAPI.git
+cd ZenAPI
+cargo run
+```
+
+应用窗口打开后，点击 **Import** 加载 OpenAPI 文件，从侧边栏选择路由，
+然后发送你的第一个请求。Mock 服务器默认运行在 `http://127.0.0.1:8080`。
+
+## 项目结构
+
+```
+ZenAPI/
+├── src/
+│   ├── main.rs                  # GPUI 应用入口
+│   ├── lib.rs                   # 库根文件
+│   ├── app.rs                   # 应用状态、动作和工作流编排
+│   ├── app/input.rs             # 输入控件（单行、多行、键值对）
+│   ├── openapi.rs               # OpenAPI 模块入口
+│   ├── openapi/model.rs         # 解析后的路由和 Schema 模型
+│   ├── openapi/parser.rs        # OpenAPI 3.0 / Swagger 2.0 文件解析器
+│   ├── openapi/json.rs          # JSON 格式处理
+│   ├── openapi/yaml.rs          # YAML 格式处理
+│   ├── openapi/schema.rs        # Schema → Mock 数据生成
+│   ├── client.rs                # HTTP 客户端模块入口
+│   ├── client/transport.rs      # reqwest 请求传输层
+│   ├── client/response.rs       # 响应格式化
+│   ├── mock_server.rs           # Mock 服务器模块入口
+│   ├── mock_server/server.rs    # Axum 服务器生命周期
+│   ├── mock_server/routing.rs   # 动态 Mock 路由生成
+│   ├── collections.rs           # 集合树和 Postman 导入/导出
+│   ├── variables.rs             # 变量存储与插值替换
+│   ├── history.rs               # 请求历史模型与过滤
+│   └── codegen.rs               # 多语言代码片段生成
+├── docs/
+│   ├── PRD.md                   # 产品需求与 MVP 范围
+│   ├── DESIGN.md                # 视觉与交互设计决策
+│   ├── TODO.md                  # 开发路线图与任务追踪
+│   └── USER_GUIDE.md            # 用户指南（计划中）
+├── Cargo.toml
+├── Cargo.lock
+├── README.md                    # 英文版
+└── README.zh-CN.md              # 本文件
+```
+
+### 核心依赖
+
+| Crate | 用途 |
+|-------|------|
+| `gpui` / `gpui_platform` | GPU 加速桌面 UI（Zed 官方仓库） |
+| `reqwest` | HTTP/HTTPS 客户端，TLS 支持 |
+| `axum` / `tokio` | 本地 Mock 服务器（异步，默认 CORS） |
+| `serde_json` / `serde_yaml` | OpenAPI 文档解析 |
+| `syntect`（计划中） | JSON 语法高亮 |
+
+## 文档
+
+- [PRD](docs/PRD.md) — 产品需求与 MVP 范围
+- [DESIGN](docs/DESIGN.md) — 视觉与交互指南
+- [TODO](docs/TODO.md) — 开发路线图
+- [User Guide](docs/USER_GUIDE.md) — 计划中
+
+## 平台支持
+
+| 平台 | 状态 |
+|------|------|
+| Linux (Wayland) | ✅ 主要开发平台 |
+| Linux (X11) | ✅ 通过 `gpui_platform` 支持 |
+| macOS | 计划中 |
+| Windows | 计划中 |
+
+## 许可证
+
+除另有说明外，ZenAPI 源代码以 MIT License 或 Apache License 2.0 双许可（任选其一）。
