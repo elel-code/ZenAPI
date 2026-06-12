@@ -24,6 +24,7 @@ actions!(
         Paste,
         Cut,
         Copy,
+        Accept,
     ]
 );
 
@@ -31,6 +32,9 @@ actions!(
 pub(super) struct TextChanged {
     pub text: String,
 }
+
+#[derive(Clone, Debug)]
+pub(super) struct TextAccepted;
 
 pub(super) struct TextInput {
     focus_handle: FocusHandle,
@@ -182,6 +186,10 @@ impl TextInput {
             ));
             self.replace_text_in_range(None, "", window, cx);
         }
+    }
+
+    fn accept(&mut self, _: &Accept, _: &mut Window, cx: &mut Context<Self>) {
+        cx.emit(TextAccepted);
     }
 
     fn move_to(&mut self, offset: usize, cx: &mut Context<Self>) {
@@ -438,6 +446,7 @@ impl EntityInputHandler for TextInput {
 }
 
 impl EventEmitter<TextChanged> for TextInput {}
+impl EventEmitter<TextAccepted> for TextInput {}
 
 struct TextElement {
     input: Entity<TextInput>,
@@ -650,6 +659,7 @@ impl Render for TextInput {
             .on_action(cx.listener(Self::paste))
             .on_action(cx.listener(Self::cut))
             .on_action(cx.listener(Self::copy))
+            .on_action(cx.listener(Self::accept))
             .on_mouse_down(MouseButton::Left, cx.listener(Self::on_mouse_down))
             .on_mouse_up(MouseButton::Left, cx.listener(Self::on_mouse_up))
             .on_mouse_up_out(MouseButton::Left, cx.listener(Self::on_mouse_up))
@@ -693,5 +703,6 @@ pub(super) fn bind_text_input_keys(cx: &mut App) {
         KeyBinding::new("cmd-x", Cut, None),
         KeyBinding::new("home", Home, None),
         KeyBinding::new("end", End, None),
+        KeyBinding::new("enter", Accept, None),
     ]);
 }

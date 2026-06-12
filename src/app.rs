@@ -3,19 +3,30 @@ mod input;
 use std::{path::Path, sync::Arc};
 
 use anyhow::Result;
+use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64_STANDARD};
 use gpui::prelude::*;
 use gpui::{
-    App, Bounds, Context, Entity, FontWeight, Hsla, MouseButton, MouseUpEvent, Render,
-    SharedString, Window, WindowBounds, WindowOptions, div, px, rgb, size,
+    App, Bounds, ClipboardItem, Context, Entity, FontWeight, Hsla, MouseButton, MouseUpEvent,
+    Render, SharedString, Window, WindowBounds, WindowOptions, div, px, rgb, size,
 };
-use tokio::{runtime::Runtime, sync::oneshot};
+use tokio::{
+    runtime::Runtime,
+    sync::{mpsc, oneshot},
+};
 use zenapi::{
-    client,
-    mock_server::MockServer,
+    client::{self, RequestBody},
+    codegen::{CodegenRequest, SnippetLanguage, generate_snippet},
+    collections::{
+        ApiCollection, CollectionBody, CollectionFolder, CollectionItem, CollectionRequest,
+        NameValue,
+    },
+    history::{HistoryRequest, HistoryResponse, RequestHistory},
+    mock_server::{MockRequestLog, MockServer},
     openapi::{ApiRoute, ApiSpec, load_openapi_file},
+    variables::{Variable, VariableStore, replace_variables},
 };
 
-use self::input::{TextChanged, TextInput, bind_text_input_keys};
+use self::input::{TextAccepted, TextChanged, TextInput, bind_text_input_keys};
 
 pub fn run() -> Result<()> {
     let runtime = Arc::new(Runtime::new()?);
@@ -44,31 +55,134 @@ pub fn run() -> Result<()> {
 struct ZenApiApp {
     runtime: Arc<Runtime>,
     import_path: Entity<TextInput>,
+    collection_path: Entity<TextInput>,
     route_filter: Entity<TextInput>,
+    history_filter: Entity<TextInput>,
     url: Entity<TextInput>,
+    active_environment: EnvironmentSelection,
+    global_variables: Vec<KeyValueRow>,
+    environment_variables: Vec<KeyValueRow>,
+    query_params: Vec<KeyValueRow>,
+    request_headers: Vec<KeyValueRow>,
+    auth_mode: AuthMode,
+    bearer_token: Entity<TextInput>,
+    basic_username: Entity<TextInput>,
+    basic_password: Entity<TextInput>,
+    api_key_name: Entity<TextInput>,
+    api_key_value: Entity<TextInput>,
+    api_key_placement: ApiKeyPlacement,
+    request_body_mode: RequestBodyMode,
+    raw_body_format: RawBodyFormat,
     request_body: Entity<TextInput>,
+    form_data_body: Vec<KeyValueRow>,
+    urlencoded_body: Vec<KeyValueRow>,
+    binary_body_path: Entity<TextInput>,
     routes: Vec<ApiRoute>,
     visible_routes: Vec<ApiRoute>,
     selected_route: Option<usize>,
+    collection: ApiCollection,
+    expanded_collection_nodes: Vec<String>,
+    collection_status: String,
     method: String,
     spec_label: String,
     response_status: String,
     response_meta: String,
     response_tone: ResponseTone,
     response_body: String,
+    response_raw_body: String,
+    response_headers: String,
+    response_view: ResponseView,
+    codegen_language: SnippetLanguage,
+    codegen_menu_open: bool,
     server: Option<MockServer>,
     server_running: bool,
     server_status: String,
+    mock_logs: Vec<MockRequestLog>,
+    history: RequestHistory,
+    history_query: String,
     busy: bool,
+}
+
+struct KeyValueRow {
+    key: Entity<TextInput>,
+    value: Entity<TextInput>,
 }
 
 impl ZenApiApp {
     fn new(runtime: Arc<Runtime>, cx: &mut Context<Self>) -> Self {
         let import_path = cx.new(|cx| TextInput::new(cx, "OpenAPI / Swagger file path", true));
+        let collection_path = cx.new(|cx| TextInput::new(cx, "Collection JSON path", true));
         let route_filter =
             cx.new(|cx| TextInput::new(cx, "Filter method, path, or summary", false));
+        let history_filter = cx.new(|cx| TextInput::new(cx, "Filter history", false));
         let url = cx.new(|cx| TextInput::new(cx, "Request URL", true));
+        let global_variables = key_value_rows(
+            cx,
+            &[
+                ("baseUrl", "https://api.example.com"),
+                ("token", "secret"),
+                ("", ""),
+            ],
+        );
+        let environment_variables = key_value_rows(
+            cx,
+            &[
+                ("baseUrl", "http://localhost:8080"),
+                ("token", "dev-token"),
+                ("", ""),
+            ],
+        );
+        let query_params = key_value_rows(
+            cx,
+            &[("page", "1"), ("limit", "20"), ("search", "term"), ("", "")],
+        );
+        let request_headers = key_value_rows(
+            cx,
+            &[
+                ("Accept", "application/json"),
+                ("Authorization", "Bearer token"),
+                ("X-Request-Id", "request-id"),
+                ("", ""),
+            ],
+        );
+        let bearer_token = cx.new(|cx| TextInput::new(cx, "Bearer token", true));
+        let basic_username = cx.new(|cx| TextInput::new(cx, "Username", true));
+        let basic_password = cx.new(|cx| TextInput::new(cx, "Password", true));
+        let api_key_name = cx.new(|cx| TextInput::new(cx, "X-API-Key", true));
+        let api_key_value = cx.new(|cx| TextInput::new(cx, "API key value", true));
         let request_body = cx.new(|cx| TextInput::new(cx, "JSON body", true));
+        let form_data_body = key_value_rows(
+            cx,
+            &[
+                ("field", "value"),
+                ("file", "@/path/to/file"),
+                ("", ""),
+                ("", ""),
+            ],
+        );
+        let urlencoded_body = key_value_rows(
+            cx,
+            &[
+                ("username", "dev"),
+                ("password", "secret"),
+                ("", ""),
+                ("", ""),
+            ],
+        );
+        let binary_body_path = cx.new(|cx| TextInput::new(cx, "Binary file path", true));
+
+        cx.subscribe(&import_path, |app, _input, _event: &TextAccepted, cx| {
+            app.import_openapi(cx);
+        })
+        .detach();
+
+        cx.subscribe(
+            &collection_path,
+            |app, _input, _event: &TextAccepted, cx| {
+                app.import_collection(cx);
+            },
+        )
+        .detach();
 
         cx.subscribe(&route_filter, |app, _input, event: &TextChanged, cx| {
             app.apply_route_filter(&event.text);
@@ -76,24 +190,65 @@ impl ZenApiApp {
         })
         .detach();
 
+        cx.subscribe(&history_filter, |app, _input, event: &TextChanged, cx| {
+            app.history_query = event.text.clone();
+            cx.notify();
+        })
+        .detach();
+
+        cx.subscribe(&url, |app, _input, _event: &TextAccepted, cx| {
+            app.send_request(cx);
+        })
+        .detach();
+
         Self {
             runtime,
             import_path,
+            collection_path,
             route_filter,
+            history_filter,
             url,
+            active_environment: EnvironmentSelection::None,
+            global_variables,
+            environment_variables,
+            query_params,
+            request_headers,
+            auth_mode: AuthMode::None,
+            bearer_token,
+            basic_username,
+            basic_password,
+            api_key_name,
+            api_key_value,
+            api_key_placement: ApiKeyPlacement::Header,
+            request_body_mode: RequestBodyMode::None,
+            raw_body_format: RawBodyFormat::Json,
             request_body,
+            form_data_body,
+            urlencoded_body,
+            binary_body_path,
             routes: Vec::new(),
             visible_routes: Vec::new(),
             selected_route: None,
+            collection: ApiCollection::new("ZenAPI Collection"),
+            expanded_collection_nodes: vec!["collection".to_string()],
+            collection_status: "No collection file".to_string(),
             method: "GET".to_string(),
             spec_label: "No spec loaded".to_string(),
             response_status: "Idle".to_string(),
             response_meta: String::new(),
             response_tone: ResponseTone::Neutral,
             response_body: "Import an OpenAPI or Swagger document to begin.".to_string(),
+            response_raw_body: "Import an OpenAPI or Swagger document to begin.".to_string(),
+            response_headers: String::new(),
+            response_view: ResponseView::Pretty,
+            codegen_language: SnippetLanguage::Curl,
+            codegen_menu_open: false,
             server: None,
             server_running: false,
             server_status: "Mock stopped".to_string(),
+            mock_logs: Vec::new(),
+            history: RequestHistory::new(),
+            history_query: String::new(),
             busy: false,
         }
     }
@@ -154,6 +309,177 @@ impl ZenApiApp {
         cx.notify();
     }
 
+    fn import_collection(&mut self, cx: &mut Context<Self>) {
+        let path = self.collection_path.read(cx).text();
+        let path = path.trim();
+        if path.is_empty() {
+            self.set_response(
+                "Collection path needed",
+                "",
+                ResponseTone::Error,
+                "Enter a ZenAPI or Postman collection JSON path.",
+            );
+            cx.notify();
+            return;
+        }
+
+        match ApiCollection::load_file(path) {
+            Ok(collection) => {
+                self.collection_status = format!("Imported {}", collection.name);
+                self.collection = collection;
+                self.expanded_collection_nodes = vec!["collection".to_string()];
+                self.set_response(
+                    "Collection imported",
+                    self.collection.items.len().to_string(),
+                    ResponseTone::Success,
+                    format!("Loaded collection: {}", self.collection.name),
+                );
+            }
+            Err(error) => {
+                self.set_response(
+                    "Collection failed",
+                    "",
+                    ResponseTone::Error,
+                    error.to_string(),
+                );
+            }
+        }
+        cx.notify();
+    }
+
+    fn export_collection(&mut self, postman: bool, cx: &mut Context<Self>) {
+        let path = self.collection_path.read(cx).text();
+        let path = path.trim();
+        if path.is_empty() {
+            self.set_response(
+                "Collection path needed",
+                "",
+                ResponseTone::Error,
+                "Enter a target collection JSON path.",
+            );
+            cx.notify();
+            return;
+        }
+
+        let result = if postman {
+            self.collection.save_postman_file(path)
+        } else {
+            self.collection.save_file(path)
+        };
+
+        match result {
+            Ok(()) => {
+                self.collection_status = if postman {
+                    "Exported Postman".to_string()
+                } else {
+                    "Exported ZenAPI".to_string()
+                };
+                self.set_response(
+                    "Collection exported",
+                    "",
+                    ResponseTone::Success,
+                    format!("Wrote collection: {path}"),
+                );
+            }
+            Err(error) => {
+                self.set_response("Export failed", "", ResponseTone::Error, error.to_string());
+            }
+        }
+        cx.notify();
+    }
+
+    fn save_current_request_to_collection(&mut self, cx: &mut Context<Self>) {
+        let request = match self.current_codegen_request(cx) {
+            Ok(request) if !request.url.is_empty() => request,
+            Ok(_) => {
+                self.set_response(
+                    "Save needs URL",
+                    "",
+                    ResponseTone::Error,
+                    "Enter a request URL before saving to the collection.",
+                );
+                cx.notify();
+                return;
+            }
+            Err(error) => {
+                self.set_response("Save failed", "", ResponseTone::Error, error.to_string());
+                cx.notify();
+                return;
+            }
+        };
+
+        let collection_request = collection_request_from_codegen(&request);
+        self.collection
+            .items
+            .push(CollectionItem::Request(collection_request));
+        self.collection_status = format!("{} items", self.collection.items.len());
+        self.set_response(
+            "Request saved",
+            self.collection.name.clone(),
+            ResponseTone::Success,
+            "Saved current request to collection.",
+        );
+        cx.notify();
+    }
+
+    fn toggle_collection_node(&mut self, id: String, cx: &mut Context<Self>) {
+        if let Some(index) = self
+            .expanded_collection_nodes
+            .iter()
+            .position(|expanded| expanded == &id)
+        {
+            self.expanded_collection_nodes.remove(index);
+        } else {
+            self.expanded_collection_nodes.push(id);
+        }
+        cx.notify();
+    }
+
+    fn restore_collection_request(&mut self, request: CollectionRequest, cx: &mut Context<Self>) {
+        self.method = request.method;
+        self.url
+            .update(cx, |input, cx| input.set_text(request.url, cx));
+        set_key_value_rows(&self.request_headers, request.headers, cx);
+        set_key_value_rows(&self.query_params, request.query_params, cx);
+        self.apply_collection_body(request.body, cx);
+        self.set_response(
+            "Collection request",
+            "",
+            ResponseTone::Neutral,
+            "Restored request from collection.",
+        );
+        cx.notify();
+    }
+
+    fn apply_collection_body(&mut self, body: CollectionBody, cx: &mut Context<Self>) {
+        match body {
+            CollectionBody::None => {
+                self.request_body_mode = RequestBodyMode::None;
+                self.request_body
+                    .update(cx, |input, cx| input.set_text("", cx));
+            }
+            CollectionBody::Raw { content_type, body } => {
+                self.request_body_mode = RequestBodyMode::Raw;
+                self.raw_body_format = raw_format_from_content_type(&content_type);
+                self.request_body
+                    .update(cx, |input, cx| input.set_text(body, cx));
+            }
+            CollectionBody::FormData { fields } => {
+                self.request_body_mode = RequestBodyMode::FormData;
+                set_key_value_rows(&self.form_data_body, fields, cx);
+            }
+            CollectionBody::UrlEncoded { fields } => {
+                self.request_body_mode = RequestBodyMode::UrlEncoded;
+                set_key_value_rows(&self.urlencoded_body, fields, cx);
+            }
+            CollectionBody::Binary { path, .. } => {
+                self.request_body_mode = RequestBodyMode::Binary;
+                self.binary_body_path
+                    .update(cx, |input, cx| input.set_text(path, cx));
+            }
+        }
+    }
+
     fn apply_route_filter(&mut self, query: &str) {
         self.visible_routes = filter_routes(&self.routes, query);
         self.selected_route = None;
@@ -172,6 +498,11 @@ impl ZenApiApp {
         self.request_body.update(cx, |input, cx| {
             input.set_text(default_request_body(&route.method), cx)
         });
+        self.request_body_mode = if default_request_body(&route.method).is_empty() {
+            RequestBodyMode::None
+        } else {
+            RequestBodyMode::Raw
+        };
         self.set_response(
             "Route selected",
             route.summary,
@@ -186,9 +517,20 @@ impl ZenApiApp {
             return;
         }
 
-        let url = self.url.read(cx).text();
-        let url = url.trim().to_string();
-        if url.is_empty() {
+        let request = match self.current_codegen_request(cx) {
+            Ok(request) => request,
+            Err(error) => {
+                self.set_response(
+                    "Request build failed",
+                    "",
+                    ResponseTone::Error,
+                    error.to_string(),
+                );
+                cx.notify();
+                return;
+            }
+        };
+        if request.url.is_empty() {
             self.set_response(
                 "Request needs a URL",
                 "",
@@ -199,8 +541,13 @@ impl ZenApiApp {
             return;
         }
 
-        let method = self.method.clone();
-        let body = self.request_body.read(cx).text();
+        let history_request =
+            history_request_from_body(&request.method, &request.url, &request.body);
+        let method = request.method.clone();
+        let url = request.url.clone();
+        let headers = request.headers.clone();
+        let query_params = request.query_params.clone();
+        let body = request.body.clone();
         let runtime = self.runtime.clone();
         let (tx, rx) = oneshot::channel();
 
@@ -214,7 +561,9 @@ impl ZenApiApp {
         cx.notify();
 
         runtime.spawn(async move {
-            let _ = tx.send(client::send_request(&method, &url, &body).await);
+            let _ = tx.send(
+                client::send_request_with_body(&method, &url, &headers, &query_params, body).await,
+            );
         });
 
         cx.spawn(async move |app, cx| {
@@ -222,20 +571,36 @@ impl ZenApiApp {
                 app.update(cx, |app, cx| {
                     match result {
                         Ok(response) => {
-                            app.set_response(
-                                format!("HTTP {}", response.status),
-                                format!("{} ms", response.elapsed_ms),
+                            let response_status = format!("HTTP {}", response.status);
+                            let response_meta =
+                                format_response_meta(response.elapsed_ms, response.body_bytes);
+                            let history_response = HistoryResponse {
+                                status: response_status.clone(),
+                                meta: response_meta.clone(),
+                                body_preview: preview_text(&response.body),
+                            };
+                            let headers = format_headers(&response.headers);
+                            app.record_history(history_request.clone(), history_response);
+                            app.set_http_response(
+                                response_status,
+                                response_meta,
                                 response_tone(response.status),
                                 response.body,
+                                response.raw_body,
+                                headers,
                             );
                         }
                         Err(error) => {
-                            app.set_response(
-                                "Request failed",
-                                "",
-                                ResponseTone::Error,
-                                error.to_string(),
+                            let error = error.to_string();
+                            app.record_history(
+                                history_request.clone(),
+                                HistoryResponse {
+                                    status: "Request failed".to_string(),
+                                    meta: String::new(),
+                                    body_preview: preview_text(&error),
+                                },
                             );
+                            app.set_response("Request failed", "", ResponseTone::Error, error);
                         }
                     }
                     app.busy = false;
@@ -295,13 +660,30 @@ impl ZenApiApp {
         let routes = self.routes.clone();
         let runtime = self.runtime.clone();
         let (tx, rx) = oneshot::channel();
+        let (log_tx, mut log_rx) = mpsc::unbounded_channel();
         self.busy = true;
         self.server_status = "Starting mock".to_string();
+        self.mock_logs.clear();
         cx.notify();
 
         runtime.spawn(async move {
-            let _ = tx.send(MockServer::start(routes, 8080).await);
+            let _ = tx.send(MockServer::start_with_logs(routes, 8080, log_tx).await);
         });
+
+        cx.spawn(async move |app, cx| {
+            while let Some(entry) = log_rx.recv().await {
+                if app
+                    .update(cx, |app, cx| {
+                        app.record_mock_log(entry);
+                        cx.notify();
+                    })
+                    .is_err()
+                {
+                    break;
+                }
+            }
+        })
+        .detach();
 
         cx.spawn(async move |app, cx| {
             if let Ok(result) = rx.await {
@@ -342,7 +724,177 @@ impl ZenApiApp {
         self.response_status = status.into();
         self.response_meta = meta.into();
         self.response_tone = tone;
-        self.response_body = body.into();
+        let body = body.into();
+        self.response_body = body.clone();
+        self.response_raw_body = body;
+        self.response_headers.clear();
+        self.response_view = ResponseView::Pretty;
+    }
+
+    fn set_http_response(
+        &mut self,
+        status: impl Into<String>,
+        meta: impl Into<String>,
+        tone: ResponseTone,
+        pretty_body: impl Into<String>,
+        raw_body: impl Into<String>,
+        headers: impl Into<String>,
+    ) {
+        self.response_status = status.into();
+        self.response_meta = meta.into();
+        self.response_tone = tone;
+        self.response_body = pretty_body.into();
+        self.response_raw_body = raw_body.into();
+        self.response_headers = headers.into();
+    }
+
+    fn record_mock_log(&mut self, entry: MockRequestLog) {
+        const MAX_LOGS: usize = 50;
+
+        self.mock_logs.push(entry);
+        let overflow = self.mock_logs.len().saturating_sub(MAX_LOGS);
+        if overflow > 0 {
+            self.mock_logs.drain(0..overflow);
+        }
+    }
+
+    fn record_history(&mut self, request: HistoryRequest, response: HistoryResponse) {
+        const MAX_HISTORY: usize = 100;
+
+        self.history.record(request, response);
+        while self.history.entries().len() > MAX_HISTORY {
+            if let Some(id) = self.history.entries().last().map(|entry| entry.id) {
+                self.history.remove(id);
+            } else {
+                break;
+            }
+        }
+    }
+
+    fn restore_history_entry(&mut self, id: u64, cx: &mut Context<Self>) {
+        let Some(entry) = self.history.find(id).cloned() else {
+            return;
+        };
+
+        self.method = entry.request.method;
+        self.url
+            .update(cx, |input, cx| input.set_text(entry.request.url, cx));
+        self.request_body.update(cx, |input, cx| {
+            input.set_text(entry.request.body_preview.clone(), cx)
+        });
+        self.request_body_mode = if entry.request.body_preview.is_empty() {
+            RequestBodyMode::None
+        } else {
+            RequestBodyMode::Raw
+        };
+        self.set_response(
+            entry.response.status,
+            entry.response.meta,
+            ResponseTone::Neutral,
+            entry.response.body_preview,
+        );
+        cx.notify();
+    }
+
+    fn auth_pairs(&self, cx: &mut Context<Self>) -> (Vec<(String, String)>, Vec<(String, String)>) {
+        match self.auth_mode {
+            AuthMode::None => (Vec::new(), Vec::new()),
+            AuthMode::Bearer => {
+                let token = self.bearer_token.read(cx).text();
+                let headers = bearer_auth_pair(&token).into_iter().collect();
+                (headers, Vec::new())
+            }
+            AuthMode::Basic => {
+                let username = self.basic_username.read(cx).text();
+                let password = self.basic_password.read(cx).text();
+                let headers = basic_auth_pair(&username, &password).into_iter().collect();
+                (headers, Vec::new())
+            }
+            AuthMode::ApiKey => {
+                let name = self.api_key_name.read(cx).text();
+                let value = self.api_key_value.read(cx).text();
+                let Some(pair) = api_key_pair(&name, &value) else {
+                    return (Vec::new(), Vec::new());
+                };
+
+                match self.api_key_placement {
+                    ApiKeyPlacement::Header => (vec![pair], Vec::new()),
+                    ApiKeyPlacement::Query => (Vec::new(), vec![pair]),
+                }
+            }
+        }
+    }
+
+    fn current_codegen_request(&self, cx: &mut Context<Self>) -> Result<CodegenRequest> {
+        let variable_store = self.variable_store(cx);
+        let active_environment = self.active_environment.name();
+        let mut headers = resolve_key_value_pairs(
+            read_key_value_rows(&self.request_headers, cx),
+            &variable_store,
+            active_environment,
+        )?;
+        let mut query_params = resolve_key_value_pairs(
+            read_key_value_rows(&self.query_params, cx),
+            &variable_store,
+            active_environment,
+        )?;
+        let (auth_headers, auth_query_params) = self.auth_pairs(cx);
+        headers.extend(resolve_key_value_pairs(
+            auth_headers,
+            &variable_store,
+            active_environment,
+        )?);
+        query_params.extend(resolve_key_value_pairs(
+            auth_query_params,
+            &variable_store,
+            active_environment,
+        )?);
+
+        Ok(CodegenRequest {
+            method: self.method.clone(),
+            url: resolve_template(
+                &self.url.read(cx).text(),
+                &variable_store,
+                active_environment,
+            )?
+            .trim()
+            .to_string(),
+            headers,
+            query_params,
+            body: resolve_request_body(
+                self.request_body_for_send(cx),
+                &variable_store,
+                active_environment,
+            )?,
+        })
+    }
+
+    fn variable_store(&self, cx: &mut Context<Self>) -> VariableStore {
+        variable_store_from_pairs(
+            read_key_value_rows(&self.global_variables, cx),
+            self.active_environment.name(),
+            read_key_value_rows(&self.environment_variables, cx),
+        )
+    }
+
+    fn request_body_for_send(&self, cx: &mut Context<Self>) -> RequestBody {
+        match self.request_body_mode {
+            RequestBodyMode::None => RequestBody::None,
+            RequestBodyMode::FormData => {
+                RequestBody::Multipart(read_key_value_rows(&self.form_data_body, cx))
+            }
+            RequestBodyMode::UrlEncoded => {
+                RequestBody::FormUrlEncoded(read_key_value_rows(&self.urlencoded_body, cx))
+            }
+            RequestBodyMode::Raw => RequestBody::Raw {
+                content_type: Some(self.raw_body_format.content_type().to_string()),
+                body: self.request_body.read(cx).text(),
+            },
+            RequestBodyMode::Binary => RequestBody::BinaryFile {
+                path: self.binary_body_path.read(cx).text(),
+                content_type: Some("application/octet-stream".to_string()),
+            },
+        }
     }
 
     fn method_button(&self, method: &'static str, cx: &mut Context<Self>) -> impl IntoElement {
@@ -554,6 +1106,253 @@ impl ZenApiApp {
                         )
                     }),
             )
+            .child(self.render_collection_section(cx))
+            .child(self.render_history_section(cx))
+    }
+
+    fn render_collection_section(&self, cx: &mut Context<Self>) -> impl IntoElement {
+        let mut rows = vec![collection_root_row(
+            self.collection.name.clone(),
+            collection_item_count(&self.collection.items),
+            self.expanded_collection_nodes
+                .iter()
+                .any(|node| node == "collection"),
+            cx,
+        )];
+
+        if self
+            .expanded_collection_nodes
+            .iter()
+            .any(|node| node == "collection")
+        {
+            append_collection_rows(
+                &mut rows,
+                &self.collection.items,
+                "collection",
+                1,
+                &self.expanded_collection_nodes,
+                cx,
+            );
+        }
+
+        div()
+            .flex()
+            .flex_col()
+            .gap_2()
+            .pt_2()
+            .border_t_1()
+            .border_color(rgb(0xe5e7eb))
+            .child(
+                div()
+                    .flex()
+                    .justify_between()
+                    .items_center()
+                    .h(px(24.))
+                    .text_size(px(13.))
+                    .child(
+                        div()
+                            .font_weight(FontWeight::BOLD)
+                            .text_color(rgb(0x111827))
+                            .child("Collections"),
+                    )
+                    .child(
+                        div()
+                            .truncate()
+                            .text_color(rgb(0x6b7280))
+                            .child(self.collection_status.clone()),
+                    ),
+            )
+            .child(self.collection_path.clone())
+            .child(
+                div()
+                    .flex()
+                    .items_center()
+                    .gap_2()
+                    .child(self.sidebar_action_button(
+                        "Import",
+                        58.,
+                        true,
+                        ButtonTone::Neutral,
+                        |app, _event, _window, cx| app.import_collection(cx),
+                        cx,
+                    ))
+                    .child(self.sidebar_action_button(
+                        "Save",
+                        52.,
+                        true,
+                        ButtonTone::Primary,
+                        |app, _event, _window, cx| app.save_current_request_to_collection(cx),
+                        cx,
+                    ))
+                    .child(self.sidebar_action_button(
+                        "Export",
+                        58.,
+                        true,
+                        ButtonTone::Neutral,
+                        |app, _event, _window, cx| app.export_collection(false, cx),
+                        cx,
+                    ))
+                    .child(self.sidebar_action_button(
+                        "Postman",
+                        70.,
+                        true,
+                        ButtonTone::Neutral,
+                        |app, _event, _window, cx| app.export_collection(true, cx),
+                        cx,
+                    )),
+            )
+            .child(
+                div()
+                    .flex()
+                    .flex_col()
+                    .gap_1()
+                    .rounded(px(4.))
+                    .border_1()
+                    .border_color(rgb(0xe5e7eb))
+                    .bg(rgb(0xffffff))
+                    .p_1()
+                    .children(rows)
+                    .when(self.collection.items.is_empty(), |list| {
+                        list.child(
+                            div()
+                                .h(px(30.))
+                                .flex()
+                                .items_center()
+                                .px_2()
+                                .text_color(rgb(0x9ca3af))
+                                .text_size(px(12.))
+                                .child("No collection requests"),
+                        )
+                    }),
+            )
+    }
+
+    fn sidebar_action_button(
+        &self,
+        label: &'static str,
+        width: f32,
+        enabled: bool,
+        tone: ButtonTone,
+        on_click: impl Fn(&mut Self, &MouseUpEvent, &mut Window, &mut Context<Self>) + 'static,
+        cx: &mut Context<Self>,
+    ) -> gpui::Div {
+        let enabled = enabled && !self.busy;
+        let colors = tone.colors(enabled);
+
+        div()
+            .flex()
+            .items_center()
+            .justify_center()
+            .h(px(26.))
+            .w(px(width))
+            .rounded(px(5.))
+            .border_1()
+            .border_color(colors.border)
+            .bg(colors.background)
+            .text_size(px(11.))
+            .font_weight(FontWeight::BOLD)
+            .text_color(colors.text)
+            .opacity(if enabled { 1.0 } else { 0.62 })
+            .when(enabled, |button| button.cursor_pointer())
+            .on_mouse_up(
+                MouseButton::Left,
+                cx.listener(move |app, event, window, cx| {
+                    if enabled {
+                        on_click(app, event, window, cx);
+                    }
+                }),
+            )
+            .child(label)
+    }
+
+    fn render_history_section(&self, cx: &mut Context<Self>) -> impl IntoElement {
+        let rows = self
+            .history
+            .filtered(&self.history_query)
+            .into_iter()
+            .take(8)
+            .map(|entry| {
+                history_row(
+                    entry.id,
+                    entry.request.method.clone(),
+                    entry.request.url.clone(),
+                    entry.response.status.clone(),
+                    cx,
+                )
+            })
+            .collect::<Vec<_>>();
+
+        div()
+            .flex()
+            .flex_col()
+            .gap_2()
+            .pt_2()
+            .border_t_1()
+            .border_color(rgb(0xe5e7eb))
+            .child(
+                div()
+                    .flex()
+                    .justify_between()
+                    .items_center()
+                    .h(px(24.))
+                    .text_size(px(13.))
+                    .child(
+                        div()
+                            .font_weight(FontWeight::BOLD)
+                            .text_color(rgb(0x111827))
+                            .child("History"),
+                    )
+                    .child(
+                        div()
+                            .flex()
+                            .items_center()
+                            .gap_2()
+                            .child(
+                                div()
+                                    .text_color(rgb(0x6b7280))
+                                    .child(self.history.entries().len().to_string()),
+                            )
+                            .child(
+                                div()
+                                    .flex()
+                                    .items_center()
+                                    .justify_center()
+                                    .h(px(24.))
+                                    .w(px(58.))
+                                    .rounded(px(4.))
+                                    .border_1()
+                                    .border_color(rgb(0xd1d5db))
+                                    .bg(rgb(0xffffff))
+                                    .text_size(px(11.))
+                                    .font_weight(FontWeight::BOLD)
+                                    .text_color(rgb(0x6b7280))
+                                    .cursor_pointer()
+                                    .on_mouse_up(
+                                        MouseButton::Left,
+                                        cx.listener(|app, _event: &MouseUpEvent, _window, cx| {
+                                            app.history.clear();
+                                            cx.notify();
+                                        }),
+                                    )
+                                    .child("Clear"),
+                            ),
+                    ),
+            )
+            .child(self.history_filter.clone())
+            .child(div().flex().flex_col().gap_1().children(rows).when(
+                self.history.entries().is_empty(),
+                |list| {
+                    list.child(
+                        div()
+                            .h(px(34.))
+                            .flex()
+                            .items_center()
+                            .text_color(rgb(0x9ca3af))
+                            .text_size(px(13.))
+                            .child("No request history"),
+                    )
+                },
+            ))
     }
 
     fn render_route_row(
@@ -571,7 +1370,7 @@ impl ZenApiApp {
             .flex_col()
             .h(px(48.))
             .rounded(px(4.))
-            .border_l_2()
+            .border_l(px(3.))
             .border_color(if selected {
                 rgb(0x2563eb)
             } else {
@@ -638,8 +1437,8 @@ impl ZenApiApp {
                     .flex()
                     .flex_row()
                     .flex_1()
-                    .child(self.render_request_panel())
-                    .child(self.render_response_panel()),
+                    .child(self.render_request_panel(cx))
+                    .child(self.render_response_panel(cx)),
             )
     }
 
@@ -657,6 +1456,8 @@ impl ZenApiApp {
             .child(self.method_button("PUT", cx))
             .child(self.method_button("PATCH", cx))
             .child(self.method_button("DELETE", cx))
+            .child(self.method_button("OPTIONS", cx))
+            .child(self.method_button("HEAD", cx))
             .child(div().flex_1().child(self.url.clone()))
             .child(self.action_button(
                 "Send",
@@ -667,7 +1468,7 @@ impl ZenApiApp {
             ))
     }
 
-    fn render_request_panel(&self) -> impl IntoElement {
+    fn render_request_panel(&self, cx: &mut Context<Self>) -> impl IntoElement {
         div()
             .flex()
             .flex_col()
@@ -683,36 +1484,475 @@ impl ZenApiApp {
                     .flex_1()
                     .p_3()
                     .gap_3()
+                    .child(self.render_variables_panel(cx))
+                    .child(key_value_editor("Query Params", &self.query_params))
+                    .child(key_value_editor("Headers", &self.request_headers))
+                    .child(self.render_auth_panel(cx))
+                    .child(self.render_body_panel(cx))
+                    .child(self.render_codegen_panel(cx))
+                    .child(self.render_mock_log()),
+            )
+    }
+
+    fn render_mock_log(&self) -> impl IntoElement {
+        let rows = self
+            .mock_logs
+            .iter()
+            .rev()
+            .take(8)
+            .map(|entry| mock_log_row(entry.method.clone(), entry.path.clone(), entry.status))
+            .collect::<Vec<_>>();
+
+        div()
+            .flex()
+            .flex_col()
+            .flex_1()
+            .gap_2()
+            .child(
+                div()
+                    .text_size(px(12.))
+                    .font_weight(FontWeight::BOLD)
+                    .text_color(rgb(0x6b7280))
+                    .child("Mock Log"),
+            )
+            .child(
+                div()
+                    .flex()
+                    .flex_col()
+                    .flex_1()
+                    .rounded(px(4.))
+                    .border_1()
+                    .border_color(rgb(0xe5e7eb))
+                    .bg(rgb(0xffffff))
+                    .children(rows)
+                    .when(self.mock_logs.is_empty(), |list| {
+                        list.child(
+                            div()
+                                .h(px(34.))
+                                .flex()
+                                .items_center()
+                                .px_2()
+                                .text_color(rgb(0x9ca3af))
+                                .text_size(px(13.))
+                                .child("No mock requests"),
+                        )
+                    }),
+            )
+    }
+
+    fn render_variables_panel(&self, cx: &mut Context<Self>) -> impl IntoElement {
+        div()
+            .flex()
+            .flex_col()
+            .gap_2()
+            .child(
+                div()
+                    .text_size(px(12.))
+                    .font_weight(FontWeight::BOLD)
+                    .text_color(rgb(0x6b7280))
+                    .child("Variables"),
+            )
+            .child(
+                div()
+                    .flex()
+                    .items_center()
+                    .gap_2()
+                    .child(self.environment_button("No Env", EnvironmentSelection::None, cx))
+                    .child(self.environment_button("dev", EnvironmentSelection::Dev, cx))
+                    .child(self.environment_button("test", EnvironmentSelection::Test, cx))
+                    .child(self.environment_button("prod", EnvironmentSelection::Prod, cx))
+                    .child(
+                        div()
+                            .ml_2()
+                            .truncate()
+                            .text_size(px(12.))
+                            .font_family("monospace")
+                            .text_color(rgb(0x6b7280))
+                            .child(format!("active: {}", self.active_environment.label())),
+                    ),
+            )
+            .child(key_value_editor("Global Variables", &self.global_variables))
+            .when(
+                self.active_environment != EnvironmentSelection::None,
+                |panel| {
+                    panel.child(key_value_editor(
+                        "Environment Variables",
+                        &self.environment_variables,
+                    ))
+                },
+            )
+    }
+
+    fn environment_button(
+        &self,
+        label: &'static str,
+        environment: EnvironmentSelection,
+        cx: &mut Context<Self>,
+    ) -> impl IntoElement {
+        let active = self.active_environment == environment;
+        compact_toggle(label, active)
+            .on_mouse_up(
+                MouseButton::Left,
+                cx.listener(move |app, _event: &MouseUpEvent, _window, cx| {
+                    app.active_environment = environment;
+                    cx.notify();
+                }),
+            )
+            .child(label)
+    }
+
+    fn render_auth_panel(&self, cx: &mut Context<Self>) -> impl IntoElement {
+        div()
+            .flex()
+            .flex_col()
+            .gap_2()
+            .child(
+                div()
+                    .text_size(px(12.))
+                    .font_weight(FontWeight::BOLD)
+                    .text_color(rgb(0x6b7280))
+                    .child("Authorization"),
+            )
+            .child(
+                div()
+                    .flex()
+                    .items_center()
+                    .gap_2()
+                    .child(self.auth_mode_button("None", AuthMode::None, cx))
+                    .child(self.auth_mode_button("Bearer", AuthMode::Bearer, cx))
+                    .child(self.auth_mode_button("Basic", AuthMode::Basic, cx))
+                    .child(self.auth_mode_button("API Key", AuthMode::ApiKey, cx)),
+            )
+            .when(self.auth_mode == AuthMode::Bearer, |panel| {
+                panel.child(self.bearer_token.clone())
+            })
+            .when(self.auth_mode == AuthMode::Basic, |panel| {
+                panel.child(
+                    div()
+                        .flex()
+                        .items_center()
+                        .gap_2()
+                        .child(div().w(px(150.)).child(self.basic_username.clone()))
+                        .child(div().flex_1().child(self.basic_password.clone())),
+                )
+            })
+            .when(self.auth_mode == AuthMode::ApiKey, |panel| {
+                panel
+                    .child(
+                        div()
+                            .flex()
+                            .items_center()
+                            .gap_2()
+                            .child(div().w(px(150.)).child(self.api_key_name.clone()))
+                            .child(div().flex_1().child(self.api_key_value.clone())),
+                    )
+                    .child(
+                        div()
+                            .flex()
+                            .items_center()
+                            .gap_2()
+                            .child(self.api_key_placement_button(
+                                "Header",
+                                ApiKeyPlacement::Header,
+                                cx,
+                            ))
+                            .child(self.api_key_placement_button(
+                                "Query",
+                                ApiKeyPlacement::Query,
+                                cx,
+                            )),
+                    )
+            })
+    }
+
+    fn render_body_panel(&self, cx: &mut Context<Self>) -> impl IntoElement {
+        div()
+            .flex()
+            .flex_col()
+            .gap_2()
+            .child(
+                div()
+                    .text_size(px(12.))
+                    .font_weight(FontWeight::BOLD)
+                    .text_color(rgb(0x6b7280))
+                    .child("Body"),
+            )
+            .child(
+                div()
+                    .flex()
+                    .items_center()
+                    .gap_2()
+                    .child(self.body_mode_button("None", RequestBodyMode::None, cx))
+                    .child(self.body_mode_button("form-data", RequestBodyMode::FormData, cx))
+                    .child(self.body_mode_button(
+                        "x-www-form-urlencoded",
+                        RequestBodyMode::UrlEncoded,
+                        cx,
+                    ))
+                    .child(self.body_mode_button("raw", RequestBodyMode::Raw, cx))
+                    .child(self.body_mode_button("binary", RequestBodyMode::Binary, cx)),
+            )
+            .when(
+                self.request_body_mode == RequestBodyMode::FormData,
+                |panel| panel.child(key_value_editor("Form Data", &self.form_data_body)),
+            )
+            .when(
+                self.request_body_mode == RequestBodyMode::UrlEncoded,
+                |panel| {
+                    panel.child(key_value_editor(
+                        "x-www-form-urlencoded",
+                        &self.urlencoded_body,
+                    ))
+                },
+            )
+            .when(self.request_body_mode == RequestBodyMode::Raw, |panel| {
+                panel
+                    .child(
+                        div()
+                            .flex()
+                            .items_center()
+                            .gap_2()
+                            .child(self.raw_format_button("JSON", RawBodyFormat::Json, cx))
+                            .child(self.raw_format_button("XML", RawBodyFormat::Xml, cx))
+                            .child(self.raw_format_button("Text", RawBodyFormat::Text, cx))
+                            .child(self.raw_format_button("HTML", RawBodyFormat::Html, cx)),
+                    )
+                    .child(self.request_body.clone())
+            })
+            .when(self.request_body_mode == RequestBodyMode::Binary, |panel| {
+                panel.child(self.binary_body_path.clone())
+            })
+    }
+
+    fn render_codegen_panel(&self, cx: &mut Context<Self>) -> impl IntoElement {
+        let snippet = self.codegen_snippet(cx);
+        let snippet_for_copy = snippet.clone();
+
+        div()
+            .flex()
+            .flex_col()
+            .gap_2()
+            .child(
+                div()
+                    .flex()
+                    .items_center()
+                    .justify_between()
                     .child(
                         div()
                             .text_size(px(12.))
                             .font_weight(FontWeight::BOLD)
                             .text_color(rgb(0x6b7280))
-                            .child("Body"),
+                            .child("Code"),
                     )
-                    .child(self.request_body.clone())
                     .child(
                         div()
-                            .flex_1()
-                            .rounded(px(4.))
-                            .border_1()
-                            .border_color(rgb(0xe5e7eb))
-                            .bg(rgb(0xffffff))
-                            .p_3()
-                            .font_family("monospace")
-                            .text_size(px(13.))
-                            .text_color(rgb(0x6b7280))
-                            .child("Request body editing is available in the field above."),
+                            .flex()
+                            .items_center()
+                            .gap_2()
+                            .child(self.codegen_language_selector(cx))
+                            .child(
+                                div()
+                                    .flex()
+                                    .items_center()
+                                    .justify_center()
+                                    .h(px(26.))
+                                    .w(px(72.))
+                                    .rounded(px(5.))
+                                    .border_1()
+                                    .border_color(rgb(0xd1d5db))
+                                    .bg(rgb(0xffffff))
+                                    .text_size(px(12.))
+                                    .font_weight(FontWeight::BOLD)
+                                    .text_color(rgb(0x374151))
+                                    .cursor_pointer()
+                                    .on_mouse_up(
+                                        MouseButton::Left,
+                                        cx.listener(
+                                            move |app, _event: &MouseUpEvent, _window, cx| {
+                                                cx.write_to_clipboard(ClipboardItem::new_string(
+                                                    snippet_for_copy.clone(),
+                                                ));
+                                                app.codegen_menu_open = false;
+                                                cx.notify();
+                                            },
+                                        ),
+                                    )
+                                    .child("Copy"),
+                            ),
                     ),
+            )
+            .child(
+                div()
+                    .h(px(180.))
+                    .rounded(px(4.))
+                    .border_1()
+                    .border_color(rgb(0xe5e7eb))
+                    .bg(rgb(0xffffff))
+                    .p_3()
+                    .font_family("monospace")
+                    .line_height(px(18.))
+                    .text_size(px(12.))
+                    .text_color(rgb(0x111827))
+                    .whitespace_normal()
+                    .child(snippet),
             )
     }
 
-    fn render_response_panel(&self) -> impl IntoElement {
+    fn codegen_language_selector(&self, cx: &mut Context<Self>) -> impl IntoElement {
+        div()
+            .flex()
+            .flex_col()
+            .gap_1()
+            .child(
+                compact_toggle(snippet_language_label(self.codegen_language), true)
+                    .on_mouse_up(
+                        MouseButton::Left,
+                        cx.listener(|app, _event: &MouseUpEvent, _window, cx| {
+                            app.codegen_menu_open = !app.codegen_menu_open;
+                            cx.notify();
+                        }),
+                    )
+                    .child(snippet_language_label(self.codegen_language)),
+            )
+            .when(self.codegen_menu_open, |menu| {
+                menu.child(
+                    div()
+                        .flex()
+                        .flex_col()
+                        .rounded(px(5.))
+                        .border_1()
+                        .border_color(rgb(0xd1d5db))
+                        .bg(rgb(0xffffff))
+                        .children(vec![
+                            self.codegen_language_menu_item(SnippetLanguage::Curl, cx),
+                            self.codegen_language_menu_item(SnippetLanguage::PythonRequests, cx),
+                            self.codegen_language_menu_item(SnippetLanguage::JavaScriptFetch, cx),
+                            self.codegen_language_menu_item(SnippetLanguage::RustReqwest, cx),
+                            self.codegen_language_menu_item(SnippetLanguage::GoNetHttp, cx),
+                        ]),
+                )
+            })
+    }
+
+    fn codegen_language_menu_item(
+        &self,
+        language: SnippetLanguage,
+        cx: &mut Context<Self>,
+    ) -> impl IntoElement + 'static + use<> {
+        let active = self.codegen_language == language;
+        div()
+            .flex()
+            .items_center()
+            .h(px(26.))
+            .w(px(156.))
+            .px_2()
+            .text_size(px(12.))
+            .font_weight(if active {
+                FontWeight::BOLD
+            } else {
+                FontWeight::NORMAL
+            })
+            .text_color(if active { rgb(0x2563eb) } else { rgb(0x374151) })
+            .hover(|row| row.bg(rgb(0xf3f4f6)))
+            .cursor_pointer()
+            .on_mouse_up(
+                MouseButton::Left,
+                cx.listener(move |app, _event: &MouseUpEvent, _window, cx| {
+                    app.codegen_language = language;
+                    app.codegen_menu_open = false;
+                    cx.notify();
+                }),
+            )
+            .child(snippet_language_label(language))
+    }
+
+    fn codegen_snippet(&self, cx: &mut Context<Self>) -> String {
+        match self.current_codegen_request(cx) {
+            Ok(request) if request.url.is_empty() => "Enter a request URL".to_string(),
+            Ok(request) => generate_snippet(&request, self.codegen_language),
+            Err(error) => format!("Request build failed: {error}"),
+        }
+    }
+
+    fn body_mode_button(
+        &self,
+        label: &'static str,
+        mode: RequestBodyMode,
+        cx: &mut Context<Self>,
+    ) -> impl IntoElement {
+        let active = self.request_body_mode == mode;
+        compact_toggle(label, active)
+            .on_mouse_up(
+                MouseButton::Left,
+                cx.listener(move |app, _event: &MouseUpEvent, _window, cx| {
+                    app.request_body_mode = mode;
+                    cx.notify();
+                }),
+            )
+            .child(label)
+    }
+
+    fn raw_format_button(
+        &self,
+        label: &'static str,
+        format: RawBodyFormat,
+        cx: &mut Context<Self>,
+    ) -> impl IntoElement {
+        let active = self.raw_body_format == format;
+        compact_toggle(label, active)
+            .on_mouse_up(
+                MouseButton::Left,
+                cx.listener(move |app, _event: &MouseUpEvent, _window, cx| {
+                    app.raw_body_format = format;
+                    cx.notify();
+                }),
+            )
+            .child(label)
+    }
+
+    fn auth_mode_button(
+        &self,
+        label: &'static str,
+        mode: AuthMode,
+        cx: &mut Context<Self>,
+    ) -> impl IntoElement {
+        let active = self.auth_mode == mode;
+        compact_toggle(label, active)
+            .on_mouse_up(
+                MouseButton::Left,
+                cx.listener(move |app, _event: &MouseUpEvent, _window, cx| {
+                    app.auth_mode = mode;
+                    cx.notify();
+                }),
+            )
+            .child(label)
+    }
+
+    fn api_key_placement_button(
+        &self,
+        label: &'static str,
+        placement: ApiKeyPlacement,
+        cx: &mut Context<Self>,
+    ) -> impl IntoElement {
+        let active = self.api_key_placement == placement;
+        compact_toggle(label, active)
+            .on_mouse_up(
+                MouseButton::Left,
+                cx.listener(move |app, _event: &MouseUpEvent, _window, cx| {
+                    app.api_key_placement = placement;
+                    cx.notify();
+                }),
+            )
+            .child(label)
+    }
+
+    fn render_response_panel(&self, cx: &mut Context<Self>) -> impl IntoElement {
         let meta = if self.response_meta.is_empty() {
             None
         } else {
             Some(self.response_meta.as_str())
         };
+        let body = self.response_body_for_view();
 
         div()
             .flex()
@@ -724,6 +1964,7 @@ impl ZenApiApp {
                 meta,
                 self.response_tone,
             ))
+            .child(self.render_response_tabs(cx))
             .child(
                 div()
                     .flex_1()
@@ -733,14 +1974,76 @@ impl ZenApiApp {
                     .text_size(px(13.))
                     .text_color(rgb(0x111827))
                     .whitespace_normal()
-                    .child(self.response_body.clone()),
+                    .child(body),
             )
+    }
+
+    fn render_response_tabs(&self, cx: &mut Context<Self>) -> impl IntoElement {
+        div()
+            .flex()
+            .items_center()
+            .h(px(36.))
+            .border_b_1()
+            .border_color(rgb(0xe5e7eb))
+            .bg(rgb(0xf9fafb))
+            .px_3()
+            .gap_2()
+            .child(self.response_tab("Pretty", ResponseView::Pretty, cx))
+            .child(self.response_tab("Raw", ResponseView::Raw, cx))
+            .child(self.response_tab("Headers", ResponseView::Headers, cx))
+    }
+
+    fn response_tab(
+        &self,
+        label: &'static str,
+        view: ResponseView,
+        cx: &mut Context<Self>,
+    ) -> impl IntoElement {
+        let active = self.response_view == view;
+        div()
+            .flex()
+            .items_center()
+            .justify_center()
+            .h(px(26.))
+            .w(px(84.))
+            .rounded(px(5.))
+            .border_1()
+            .border_color(if active { rgb(0x2563eb) } else { rgb(0xd1d5db) })
+            .bg(if active { rgb(0xffffff) } else { rgb(0xf9fafb) })
+            .text_size(px(12.))
+            .font_weight(FontWeight::BOLD)
+            .text_color(if active { rgb(0x2563eb) } else { rgb(0x6b7280) })
+            .cursor_pointer()
+            .on_mouse_up(
+                MouseButton::Left,
+                cx.listener(move |app, _event: &MouseUpEvent, _window, cx| {
+                    app.response_view = view;
+                    cx.notify();
+                }),
+            )
+            .child(label)
+    }
+
+    fn response_body_for_view(&self) -> String {
+        match self.response_view {
+            ResponseView::Pretty => self.response_body.clone(),
+            ResponseView::Raw => self.response_raw_body.clone(),
+            ResponseView::Headers => {
+                if self.response_headers.is_empty() {
+                    "No response headers".to_string()
+                } else {
+                    self.response_headers.clone()
+                }
+            }
+        }
     }
 }
 
 impl Render for ZenApiApp {
     fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         div()
+            .flex()
+            .flex_col()
             .size_full()
             .font_family(".SystemUIFont")
             .text_size(px(13.))
@@ -751,9 +2054,64 @@ impl Render for ZenApiApp {
                 div()
                     .flex()
                     .flex_row()
-                    .h_full()
+                    .flex_1()
                     .child(self.render_sidebar(cx))
                     .child(self.render_workspace(cx)),
+            )
+            .child(self.render_status_bar())
+    }
+}
+
+impl ZenApiApp {
+    fn render_status_bar(&self) -> impl IntoElement {
+        let route_status = if self.routes.is_empty() {
+            "No routes".to_string()
+        } else {
+            format!(
+                "{} routes, {} visible",
+                self.routes.len(),
+                self.visible_routes.len()
+            )
+        };
+        let busy_status = if self.busy { "Busy" } else { "Ready" };
+        let mock_status = if self.server_running {
+            format!("Mock {}", self.server_status)
+        } else {
+            self.server_status.clone()
+        };
+
+        div()
+            .flex()
+            .items_center()
+            .justify_between()
+            .h(px(32.))
+            .w_full()
+            .border_t_1()
+            .border_color(rgb(0xe5e7eb))
+            .bg(rgb(0xf9fafb))
+            .px_3()
+            .text_size(px(12.))
+            .text_color(rgb(0x6b7280))
+            .child(
+                div()
+                    .flex()
+                    .items_center()
+                    .gap_3()
+                    .child(route_status)
+                    .child(mock_status),
+            )
+            .child(
+                div()
+                    .flex()
+                    .items_center()
+                    .gap_3()
+                    .child(
+                        div()
+                            .font_family("monospace")
+                            .text_color(self.response_tone.color())
+                            .child(self.response_status.clone()),
+                    )
+                    .child(busy_status),
             )
     }
 }
@@ -801,6 +2159,78 @@ impl ButtonTone {
     }
 }
 
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum ResponseView {
+    Pretty,
+    Raw,
+    Headers,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum AuthMode {
+    None,
+    Bearer,
+    Basic,
+    ApiKey,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum ApiKeyPlacement {
+    Header,
+    Query,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum EnvironmentSelection {
+    None,
+    Dev,
+    Test,
+    Prod,
+}
+
+impl EnvironmentSelection {
+    fn name(self) -> Option<&'static str> {
+        match self {
+            Self::None => None,
+            Self::Dev => Some("dev"),
+            Self::Test => Some("test"),
+            Self::Prod => Some("prod"),
+        }
+    }
+
+    fn label(self) -> &'static str {
+        self.name().unwrap_or("none")
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum RequestBodyMode {
+    None,
+    FormData,
+    UrlEncoded,
+    Raw,
+    Binary,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum RawBodyFormat {
+    Json,
+    Xml,
+    Text,
+    Html,
+}
+
+impl RawBodyFormat {
+    fn content_type(self) -> &'static str {
+        match self {
+            Self::Json => "application/json",
+            Self::Xml => "application/xml",
+            Self::Text => "text/plain",
+            Self::Html => "text/html",
+        }
+    }
+}
+
 #[derive(Clone, Copy)]
 enum ResponseTone {
     Neutral,
@@ -820,38 +2250,673 @@ impl ResponseTone {
     }
 }
 
+fn key_value_rows(cx: &mut Context<ZenApiApp>, specs: &[(&str, &str)]) -> Vec<KeyValueRow> {
+    specs
+        .iter()
+        .map(|(key_placeholder, value_placeholder)| KeyValueRow {
+            key: cx.new(|cx| TextInput::new(cx, *key_placeholder, true)),
+            value: cx.new(|cx| TextInput::new(cx, *value_placeholder, true)),
+        })
+        .collect()
+}
+
+fn read_key_value_rows(rows: &[KeyValueRow], cx: &mut Context<ZenApiApp>) -> Vec<(String, String)> {
+    rows.iter()
+        .filter_map(|row| {
+            let key = row.key.read(cx).text().trim().to_string();
+            if key.is_empty() {
+                return None;
+            }
+
+            Some((key, row.value.read(cx).text().trim().to_string()))
+        })
+        .collect()
+}
+
+fn set_key_value_rows(rows: &[KeyValueRow], values: Vec<NameValue>, cx: &mut Context<ZenApiApp>) {
+    for (index, row) in rows.iter().enumerate() {
+        let name = values
+            .get(index)
+            .map(|pair| pair.name.clone())
+            .unwrap_or_default();
+        let value = values
+            .get(index)
+            .map(|pair| pair.value.clone())
+            .unwrap_or_default();
+
+        row.key.update(cx, |input, cx| input.set_text(name, cx));
+        row.value.update(cx, |input, cx| input.set_text(value, cx));
+    }
+}
+
+fn variable_store_from_pairs(
+    global_variables: Vec<(String, String)>,
+    active_environment: Option<&str>,
+    environment_variables: Vec<(String, String)>,
+) -> VariableStore {
+    let mut store = VariableStore::new();
+
+    for (name, value) in global_variables {
+        store.upsert(Variable::global(name, value));
+    }
+
+    if let Some(environment) = active_environment {
+        for (name, value) in environment_variables {
+            store.upsert(Variable::environment(environment, name, value));
+        }
+    }
+
+    store
+}
+
+fn resolve_template(
+    input: &str,
+    store: &VariableStore,
+    active_environment: Option<&str>,
+) -> Result<String> {
+    replace_variables(input, store, active_environment)
+}
+
+fn resolve_key_value_pairs(
+    pairs: Vec<(String, String)>,
+    store: &VariableStore,
+    active_environment: Option<&str>,
+) -> Result<Vec<(String, String)>> {
+    pairs
+        .into_iter()
+        .map(|(name, value)| {
+            Ok((
+                resolve_template(&name, store, active_environment)?,
+                resolve_template(&value, store, active_environment)?,
+            ))
+        })
+        .collect()
+}
+
+fn resolve_request_body(
+    body: RequestBody,
+    store: &VariableStore,
+    active_environment: Option<&str>,
+) -> Result<RequestBody> {
+    Ok(match body {
+        RequestBody::None => RequestBody::None,
+        RequestBody::Raw { content_type, body } => RequestBody::Raw {
+            content_type,
+            body: resolve_template(&body, store, active_environment)?,
+        },
+        RequestBody::FormUrlEncoded(fields) => {
+            RequestBody::FormUrlEncoded(resolve_key_value_pairs(fields, store, active_environment)?)
+        }
+        RequestBody::Multipart(fields) => {
+            RequestBody::Multipart(resolve_key_value_pairs(fields, store, active_environment)?)
+        }
+        RequestBody::BinaryFile { path, content_type } => RequestBody::BinaryFile {
+            path: resolve_template(&path, store, active_environment)?,
+            content_type,
+        },
+    })
+}
+
+fn history_request_from_body(method: &str, url: &str, body: &RequestBody) -> HistoryRequest {
+    let (body_kind, body_preview) = match body {
+        RequestBody::None => ("none", String::new()),
+        RequestBody::Raw { body, .. } => ("raw", preview_text(body)),
+        RequestBody::FormUrlEncoded(fields) => ("x-www-form-urlencoded", preview_pairs(fields)),
+        RequestBody::Multipart(fields) => ("form-data", preview_pairs(fields)),
+        RequestBody::BinaryFile { path, .. } => ("binary", path.clone()),
+    };
+
+    HistoryRequest {
+        method: method.to_string(),
+        url: url.to_string(),
+        body_kind: body_kind.to_string(),
+        body_preview,
+    }
+}
+
+fn collection_request_from_codegen(request: &CodegenRequest) -> CollectionRequest {
+    CollectionRequest {
+        name: collection_request_name(&request.method, &request.url),
+        method: request.method.clone(),
+        url: request.url.clone(),
+        headers: name_values_from_pairs(&request.headers),
+        query_params: name_values_from_pairs(&request.query_params),
+        body: collection_body_from_request_body(&request.body),
+    }
+}
+
+fn collection_request_name(method: &str, url: &str) -> String {
+    let path = url.split('?').next().unwrap_or(url).trim_end_matches('/');
+    let tail = path
+        .rsplit('/')
+        .find(|segment| !segment.trim().is_empty())
+        .unwrap_or("request");
+    format!("{} {}", method.to_ascii_uppercase(), tail)
+}
+
+fn name_values_from_pairs(pairs: &[(String, String)]) -> Vec<NameValue> {
+    pairs
+        .iter()
+        .filter(|(name, _value)| !name.trim().is_empty())
+        .map(|(name, value)| NameValue {
+            name: name.trim().to_string(),
+            value: value.trim().to_string(),
+        })
+        .collect()
+}
+
+fn collection_body_from_request_body(body: &RequestBody) -> CollectionBody {
+    match body {
+        RequestBody::None => CollectionBody::None,
+        RequestBody::Raw { content_type, body } => CollectionBody::Raw {
+            content_type: content_type
+                .clone()
+                .unwrap_or_else(|| "text/plain".to_string()),
+            body: body.clone(),
+        },
+        RequestBody::FormUrlEncoded(fields) => CollectionBody::UrlEncoded {
+            fields: name_values_from_pairs(fields),
+        },
+        RequestBody::Multipart(fields) => CollectionBody::FormData {
+            fields: name_values_from_pairs(fields),
+        },
+        RequestBody::BinaryFile { path, content_type } => CollectionBody::Binary {
+            path: path.clone(),
+            content_type: content_type
+                .clone()
+                .unwrap_or_else(|| "application/octet-stream".to_string()),
+        },
+    }
+}
+
+fn raw_format_from_content_type(content_type: &str) -> RawBodyFormat {
+    let content_type = content_type.to_ascii_lowercase();
+    if content_type.contains("json") {
+        RawBodyFormat::Json
+    } else if content_type.contains("xml") {
+        RawBodyFormat::Xml
+    } else if content_type.contains("html") {
+        RawBodyFormat::Html
+    } else {
+        RawBodyFormat::Text
+    }
+}
+
+fn preview_pairs(pairs: &[(String, String)]) -> String {
+    preview_text(
+        &pairs
+            .iter()
+            .map(|(name, value)| format!("{name}={value}"))
+            .collect::<Vec<_>>()
+            .join("&"),
+    )
+}
+
+fn preview_text(text: &str) -> String {
+    const MAX_PREVIEW_CHARS: usize = 240;
+
+    let mut preview = String::new();
+    for (index, ch) in text.chars().enumerate() {
+        if index >= MAX_PREVIEW_CHARS {
+            preview.push_str("...");
+            break;
+        }
+        preview.push(ch);
+    }
+    preview
+}
+
+fn key_value_editor(title: &'static str, rows: &[KeyValueRow]) -> impl IntoElement {
+    let rendered_rows = rows
+        .iter()
+        .map(|row| key_value_row(row.key.clone(), row.value.clone()))
+        .collect::<Vec<_>>();
+
+    div()
+        .flex()
+        .flex_col()
+        .gap_2()
+        .child(
+            div()
+                .text_size(px(12.))
+                .font_weight(FontWeight::BOLD)
+                .text_color(rgb(0x6b7280))
+                .child(title),
+        )
+        .child(
+            div()
+                .flex()
+                .items_center()
+                .gap_2()
+                .px_2()
+                .text_size(px(11.))
+                .font_weight(FontWeight::BOLD)
+                .text_color(rgb(0x9ca3af))
+                .child(div().w(px(150.)).child("Key"))
+                .child(div().flex_1().child("Value")),
+        )
+        .child(div().flex().flex_col().gap_1().children(rendered_rows))
+}
+
+fn key_value_row(key: Entity<TextInput>, value: Entity<TextInput>) -> impl IntoElement {
+    div()
+        .flex()
+        .items_center()
+        .gap_2()
+        .child(div().w(px(150.)).child(key))
+        .child(div().flex_1().child(value))
+}
+
+fn compact_toggle(label: &'static str, active: bool) -> gpui::Div {
+    let width = if label.len() > 12 { px(156.) } else { px(76.) };
+
+    div()
+        .flex()
+        .items_center()
+        .justify_center()
+        .h(px(26.))
+        .w(width)
+        .px_2()
+        .rounded(px(5.))
+        .border_1()
+        .border_color(if active { rgb(0x2563eb) } else { rgb(0xd1d5db) })
+        .bg(if active { rgb(0xffffff) } else { rgb(0xf9fafb) })
+        .text_size(px(12.))
+        .font_weight(FontWeight::BOLD)
+        .text_color(if active { rgb(0x2563eb) } else { rgb(0x6b7280) })
+        .cursor_pointer()
+}
+
+fn bearer_auth_pair(token: &str) -> Option<(String, String)> {
+    let token = token.trim();
+    (!token.is_empty()).then(|| ("Authorization".to_string(), format!("Bearer {token}")))
+}
+
+fn basic_auth_pair(username: &str, password: &str) -> Option<(String, String)> {
+    let username = username.trim();
+    if username.is_empty() {
+        return None;
+    }
+
+    let credentials = format!("{username}:{}", password.trim());
+    Some((
+        "Authorization".to_string(),
+        format!("Basic {}", BASE64_STANDARD.encode(credentials)),
+    ))
+}
+
+fn api_key_pair(name: &str, value: &str) -> Option<(String, String)> {
+    let name = name.trim();
+    (!name.is_empty()).then(|| (name.to_string(), value.trim().to_string()))
+}
+
+fn snippet_language_label(language: SnippetLanguage) -> &'static str {
+    match language {
+        SnippetLanguage::Curl => "cURL",
+        SnippetLanguage::PythonRequests => "Python",
+        SnippetLanguage::JavaScriptFetch => "JavaScript",
+        SnippetLanguage::RustReqwest => "Rust",
+        SnippetLanguage::GoNetHttp => "Go",
+    }
+}
+
 fn panel_header(
     title: impl Into<SharedString>,
     meta: Option<&str>,
     tone: ResponseTone,
 ) -> impl IntoElement {
+    let title = title.into();
     div()
         .flex()
-        .items_center()
-        .justify_between()
+        .flex_col()
         .h(px(40.))
         .border_b_1()
         .border_color(rgb(0xe5e7eb))
-        .px_3()
         .bg(rgb(0xffffff))
         .child(
             div()
+                .flex()
+                .items_center()
+                .justify_between()
+                .flex_1()
+                .pl_3()
+                .pr(px(14.))
+                .child(
+                    div()
+                        .font_weight(FontWeight::BOLD)
+                        .text_size(px(13.))
+                        .text_color(rgb(0x111827))
+                        .child(title.clone()),
+                )
+                .child(
+                    div()
+                        .w(px(260.))
+                        .truncate()
+                        .text_right()
+                        .font_family("monospace")
+                        .text_size(px(12.))
+                        .font_weight(FontWeight::SEMIBOLD)
+                        .text_color(tone.color())
+                        .child(meta.unwrap_or("").to_string()),
+                ),
+        )
+        .child(div().ml(px(12.)).h(px(2.)).w(px(80.)).bg(rgb(0x2563eb)))
+}
+
+fn mock_log_row(method: String, path: String, status: u16) -> impl IntoElement {
+    div()
+        .flex()
+        .items_center()
+        .h(px(30.))
+        .px_2()
+        .gap_2()
+        .border_b_1()
+        .border_color(rgb(0xf3f4f6))
+        .font_family("monospace")
+        .text_size(px(12.))
+        .child(
+            div()
+                .w(px(70.))
                 .font_weight(FontWeight::BOLD)
-                .text_size(px(13.))
-                .text_color(rgb(0x111827))
-                .child(title.into()),
+                .text_color(method_color(&method))
+                .child(method),
         )
         .child(
             div()
-                .w(px(260.))
-                .truncate()
-                .text_right()
-                .font_family("monospace")
-                .text_size(px(12.))
-                .font_weight(FontWeight::SEMIBOLD)
-                .text_color(tone.color())
-                .child(meta.unwrap_or("").to_string()),
+                .w(px(42.))
+                .text_color(response_tone(status).color())
+                .child(status.to_string()),
         )
+        .child(
+            div()
+                .flex_1()
+                .truncate()
+                .text_color(rgb(0x374151))
+                .child(path),
+        )
+}
+
+fn history_row(
+    id: u64,
+    method: String,
+    url: String,
+    status: String,
+    cx: &mut Context<ZenApiApp>,
+) -> impl IntoElement + 'static + use<> {
+    div()
+        .id(("history", id))
+        .flex()
+        .items_center()
+        .h(px(46.))
+        .rounded(px(4.))
+        .px_2()
+        .py_1()
+        .hover(|row| row.bg(rgb(0xf3f4f6)))
+        .child(
+            div()
+                .flex()
+                .flex_col()
+                .flex_1()
+                .cursor_pointer()
+                .on_mouse_up(
+                    MouseButton::Left,
+                    cx.listener(move |app, _event: &MouseUpEvent, _window, cx| {
+                        app.restore_history_entry(id, cx);
+                    }),
+                )
+                .child(
+                    div()
+                        .flex()
+                        .items_center()
+                        .gap_2()
+                        .child(
+                            div()
+                                .w(px(58.))
+                                .text_size(px(12.))
+                                .font_weight(FontWeight::BOLD)
+                                .text_color(method_color(&method))
+                                .child(method),
+                        )
+                        .child(
+                            div()
+                                .flex_1()
+                                .truncate()
+                                .font_family("monospace")
+                                .text_size(px(12.))
+                                .text_color(rgb(0x111827))
+                                .child(url),
+                        ),
+                )
+                .child(
+                    div()
+                        .ml(px(66.))
+                        .truncate()
+                        .font_family("monospace")
+                        .text_size(px(11.))
+                        .text_color(rgb(0x6b7280))
+                        .child(status),
+                ),
+        )
+        .child(
+            div()
+                .flex()
+                .items_center()
+                .justify_center()
+                .h(px(24.))
+                .w(px(42.))
+                .rounded(px(4.))
+                .border_1()
+                .border_color(rgb(0xd1d5db))
+                .bg(rgb(0xffffff))
+                .text_size(px(11.))
+                .text_color(rgb(0x6b7280))
+                .cursor_pointer()
+                .on_mouse_up(
+                    MouseButton::Left,
+                    cx.listener(move |app, _event: &MouseUpEvent, _window, cx| {
+                        app.history.remove(id);
+                        cx.notify();
+                    }),
+                )
+                .child("Del"),
+        )
+}
+
+fn append_collection_rows(
+    rows: &mut Vec<gpui::Div>,
+    items: &[CollectionItem],
+    parent_id: &str,
+    depth: usize,
+    expanded_nodes: &[String],
+    cx: &mut Context<ZenApiApp>,
+) {
+    for (index, item) in items.iter().enumerate() {
+        let id = format!("{parent_id}/{index}");
+        match item {
+            CollectionItem::Folder(folder) => {
+                let expanded = expanded_nodes.iter().any(|node| node == &id);
+                rows.push(collection_folder_row(
+                    &id,
+                    folder,
+                    depth,
+                    collection_item_count(&folder.items),
+                    expanded,
+                    cx,
+                ));
+                if expanded {
+                    append_collection_rows(rows, &folder.items, &id, depth + 1, expanded_nodes, cx);
+                }
+            }
+            CollectionItem::Request(request) => {
+                rows.push(collection_request_row(&id, request.clone(), depth, cx));
+            }
+        }
+    }
+}
+
+fn collection_root_row(
+    name: String,
+    item_count: usize,
+    expanded: bool,
+    cx: &mut Context<ZenApiApp>,
+) -> gpui::Div {
+    let marker = if expanded { "v" } else { ">" };
+
+    div()
+        .flex()
+        .items_center()
+        .h(px(30.))
+        .rounded(px(4.))
+        .px_2()
+        .gap_2()
+        .text_size(px(12.))
+        .cursor_pointer()
+        .hover(|row| row.bg(rgb(0xf3f4f6)))
+        .on_mouse_up(
+            MouseButton::Left,
+            cx.listener(|app, _event: &MouseUpEvent, _window, cx| {
+                app.toggle_collection_node("collection".to_string(), cx);
+            }),
+        )
+        .child(
+            div()
+                .w(px(14.))
+                .font_family("monospace")
+                .text_color(rgb(0x6b7280))
+                .child(marker),
+        )
+        .child(
+            div()
+                .flex_1()
+                .truncate()
+                .font_weight(FontWeight::BOLD)
+                .text_color(rgb(0x111827))
+                .child(name),
+        )
+        .child(
+            div()
+                .font_family("monospace")
+                .text_color(rgb(0x9ca3af))
+                .child(item_count.to_string()),
+        )
+}
+
+fn collection_folder_row(
+    id: &str,
+    folder: &CollectionFolder,
+    depth: usize,
+    item_count: usize,
+    expanded: bool,
+    cx: &mut Context<ZenApiApp>,
+) -> gpui::Div {
+    let id = id.to_string();
+    let marker = if expanded { "v" } else { ">" };
+
+    div()
+        .flex()
+        .items_center()
+        .h(px(30.))
+        .rounded(px(4.))
+        .pl(px(8. + depth as f32 * 14.))
+        .pr_2()
+        .gap_2()
+        .text_size(px(12.))
+        .cursor_pointer()
+        .hover(|row| row.bg(rgb(0xf3f4f6)))
+        .on_mouse_up(
+            MouseButton::Left,
+            cx.listener(move |app, _event: &MouseUpEvent, _window, cx| {
+                app.toggle_collection_node(id.clone(), cx);
+            }),
+        )
+        .child(
+            div()
+                .w(px(14.))
+                .font_family("monospace")
+                .text_color(rgb(0x6b7280))
+                .child(marker),
+        )
+        .child(
+            div()
+                .flex_1()
+                .truncate()
+                .font_weight(FontWeight::BOLD)
+                .text_color(rgb(0x374151))
+                .child(folder.name.clone()),
+        )
+        .child(
+            div()
+                .font_family("monospace")
+                .text_color(rgb(0x9ca3af))
+                .child(item_count.to_string()),
+        )
+}
+
+fn collection_request_row(
+    _id: &str,
+    request: CollectionRequest,
+    depth: usize,
+    cx: &mut Context<ZenApiApp>,
+) -> gpui::Div {
+    let method = request.method.clone();
+    let name = request.name.clone();
+    let url = request.url.clone();
+
+    div()
+        .flex()
+        .items_center()
+        .h(px(36.))
+        .rounded(px(4.))
+        .pl(px(8. + depth as f32 * 14.))
+        .pr_2()
+        .gap_2()
+        .cursor_pointer()
+        .hover(|row| row.bg(rgb(0xf3f4f6)))
+        .on_mouse_up(
+            MouseButton::Left,
+            cx.listener(move |app, _event: &MouseUpEvent, _window, cx| {
+                app.restore_collection_request(request.clone(), cx);
+            }),
+        )
+        .child(
+            div()
+                .w(px(58.))
+                .text_size(px(11.))
+                .font_weight(FontWeight::BOLD)
+                .text_color(method_color(&method))
+                .child(method),
+        )
+        .child(
+            div()
+                .flex()
+                .flex_col()
+                .flex_1()
+                .child(
+                    div()
+                        .truncate()
+                        .text_size(px(12.))
+                        .text_color(rgb(0x111827))
+                        .child(name),
+                )
+                .child(
+                    div()
+                        .truncate()
+                        .font_family("monospace")
+                        .text_size(px(11.))
+                        .text_color(rgb(0x6b7280))
+                        .child(url),
+                ),
+        )
+}
+
+fn collection_item_count(items: &[CollectionItem]) -> usize {
+    items
+        .iter()
+        .map(|item| match item {
+            CollectionItem::Folder(folder) => collection_item_count(&folder.items),
+            CollectionItem::Request(_) => 1,
+        })
+        .sum()
 }
 
 fn method_color(method: &str) -> Hsla {
@@ -861,6 +2926,8 @@ fn method_color(method: &str) -> Hsla {
         "PUT" => rgb(0x2563eb).into(),
         "PATCH" => rgb(0x7c3aed).into(),
         "DELETE" => rgb(0xdc2626).into(),
+        "OPTIONS" => rgb(0x0891b2).into(),
+        "HEAD" => rgb(0x4b5563).into(),
         _ => rgb(0x6b7280).into(),
     }
 }
@@ -920,6 +2987,31 @@ fn pretty_json(value: &serde_json::Value) -> String {
     serde_json::to_string_pretty(value).unwrap_or_else(|_| value.to_string())
 }
 
+fn format_response_meta(elapsed_ms: u128, body_bytes: usize) -> String {
+    format!("{} ms | {}", elapsed_ms, format_bytes(body_bytes))
+}
+
+fn format_headers(headers: &[(String, String)]) -> String {
+    headers
+        .iter()
+        .map(|(name, value)| format!("{name}: {value}"))
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+fn format_bytes(bytes: usize) -> String {
+    const KB: usize = 1024;
+    const MB: usize = 1024 * KB;
+
+    if bytes >= MB {
+        format!("{:.1} MB", bytes as f64 / MB as f64)
+    } else if bytes >= KB {
+        format!("{:.1} KB", bytes as f64 / KB as f64)
+    } else {
+        format!("{bytes} B")
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -964,5 +3056,249 @@ mod tests {
         assert!(matches!(response_tone(100), ResponseTone::Neutral));
         assert!(matches!(response_tone(404), ResponseTone::Error));
         assert!(matches!(response_tone(500), ResponseTone::Error));
+    }
+
+    #[test]
+    fn formats_response_meta_with_elapsed_time_and_size() {
+        assert_eq!(format_response_meta(42, 17), "42 ms | 17 B");
+        assert_eq!(format_response_meta(5, 2048), "5 ms | 2.0 KB");
+    }
+
+    #[test]
+    fn formats_response_headers() {
+        let headers = vec![
+            ("content-type".to_string(), "application/json".to_string()),
+            ("x-request-id".to_string(), "abc".to_string()),
+        ];
+
+        assert_eq!(
+            format_headers(&headers),
+            "content-type: application/json\nx-request-id: abc"
+        );
+    }
+
+    #[test]
+    fn builds_bearer_basic_and_api_key_pairs() {
+        assert_eq!(
+            bearer_auth_pair(" token "),
+            Some(("Authorization".to_string(), "Bearer token".to_string()))
+        );
+        assert_eq!(
+            basic_auth_pair("dev", "secret"),
+            Some((
+                "Authorization".to_string(),
+                "Basic ZGV2OnNlY3JldA==".to_string()
+            ))
+        );
+        assert_eq!(
+            api_key_pair("X-API-Key", " key "),
+            Some(("X-API-Key".to_string(), "key".to_string()))
+        );
+        assert_eq!(bearer_auth_pair(" "), None);
+        assert_eq!(basic_auth_pair("", "secret"), None);
+        assert_eq!(api_key_pair("", "key"), None);
+    }
+
+    #[test]
+    fn builds_variable_store_and_resolves_request_templates() {
+        let store = variable_store_from_pairs(
+            vec![
+                (
+                    "baseUrl".to_string(),
+                    "https://prod.example.com".to_string(),
+                ),
+                ("token".to_string(), "prod-token".to_string()),
+            ],
+            Some("dev"),
+            vec![
+                ("baseUrl".to_string(), "http://localhost:8080".to_string()),
+                ("token".to_string(), "dev-token".to_string()),
+            ],
+        );
+
+        assert_eq!(
+            resolve_template("{{baseUrl}}/users", &store, Some("dev")).expect("url"),
+            "http://localhost:8080/users"
+        );
+        assert_eq!(
+            resolve_key_value_pairs(
+                vec![("Authorization".to_string(), "Bearer {{token}}".to_string())],
+                &store,
+                Some("dev"),
+            )
+            .expect("headers"),
+            vec![("Authorization".to_string(), "Bearer dev-token".to_string())]
+        );
+    }
+
+    #[test]
+    fn resolves_variables_in_all_request_body_modes() {
+        let store = variable_store_from_pairs(
+            vec![
+                ("name".to_string(), "Zen".to_string()),
+                ("file".to_string(), "/tmp/upload.bin".to_string()),
+            ],
+            None,
+            Vec::new(),
+        );
+
+        assert_eq!(
+            resolve_request_body(
+                RequestBody::Raw {
+                    content_type: Some("application/json".to_string()),
+                    body: "{\"name\":\"{{name}}\"}".to_string(),
+                },
+                &store,
+                None,
+            )
+            .expect("raw"),
+            RequestBody::Raw {
+                content_type: Some("application/json".to_string()),
+                body: "{\"name\":\"Zen\"}".to_string(),
+            }
+        );
+        assert_eq!(
+            resolve_request_body(
+                RequestBody::FormUrlEncoded(vec![("name".to_string(), "{{name}}".to_string(),)]),
+                &store,
+                None,
+            )
+            .expect("urlencoded"),
+            RequestBody::FormUrlEncoded(vec![("name".to_string(), "Zen".to_string())])
+        );
+        assert_eq!(
+            resolve_request_body(
+                RequestBody::Multipart(vec![("file".to_string(), "@{{file}}".to_string(),)]),
+                &store,
+                None,
+            )
+            .expect("multipart"),
+            RequestBody::Multipart(vec![("file".to_string(), "@/tmp/upload.bin".to_string())])
+        );
+        assert_eq!(
+            resolve_request_body(
+                RequestBody::BinaryFile {
+                    path: "{{file}}".to_string(),
+                    content_type: Some("application/octet-stream".to_string()),
+                },
+                &store,
+                None,
+            )
+            .expect("binary"),
+            RequestBody::BinaryFile {
+                path: "/tmp/upload.bin".to_string(),
+                content_type: Some("application/octet-stream".to_string()),
+            }
+        );
+    }
+
+    #[test]
+    fn builds_history_request_summaries_from_body_modes() {
+        let raw = history_request_from_body(
+            "POST",
+            "https://api.example.com/users",
+            &RequestBody::Raw {
+                content_type: Some("application/json".to_string()),
+                body: "{\"name\":\"Zen\"}".to_string(),
+            },
+        );
+        assert_eq!(raw.method, "POST");
+        assert_eq!(raw.body_kind, "raw");
+        assert_eq!(raw.body_preview, "{\"name\":\"Zen\"}");
+
+        let form = history_request_from_body(
+            "POST",
+            "https://api.example.com/login",
+            &RequestBody::FormUrlEncoded(vec![("username".to_string(), "dev".to_string())]),
+        );
+        assert_eq!(form.body_kind, "x-www-form-urlencoded");
+        assert_eq!(form.body_preview, "username=dev");
+
+        let binary = history_request_from_body(
+            "POST",
+            "https://api.example.com/upload",
+            &RequestBody::BinaryFile {
+                path: "/tmp/upload.bin".to_string(),
+                content_type: Some("application/octet-stream".to_string()),
+            },
+        );
+        assert_eq!(binary.body_kind, "binary");
+        assert_eq!(binary.body_preview, "/tmp/upload.bin");
+    }
+
+    #[test]
+    fn converts_codegen_request_to_collection_request() {
+        let request = CodegenRequest {
+            method: "POST".to_string(),
+            url: "https://api.example.com/users?debug=true".to_string(),
+            headers: vec![("Content-Type".to_string(), "application/json".to_string())],
+            query_params: vec![("debug".to_string(), "true".to_string())],
+            body: RequestBody::Raw {
+                content_type: Some("application/json".to_string()),
+                body: "{\"name\":\"Zen\"}".to_string(),
+            },
+        };
+
+        let collection_request = collection_request_from_codegen(&request);
+
+        assert_eq!(collection_request.name, "POST users");
+        assert_eq!(collection_request.method, "POST");
+        assert_eq!(collection_request.headers[0].name, "Content-Type");
+        assert_eq!(collection_request.query_params[0].value, "true");
+        assert!(matches!(
+            collection_request.body,
+            CollectionBody::Raw {
+                ref content_type,
+                ref body
+            } if content_type == "application/json" && body == "{\"name\":\"Zen\"}"
+        ));
+    }
+
+    #[test]
+    fn maps_collection_content_types_to_raw_body_format() {
+        assert!(matches!(
+            raw_format_from_content_type("application/vnd.api+json"),
+            RawBodyFormat::Json
+        ));
+        assert!(matches!(
+            raw_format_from_content_type("application/xml"),
+            RawBodyFormat::Xml
+        ));
+        assert!(matches!(
+            raw_format_from_content_type("text/html; charset=utf-8"),
+            RawBodyFormat::Html
+        ));
+        assert!(matches!(
+            raw_format_from_content_type("text/plain"),
+            RawBodyFormat::Text
+        ));
+    }
+
+    #[test]
+    fn counts_collection_requests_recursively() {
+        let items = vec![CollectionItem::Folder(CollectionFolder {
+            name: "Users".to_string(),
+            description: String::new(),
+            items: vec![
+                CollectionItem::Request(CollectionRequest {
+                    name: "List".to_string(),
+                    method: "GET".to_string(),
+                    url: "https://api.example.com/users".to_string(),
+                    headers: Vec::new(),
+                    query_params: Vec::new(),
+                    body: CollectionBody::None,
+                }),
+                CollectionItem::Request(CollectionRequest {
+                    name: "Create".to_string(),
+                    method: "POST".to_string(),
+                    url: "https://api.example.com/users".to_string(),
+                    headers: Vec::new(),
+                    query_params: Vec::new(),
+                    body: CollectionBody::None,
+                }),
+            ],
+        })];
+
+        assert_eq!(collection_item_count(&items), 2);
     }
 }

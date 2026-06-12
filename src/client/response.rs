@@ -4,6 +4,9 @@ use serde::{Deserialize, Serialize};
 pub struct ClientResponse {
     pub status: u16,
     pub elapsed_ms: u128,
+    pub body_bytes: usize,
+    pub headers: Vec<(String, String)>,
+    pub raw_body: String,
     pub body: String,
 }
 

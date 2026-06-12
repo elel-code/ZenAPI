@@ -1,8 +1,12 @@
-use super::routing::mock_router;
+use super::routing::{MockRequestLog, mock_router};
 use crate::openapi::ApiRoute;
 use anyhow::{Context, Result};
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
-use tokio::{net::TcpListener, sync::oneshot, task::JoinHandle};
+use tokio::{
+    net::TcpListener,
+    sync::{mpsc, oneshot},
+    task::JoinHandle,
+};
 
 #[derive(Debug)]
 pub struct MockServer {
@@ -13,7 +17,23 @@ pub struct MockServer {
 
 impl MockServer {
     pub async fn start(routes: Vec<ApiRoute>, port: u16) -> Result<Self> {
-        let app = mock_router(routes);
+        Self::start_inner(routes, port, None).await
+    }
+
+    pub async fn start_with_logs(
+        routes: Vec<ApiRoute>,
+        port: u16,
+        log_sender: mpsc::UnboundedSender<MockRequestLog>,
+    ) -> Result<Self> {
+        Self::start_inner(routes, port, Some(log_sender)).await
+    }
+
+    async fn start_inner(
+        routes: Vec<ApiRoute>,
+        port: u16,
+        log_sender: Option<mpsc::UnboundedSender<MockRequestLog>>,
+    ) -> Result<Self> {
+        let app = mock_router(routes, log_sender);
         let addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), port);
         let listener = TcpListener::bind(addr)
             .await
