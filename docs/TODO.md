@@ -283,8 +283,8 @@
 - [~] 13.2.1 请求构建器完备度审查: Headers 已支持 key/value 编辑、bulk copy/paste、解析常见 `-H`/`--header` 格式，以及 Accept JSON / Content-Type JSON / Bearer Auth 常用预设且会按 header 名 upsert；Body 已覆盖 none/form-data/urlencoded/raw/GraphQL/binary，Raw JSON 增加局部 Format JSON 操作和结构预览；Auth 已覆盖 None/Bearer/Basic/JWT/API Key header/query；OAuth2、Body 大文本编辑体验和截图级复核仍待完成
 - [~] 13.2.2 响应查看器完备度审查: Pretty/Raw/Headers 各模式已作为局部 tabs 保持一等入口；响应文本使用只读可选择 viewer，Ctrl/Cmd+A 与 Ctrl/Cmd+C 已绑定；Response tab 行已增加局部 Copy 操作用于复制当前 Pretty/Raw/Headers 视图内容，且不污染全局顶栏；大响应体渲染性能和截图级交互复核仍待完成
 - [~] 13.2.3 核心交互流畅度审查: 请求发送中 Response body 已显示明确的 pending method + URL 占位，不再保留旧响应正文；请求成功、请求错误和后台 worker 取消路径都会恢复 Busy 状态并写入 Response/History；路由选择、普通响应、错误响应、Pretty/Raw/Headers 切换和 Pretty collapse/expand 现在都会将 Response body 滚动位置复位到顶部，避免长响应残留旧滚动偏移；路由选择→请求发送→响应展示的端到端延迟测量和截图级交互复核仍待完成
-- [ ] 13.2.4 启动性能与内存占用审查
-- [ ] 13.2.5 更新 `docs/BENCHMARK.md` 调研总结至最新状态
+- [~] 13.2.4 启动性能与内存占用审查: release 构建、本地真实桌面 smoke、2 秒 idle RSS 单点采样已完成；当前 release 运行可进入 GPUI event loop，RSS 采样约 229,132 KiB；first-paint/startup 精确计时、重复采样和大规格导入后的内存曲线仍待实现
+- [x] 13.2.5 更新 `docs/BENCHMARK.md` 调研总结至最新状态: 已记录当前 release binary / stripped 估算 / 桌面 smoke / RSS 基线，并修正 WebSocket/SSE/GraphQL 当前能力与剩余 gap
 
 ### 13.3 性能与稳定性
 - [ ] 13.3.1 大规格文件导入流畅度优化（目标：1000+ 路由的 OpenAPI 文件 <2s 解析渲染）
