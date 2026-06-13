@@ -2,10 +2,10 @@
 
 ## Product Positioning
 
-ZenAPI is a fast, lightweight, local-first developer tool that combines an API
-testing client with a local mock server. It is built around Rust and GPUI, with
-the goal of becoming a focused post-Postman API workstation: native, private,
-offline-friendly, and simple.
+ZenAPI is a local-first developer tool that combines an API testing client with
+a local mock server. It is built around Rust and GPUI, with the goal of becoming
+a focused post-Postman API workstation: native, private, offline-friendly, and
+simple.
 
 Visual and interaction decisions are tracked in [DESIGN.md](DESIGN.md) so the
 product can keep improving without drifting back to unstyled toolkit defaults.
@@ -29,11 +29,9 @@ implementation was prototype code and is not a compatibility contract.
 
 ## Core Problems
 
-1. Heavy API clients are slow to start and costly in memory because they often
-   depend on Electron or browser runtimes.
-2. Mandatory login and cloud sync create privacy, reliability, and workflow
+1. Mandatory login and cloud sync create privacy, reliability, and workflow
    friction for local development.
-3. Frontend and backend API workflows are split: frontend developers often need
+2. Frontend and backend API workflows are split: frontend developers often need
    a separate Node.js mock stack, while backend developers still need a simple
    client to test freshly written endpoints.
 
@@ -51,7 +49,7 @@ implementation was prototype code and is not a compatibility contract.
 - Select an imported endpoint or manually enter a URL.
 - Support common HTTP methods: `GET`, `POST`, `PUT`, `PATCH`, and `DELETE`.
 - Send requests through `reqwest`.
-- Display response status code, elapsed time, and formatted response body.
+- Display response status code and formatted response body.
 - Render JSON responses in a readable form.
 
 ### 3. One-Click Local Mock Server
@@ -73,8 +71,6 @@ implementation was prototype code and is not a compatibility contract.
 
 ## Non-Functional Requirements
 
-- Produce a small native executable, targeting roughly 10 MB where practical.
-- Keep runtime memory usage far below Chromium-based tools.
 - Support Windows, macOS, and Linux through Rust and GPUI.
 - Keep the UI minimal, direct, and local-first: no ads, no forced accounts, no
   cloud dependency, and no unnecessary configuration surface.
@@ -99,8 +95,7 @@ implementation was prototype code and is not a compatibility contract.
 - Parallel collection runner scheduling and richer runner reports.
 - GraphQL, WebSocket, SSE, and gRPC protocol workspaces.
 - Plugin system for auth, template tags, and future UI extension points.
-- Release packaging, startup timing, idle memory measurement, and binary size
-  optimization.
+- Release packaging and cross-platform validation.
 
 ## Suggested Build Order
 

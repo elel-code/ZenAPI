@@ -45,7 +45,16 @@ use self::{
     read_only_text::{ReadOnlyTextView, bind_read_only_text_keys},
 };
 
-actions!(zenapi_app, [SaveCurrentRequest, FocusActiveSidebarInput]);
+actions!(
+    zenapi_app,
+    [
+        SendCurrentRequest,
+        SaveCurrentRequest,
+        FocusActiveSidebarInput,
+        FocusRequestUrl,
+        CloseTransientUi
+    ]
+);
 
 #[cfg(test)]
 use zenapi::variables::replace_variables;
@@ -54,13 +63,23 @@ const PLATFORM_UI_FONT: &str = ".SystemUIFont";
 const PLATFORM_MONOSPACE_FONT: &str = "monospace";
 const INITIAL_RESPONSE_BODY: &str = "Import an OpenAPI or Swagger document to begin.";
 const UI_COLOR_SURFACE: u32 = 0xffffff;
-const UI_COLOR_SURFACE_MUTED: u32 = 0xf9fafb;
-const UI_COLOR_HOVER: u32 = 0xf3f4f6;
-const UI_COLOR_BORDER: u32 = 0xe5e7eb;
-const UI_COLOR_BORDER_STRONG: u32 = 0xd1d5db;
+const UI_COLOR_SURFACE_MUTED: u32 = 0xf6f8fb;
+const UI_COLOR_APP_CHROME: u32 = 0xf3f6fb;
+const UI_COLOR_WORKSPACE_GUTTER: u32 = 0xe8edf5;
+const UI_COLOR_SIDEBAR_PANE: u32 = 0xf1f6ff;
+const UI_COLOR_REQUEST_PANE: u32 = 0xfffbf5;
+const UI_COLOR_REQUEST_TAB_BAR: u32 = 0xfff6e8;
+const UI_COLOR_RESPONSE_PANE: u32 = 0xf0fbf7;
+const UI_COLOR_RESPONSE_TAB_BAR: u32 = 0xe8f7f1;
+const UI_COLOR_HOVER: u32 = 0xeaf2ff;
+const UI_COLOR_DISABLED_SURFACE: u32 = 0xf2f5f8;
+const UI_COLOR_DISABLED_BORDER: u32 = 0xd7dee8;
+const UI_COLOR_DISABLED_TEXT: u32 = 0x7f8a99;
+const UI_COLOR_BORDER: u32 = 0xdbe3ee;
+const UI_COLOR_BORDER_STRONG: u32 = 0xb8c7d8;
 const UI_COLOR_TEXT_PRIMARY: u32 = 0x111827;
-const UI_COLOR_TEXT_SECONDARY: u32 = 0x6b7280;
-const UI_COLOR_TEXT_MUTED: u32 = 0x9ca3af;
+const UI_COLOR_TEXT_SECONDARY: u32 = 0x4b5563;
+const UI_COLOR_TEXT_MUTED: u32 = 0x64748b;
 const UI_COLOR_TEXT_BODY: u32 = 0x374151;
 const UI_COLOR_ACCENT: u32 = 0x2563eb;
 const UI_COLOR_ACCENT_TEXT: u32 = 0x1d4ed8;
@@ -102,6 +121,7 @@ const TOP_BAR_HEIGHT: f32 = 40.;
 const TOP_BAR_BRAND_WIDTH: f32 = 132.;
 const TOP_BAR_ACTION_WIDTH: f32 = 76.;
 const TOP_BAR_MOCK_ACTION_WIDTH: f32 = 68.;
+const DISABLED_CONTROL_OPACITY: f32 = 0.78;
 const IMPORT_POPOVER_WIDTH: f32 = 520.;
 const IMPORT_POPOVER_HEIGHT: f32 = 58.;
 const IMPORT_POPOVER_PADDING: f32 = 10.;
@@ -115,6 +135,7 @@ const REQUEST_BAR_CONTROL_Y_OFFSET: f32 = 8.;
 const REQUEST_METHOD_SEGMENT_WIDTH: f32 = 100.;
 const REQUEST_ADDRESS_RADIUS: f32 = TEXT_INPUT_RADIUS;
 const REQUEST_EDITOR_TAB_BAR_HEIGHT: f32 = 34.;
+const REQUEST_EDITOR_TAB_COUNT: usize = 7;
 const METHOD_MENU_WIDTH: f32 = REQUEST_METHOD_SEGMENT_WIDTH;
 const METHOD_MENU_TOP_OFFSET: f32 =
     PANEL_HEADER_HEIGHT + REQUEST_BAR_CONTROL_Y_OFFSET + TEXT_INPUT_HEIGHT + 4.;
@@ -126,11 +147,18 @@ const SIDEBAR_BUTTON_HEIGHT: f32 = 26.;
 const COMPACT_CONTROL_HEIGHT: f32 = 26.;
 const RESPONSE_TAB_BAR_HEIGHT: f32 = 36.;
 const RESPONSE_TAB_WIDTH: f32 = 84.;
+const RESPONSE_TAB_COUNT: usize = 3;
 const RESPONSE_FOLD_BUTTON_WIDTH: f32 = 86.;
 const RESPONSE_COPY_BUTTON_WIDTH: f32 = 62.;
 const CODEGEN_COPY_BUTTON_WIDTH: f32 = 72.;
 const CODEGEN_MENU_WIDTH: f32 = 156.;
-const GRAPHQL_SCHEMA_BROWSER_MIN_HEIGHT: f32 = 112.;
+const STATUS_BAR_TRAILING_WIDTH: f32 = 360.;
+const BODY_EDITOR_HEIGHT: f32 = 118.;
+const GRAPHQL_VARIABLES_EDITOR_HEIGHT: f32 = 86.;
+const BODY_PREVIEW_HEIGHT: f32 = 86.;
+const BODY_PREVIEW_LINE_HEIGHT: f32 = 18.;
+const GRAPHQL_QUERY_TEMPLATE_USE_BUTTON_WIDTH: f32 = 54.;
+const GRAPHQL_SCHEMA_BROWSER_HEIGHT: f32 = 112.;
 const PANEL_HEADER_HEIGHT: f32 = 40.;
 const PANEL_HEADER_META_WIDTH: f32 = 260.;
 const PANEL_HEADER_RIGHT_PADDING: f32 = 14.;
@@ -148,14 +176,26 @@ const COLLECTION_TREE_FOLDER_ROW_HEIGHT: f32 = 30.;
 const COLLECTION_TREE_REQUEST_ROW_HEIGHT: f32 = 36.;
 const COLLECTION_TREE_INDENT_BASE: f32 = 8.;
 const COLLECTION_TREE_INDENT_STEP: f32 = 14.;
+const COLLECTION_TREE_INDENT_MAX: f32 = 78.;
 const COLLECTION_TREE_MARKER_WIDTH: f32 = 14.;
 const HTTP_METHOD_LABEL_WIDTH: f32 = 58.;
+const RUNNER_METHOD_COLUMN_WIDTH: f32 = 70.;
+const RUNNER_STATUS_COLUMN_WIDTH: f32 = 42.;
+const RUNNER_PRE_REQUEST_COLUMN_WIDTH: f32 = 52.;
+const RUNNER_TESTS_COLUMN_WIDTH: f32 = 64.;
+const TEST_RESULT_STATUS_COLUMN_WIDTH: f32 = 48.;
+const TEST_RESULT_NAME_COLUMN_WIDTH: f32 = 140.;
+const WEBSOCKET_DIRECTION_COLUMN_WIDTH: f32 = 52.;
+const WEBSOCKET_KIND_COLUMN_WIDTH: f32 = 52.;
+const SSE_EVENT_COLUMN_WIDTH: f32 = 74.;
+const SSE_ID_COLUMN_WIDTH: f32 = 58.;
 const GRAPHQL_SCHEMA_FIELD_LIMIT: usize = 12;
 const GRAPHQL_SCHEMA_TYPE_LIMIT: usize = 18;
 const GRAPHQL_QUERY_TEMPLATE_LIMIT: usize = 5;
 const WEBSOCKET_LOG_LIMIT: usize = 24;
 const SSE_EVENT_FETCH_LIMIT: usize = 6;
 const SSE_LOG_LIMIT: usize = 24;
+const MOCK_SERVER_PORT: u16 = 8080;
 const HTTP_METHODS: [&str; 7] = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"];
 const GRAPHQL_INTROSPECTION_QUERY: &str = "query IntrospectionQuery { __schema { queryType { name } mutationType { name } subscriptionType { name } types { kind name description fields(includeDeprecated: true) { name description args { name description type { kind name ofType { kind name ofType { kind name } } } defaultValue } type { kind name ofType { kind name ofType { kind name } } } isDeprecated deprecationReason } inputFields { name description type { kind name ofType { kind name ofType { kind name } } } defaultValue } interfaces { kind name ofType { kind name } } enumValues(includeDeprecated: true) { name description isDeprecated deprecationReason } possibleTypes { kind name ofType { kind name } } } directives { name description locations args { name description type { kind name ofType { kind name ofType { kind name } } } defaultValue } } } }";
 
@@ -187,10 +227,15 @@ pub fn run() -> Result<()> {
 
 fn bind_app_keys(cx: &mut App) {
     cx.bind_keys([
+        KeyBinding::new("ctrl-enter", SendCurrentRequest, None),
+        KeyBinding::new("cmd-enter", SendCurrentRequest, None),
         KeyBinding::new("ctrl-f", FocusActiveSidebarInput, None),
         KeyBinding::new("cmd-f", FocusActiveSidebarInput, None),
+        KeyBinding::new("ctrl-l", FocusRequestUrl, None),
+        KeyBinding::new("cmd-l", FocusRequestUrl, None),
         KeyBinding::new("ctrl-s", SaveCurrentRequest, None),
         KeyBinding::new("cmd-s", SaveCurrentRequest, None),
+        KeyBinding::new("escape", CloseTransientUi, None),
     ]);
 }
 
@@ -242,12 +287,14 @@ struct ZenApiApp {
     websocket_headers: Vec<KeyValueRow>,
     websocket_message: Entity<TextInput>,
     websocket_message_mode: WebSocketMessageMode,
+    websocket_session_url: String,
     websocket_status: String,
     websocket_running: bool,
     websocket_command_tx: Option<mpsc::UnboundedSender<client::WebSocketSessionCommand>>,
     websocket_messages: Vec<WebSocketLogEntry>,
     sse_url: Entity<TextInput>,
     sse_headers: Vec<KeyValueRow>,
+    sse_session_url: String,
     sse_status: String,
     sse_running: bool,
     sse_subscription: Option<JoinHandle<()>>,
@@ -313,6 +360,14 @@ struct ScrollbarDragState {
     max_offset: f32,
 }
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+struct TransientUiState {
+    import_popover_open: bool,
+    method_menu_open: bool,
+    codegen_menu_open: bool,
+    collection_menu_open: bool,
+}
+
 #[derive(Clone, Copy, Debug)]
 struct ScrollbarMetrics {
     max_offset: f32,
@@ -344,6 +399,18 @@ enum RequestPaneTab {
     Scripts,
     Realtime,
     Tools,
+}
+
+fn request_editor_tabs() -> [(&'static str, RequestPaneTab); REQUEST_EDITOR_TAB_COUNT] {
+    [
+        ("Params", RequestPaneTab::Params),
+        ("Headers", RequestPaneTab::Headers),
+        ("Auth", RequestPaneTab::Auth),
+        ("Body", RequestPaneTab::Body),
+        ("Scripts", RequestPaneTab::Scripts),
+        ("Realtime", RequestPaneTab::Realtime),
+        ("Tools", RequestPaneTab::Tools),
+    ]
 }
 
 struct KeyValueRow {
@@ -441,8 +508,48 @@ fn ui_surface_muted() -> Hsla {
     rgb(UI_COLOR_SURFACE_MUTED).into()
 }
 
+fn ui_app_chrome() -> Hsla {
+    rgb(UI_COLOR_APP_CHROME).into()
+}
+
+fn ui_workspace_gutter() -> Hsla {
+    rgb(UI_COLOR_WORKSPACE_GUTTER).into()
+}
+
+fn ui_sidebar_pane() -> Hsla {
+    rgb(UI_COLOR_SIDEBAR_PANE).into()
+}
+
+fn ui_request_pane() -> Hsla {
+    rgb(UI_COLOR_REQUEST_PANE).into()
+}
+
+fn ui_request_tab_bar() -> Hsla {
+    rgb(UI_COLOR_REQUEST_TAB_BAR).into()
+}
+
+fn ui_response_pane() -> Hsla {
+    rgb(UI_COLOR_RESPONSE_PANE).into()
+}
+
+fn ui_response_tab_bar() -> Hsla {
+    rgb(UI_COLOR_RESPONSE_TAB_BAR).into()
+}
+
 fn ui_hover() -> Hsla {
     rgb(UI_COLOR_HOVER).into()
+}
+
+fn ui_disabled_surface() -> Hsla {
+    rgb(UI_COLOR_DISABLED_SURFACE).into()
+}
+
+fn ui_disabled_border() -> Hsla {
+    rgb(UI_COLOR_DISABLED_BORDER).into()
+}
+
+fn ui_disabled_text() -> Hsla {
+    rgb(UI_COLOR_DISABLED_TEXT).into()
 }
 
 fn ui_border() -> Hsla {
@@ -499,6 +606,14 @@ fn ui_status_success() -> Hsla {
 
 fn ui_status_error() -> Hsla {
     rgb(UI_COLOR_STATUS_ERROR).into()
+}
+
+fn control_opacity(enabled: bool) -> f32 {
+    if enabled {
+        1.0
+    } else {
+        DISABLED_CONTROL_OPACITY
+    }
 }
 
 impl ZenApiApp {
@@ -569,9 +684,14 @@ impl ZenApiApp {
         let api_key_name = cx.new(|cx| TextInput::new(cx, "X-API-Key", true));
         let api_key_value = cx.new(|cx| TextInput::new(cx, "API key value", true));
         let pre_request_script = cx.new(|cx| TextInput::new(cx, "Pre-request action line", true));
-        let request_body = cx.new(|cx| TextInput::new(cx, "JSON body", true));
-        let graphql_query = cx.new(|cx| TextInput::new(cx, "GraphQL query", true));
-        let graphql_variables = cx.new(|cx| TextInput::new(cx, "GraphQL variables JSON", true));
+        let request_body =
+            cx.new(|cx| TextInput::new(cx, "JSON body", true).with_multiline(BODY_EDITOR_HEIGHT));
+        let graphql_query = cx
+            .new(|cx| TextInput::new(cx, "GraphQL query", true).with_multiline(BODY_EDITOR_HEIGHT));
+        let graphql_variables = cx.new(|cx| {
+            TextInput::new(cx, "GraphQL variables JSON", true)
+                .with_multiline(GRAPHQL_VARIABLES_EDITOR_HEIGHT)
+        });
         let websocket_url = cx.new(|cx| TextInput::new(cx, "ws://localhost:8080/socket", true));
         let websocket_protocols = cx.new(|cx| TextInput::new(cx, "Subprotocols: chat, json", true));
         let websocket_headers = key_value_rows(cx, &[("X-Token", "token"), ("", "")]);
@@ -601,14 +721,18 @@ impl ZenApiApp {
         let request_assertions = assertion_rows_from_assertions(cx, &[]);
 
         cx.subscribe(&import_path, |app, _input, _event: &TextAccepted, cx| {
-            app.import_openapi(cx);
+            if can_submit_path_action(app.busy, &app.import_path.read(cx).text()) {
+                app.import_openapi(cx);
+            }
         })
         .detach();
 
         cx.subscribe(
             &collection_path,
             |app, _input, _event: &TextAccepted, cx| {
-                app.import_collection(cx);
+                if can_submit_path_action(app.busy, &app.collection_path.read(cx).text()) {
+                    app.import_collection(cx);
+                }
             },
         )
         .detach();
@@ -616,7 +740,14 @@ impl ZenApiApp {
         cx.subscribe(
             &collection_rename_input,
             |app, _input, _event: &TextAccepted, cx| {
-                app.rename_collection_target(cx);
+                let kind = app.collection_context_menu.as_ref().map(|menu| menu.kind);
+                if can_submit_collection_rename(
+                    app.busy,
+                    kind,
+                    &app.collection_rename_input.read(cx).text(),
+                ) {
+                    app.rename_collection_target(cx);
+                }
             },
         )
         .detach();
@@ -634,14 +765,23 @@ impl ZenApiApp {
         .detach();
 
         cx.subscribe(&url, |app, _input, _event: &TextAccepted, cx| {
-            app.send_request(cx);
+            if !app.busy
+                && can_send_request(
+                    &app.url.read(cx).text(),
+                    &app.pre_request_script.read(cx).text(),
+                )
+            {
+                app.send_request(cx);
+            }
         })
         .detach();
 
         cx.subscribe(
             &environment_name_input,
             |app, _input, _event: &TextAccepted, cx| {
-                app.add_environment(cx);
+                if !app.busy && can_add_environment(&app.environment_name_input.read(cx).text()) {
+                    app.add_environment(cx);
+                }
             },
         )
         .detach();
@@ -694,12 +834,14 @@ impl ZenApiApp {
             websocket_headers,
             websocket_message,
             websocket_message_mode: WebSocketMessageMode::Text,
+            websocket_session_url: String::new(),
             websocket_status: "idle".to_string(),
             websocket_running: false,
             websocket_command_tx: None,
             websocket_messages: Vec::new(),
             sse_url,
             sse_headers,
+            sse_session_url: String::new(),
             sse_status: "idle".to_string(),
             sse_running: false,
             sse_subscription: None,
@@ -794,7 +936,17 @@ impl ZenApiApp {
                 );
             }
             Err(error) => {
-                self.set_response("Import failed", "", ResponseTone::Error, error.to_string());
+                self.set_response(
+                    "Import failed",
+                    "",
+                    ResponseTone::Error,
+                    file_operation_error(
+                        "Could not import OpenAPI document.",
+                        path,
+                        &error.to_string(),
+                        "Check that the path exists and points to a JSON or YAML OpenAPI/Swagger file.",
+                    ),
+                );
             }
         }
 
@@ -828,11 +980,17 @@ impl ZenApiApp {
                 );
             }
             Err(error) => {
+                self.collection_status = "Import failed".to_string();
                 self.set_response(
                     "Collection failed",
                     "",
                     ResponseTone::Error,
-                    error.to_string(),
+                    file_operation_error(
+                        "Could not import collection.",
+                        path,
+                        &error.to_string(),
+                        "Check that the path exists and contains ZenAPI or Postman collection JSON.",
+                    ),
                 );
             }
         }
@@ -840,6 +998,18 @@ impl ZenApiApp {
     }
 
     fn export_collection(&mut self, postman: bool, cx: &mut Context<Self>) {
+        if !can_export_collection(&self.collection) {
+            self.collection_status = "Nothing to export".to_string();
+            self.set_response(
+                "Export unavailable",
+                "",
+                ResponseTone::Neutral,
+                "Save at least one request to the collection before exporting.",
+            );
+            cx.notify();
+            return;
+        }
+
         let path = self.collection_path.read(cx).text();
         let path = path.trim();
         if path.is_empty() {
@@ -874,7 +1044,18 @@ impl ZenApiApp {
                 );
             }
             Err(error) => {
-                self.set_response("Export failed", "", ResponseTone::Error, error.to_string());
+                self.collection_status = "Export failed".to_string();
+                self.set_response(
+                    "Export failed",
+                    "",
+                    ResponseTone::Error,
+                    file_operation_error(
+                        "Could not export collection.",
+                        path,
+                        &error.to_string(),
+                        "Check that the parent directory exists and is writable.",
+                    ),
+                );
             }
         }
         cx.notify();
@@ -900,9 +1081,19 @@ impl ZenApiApp {
                 self.last_pre_request_actions = build.pre_request_action_labels;
             }
             Err(error) => {
-                self.pre_request_status = pre_request_error_label(&error.to_string());
+                let error = error.to_string();
+                self.pre_request_status = pre_request_error_label(&error);
                 self.last_pre_request_actions.clear();
-                self.set_response("Save failed", "", ResponseTone::Error, error.to_string());
+                self.set_response(
+                    "Save failed",
+                    "",
+                    ResponseTone::Error,
+                    editor_error(
+                        "Could not build the request before saving.",
+                        &error,
+                        "Fix the highlighted request fields or pre-request action line, then save again.",
+                    ),
+                );
                 cx.notify();
                 return;
             }
@@ -910,7 +1101,16 @@ impl ZenApiApp {
         let tests = match self.current_response_assertions(cx) {
             Ok(tests) => tests,
             Err(error) => {
-                self.set_response("Save failed", "", ResponseTone::Error, error.to_string());
+                self.set_response(
+                    "Save failed",
+                    "",
+                    ResponseTone::Error,
+                    editor_error(
+                        "Could not save the request tests.",
+                        &error.to_string(),
+                        "Check each configured test row for the expected target/value format.",
+                    ),
+                );
                 cx.notify();
                 return;
             }
@@ -940,9 +1140,78 @@ impl ZenApiApp {
         _: &mut Window,
         cx: &mut Context<Self>,
     ) {
-        if !self.busy {
+        if can_save_current_request_shortcut(
+            self.busy,
+            &self.url.read(cx).text(),
+            &self.pre_request_script.read(cx).text(),
+        ) {
             self.save_current_request_to_collection(cx);
         }
+    }
+
+    fn send_current_request_shortcut(
+        &mut self,
+        _: &SendCurrentRequest,
+        _: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        if can_send_request_shortcut(
+            self.busy,
+            &self.url.read(cx).text(),
+            &self.pre_request_script.read(cx).text(),
+        ) {
+            self.send_request(cx);
+        }
+    }
+
+    fn transient_ui_state(&self) -> TransientUiState {
+        TransientUiState {
+            import_popover_open: self.import_popover_open,
+            method_menu_open: self.method_menu_open,
+            codegen_menu_open: self.codegen_menu_open,
+            collection_menu_open: self.collection_context_menu.is_some(),
+        }
+    }
+
+    fn apply_transient_ui_state(&mut self, state: TransientUiState) {
+        self.import_popover_open = state.import_popover_open;
+        self.method_menu_open = state.method_menu_open;
+        self.codegen_menu_open = state.codegen_menu_open;
+        if !state.collection_menu_open {
+            self.collection_context_menu = None;
+        }
+    }
+
+    fn close_transient_layers(&mut self) -> bool {
+        let mut state = self.transient_ui_state();
+        if close_transient_ui_state(&mut state) {
+            self.apply_transient_ui_state(state);
+            true
+        } else {
+            false
+        }
+    }
+
+    fn close_transient_ui(&mut self, _: &CloseTransientUi, _: &mut Window, cx: &mut Context<Self>) {
+        if self.close_transient_layers() {
+            cx.notify();
+        }
+    }
+
+    fn set_busy(&mut self, busy: bool, cx: &mut Context<Self>) {
+        if self.busy == busy {
+            self.sync_request_url_enabled(cx);
+            return;
+        }
+
+        self.busy = busy;
+        self.sync_request_url_enabled(cx);
+    }
+
+    fn sync_request_url_enabled(&mut self, cx: &mut Context<Self>) {
+        let enabled = !self.busy;
+        self.url
+            .update(cx, |input, cx| input.set_enabled(enabled, cx));
     }
 
     fn focus_active_sidebar_input(
@@ -958,12 +1227,35 @@ impl ZenApiApp {
         };
         let focus_handle = input.read(cx).focus_handle(cx);
         focus_handle.focus(window, cx);
+        if self.close_transient_layers() {
+            cx.notify();
+        }
+    }
+
+    fn focus_request_url(
+        &mut self,
+        _: &FocusRequestUrl,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        if !can_focus_request_url(self.busy) {
+            return;
+        }
+
+        let focus_handle = self.url.read(cx).focus_handle(cx);
+        focus_handle.focus(window, cx);
+        if self.close_transient_layers() {
+            cx.notify();
+        }
     }
 
     fn open_collection_menu(&mut self, menu: CollectionContextMenu, cx: &mut Context<Self>) {
         let label = menu.label.clone();
         self.collection_rename_input
             .update(cx, |input, cx| input.set_text(label, cx));
+        self.import_popover_open = false;
+        self.method_menu_open = false;
+        self.codegen_menu_open = false;
         self.collection_context_menu = Some(menu);
         cx.notify();
     }
@@ -1043,8 +1335,12 @@ impl ZenApiApp {
         };
         let name = self.collection_rename_input.read(cx).text();
         let name = name.trim();
-        if name.is_empty() {
-            self.collection_status = "Name needed".to_string();
+        if !can_rename_collection_target(menu.kind, name) {
+            self.collection_status = if name.is_empty() {
+                "Name needed".to_string()
+            } else {
+                "Rename unavailable".to_string()
+            };
             cx.notify();
             return;
         }
@@ -1089,6 +1385,7 @@ impl ZenApiApp {
     }
 
     fn restore_collection_request(&mut self, request: CollectionRequest, cx: &mut Context<Self>) {
+        self.close_transient_layers();
         self.method = request.method;
         self.url
             .update(cx, |input, cx| input.set_text(request.url, cx));
@@ -1192,8 +1489,7 @@ impl ZenApiApp {
             return;
         };
 
-        self.method_menu_open = false;
-        self.import_popover_open = false;
+        self.close_transient_layers();
         self.selected_route = Some(index);
         self.method = route.method.clone();
         self.url.update(cx, |input, cx| {
@@ -1226,19 +1522,23 @@ impl ZenApiApp {
         if self.busy {
             return;
         }
-        self.method_menu_open = false;
-        self.import_popover_open = false;
+        self.close_transient_layers();
 
         let build = match self.current_request_build(cx) {
             Ok(build) => build,
             Err(error) => {
-                self.pre_request_status = pre_request_error_label(&error.to_string());
+                let error = error.to_string();
+                self.pre_request_status = pre_request_error_label(&error);
                 self.last_pre_request_actions.clear();
                 self.set_response(
                     "Request build failed",
                     "",
                     ResponseTone::Error,
-                    error.to_string(),
+                    editor_error(
+                        "Could not build the request.",
+                        &error,
+                        "Fix the request fields or pre-request action line, then send again.",
+                    ),
                 );
                 cx.notify();
                 return;
@@ -1260,7 +1560,16 @@ impl ZenApiApp {
         let assertions = match self.current_response_assertions(cx) {
             Ok(assertions) => assertions,
             Err(error) => {
-                self.set_response("Tests invalid", "", ResponseTone::Error, error.to_string());
+                self.set_response(
+                    "Tests invalid",
+                    "",
+                    ResponseTone::Error,
+                    editor_error(
+                        "Could not run the configured tests.",
+                        &error.to_string(),
+                        "Check each test row target and expected value, then send again.",
+                    ),
+                );
                 cx.notify();
                 return;
             }
@@ -1273,10 +1582,12 @@ impl ZenApiApp {
         let headers = request.headers.clone();
         let query_params = request.query_params.clone();
         let body = request.body.clone();
+        let method_for_error = method.clone();
+        let url_for_error = url.clone();
         let runtime = self.runtime.clone();
         let (tx, rx) = oneshot::channel();
 
-        self.busy = true;
+        self.set_busy(true, cx);
         self.last_assertion_results.clear();
         self.set_response(
             "Sending",
@@ -1300,11 +1611,7 @@ impl ZenApiApp {
                         let response_status = format!("HTTP {}", response.status);
                         let assertion_results =
                             evaluate_response_assertions(&response, &assertions);
-                        let mut response_meta =
-                            format_response_meta(response.elapsed_ms, response.body_bytes);
-                        if let Some(test_meta) = assertion_meta(&assertion_results) {
-                            response_meta = format!("{response_meta} | {test_meta}");
-                        }
+                        let response_meta = response_panel_meta(&assertion_results);
                         let history_response = HistoryResponse {
                             status: response_status.clone(),
                             meta: response_meta.clone(),
@@ -1329,16 +1636,18 @@ impl ZenApiApp {
                     }
                     Ok(Err(error)) => {
                         let error = error.to_string();
+                        let body =
+                            request_transport_error(&method_for_error, &url_for_error, &error);
                         app.record_history(
                             history_request.clone(),
                             HistoryResponse {
                                 status: "Request failed".to_string(),
                                 meta: String::new(),
-                                body_preview: preview_text(&error),
+                                body_preview: preview_text(&body),
                             },
                         );
                         app.last_assertion_results.clear();
-                        app.set_response("Request failed", "", ResponseTone::Error, error);
+                        app.set_response("Request failed", "", ResponseTone::Error, body);
                     }
                     Err(_) => {
                         let error = request_worker_stopped_message();
@@ -1354,7 +1663,7 @@ impl ZenApiApp {
                         app.set_response("Request failed", "", ResponseTone::Error, error);
                     }
                 }
-                app.busy = false;
+                app.set_busy(false, cx);
                 cx.notify();
             })
             .ok();
@@ -1389,6 +1698,7 @@ impl ZenApiApp {
         let (event_tx, event_rx) = mpsc::unbounded_channel();
         self.websocket_running = true;
         self.websocket_command_tx = Some(command_tx);
+        self.websocket_session_url = url.trim().to_string();
         self.websocket_status = "connecting".to_string();
         self.set_response(
             "WebSocket active",
@@ -1443,8 +1753,13 @@ impl ZenApiApp {
             WebSocketMessageMode::BinaryHex => match websocket_hex_bytes(&message) {
                 Ok(bytes) => client::WebSocketSessionCommand::SendBinary(bytes),
                 Err(error) => {
+                    let body = editor_error(
+                        "Could not parse the WebSocket binary message.",
+                        &error,
+                        "Enter an even number of hexadecimal digits, for example: 00 ff 7a.",
+                    );
                     self.websocket_status = "invalid binary".to_string();
-                    self.set_response("WebSocket binary invalid", "", ResponseTone::Error, error);
+                    self.set_response("WebSocket binary invalid", "", ResponseTone::Error, body);
                     cx.notify();
                     return;
                 }
@@ -1455,6 +1770,18 @@ impl ZenApiApp {
             self.websocket_running = false;
             self.websocket_command_tx = None;
             self.websocket_status = "closed".to_string();
+            self.set_response(
+                "WebSocket send failed",
+                "",
+                ResponseTone::Error,
+                realtime_operation_error(
+                    "Could not send the WebSocket message.",
+                    "WebSocket URL",
+                    &self.websocket_session_url,
+                    "The WebSocket command channel is closed.",
+                    "Reconnect the WebSocket session, then send the message again.",
+                ),
+            );
         } else {
             self.websocket_status = "sending".to_string();
         }
@@ -1476,6 +1803,7 @@ impl ZenApiApp {
         match event {
             client::WebSocketSessionEvent::Connected { url } => {
                 self.websocket_running = true;
+                self.websocket_session_url = url.clone();
                 self.websocket_status = "connected".to_string();
                 self.set_response(
                     "WebSocket connected",
@@ -1513,7 +1841,18 @@ impl ZenApiApp {
                 self.websocket_running = false;
                 self.websocket_command_tx = None;
                 self.websocket_status = format!("error: {}", preview_text(&error));
-                self.set_response("WebSocket failed", "", ResponseTone::Error, error);
+                self.set_response(
+                    "WebSocket failed",
+                    "",
+                    ResponseTone::Error,
+                    realtime_operation_error(
+                        "Could not keep the WebSocket session open.",
+                        "WebSocket URL",
+                        &self.websocket_session_url,
+                        &error,
+                        "Check the URL, headers, subprotocols, server availability, and TLS settings.",
+                    ),
+                );
             }
         }
     }
@@ -1549,8 +1888,10 @@ impl ZenApiApp {
 
         let runtime = self.runtime.clone();
         let headers = read_key_value_rows(&self.sse_headers, cx);
+        let url_for_error = url.trim().to_string();
         let (tx, rx) = oneshot::channel();
         self.sse_running = true;
+        self.sse_session_url = url_for_error.clone();
         self.sse_status = "connecting".to_string();
         self.set_response(
             "SSE active",
@@ -1575,11 +1916,7 @@ impl ZenApiApp {
                             for entry in entries {
                                 app.push_sse_log(entry);
                             }
-                            let meta = format!(
-                                "{} events | {}ms",
-                                exchange.events.len(),
-                                exchange.elapsed_ms
-                            );
+                            let meta = sse_event_count_label(exchange.events.len());
                             app.sse_status = meta.clone();
                             app.set_response(
                                 "SSE OK",
@@ -1590,8 +1927,15 @@ impl ZenApiApp {
                         }
                         Err(error) => {
                             let error = error.to_string();
+                            let body = realtime_operation_error(
+                                "Could not fetch SSE events.",
+                                "SSE URL",
+                                &url_for_error,
+                                &error,
+                                "Check that the endpoint is reachable and returns text/event-stream.",
+                            );
                             app.sse_status = format!("error: {}", preview_text(&error));
-                            app.set_response("SSE failed", "", ResponseTone::Error, error);
+                            app.set_response("SSE failed", "", ResponseTone::Error, body);
                         }
                     }
                     app.sse_running = false;
@@ -1624,6 +1968,7 @@ impl ZenApiApp {
         let runtime = self.runtime.clone();
         let last_event_id = self.sse_last_event_id.clone();
         let headers = read_key_value_rows(&self.sse_headers, cx);
+        self.sse_session_url = url.trim().to_string();
         let options = client::SseSubscriptionOptions {
             last_event_id,
             headers,
@@ -1685,6 +2030,7 @@ impl ZenApiApp {
         match event {
             client::SseStreamEvent::Connected { url } => {
                 self.sse_running = true;
+                self.sse_session_url = url.clone();
                 self.sse_status = "subscribed".to_string();
                 self.set_response(
                     "SSE subscribed",
@@ -1711,7 +2057,13 @@ impl ZenApiApp {
                     "SSE reconnecting",
                     self.sse_status.clone(),
                     ResponseTone::Busy,
-                    reason,
+                    realtime_operation_error(
+                        "SSE subscription lost connection and will retry.",
+                        "SSE URL",
+                        &self.sse_session_url,
+                        &reason,
+                        "Leave the subscription running to retry, or stop it and check the server.",
+                    ),
                 );
             }
             client::SseStreamEvent::Closed(reason) => {
@@ -1724,7 +2076,18 @@ impl ZenApiApp {
                 self.sse_subscription = None;
                 self.sse_running = false;
                 self.sse_status = format!("error: {}", preview_text(&error));
-                self.set_response("SSE failed", "", ResponseTone::Error, error);
+                self.set_response(
+                    "SSE failed",
+                    "",
+                    ResponseTone::Error,
+                    realtime_operation_error(
+                        "Could not keep the SSE subscription open.",
+                        "SSE URL",
+                        &self.sse_session_url,
+                        &error,
+                        "Check that the endpoint is reachable and returns text/event-stream.",
+                    ),
+                );
             }
         }
     }
@@ -1772,7 +2135,7 @@ impl ZenApiApp {
         let runtime = self.runtime.clone();
         let (tx, rx) = oneshot::channel();
 
-        self.busy = true;
+        self.set_busy(true, cx);
         self.runner_running = true;
         self.runner_results.clear();
         self.runner_status = format!("Running {total} requests");
@@ -1796,12 +2159,24 @@ impl ZenApiApp {
         });
 
         cx.spawn(async move |app, cx| {
-            if let Ok(summary) = rx.await {
-                app.update(cx, |app, cx| {
-                    app.apply_collection_run_summary(summary, cx);
-                })
-                .ok();
-            }
+            let result = rx.await;
+            app.update(cx, |app, cx| match result {
+                Ok(summary) => app.apply_collection_run_summary(summary, cx),
+                Err(_) => {
+                    app.runner_running = false;
+                    app.set_busy(false, cx);
+                    app.runner_status = "Runner failed".to_string();
+                    app.runner_results.clear();
+                    app.set_response(
+                        "Runner failed",
+                        "",
+                        ResponseTone::Error,
+                        runner_worker_stopped_message(),
+                    );
+                    cx.notify();
+                }
+            })
+            .ok();
         })
         .detach();
     }
@@ -1823,10 +2198,14 @@ impl ZenApiApp {
         } else {
             "Collection failed"
         };
-        let body = runner_summary_text(&summary);
+        let body = if summary.failed == 0 {
+            runner_summary_text(&summary)
+        } else {
+            runner_failure_text(&summary)
+        };
 
         self.runner_running = false;
-        self.busy = false;
+        self.set_busy(false, cx);
         self.runner_status = runner_status_text(&summary);
         self.runner_results = summary.results.clone();
         self.set_response(status, self.runner_status.clone(), tone, body);
@@ -1839,7 +2218,7 @@ impl ZenApiApp {
         }
 
         if let Some(server) = self.server.take() {
-            self.busy = true;
+            self.set_busy(true, cx);
             self.server_running = false;
             self.server_status = "Stopping mock".to_string();
             let runtime = self.runtime.clone();
@@ -1853,7 +2232,7 @@ impl ZenApiApp {
             cx.spawn(async move |app, cx| {
                 if rx.await.is_ok() {
                     app.update(cx, |app, cx| {
-                        app.busy = false;
+                        app.set_busy(false, cx);
                         app.server_running = false;
                         app.server_status = "Mock stopped".to_string();
                         cx.notify();
@@ -1882,13 +2261,13 @@ impl ZenApiApp {
         let runtime = self.runtime.clone();
         let (tx, rx) = oneshot::channel();
         let (log_tx, mut log_rx) = mpsc::unbounded_channel();
-        self.busy = true;
+        self.set_busy(true, cx);
         self.server_status = "Starting mock".to_string();
         self.mock_logs.clear();
         cx.notify();
 
         runtime.spawn(async move {
-            let _ = tx.send(MockServer::start_with_logs(routes, 8080, log_tx).await);
+            let _ = tx.send(MockServer::start_with_logs(routes, MOCK_SERVER_PORT, log_tx).await);
         });
 
         cx.spawn(async move |app, cx| {
@@ -1922,11 +2301,11 @@ impl ZenApiApp {
                                 "Mock server failed",
                                 "",
                                 ResponseTone::Error,
-                                error.to_string(),
+                                mock_server_error(MOCK_SERVER_PORT, &error.to_string()),
                             );
                         }
                     }
-                    app.busy = false;
+                    app.set_busy(false, cx);
                     cx.notify();
                 })
                 .ok();
@@ -2162,7 +2541,15 @@ impl ZenApiApp {
     }
 
     fn copy_response_body(&mut self, cx: &mut Context<Self>) {
-        cx.write_to_clipboard(ClipboardItem::new_string(self.response_body_for_view()));
+        if let Some(text) = response_copy_text(
+            self.response_view,
+            self.response_pretty_collapsed,
+            &self.response_body,
+            &self.response_raw_body,
+            &self.response_headers,
+        ) {
+            cx.write_to_clipboard(ClipboardItem::new_string(text));
+        }
     }
 
     fn clear_sse_log(&mut self, cx: &mut Context<Self>) {
@@ -2263,6 +2650,7 @@ impl ZenApiApp {
             return;
         };
 
+        self.close_transient_layers();
         self.method = entry.request.method;
         self.url
             .update(cx, |input, cx| input.set_text(entry.request.url, cx));
@@ -2499,26 +2887,44 @@ impl ZenApiApp {
             .px_2()
             .text_size(px(12.))
             .font_weight(FontWeight::BOLD)
-            .text_color(method_color(&self.method))
-            .opacity(if enabled { 1.0 } else { 0.55 })
+            .text_color(if enabled {
+                method_color(&self.method)
+            } else {
+                ui_disabled_text()
+            })
+            .opacity(control_opacity(enabled))
             .when(enabled, |selector| selector.cursor_pointer())
-            .hover(|selector| selector.bg(ui_hover()))
             .on_mouse_up(
                 MouseButton::Left,
                 cx.listener(|app, _event: &MouseUpEvent, _window, cx| {
                     if !app.busy {
                         app.method_menu_open = !app.method_menu_open;
                         app.import_popover_open = false;
+                        app.codegen_menu_open = false;
+                        app.collection_context_menu = None;
                         cx.notify();
                     }
                 }),
             )
-            .child(self.method.clone())
             .child(
                 div()
+                    .flex_1()
+                    .min_w_0()
+                    .truncate()
+                    .child(self.method.clone()),
+            )
+            .child(
+                div()
+                    .flex_shrink_0()
                     .text_size(px(10.))
-                    .text_color(ui_text_secondary())
-                    .child("v"),
+                    .text_color(if !enabled {
+                        ui_disabled_text()
+                    } else if self.method_menu_open {
+                        method_color(&self.method)
+                    } else {
+                        ui_text_body()
+                    })
+                    .child(if self.method_menu_open { "^" } else { "v" }),
             )
     }
 
@@ -2536,6 +2942,7 @@ impl ZenApiApp {
             .h_full()
             .w(px(WORKSPACE_SPLIT_HANDLE_WIDTH))
             .flex_shrink_0()
+            .bg(ui_workspace_gutter())
             .cursor_col_resize()
             .hover(|handle| handle.bg(ui_hover()))
             .on_click(cx.listener(|app, event: &gpui::ClickEvent, _window, cx| {
@@ -2552,7 +2959,7 @@ impl ZenApiApp {
                         / 2.))
                     .w(px(WORKSPACE_SPLIT_DIVIDER_WIDTH))
                     .h_full()
-                    .bg(ui_border()),
+                    .bg(ui_border_strong()),
             )
     }
 
@@ -2619,6 +3026,11 @@ impl ZenApiApp {
             .scrollbar_drag
             .map(|drag| drag.kind == kind)
             .unwrap_or(false);
+        let track_bg = match kind {
+            ScrollbarKind::Sidebar => ui_sidebar_pane(),
+            ScrollbarKind::Request => ui_request_pane(),
+            ScrollbarKind::Response => ui_response_pane(),
+        };
 
         div()
             .absolute()
@@ -2628,11 +3040,7 @@ impl ZenApiApp {
             .h_full()
             .border_l_1()
             .border_color(ui_border())
-            .bg(if dragging {
-                ui_hover()
-            } else {
-                ui_surface_muted()
-            })
+            .bg(if dragging { ui_hover() } else { track_bg })
             .cursor_pointer()
             .hover(|track| track.bg(ui_hover()))
             .child(
@@ -2834,6 +3242,9 @@ impl ZenApiApp {
             .justify_center()
             .h(px(ACTION_BUTTON_HEIGHT))
             .w(px(width))
+            .flex_shrink_0()
+            .min_w_0()
+            .overflow_hidden()
             .rounded(px(6.))
             .border_1()
             .border_color(colors.border)
@@ -2841,7 +3252,7 @@ impl ZenApiApp {
             .text_size(px(13.))
             .font_weight(FontWeight::BOLD)
             .text_color(colors.text)
-            .opacity(if enabled { 1.0 } else { 0.62 })
+            .opacity(control_opacity(enabled))
             .when(enabled, |button| button.cursor_pointer())
             .on_mouse_up(
                 MouseButton::Left,
@@ -2851,7 +3262,7 @@ impl ZenApiApp {
                     }
                 }),
             )
-            .child(label.into())
+            .child(div().min_w_0().truncate().child(label.into()))
     }
 
     fn top_bar_action_button(
@@ -2872,6 +3283,9 @@ impl ZenApiApp {
             .justify_center()
             .h(px(30.))
             .w(px(width))
+            .flex_shrink_0()
+            .min_w_0()
+            .overflow_hidden()
             .rounded(px(5.))
             .border_1()
             .border_color(colors.border)
@@ -2879,7 +3293,7 @@ impl ZenApiApp {
             .text_size(px(12.))
             .font_weight(FontWeight::BOLD)
             .text_color(colors.text)
-            .opacity(if enabled { 1.0 } else { 0.62 })
+            .opacity(control_opacity(enabled))
             .when(enabled, |button| button.cursor_pointer())
             .on_mouse_up(
                 MouseButton::Left,
@@ -2889,11 +3303,15 @@ impl ZenApiApp {
                     }
                 }),
             )
-            .child(label.into())
+            .child(div().min_w_0().truncate().child(label.into()))
     }
 
     fn request_send_segment(&self, cx: &mut Context<Self>) -> gpui::Div {
-        let enabled = !self.busy;
+        let enabled = !self.busy
+            && can_send_request(
+                &self.url.read(cx).text(),
+                &self.pre_request_script.read(cx).text(),
+            );
 
         div()
             .flex()
@@ -2902,19 +3320,21 @@ impl ZenApiApp {
             .h(px(TEXT_INPUT_HEIGHT))
             .w(px(REQUEST_SEND_WIDTH))
             .flex_shrink_0()
+            .min_w_0()
+            .overflow_hidden()
             .border_l_1()
             .border_color(ui_border())
             .bg(if enabled {
                 ui_accent_surface()
             } else {
-                ui_surface_muted()
+                ui_disabled_surface()
             })
             .text_size(px(12.))
             .font_weight(FontWeight::BOLD)
             .text_color(if enabled {
                 ui_accent()
             } else {
-                ui_text_muted()
+                ui_disabled_text()
             })
             .when(enabled, |segment| segment.cursor_pointer())
             .hover(|segment| {
@@ -2926,13 +3346,13 @@ impl ZenApiApp {
             })
             .on_mouse_up(
                 MouseButton::Left,
-                cx.listener(|app, _event: &MouseUpEvent, _window, cx| {
-                    if !app.busy {
+                cx.listener(move |app, _event: &MouseUpEvent, _window, cx| {
+                    if enabled {
                         app.send_request(cx);
                     }
                 }),
             )
-            .child("Send")
+            .child(div().min_w_0().truncate().child("Send"))
     }
 
     fn render_top_bar(&self, cx: &mut Context<Self>) -> impl IntoElement {
@@ -2945,7 +3365,7 @@ impl ZenApiApp {
             .w_full()
             .border_b_1()
             .border_color(ui_border())
-            .bg(ui_surface_muted())
+            .bg(ui_app_chrome())
             .px_3()
             .gap_2()
             .child(
@@ -2966,6 +3386,8 @@ impl ZenApiApp {
                 |app, _event, _window, cx| {
                     app.import_popover_open = !app.import_popover_open;
                     app.method_menu_open = false;
+                    app.codegen_menu_open = false;
+                    app.collection_context_menu = None;
                     cx.notify();
                 },
                 cx,
@@ -2985,6 +3407,8 @@ impl ZenApiApp {
     }
 
     fn render_import_popover(&self, cx: &mut Context<Self>) -> impl IntoElement {
+        let can_open = text_input_has_text(&self.import_path, cx);
+
         div()
             .absolute()
             .top(px(IMPORT_POPOVER_TOP_OFFSET))
@@ -2998,14 +3422,16 @@ impl ZenApiApp {
             .occlude()
             .p(px(IMPORT_POPOVER_PADDING))
             .child(
-                div()
-                    .flex()
-                    .items_center()
-                    .gap_2()
-                    .child(div().flex_1().child(self.import_path.clone()))
+                panel_button_row()
+                    .child(
+                        div()
+                            .flex_1()
+                            .min_w_0()
+                            .child(bounded_text_input(self.import_path.clone())),
+                    )
                     .child(self.action_button(
                         "Open",
-                        true,
+                        can_open,
                         ButtonTone::Primary,
                         |app, _event, _window, cx| app.import_openapi(cx),
                         cx,
@@ -3021,20 +3447,20 @@ impl ZenApiApp {
             .w_full()
             .h_full()
             .min_w_0()
-            .bg(ui_surface_muted())
+            .bg(ui_sidebar_pane())
             .overflow_hidden()
             .child(self.render_sidebar_nav(cx))
             .child(self.render_sidebar_body(cx))
     }
 
     fn render_sidebar_nav(&self, cx: &mut Context<Self>) -> impl IntoElement {
-        let endpoints_count = if self.routes.is_empty() {
-            "0".to_string()
-        } else {
-            format!("{}/{}", self.visible_routes.len(), self.routes.len())
-        };
+        let endpoints_count = filtered_count_label(self.routes.len(), self.visible_routes.len());
         let collection_count = collection_item_count(&self.collection.items).to_string();
-        let history_count = self.history.entries().len().to_string();
+        let history_total = self.history.entries().len();
+        let history_count = filtered_count_label(
+            history_total,
+            self.history.filtered(&self.history_query).len(),
+        );
 
         div()
             .flex()
@@ -3045,6 +3471,7 @@ impl ZenApiApp {
             .p_2()
             .border_b_1()
             .border_color(ui_border())
+            .bg(ui_sidebar_pane())
             .child(self.sidebar_section_button(
                 "Endpoints",
                 endpoints_count,
@@ -3088,15 +3515,11 @@ impl ZenApiApp {
             .bg(if active {
                 ui_surface()
             } else {
-                ui_surface_muted()
+                ui_sidebar_pane()
             })
             .text_size(px(11.))
             .font_weight(FontWeight::BOLD)
-            .text_color(if active {
-                ui_accent()
-            } else {
-                ui_text_secondary()
-            })
+            .text_color(if active { ui_accent() } else { ui_text_body() })
             .cursor_pointer()
             .hover(|button| {
                 if active {
@@ -3109,7 +3532,7 @@ impl ZenApiApp {
                 MouseButton::Left,
                 cx.listener(move |app, _event: &MouseUpEvent, _window, cx| {
                     app.active_sidebar_section = section;
-                    app.collection_context_menu = None;
+                    app.close_transient_layers();
                     cx.notify();
                 }),
             )
@@ -3165,11 +3588,7 @@ impl ZenApiApp {
                 )
             })
             .collect::<Vec<_>>();
-        let count = if self.routes.is_empty() {
-            String::new()
-        } else {
-            format!("{}/{}", self.visible_routes.len(), self.routes.len())
-        };
+        let count = filtered_count_label(self.routes.len(), self.visible_routes.len());
 
         div()
             .flex()
@@ -3177,28 +3596,11 @@ impl ZenApiApp {
             .min_w_0()
             .p_3()
             .gap_3()
-            .child(
-                div()
-                    .flex()
-                    .justify_between()
-                    .items_center()
-                    .h(px(SECTION_HEADER_HEIGHT))
-                    .text_size(px(13.))
-                    .child(
-                        div()
-                            .font_weight(FontWeight::BOLD)
-                            .text_color(ui_text_primary())
-                            .child("Endpoints"),
-                    )
-                    .child(
-                        div()
-                            .flex_shrink_0()
-                            .font_family(PLATFORM_MONOSPACE_FONT)
-                            .text_color(ui_text_secondary())
-                            .child(count),
-                    ),
-            )
-            .child(self.route_filter.clone())
+            .child(sidebar_section_header(
+                "Endpoints",
+                sidebar_count_text(count),
+            ))
+            .child(bounded_text_input(self.route_filter.clone()))
             .child(
                 div()
                     .flex()
@@ -3207,24 +3609,25 @@ impl ZenApiApp {
                     .gap_1()
                     .children(rows)
                     .when(self.visible_routes.is_empty(), |list| {
-                        list.child(
-                            div()
-                                .h(px(EMPTY_STATE_ROW_HEIGHT))
-                                .flex()
-                                .items_center()
-                                .text_color(ui_text_muted())
-                                .text_size(px(13.))
-                                .child(if self.routes.is_empty() {
-                                    "No imported routes"
-                                } else {
-                                    "No matching routes"
-                                }),
-                        )
+                        list.child(empty_state_row(
+                            if self.routes.is_empty() {
+                                "No imported routes"
+                            } else {
+                                "No matching routes"
+                            },
+                            EMPTY_STATE_ROW_HEIGHT,
+                        ))
                     }),
             )
     }
 
     fn render_collection_section(&self, cx: &mut Context<Self>) -> gpui::Div {
+        let can_export = can_export_collection(&self.collection);
+        let has_collection_path = text_input_has_text(&self.collection_path, cx);
+        let can_save_current_request = can_save_current_request_to_collection(
+            &self.url.read(cx).text(),
+            &self.pre_request_script.read(cx).text(),
+        );
         let mut rows = vec![collection_root_row(
             self.collection.name.clone(),
             collection_item_count(&self.collection.items),
@@ -3256,48 +3659,30 @@ impl ZenApiApp {
             .min_w_0()
             .p_3()
             .gap_3()
-            .child(
-                div()
-                    .flex()
-                    .justify_between()
-                    .items_center()
-                    .h(px(SECTION_HEADER_HEIGHT))
-                    .text_size(px(13.))
-                    .child(
-                        div()
-                            .font_weight(FontWeight::BOLD)
-                            .text_color(ui_text_primary())
-                            .child("Collections"),
-                    )
-                    .child(
-                        div()
-                            .min_w_0()
-                            .truncate()
-                            .text_color(ui_text_secondary())
-                            .child(self.collection_status.clone()),
-                    ),
-            )
-            .child(self.collection_path.clone())
+            .child(sidebar_section_header(
+                "Collections",
+                sidebar_status_text(self.collection_status.clone()),
+            ))
+            .child(bounded_text_input(self.collection_path.clone()))
             .child(
                 div()
                     .flex()
                     .flex_col()
+                    .min_w_0()
+                    .overflow_hidden()
                     .gap_2()
                     .child(
-                        div()
-                            .flex()
-                            .items_center()
-                            .gap_2()
+                        panel_button_row()
                             .child(self.sidebar_fluid_button(
                                 "Import",
-                                true,
+                                has_collection_path,
                                 ButtonTone::Neutral,
                                 |app, _event, _window, cx| app.import_collection(cx),
                                 cx,
                             ))
                             .child(self.sidebar_fluid_button(
                                 "Save",
-                                true,
+                                can_save_current_request,
                                 ButtonTone::Primary,
                                 |app, _event, _window, cx| {
                                     app.save_current_request_to_collection(cx)
@@ -3306,20 +3691,17 @@ impl ZenApiApp {
                             )),
                     )
                     .child(
-                        div()
-                            .flex()
-                            .items_center()
-                            .gap_2()
+                        panel_button_row()
                             .child(self.sidebar_fluid_button(
                                 "Export",
-                                true,
+                                can_export && has_collection_path,
                                 ButtonTone::Neutral,
                                 |app, _event, _window, cx| app.export_collection(false, cx),
                                 cx,
                             ))
                             .child(self.sidebar_fluid_button(
                                 "Postman",
-                                true,
+                                can_export && has_collection_path,
                                 ButtonTone::Neutral,
                                 |app, _event, _window, cx| app.export_collection(true, cx),
                                 cx,
@@ -3339,16 +3721,10 @@ impl ZenApiApp {
                     .p_1()
                     .children(rows)
                     .when(self.collection.items.is_empty(), |list| {
-                        list.child(
-                            div()
-                                .h(px(COLLECTION_TREE_ROOT_ROW_HEIGHT))
-                                .flex()
-                                .items_center()
-                                .px_2()
-                                .text_color(ui_text_muted())
-                                .text_size(px(12.))
-                                .child("No collection requests"),
-                        )
+                        list.child(empty_state_row(
+                            "No collection requests",
+                            COLLECTION_TREE_ROOT_ROW_HEIGHT,
+                        ))
                     }),
             )
             .when(self.collection_context_menu.is_some(), |section| {
@@ -3366,6 +3742,8 @@ impl ZenApiApp {
         cx: &mut Context<Self>,
     ) -> impl IntoElement {
         let can_mutate_item = menu.kind != CollectionNodeKind::Root;
+        let can_rename =
+            can_rename_collection_target(menu.kind, &self.collection_rename_input.read(cx).text());
         let new_request_target = menu.node_id.clone();
         let new_folder_target = menu.node_id.clone();
         let copy_target = menu.node_id.clone();
@@ -3374,6 +3752,8 @@ impl ZenApiApp {
         div()
             .flex()
             .flex_col()
+            .min_w_0()
+            .overflow_hidden()
             .gap_2()
             .rounded(px(5.))
             .border_1()
@@ -3386,6 +3766,7 @@ impl ZenApiApp {
                     .items_center()
                     .justify_between()
                     .min_w_0()
+                    .gap_2()
                     .child(
                         div()
                             .min_w_0()
@@ -3396,39 +3777,24 @@ impl ZenApiApp {
                             .child(menu.label),
                     )
                     .child(
-                        div()
-                            .flex()
-                            .items_center()
-                            .justify_center()
-                            .flex_shrink_0()
-                            .h(px(22.))
-                            .w(px(44.))
-                            .rounded(px(4.))
-                            .border_1()
-                            .border_color(ui_border_strong())
-                            .bg(ui_surface_muted())
-                            .text_size(px(11.))
-                            .text_color(ui_text_secondary())
-                            .cursor_pointer()
+                        sidebar_small_button("Close", 44., 22., true, ButtonTone::Neutral)
                             .on_mouse_up(
                                 MouseButton::Left,
                                 cx.listener(|app, _event: &MouseUpEvent, _window, cx| {
                                     app.close_collection_menu(cx);
                                 }),
-                            )
-                            .child("Close"),
+                            ),
                     ),
             )
             .child(
                 div()
                     .flex()
                     .flex_col()
+                    .min_w_0()
+                    .overflow_hidden()
                     .gap_2()
                     .child(
-                        div()
-                            .flex()
-                            .items_center()
-                            .gap_2()
+                        panel_button_row()
                             .child(self.sidebar_fluid_button(
                                 "New Req",
                                 true,
@@ -3449,10 +3815,7 @@ impl ZenApiApp {
                             )),
                     )
                     .child(
-                        div()
-                            .flex()
-                            .items_center()
-                            .gap_2()
+                        panel_button_row()
                             .child(self.sidebar_fluid_button(
                                 "Copy",
                                 can_mutate_item,
@@ -3474,20 +3837,17 @@ impl ZenApiApp {
                     ),
             )
             .child(
-                div()
-                    .flex()
-                    .items_center()
-                    .gap_2()
+                panel_button_row()
                     .child(
                         div()
                             .flex_1()
                             .min_w_0()
-                            .child(self.collection_rename_input.clone()),
+                            .child(bounded_text_input(self.collection_rename_input.clone())),
                     )
                     .child(self.sidebar_action_button(
                         "Rename",
                         70.,
-                        true,
+                        can_rename,
                         ButtonTone::Primary,
                         |app, _event, _window, cx| app.rename_collection_target(cx),
                         cx,
@@ -3513,6 +3873,9 @@ impl ZenApiApp {
             .justify_center()
             .h(px(SIDEBAR_BUTTON_HEIGHT))
             .w(px(width))
+            .flex_shrink_0()
+            .min_w_0()
+            .overflow_hidden()
             .rounded(px(5.))
             .border_1()
             .border_color(colors.border)
@@ -3520,7 +3883,7 @@ impl ZenApiApp {
             .text_size(px(11.))
             .font_weight(FontWeight::BOLD)
             .text_color(colors.text)
-            .opacity(if enabled { 1.0 } else { 0.62 })
+            .opacity(control_opacity(enabled))
             .when(enabled, |button| button.cursor_pointer())
             .on_mouse_up(
                 MouseButton::Left,
@@ -3530,7 +3893,7 @@ impl ZenApiApp {
                     }
                 }),
             )
-            .child(label)
+            .child(div().min_w_0().truncate().child(label))
     }
 
     fn sidebar_fluid_button(
@@ -3551,6 +3914,7 @@ impl ZenApiApp {
             .h(px(SIDEBAR_BUTTON_HEIGHT))
             .flex_1()
             .min_w_0()
+            .overflow_hidden()
             .rounded(px(5.))
             .border_1()
             .border_color(colors.border)
@@ -3558,7 +3922,7 @@ impl ZenApiApp {
             .text_size(px(11.))
             .font_weight(FontWeight::BOLD)
             .text_color(colors.text)
-            .opacity(if enabled { 1.0 } else { 0.62 })
+            .opacity(control_opacity(enabled))
             .when(enabled, |button| button.cursor_pointer())
             .on_mouse_up(
                 MouseButton::Left,
@@ -3568,7 +3932,7 @@ impl ZenApiApp {
                     }
                 }),
             )
-            .child(div().truncate().child(label))
+            .child(div().min_w_0().truncate().child(label))
     }
 
     fn panel_action_button(
@@ -3589,6 +3953,7 @@ impl ZenApiApp {
             .h(px(ACTION_BUTTON_HEIGHT))
             .flex_1()
             .min_w_0()
+            .overflow_hidden()
             .rounded(px(6.))
             .border_1()
             .border_color(colors.border)
@@ -3596,7 +3961,7 @@ impl ZenApiApp {
             .text_size(px(13.))
             .font_weight(FontWeight::BOLD)
             .text_color(colors.text)
-            .opacity(if enabled { 1.0 } else { 0.62 })
+            .opacity(control_opacity(enabled))
             .when(enabled, |button| button.cursor_pointer())
             .on_mouse_up(
                 MouseButton::Left,
@@ -3606,13 +3971,17 @@ impl ZenApiApp {
                     }
                 }),
             )
-            .child(div().truncate().child(label))
+            .child(div().min_w_0().truncate().child(label))
     }
 
     fn render_history_section(&self, cx: &mut Context<Self>) -> gpui::Div {
         let filtered_entries = self.history.filtered(&self.history_query);
-        let has_history = !self.history.entries().is_empty();
-        let has_matches = !filtered_entries.is_empty();
+        let history_total = self.history.entries().len();
+        let visible_count = filtered_entries.len();
+        let has_history = history_total > 0;
+        let has_matches = visible_count > 0;
+        let count = filtered_count_label(history_total, visible_count);
+        let clear_enabled = has_history && !self.busy;
         let rows = filtered_entries
             .into_iter()
             .map(|entry| {
@@ -3632,58 +4001,31 @@ impl ZenApiApp {
             .min_w_0()
             .p_3()
             .gap_3()
-            .child(
-                div()
-                    .flex()
-                    .justify_between()
-                    .items_center()
-                    .h(px(SECTION_HEADER_HEIGHT))
-                    .text_size(px(13.))
+            .child(sidebar_section_header(
+                "History",
+                panel_button_row()
+                    .justify_end()
+                    .child(sidebar_count_text(count))
                     .child(
-                        div()
-                            .font_weight(FontWeight::BOLD)
-                            .text_color(ui_text_primary())
-                            .child("History"),
-                    )
-                    .child(
-                        div()
-                            .flex()
-                            .items_center()
-                            .gap_2()
-                            .child(
-                                div()
-                                    .flex_shrink_0()
-                                    .font_family(PLATFORM_MONOSPACE_FONT)
-                                    .text_color(ui_text_secondary())
-                                    .child(self.history.entries().len().to_string()),
-                            )
-                            .child(
-                                div()
-                                    .flex()
-                                    .items_center()
-                                    .justify_center()
-                                    .h(px(SECTION_HEADER_HEIGHT))
-                                    .w(px(58.))
-                                    .rounded(px(4.))
-                                    .border_1()
-                                    .border_color(ui_border_strong())
-                                    .bg(ui_surface())
-                                    .text_size(px(11.))
-                                    .font_weight(FontWeight::BOLD)
-                                    .text_color(ui_text_secondary())
-                                    .cursor_pointer()
-                                    .on_mouse_up(
-                                        MouseButton::Left,
-                                        cx.listener(|app, _event: &MouseUpEvent, _window, cx| {
-                                            app.history.clear();
-                                            cx.notify();
-                                        }),
-                                    )
-                                    .child("Clear"),
-                            ),
+                        sidebar_small_button(
+                            "Clear",
+                            58.,
+                            SECTION_HEADER_HEIGHT,
+                            clear_enabled,
+                            ButtonTone::Neutral,
+                        )
+                        .on_mouse_up(
+                            MouseButton::Left,
+                            cx.listener(move |app, _event: &MouseUpEvent, _window, cx| {
+                                if clear_enabled {
+                                    app.history.clear();
+                                    cx.notify();
+                                }
+                            }),
+                        ),
                     ),
-            )
-            .child(self.history_filter.clone())
+            ))
+            .child(bounded_text_input(self.history_filter.clone()))
             .child(
                 div()
                     .flex()
@@ -3692,26 +4034,16 @@ impl ZenApiApp {
                     .gap_1()
                     .children(rows)
                     .when(!has_history, |list| {
-                        list.child(
-                            div()
-                                .h(px(EMPTY_STATE_ROW_HEIGHT))
-                                .flex()
-                                .items_center()
-                                .text_color(ui_text_muted())
-                                .text_size(px(13.))
-                                .child("No request history"),
-                        )
+                        list.child(empty_state_row(
+                            "No request history",
+                            EMPTY_STATE_ROW_HEIGHT,
+                        ))
                     })
                     .when(has_history && !has_matches, |list| {
-                        list.child(
-                            div()
-                                .h(px(EMPTY_STATE_ROW_HEIGHT))
-                                .flex()
-                                .items_center()
-                                .text_color(ui_text_muted())
-                                .text_size(px(13.))
-                                .child("No matching history"),
-                        )
+                        list.child(empty_state_row(
+                            "No matching history",
+                            EMPTY_STATE_ROW_HEIGHT,
+                        ))
                     }),
             )
     }
@@ -3725,6 +4057,8 @@ impl ZenApiApp {
         cx: &mut Context<Self>,
     ) -> impl IntoElement + 'static + use<> {
         let selected = self.selected_route == Some(index);
+        let method_color = method_color(&method);
+
         div()
             .id(("route", index))
             .flex()
@@ -3761,13 +4095,8 @@ impl ZenApiApp {
                     .min_w_0()
                     .gap_2()
                     .child(
-                        div()
-                            .w(px(HTTP_METHOD_LABEL_WIDTH))
-                            .flex_shrink_0()
-                            .text_size(px(12.))
-                            .font_weight(FontWeight::BOLD)
-                            .text_color(method_color(&method))
-                            .child(method),
+                        fixed_row_cell(method, HTTP_METHOD_LABEL_WIDTH, method_color, true, false)
+                            .text_size(px(12.)),
                     )
                     .child(
                         div()
@@ -3791,7 +4120,7 @@ impl ZenApiApp {
             )
     }
 
-    fn render_workspace(&self, cx: &mut Context<Self>) -> impl IntoElement {
+    fn render_workspace(&self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let (sidebar_ratio, request_ratio, response_ratio) = self.workspace_ratios();
 
         div()
@@ -3800,7 +4129,7 @@ impl ZenApiApp {
             .flex_row()
             .flex_1()
             .h_full()
-            .bg(ui_surface())
+            .bg(ui_workspace_gutter())
             .overflow_hidden()
             .on_drag_move::<WorkspaceSplitDrag>(cx.listener(Self::resize_workspace_split))
             .child(
@@ -3820,7 +4149,7 @@ impl ZenApiApp {
                     .flex_shrink_1()
                     .w(DefiniteLength::Fraction(request_ratio))
                     .overflow_hidden()
-                    .child(self.render_request_panel(cx)),
+                    .child(self.render_request_panel(window, cx)),
             )
             .child(self.workspace_split_handle(WorkspaceSplitDrag::RequestResponse, cx))
             .child(
@@ -3834,7 +4163,20 @@ impl ZenApiApp {
             )
     }
 
-    fn render_request_bar(&self, cx: &mut Context<Self>) -> impl IntoElement {
+    fn render_request_bar(&self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        let address_enabled = !self.busy;
+        let url_focused = address_enabled && self.url.read(cx).focus_handle(cx).is_focused(window);
+        let address_border = request_address_border_color(request_address_border_tone(
+            address_enabled,
+            url_focused,
+            self.method_menu_open,
+        ));
+        let address_background = if address_enabled {
+            ui_surface()
+        } else {
+            ui_disabled_surface()
+        };
+
         div()
             .flex()
             .items_center()
@@ -3842,6 +4184,7 @@ impl ZenApiApp {
             .min_w_0()
             .border_b_1()
             .border_color(ui_border())
+            .bg(ui_request_pane())
             .px_3()
             .child(
                 div()
@@ -3852,37 +4195,39 @@ impl ZenApiApp {
                     .h(px(TEXT_INPUT_HEIGHT))
                     .rounded(px(REQUEST_ADDRESS_RADIUS))
                     .border_1()
-                    .border_color(if self.method_menu_open {
-                        method_color(&self.method)
-                    } else {
-                        ui_border_strong()
-                    })
-                    .bg(ui_surface())
+                    .border_color(address_border)
+                    .bg(address_background)
                     .overflow_hidden()
                     .child(self.method_selector(cx))
                     .child(div().h(px(20.)).w(px(1.)).bg(ui_border()))
-                    .child(div().flex_1().min_w_0().child(self.url.clone()))
+                    .child(
+                        div()
+                            .flex_1()
+                            .min_w_0()
+                            .child(bounded_text_input(self.url.clone())),
+                    )
                     .child(self.request_send_segment(cx)),
             )
     }
 
     fn render_request_editor_tabs(&self, cx: &mut Context<Self>) -> impl IntoElement {
+        let tabs = request_editor_tabs()
+            .into_iter()
+            .map(|(label, tab)| self.request_editor_tab(label, tab, cx))
+            .collect::<Vec<_>>();
+
         div()
             .flex()
             .items_center()
             .h(px(REQUEST_EDITOR_TAB_BAR_HEIGHT))
             .flex_shrink_0()
+            .min_w_0()
+            .overflow_hidden()
             .border_b_1()
             .border_color(ui_border())
-            .bg(ui_surface_muted())
+            .bg(ui_request_tab_bar())
             .px_2()
-            .child(self.request_editor_tab("Params", RequestPaneTab::Params, cx))
-            .child(self.request_editor_tab("Headers", RequestPaneTab::Headers, cx))
-            .child(self.request_editor_tab("Auth", RequestPaneTab::Auth, cx))
-            .child(self.request_editor_tab("Body", RequestPaneTab::Body, cx))
-            .child(self.request_editor_tab("Scripts", RequestPaneTab::Scripts, cx))
-            .child(self.request_editor_tab("Realtime", RequestPaneTab::Realtime, cx))
-            .child(self.request_editor_tab("Tools", RequestPaneTab::Tools, cx))
+            .children(tabs)
     }
 
     fn request_editor_tab(
@@ -3901,6 +4246,7 @@ impl ZenApiApp {
             .h_full()
             .flex_1()
             .min_w_0()
+            .overflow_hidden()
             .px_1()
             .text_size(px(11.))
             .font_weight(if active {
@@ -3908,16 +4254,13 @@ impl ZenApiApp {
             } else {
                 FontWeight::NORMAL
             })
-            .text_color(if active {
-                ui_accent()
-            } else {
-                ui_text_secondary()
-            })
+            .text_color(if active { ui_accent() } else { ui_text_body() })
             .cursor_pointer()
             .hover(|tab| if active { tab } else { tab.bg(ui_hover()) })
             .on_mouse_up(
                 MouseButton::Left,
                 cx.listener(move |app, _event: &MouseUpEvent, _window, cx| {
+                    app.close_transient_layers();
                     app.active_request_tab = tab;
                     app.request_scroll.set_offset(point(px(0.), px(0.)));
                     cx.notify();
@@ -3940,7 +4283,7 @@ impl ZenApiApp {
                     .bg(if active {
                         ui_accent()
                     } else {
-                        ui_surface_muted()
+                        ui_request_tab_bar()
                     }),
             )
     }
@@ -3981,7 +4324,11 @@ impl ZenApiApp {
             })
     }
 
-    fn render_request_panel(&self, cx: &mut Context<Self>) -> impl IntoElement {
+    fn render_request_panel(
+        &self,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) -> impl IntoElement {
         div()
             .relative()
             .flex()
@@ -3990,8 +4337,9 @@ impl ZenApiApp {
             .min_w_0()
             .h_full()
             .overflow_hidden()
+            .bg(ui_request_pane())
             .child(panel_header("Request", None, ResponseTone::Neutral))
-            .child(self.render_request_bar(cx))
+            .child(self.render_request_bar(window, cx))
             .child(self.render_request_editor_tabs(cx))
             .child(
                 div()
@@ -4006,6 +4354,7 @@ impl ZenApiApp {
                             .flex_col()
                             .h_full()
                             .min_w_0()
+                            .bg(ui_request_pane())
                             .p_3()
                             .pr(px(SCROLLBAR_CONTENT_RIGHT_PADDING))
                             .gap_3()
@@ -4026,11 +4375,17 @@ impl ZenApiApp {
     }
 
     fn render_websocket_panel(&self, cx: &mut Context<Self>) -> impl IntoElement {
+        let has_websocket_url = text_input_has_text(&self.websocket_url, cx);
+        let websocket_message_text = self.websocket_message.read(cx).text();
+        let can_send_websocket = can_send_websocket_message(
+            self.websocket_running,
+            self.websocket_message_mode,
+            &websocket_message_text,
+        );
         let rows = self
             .websocket_messages
             .iter()
             .rev()
-            .take(8)
             .cloned()
             .map(websocket_log_row)
             .collect::<Vec<_>>();
@@ -4042,30 +4397,32 @@ impl ZenApiApp {
         div()
             .flex()
             .flex_col()
+            .min_w_0()
+            .overflow_hidden()
             .gap_2()
             .child(
                 div()
                     .flex()
                     .items_center()
                     .justify_between()
+                    .min_w_0()
+                    .gap_2()
                     .child(
                         div()
+                            .flex_shrink_0()
                             .text_size(px(12.))
                             .font_weight(FontWeight::BOLD)
-                            .text_color(ui_text_secondary())
+                            .text_color(ui_text_primary())
                             .child("WebSocket"),
                     )
-                    .child(
-                        div()
-                            .font_family(PLATFORM_MONOSPACE_FONT)
-                            .text_size(px(12.))
-                            .text_color(if self.websocket_running {
-                                ResponseTone::Busy.color()
-                            } else {
-                                ui_text_secondary()
-                            })
-                            .child(self.websocket_status.clone()),
-                    ),
+                    .child(panel_status_text(
+                        self.websocket_status.clone(),
+                        if self.websocket_running {
+                            ResponseTone::Busy.color()
+                        } else {
+                            ui_text_body()
+                        },
+                    )),
             )
             .child(
                 div()
@@ -4073,22 +4430,19 @@ impl ZenApiApp {
                     .flex_col()
                     .min_w_0()
                     .gap_2()
-                    .child(div().min_w_0().child(self.websocket_url.clone()))
+                    .child(bounded_text_input(self.websocket_url.clone()))
                     .child(
-                        div()
-                            .flex()
-                            .items_center()
-                            .gap_2()
+                        panel_button_row()
                             .child(self.panel_action_button(
                                 "Connect",
-                                !self.websocket_running,
+                                has_websocket_url && !self.websocket_running,
                                 ButtonTone::Primary,
                                 |app, _event, _window, cx| app.connect_websocket(cx),
                                 cx,
                             ))
                             .child(self.panel_action_button(
                                 "Send",
-                                self.websocket_running,
+                                can_send_websocket,
                                 ButtonTone::Neutral,
                                 |app, _event, _window, cx| app.send_websocket_message(cx),
                                 cx,
@@ -4102,7 +4456,7 @@ impl ZenApiApp {
                             )),
                     ),
             )
-            .child(self.websocket_protocols.clone())
+            .child(bounded_text_input(self.websocket_protocols.clone()))
             .child(key_value_editor(
                 "WebSocket Headers",
                 &self.websocket_headers,
@@ -4114,10 +4468,7 @@ impl ZenApiApp {
                     .min_w_0()
                     .gap_2()
                     .child(
-                        div()
-                            .flex()
-                            .items_center()
-                            .gap_2()
+                        panel_button_row()
                             .child(self.websocket_message_mode_button(
                                 "Text",
                                 WebSocketMessageMode::Text,
@@ -4133,16 +4484,13 @@ impl ZenApiApp {
                         div()
                             .truncate()
                             .text_size(px(12.))
-                            .text_color(ui_text_secondary())
+                            .text_color(ui_text_body())
                             .child(input_hint),
                     ),
             )
-            .child(self.websocket_message.clone())
+            .child(bounded_text_input(self.websocket_message.clone()))
             .child(
-                div()
-                    .flex()
-                    .items_center()
-                    .gap_2()
+                panel_button_row()
                     .child(self.panel_action_button(
                         "Copy Log",
                         !self.websocket_messages.is_empty(),
@@ -4162,32 +4510,28 @@ impl ZenApiApp {
                 div()
                     .flex()
                     .flex_col()
+                    .min_w_0()
+                    .overflow_hidden()
                     .rounded(px(4.))
                     .border_1()
                     .border_color(ui_border())
                     .bg(ui_surface())
                     .children(rows)
                     .when(self.websocket_messages.is_empty(), |list| {
-                        list.child(
-                            div()
-                                .h(px(EMPTY_STATE_ROW_HEIGHT))
-                                .flex()
-                                .items_center()
-                                .px_2()
-                                .text_color(ui_text_muted())
-                                .text_size(px(13.))
-                                .child("No WebSocket messages"),
-                        )
+                        list.child(empty_state_row(
+                            "No WebSocket messages",
+                            EMPTY_STATE_ROW_HEIGHT,
+                        ))
                     }),
             )
     }
 
     fn render_sse_panel(&self, cx: &mut Context<Self>) -> impl IntoElement {
+        let has_sse_url = text_input_has_text(&self.sse_url, cx);
         let rows = self
             .sse_events
             .iter()
             .rev()
-            .take(8)
             .cloned()
             .map(sse_log_row)
             .collect::<Vec<_>>();
@@ -4195,30 +4539,32 @@ impl ZenApiApp {
         div()
             .flex()
             .flex_col()
+            .min_w_0()
+            .overflow_hidden()
             .gap_2()
             .child(
                 div()
                     .flex()
                     .items_center()
                     .justify_between()
+                    .min_w_0()
+                    .gap_2()
                     .child(
                         div()
+                            .flex_shrink_0()
                             .text_size(px(12.))
                             .font_weight(FontWeight::BOLD)
-                            .text_color(ui_text_secondary())
+                            .text_color(ui_text_primary())
                             .child("SSE"),
                     )
-                    .child(
-                        div()
-                            .font_family(PLATFORM_MONOSPACE_FONT)
-                            .text_size(px(12.))
-                            .text_color(if self.sse_running {
-                                ResponseTone::Busy.color()
-                            } else {
-                                ui_text_secondary()
-                            })
-                            .child(self.sse_status.clone()),
-                    ),
+                    .child(panel_status_text(
+                        self.sse_status.clone(),
+                        if self.sse_running {
+                            ResponseTone::Busy.color()
+                        } else {
+                            ui_text_body()
+                        },
+                    )),
             )
             .child(
                 div()
@@ -4226,22 +4572,19 @@ impl ZenApiApp {
                     .flex_col()
                     .min_w_0()
                     .gap_2()
-                    .child(div().min_w_0().child(self.sse_url.clone()))
+                    .child(bounded_text_input(self.sse_url.clone()))
                     .child(
-                        div()
-                            .flex()
-                            .items_center()
-                            .gap_2()
+                        panel_button_row()
                             .child(self.panel_action_button(
                                 "Fetch",
-                                !self.sse_running,
+                                has_sse_url && !self.sse_running,
                                 ButtonTone::Primary,
                                 |app, _event, _window, cx| app.fetch_sse_events(cx),
                                 cx,
                             ))
                             .child(self.panel_action_button(
                                 "Subscribe",
-                                !self.sse_running,
+                                has_sse_url && !self.sse_running,
                                 ButtonTone::Neutral,
                                 |app, _event, _window, cx| app.subscribe_sse_events(cx),
                                 cx,
@@ -4257,10 +4600,7 @@ impl ZenApiApp {
             )
             .child(key_value_editor("SSE Headers", &self.sse_headers))
             .child(
-                div()
-                    .flex()
-                    .items_center()
-                    .gap_2()
+                panel_button_row()
                     .child(self.panel_action_button(
                         "Copy Log",
                         !self.sse_events.is_empty(),
@@ -4280,22 +4620,15 @@ impl ZenApiApp {
                 div()
                     .flex()
                     .flex_col()
+                    .min_w_0()
+                    .overflow_hidden()
                     .rounded(px(4.))
                     .border_1()
                     .border_color(ui_border())
                     .bg(ui_surface())
                     .children(rows)
                     .when(self.sse_events.is_empty(), |list| {
-                        list.child(
-                            div()
-                                .h(px(EMPTY_STATE_ROW_HEIGHT))
-                                .flex()
-                                .items_center()
-                                .px_2()
-                                .text_color(ui_text_muted())
-                                .text_size(px(13.))
-                                .child("No SSE events"),
-                        )
+                        list.child(empty_state_row("No SSE events", EMPTY_STATE_ROW_HEIGHT))
                     }),
             )
     }
@@ -4323,32 +4656,28 @@ impl ZenApiApp {
         div()
             .flex()
             .flex_col()
+            .min_w_0()
+            .overflow_hidden()
             .gap_2()
             .child(
                 div()
                     .flex()
                     .items_center()
                     .justify_between()
+                    .min_w_0()
+                    .gap_2()
                     .child(
                         div()
+                            .flex_shrink_0()
                             .text_size(px(12.))
                             .font_weight(FontWeight::BOLD)
-                            .text_color(ui_text_secondary())
+                            .text_color(ui_text_primary())
                             .child("Tests"),
                     )
-                    .child(
-                        div()
-                            .font_family(PLATFORM_MONOSPACE_FONT)
-                            .text_size(px(12.))
-                            .text_color(ui_text_secondary())
-                            .child(meta),
-                    ),
+                    .child(panel_status_text(meta, ui_text_body())),
             )
             .child(
-                div()
-                    .flex()
-                    .items_center()
-                    .gap_2()
+                panel_button_row()
                     .child(self.panel_action_button(
                         "Add Test",
                         true,
@@ -4373,7 +4702,7 @@ impl ZenApiApp {
                     .px_2()
                     .text_size(px(11.))
                     .font_weight(FontWeight::BOLD)
-                    .text_color(ui_text_muted())
+                    .text_color(ui_text_body())
                     .child(
                         div()
                             .w(px(TEST_ASSERTION_NAME_COLUMN_WIDTH))
@@ -4402,6 +4731,8 @@ impl ZenApiApp {
                     div()
                         .flex()
                         .flex_col()
+                        .min_w_0()
+                        .overflow_hidden()
                         .rounded(px(4.))
                         .border_1()
                         .border_color(ui_border())
@@ -4413,11 +4744,11 @@ impl ZenApiApp {
 
     fn render_collection_runner(&self, cx: &mut Context<Self>) -> impl IntoElement {
         let total = collection_item_count(&self.collection.items);
+        let stop_toggle_enabled = runner_stop_toggle_enabled(self.runner_running, self.busy);
         let rows = self
             .runner_results
             .iter()
             .rev()
-            .take(6)
             .cloned()
             .map(runner_result_row)
             .collect::<Vec<_>>();
@@ -4425,41 +4756,45 @@ impl ZenApiApp {
         div()
             .flex()
             .flex_col()
+            .min_w_0()
+            .overflow_hidden()
             .gap_2()
             .child(
                 div()
                     .flex()
                     .items_center()
                     .justify_between()
-                    .child(
-                        div()
-                            .text_size(px(12.))
-                            .font_weight(FontWeight::BOLD)
-                            .text_color(ui_text_secondary())
-                            .child("Runner"),
-                    )
-                    .child(
-                        div()
-                            .font_family(PLATFORM_MONOSPACE_FONT)
-                            .text_size(px(12.))
-                            .text_color(if self.runner_running {
-                                ResponseTone::Busy.color()
-                            } else {
-                                ui_text_secondary()
-                            })
-                            .child(self.runner_status.clone()),
-                    ),
-            )
-            .child(
-                div()
-                    .flex()
-                    .items_center()
+                    .min_w_0()
                     .gap_2()
                     .child(
-                        flexible_toggle("Stop on fail", self.runner_stop_on_failure).on_mouse_up(
+                        div()
+                            .flex_shrink_0()
+                            .text_size(px(12.))
+                            .font_weight(FontWeight::BOLD)
+                            .text_color(ui_text_primary())
+                            .child("Runner"),
+                    )
+                    .child(panel_status_text(
+                        self.runner_status.clone(),
+                        if self.runner_running {
+                            ResponseTone::Busy.color()
+                        } else {
+                            ui_text_body()
+                        },
+                    )),
+            )
+            .child(
+                panel_button_row()
+                    .child(
+                        flexible_toggle_enabled(
+                            "Stop on fail",
+                            self.runner_stop_on_failure,
+                            stop_toggle_enabled,
+                        )
+                        .on_mouse_up(
                             MouseButton::Left,
-                            cx.listener(|app, _event: &MouseUpEvent, _window, cx| {
-                                if !app.runner_running && !app.busy {
+                            cx.listener(move |app, _event: &MouseUpEvent, _window, cx| {
+                                if stop_toggle_enabled {
                                     app.runner_stop_on_failure = !app.runner_stop_on_failure;
                                     cx.notify();
                                 }
@@ -4478,26 +4813,22 @@ impl ZenApiApp {
                 div()
                     .flex()
                     .flex_col()
+                    .min_w_0()
+                    .overflow_hidden()
                     .rounded(px(4.))
                     .border_1()
                     .border_color(ui_border())
                     .bg(ui_surface())
                     .children(rows)
                     .when(self.runner_results.is_empty(), |list| {
-                        list.child(
-                            div()
-                                .h(px(EMPTY_STATE_ROW_HEIGHT))
-                                .flex()
-                                .items_center()
-                                .px_2()
-                                .text_color(ui_text_muted())
-                                .text_size(px(13.))
-                                .child(if total == 0 {
-                                    "No collection requests"
-                                } else {
-                                    "No runner results"
-                                }),
-                        )
+                        list.child(empty_state_row(
+                            if total == 0 {
+                                "No collection requests"
+                            } else {
+                                "No runner results"
+                            },
+                            EMPTY_STATE_ROW_HEIGHT,
+                        ))
                     }),
             )
     }
@@ -4507,7 +4838,6 @@ impl ZenApiApp {
             .mock_logs
             .iter()
             .rev()
-            .take(8)
             .map(|entry| mock_log_row(entry.method.clone(), entry.path.clone(), entry.status))
             .collect::<Vec<_>>();
 
@@ -4515,12 +4845,14 @@ impl ZenApiApp {
             .flex()
             .flex_col()
             .flex_1()
+            .min_w_0()
+            .overflow_hidden()
             .gap_2()
             .child(
                 div()
                     .text_size(px(12.))
                     .font_weight(FontWeight::BOLD)
-                    .text_color(ui_text_secondary())
+                    .text_color(ui_text_primary())
                     .child("Mock Log"),
             )
             .child(
@@ -4528,30 +4860,27 @@ impl ZenApiApp {
                     .flex()
                     .flex_col()
                     .flex_1()
+                    .min_w_0()
+                    .overflow_hidden()
                     .rounded(px(4.))
                     .border_1()
                     .border_color(ui_border())
                     .bg(ui_surface())
                     .children(rows)
                     .when(self.mock_logs.is_empty(), |list| {
-                        list.child(
-                            div()
-                                .h(px(EMPTY_STATE_ROW_HEIGHT))
-                                .flex()
-                                .items_center()
-                                .px_2()
-                                .text_color(ui_text_muted())
-                                .text_size(px(13.))
-                                .child("No mock requests"),
-                        )
+                        list.child(empty_state_row("No mock requests", EMPTY_STATE_ROW_HEIGHT))
                     }),
             )
     }
 
     fn render_headers_editor(&self, cx: &mut Context<Self>) -> impl IntoElement {
+        let has_request_headers = has_key_value_rows(&self.request_headers, cx);
+
         div()
             .flex()
             .flex_col()
+            .min_w_0()
+            .overflow_hidden()
             .gap_2()
             .child(key_value_editor("Headers", &self.request_headers))
             .child(
@@ -4561,13 +4890,10 @@ impl ZenApiApp {
                     .min_w_0()
                     .gap_2()
                     .child(
-                        div()
-                            .flex()
-                            .items_center()
-                            .gap_2()
+                        panel_button_row()
                             .child(self.panel_action_button(
                                 "Copy Bulk",
-                                true,
+                                has_request_headers,
                                 ButtonTone::Neutral,
                                 |app, _event, _window, cx| app.copy_headers_bulk(cx),
                                 cx,
@@ -4581,10 +4907,7 @@ impl ZenApiApp {
                             )),
                     )
                     .child(
-                        div()
-                            .flex()
-                            .items_center()
-                            .gap_2()
+                        panel_button_row()
                             .child(self.panel_action_button(
                                 "Accept JSON",
                                 true,
@@ -4617,7 +4940,7 @@ impl ZenApiApp {
                         div()
                             .truncate()
                             .text_size(px(12.))
-                            .text_color(ui_text_secondary())
+                            .text_color(ui_text_body())
                             .child("Key: Value per line; presets update existing header names"),
                     ),
             )
@@ -4630,16 +4953,19 @@ impl ZenApiApp {
             .map(|environment| self.environment_button(environment.name.clone(), cx))
             .collect::<Vec<_>>();
         let active_environment = self.active_environment.as_deref().unwrap_or("none");
+        let can_add_environment = can_add_environment(&self.environment_name_input.read(cx).text());
 
         div()
             .flex()
             .flex_col()
+            .min_w_0()
+            .overflow_hidden()
             .gap_2()
             .child(
                 div()
                     .text_size(px(12.))
                     .font_weight(FontWeight::BOLD)
-                    .text_color(ui_text_secondary())
+                    .text_color(ui_text_primary())
                     .child("Variables"),
             )
             .child(
@@ -4652,7 +4978,7 @@ impl ZenApiApp {
                         div()
                             .text_size(px(12.))
                             .font_weight(FontWeight::BOLD)
-                            .text_color(ui_text_muted())
+                            .text_color(ui_text_body())
                             .child("Environment"),
                     )
                     .child(
@@ -4661,7 +4987,7 @@ impl ZenApiApp {
                             .truncate()
                             .text_size(px(12.))
                             .font_family(PLATFORM_MONOSPACE_FONT)
-                            .text_color(ui_text_secondary())
+                            .text_color(ui_text_body())
                             .child(active_environment.to_string()),
                     ),
             )
@@ -4680,15 +5006,12 @@ impl ZenApiApp {
                     .flex_col()
                     .min_w_0()
                     .gap_2()
-                    .child(div().min_w_0().child(self.environment_name_input.clone()))
+                    .child(bounded_text_input(self.environment_name_input.clone()))
                     .child(
-                        div()
-                            .flex()
-                            .items_center()
-                            .gap_2()
+                        panel_button_row()
                             .child(self.panel_action_button(
                                 "Add Env",
-                                true,
+                                can_add_environment,
                                 ButtonTone::Neutral,
                                 |app, _event, _window, cx| app.add_environment(cx),
                                 cx,
@@ -4728,12 +5051,14 @@ impl ZenApiApp {
         div()
             .flex()
             .flex_col()
+            .min_w_0()
+            .overflow_hidden()
             .gap_2()
             .child(
                 div()
                     .text_size(px(12.))
                     .font_weight(FontWeight::BOLD)
-                    .text_color(ui_text_secondary())
+                    .text_color(ui_text_primary())
                     .child("Authorization"),
             )
             .child(
@@ -4743,25 +5068,19 @@ impl ZenApiApp {
                     .min_w_0()
                     .gap_2()
                     .child(
-                        div()
-                            .flex()
-                            .items_center()
-                            .gap_2()
+                        panel_button_row()
                             .child(self.auth_mode_button("None", AuthMode::None, cx))
                             .child(self.auth_mode_button("Bearer", AuthMode::Bearer, cx))
                             .child(self.auth_mode_button("Basic", AuthMode::Basic, cx)),
                     )
                     .child(
-                        div()
-                            .flex()
-                            .items_center()
-                            .gap_2()
+                        panel_button_row()
                             .child(self.auth_mode_button("JWT", AuthMode::Jwt, cx))
                             .child(self.auth_mode_button("API Key", AuthMode::ApiKey, cx)),
                     ),
             )
             .when(self.auth_mode == AuthMode::Bearer, |panel| {
-                panel.child(self.bearer_token.clone())
+                panel.child(bounded_text_input(self.bearer_token.clone()))
             })
             .when(self.auth_mode == AuthMode::Basic, |panel| {
                 panel.child(
@@ -4769,18 +5088,24 @@ impl ZenApiApp {
                         .flex()
                         .items_center()
                         .min_w_0()
+                        .overflow_hidden()
                         .gap_2()
                         .child(
                             div()
                                 .w(px(KEY_VALUE_KEY_COLUMN_WIDTH))
                                 .flex_shrink_0()
-                                .child(self.basic_username.clone()),
+                                .child(bounded_text_input(self.basic_username.clone())),
                         )
-                        .child(div().flex_1().min_w_0().child(self.basic_password.clone())),
+                        .child(
+                            div()
+                                .flex_1()
+                                .min_w_0()
+                                .child(bounded_text_input(self.basic_password.clone())),
+                        ),
                 )
             })
             .when(self.auth_mode == AuthMode::Jwt, |panel| {
-                panel.child(self.jwt_token.clone())
+                panel.child(bounded_text_input(self.jwt_token.clone()))
             })
             .when(self.auth_mode == AuthMode::ApiKey, |panel| {
                 panel
@@ -4789,21 +5114,23 @@ impl ZenApiApp {
                             .flex()
                             .items_center()
                             .min_w_0()
+                            .overflow_hidden()
                             .gap_2()
                             .child(
                                 div()
                                     .w(px(KEY_VALUE_KEY_COLUMN_WIDTH))
                                     .flex_shrink_0()
-                                    .child(self.api_key_name.clone()),
+                                    .child(bounded_text_input(self.api_key_name.clone())),
                             )
-                            .child(div().flex_1().min_w_0().child(self.api_key_value.clone())),
+                            .child(
+                                div()
+                                    .flex_1()
+                                    .min_w_0()
+                                    .child(bounded_text_input(self.api_key_value.clone())),
+                            ),
                     )
                     .child(
-                        div()
-                            .flex()
-                            .items_center()
-                            .min_w_0()
-                            .gap_2()
+                        panel_button_row()
                             .child(self.api_key_placement_button(
                                 "Header",
                                 ApiKeyPlacement::Header,
@@ -4829,37 +5156,41 @@ impl ZenApiApp {
         div()
             .flex()
             .flex_col()
+            .min_w_0()
+            .overflow_hidden()
             .gap_2()
             .child(
                 div()
                     .flex()
                     .items_center()
                     .justify_between()
+                    .min_w_0()
+                    .gap_2()
                     .child(
                         div()
+                            .flex_shrink_0()
                             .text_size(px(12.))
                             .font_weight(FontWeight::BOLD)
-                            .text_color(ui_text_secondary())
+                            .text_color(ui_text_primary())
                             .child("Pre-request"),
                     )
-                    .child(
-                        div()
-                            .font_family(PLATFORM_MONOSPACE_FONT)
-                            .text_size(px(12.))
-                            .text_color(if self.pre_request_status.starts_with("error") {
-                                ResponseTone::Error.color()
-                            } else {
-                                ui_text_muted()
-                            })
-                            .child(self.pre_request_status.clone()),
-                    ),
+                    .child(panel_status_text(
+                        self.pre_request_status.clone(),
+                        if self.pre_request_status.starts_with("error") {
+                            ResponseTone::Error.color()
+                        } else {
+                            ui_text_body()
+                        },
+                    )),
             )
-            .child(self.pre_request_script.clone())
+            .child(bounded_text_input(self.pre_request_script.clone()))
             .when(!self.last_pre_request_actions.is_empty(), |panel| {
                 panel.child(
                     div()
                         .flex()
                         .flex_col()
+                        .min_w_0()
+                        .overflow_hidden()
                         .rounded(px(4.))
                         .border_1()
                         .border_color(ui_border())
@@ -4873,12 +5204,14 @@ impl ZenApiApp {
         div()
             .flex()
             .flex_col()
+            .min_w_0()
+            .overflow_hidden()
             .gap_2()
             .child(
                 div()
                     .text_size(px(12.))
                     .font_weight(FontWeight::BOLD)
-                    .text_color(ui_text_secondary())
+                    .text_color(ui_text_primary())
                     .child("Body"),
             )
             .child(
@@ -4888,10 +5221,7 @@ impl ZenApiApp {
                     .min_w_0()
                     .gap_2()
                     .child(
-                        div()
-                            .flex()
-                            .items_center()
-                            .gap_2()
+                        panel_button_row()
                             .child(self.body_mode_button("None", RequestBodyMode::None, cx))
                             .child(self.body_mode_button(
                                 "form-data",
@@ -4900,10 +5230,7 @@ impl ZenApiApp {
                             )),
                     )
                     .child(
-                        div()
-                            .flex()
-                            .items_center()
-                            .gap_2()
+                        panel_button_row()
                             .child(self.body_mode_button(
                                 "x-www-form-urlencoded",
                                 RequestBodyMode::UrlEncoded,
@@ -4912,10 +5239,7 @@ impl ZenApiApp {
                             .child(self.body_mode_button("raw", RequestBodyMode::Raw, cx)),
                     )
                     .child(
-                        div()
-                            .flex()
-                            .items_center()
-                            .gap_2()
+                        panel_button_row()
                             .child(self.body_mode_button("GraphQL", RequestBodyMode::GraphQL, cx))
                             .child(self.body_mode_button("binary", RequestBodyMode::Binary, cx)),
                     ),
@@ -4936,30 +5260,23 @@ impl ZenApiApp {
             .when(self.request_body_mode == RequestBodyMode::Raw, |panel| {
                 panel
                     .child(
-                        div()
-                            .flex()
-                            .items_center()
-                            .min_w_0()
-                            .gap_2()
+                        panel_button_row()
                             .child(self.raw_format_button("JSON", RawBodyFormat::Json, cx))
                             .child(self.raw_format_button("XML", RawBodyFormat::Xml, cx))
                             .child(self.raw_format_button("Text", RawBodyFormat::Text, cx))
                             .child(self.raw_format_button("HTML", RawBodyFormat::Html, cx)),
                     )
-                    .child(
-                        div()
-                            .flex()
-                            .items_center()
-                            .min_w_0()
-                            .child(self.panel_action_button(
-                                "Format JSON",
-                                self.raw_body_format == RawBodyFormat::Json,
-                                ButtonTone::Neutral,
-                                |app, _event, _window, cx| app.format_raw_json_body(cx),
-                                cx,
-                            )),
-                    )
-                    .child(self.request_body.clone())
+                    .child(panel_button_row().child(self.panel_action_button(
+                        "Format JSON",
+                        can_format_raw_json(
+                            self.raw_body_format,
+                            &self.request_body.read(cx).text(),
+                        ),
+                        ButtonTone::Neutral,
+                        |app, _event, _window, cx| app.format_raw_json_body(cx),
+                        cx,
+                    )))
+                    .child(bounded_text_input(self.request_body.clone()))
                     .child(self.render_raw_body_preview(cx))
             })
             .when(
@@ -4971,11 +5288,16 @@ impl ZenApiApp {
                                 .flex()
                                 .items_center()
                                 .justify_between()
+                                .min_w_0()
+                                .gap_2()
                                 .child(
                                     div()
+                                        .flex_1()
+                                        .min_w_0()
+                                        .truncate()
                                         .text_size(px(12.))
                                         .font_weight(FontWeight::BOLD)
-                                        .text_color(ui_text_secondary())
+                                        .text_color(ui_text_primary())
                                         .child("GraphQL"),
                                 )
                                 .child(self.action_button(
@@ -4988,8 +5310,8 @@ impl ZenApiApp {
                                     cx,
                                 )),
                         )
-                        .child(self.graphql_query.clone())
-                        .child(self.graphql_variables.clone())
+                        .child(bounded_text_input(self.graphql_query.clone()))
+                        .child(bounded_text_input(self.graphql_variables.clone()))
                         .child(self.render_graphql_preview(cx))
                         .when(!self.graphql_schema_summary.is_empty(), |panel| {
                             panel.child(self.render_graphql_schema_summary())
@@ -5003,7 +5325,7 @@ impl ZenApiApp {
                 },
             )
             .when(self.request_body_mode == RequestBodyMode::Binary, |panel| {
-                panel.child(self.binary_body_path.clone())
+                panel.child(bounded_text_input(self.binary_body_path.clone()))
             })
     }
 
@@ -5017,24 +5339,32 @@ impl ZenApiApp {
         div()
             .flex()
             .flex_col()
+            .min_w_0()
+            .overflow_hidden()
             .gap_1()
             .child(
                 div()
                     .text_size(px(12.))
                     .font_weight(FontWeight::BOLD)
-                    .text_color(ui_text_secondary())
+                    .text_color(ui_text_primary())
                     .child("GraphQL JSON"),
             )
             .child(
                 div()
-                    .min_h(px(72.))
+                    .id("graphql-preview-scroll")
+                    .min_w_0()
+                    .overflow_x_hidden()
+                    .overflow_y_scroll()
+                    .scrollbar_width(px(SCROLLBAR_GUTTER_WIDTH))
+                    .h(px(BODY_PREVIEW_HEIGHT))
                     .rounded(px(4.))
                     .border_1()
                     .border_color(ui_border())
-                    .bg(ui_surface_muted())
+                    .bg(ui_surface())
                     .p_2()
+                    .pr(px(SCROLLBAR_CONTENT_RIGHT_PADDING))
                     .font_family(PLATFORM_MONOSPACE_FONT)
-                    .line_height(px(18.))
+                    .line_height(px(BODY_PREVIEW_LINE_HEIGHT))
                     .text_size(px(12.))
                     .text_color(ui_text_body())
                     .whitespace_normal()
@@ -5046,24 +5376,32 @@ impl ZenApiApp {
         div()
             .flex()
             .flex_col()
+            .min_w_0()
+            .overflow_hidden()
             .gap_1()
             .child(
                 div()
                     .text_size(px(12.))
                     .font_weight(FontWeight::BOLD)
-                    .text_color(ui_text_secondary())
+                    .text_color(ui_text_primary())
                     .child("GraphQL Schema"),
             )
             .child(
                 div()
-                    .min_h(px(72.))
+                    .id("graphql-schema-summary-scroll")
+                    .min_w_0()
+                    .overflow_x_hidden()
+                    .overflow_y_scroll()
+                    .scrollbar_width(px(SCROLLBAR_GUTTER_WIDTH))
+                    .h(px(BODY_PREVIEW_HEIGHT))
                     .rounded(px(4.))
                     .border_1()
                     .border_color(ui_border())
                     .bg(ui_surface())
                     .p_2()
+                    .pr(px(SCROLLBAR_CONTENT_RIGHT_PADDING))
                     .font_family(PLATFORM_MONOSPACE_FONT)
-                    .line_height(px(18.))
+                    .line_height(px(BODY_PREVIEW_LINE_HEIGHT))
                     .text_size(px(12.))
                     .text_color(ui_text_body())
                     .whitespace_normal()
@@ -5075,24 +5413,32 @@ impl ZenApiApp {
         div()
             .flex()
             .flex_col()
+            .min_w_0()
+            .overflow_hidden()
             .gap_1()
             .child(
                 div()
                     .text_size(px(12.))
                     .font_weight(FontWeight::BOLD)
-                    .text_color(ui_text_secondary())
+                    .text_color(ui_text_primary())
                     .child("Schema Browser"),
             )
             .child(
                 div()
-                    .min_h(px(GRAPHQL_SCHEMA_BROWSER_MIN_HEIGHT))
+                    .id("graphql-schema-browser-scroll")
+                    .min_w_0()
+                    .overflow_x_hidden()
+                    .overflow_y_scroll()
+                    .scrollbar_width(px(SCROLLBAR_GUTTER_WIDTH))
+                    .h(px(GRAPHQL_SCHEMA_BROWSER_HEIGHT))
                     .rounded(px(4.))
                     .border_1()
                     .border_color(ui_border())
-                    .bg(ui_surface_muted())
+                    .bg(ui_surface())
                     .p_2()
+                    .pr(px(SCROLLBAR_CONTENT_RIGHT_PADDING))
                     .font_family(PLATFORM_MONOSPACE_FONT)
-                    .line_height(px(18.))
+                    .line_height(px(BODY_PREVIEW_LINE_HEIGHT))
                     .text_size(px(12.))
                     .text_color(ui_text_body())
                     .whitespace_normal()
@@ -5117,6 +5463,8 @@ impl ZenApiApp {
                 div()
                     .flex()
                     .flex_col()
+                    .min_w_0()
+                    .overflow_hidden()
                     .gap_1()
                     .rounded(px(4.))
                     .border_1()
@@ -5127,9 +5475,11 @@ impl ZenApiApp {
                         div()
                             .flex()
                             .items_center()
-                            .justify_between()
+                            .min_w_0()
+                            .gap_2()
                             .child(
                                 div()
+                                    .flex_1()
                                     .min_w_0()
                                     .truncate()
                                     .font_family(PLATFORM_MONOSPACE_FONT)
@@ -5137,25 +5487,30 @@ impl ZenApiApp {
                                     .text_color(ui_text_primary())
                                     .child(template.field_name.clone()),
                             )
-                            .child(self.sized_action_button(
-                                "Use",
-                                54.,
-                                true,
-                                ButtonTone::Neutral,
-                                move |app, _event, _window, cx| {
-                                    app.apply_graphql_query_template(
-                                        operation.clone(),
-                                        variables.clone(),
-                                        cx,
-                                    )
-                                },
-                                cx,
-                            )),
+                            .child(
+                                self.sized_action_button(
+                                    "Use",
+                                    GRAPHQL_QUERY_TEMPLATE_USE_BUTTON_WIDTH,
+                                    true,
+                                    ButtonTone::Neutral,
+                                    move |app, _event, _window, cx| {
+                                        app.apply_graphql_query_template(
+                                            operation.clone(),
+                                            variables.clone(),
+                                            cx,
+                                        )
+                                    },
+                                    cx,
+                                )
+                                .flex_shrink_0(),
+                            ),
                     )
                     .child(
                         div()
+                            .min_w_0()
+                            .overflow_hidden()
                             .font_family(PLATFORM_MONOSPACE_FONT)
-                            .line_height(px(18.))
+                            .line_height(px(BODY_PREVIEW_LINE_HEIGHT))
                             .text_size(px(12.))
                             .text_color(ui_text_body())
                             .whitespace_normal()
@@ -5164,10 +5519,12 @@ impl ZenApiApp {
                     .when(has_variables, |row| {
                         row.child(
                             div()
+                                .min_w_0()
+                                .overflow_hidden()
                                 .font_family(PLATFORM_MONOSPACE_FONT)
-                                .line_height(px(18.))
+                                .line_height(px(BODY_PREVIEW_LINE_HEIGHT))
                                 .text_size(px(12.))
-                                .text_color(ui_text_secondary())
+                                .text_color(ui_text_body())
                                 .whitespace_normal()
                                 .child(format!("variables {variables_preview}")),
                         )
@@ -5178,12 +5535,14 @@ impl ZenApiApp {
         div()
             .flex()
             .flex_col()
+            .min_w_0()
+            .overflow_hidden()
             .gap_1()
             .child(
                 div()
                     .text_size(px(12.))
                     .font_weight(FontWeight::BOLD)
-                    .text_color(ui_text_secondary())
+                    .text_color(ui_text_primary())
                     .child("Query Assistant"),
             )
             .children(rows)
@@ -5197,24 +5556,32 @@ impl ZenApiApp {
         div()
             .flex()
             .flex_col()
+            .min_w_0()
+            .overflow_hidden()
             .gap_1()
             .child(
                 div()
                     .text_size(px(12.))
                     .font_weight(FontWeight::BOLD)
-                    .text_color(ui_text_secondary())
+                    .text_color(ui_text_primary())
                     .child("Syntax Preview"),
             )
             .child(
                 div()
-                    .min_h(px(72.))
+                    .id("raw-body-preview-scroll")
+                    .min_w_0()
+                    .overflow_x_hidden()
+                    .overflow_y_scroll()
+                    .scrollbar_width(px(SCROLLBAR_GUTTER_WIDTH))
+                    .h(px(BODY_PREVIEW_HEIGHT))
                     .rounded(px(4.))
                     .border_1()
                     .border_color(ui_border())
-                    .bg(ui_surface_muted())
+                    .bg(ui_surface())
                     .p_2()
+                    .pr(px(SCROLLBAR_CONTENT_RIGHT_PADDING))
                     .font_family(PLATFORM_MONOSPACE_FONT)
-                    .line_height(px(18.))
+                    .line_height(px(BODY_PREVIEW_LINE_HEIGHT))
                     .text_size(px(12.))
                     .text_color(ui_text_body())
                     .whitespace_normal()
@@ -5230,29 +5597,38 @@ impl ZenApiApp {
     }
 
     fn render_codegen_panel(&self, cx: &mut Context<Self>) -> impl IntoElement {
-        let snippet = self.codegen_snippet(cx);
-        let snippet_for_copy = snippet.clone();
+        let (snippet, snippet_for_copy) = self.codegen_snippet_state(cx);
+        let can_copy = snippet_for_copy.is_some();
+        let copy_colors = ButtonTone::Neutral.colors(can_copy && !self.busy);
 
         div()
             .flex()
             .flex_col()
+            .min_w_0()
+            .overflow_hidden()
             .gap_2()
             .child(
                 div()
                     .flex()
                     .items_center()
                     .justify_between()
+                    .min_w_0()
+                    .gap_2()
                     .child(
                         div()
+                            .flex_1()
+                            .min_w_0()
+                            .truncate()
                             .text_size(px(12.))
                             .font_weight(FontWeight::BOLD)
-                            .text_color(ui_text_secondary())
+                            .text_color(ui_text_primary())
                             .child("Code"),
                     )
                     .child(
                         div()
                             .flex()
                             .items_center()
+                            .flex_shrink_0()
                             .gap_2()
                             .child(self.codegen_language_selector(cx))
                             .child(
@@ -5264,21 +5640,28 @@ impl ZenApiApp {
                                     .w(px(CODEGEN_COPY_BUTTON_WIDTH))
                                     .rounded(px(5.))
                                     .border_1()
-                                    .border_color(ui_border_strong())
-                                    .bg(ui_surface())
+                                    .border_color(copy_colors.border)
+                                    .bg(copy_colors.background)
                                     .text_size(px(12.))
                                     .font_weight(FontWeight::BOLD)
-                                    .text_color(ui_text_body())
-                                    .cursor_pointer()
+                                    .text_color(copy_colors.text)
+                                    .opacity(control_opacity(can_copy && !self.busy))
+                                    .when(can_copy && !self.busy, |button| button.cursor_pointer())
                                     .on_mouse_up(
                                         MouseButton::Left,
                                         cx.listener(
                                             move |app, _event: &MouseUpEvent, _window, cx| {
-                                                cx.write_to_clipboard(ClipboardItem::new_string(
-                                                    snippet_for_copy.clone(),
-                                                ));
-                                                app.codegen_menu_open = false;
-                                                cx.notify();
+                                                if let Some(snippet) = &snippet_for_copy {
+                                                    if !app.busy {
+                                                        cx.write_to_clipboard(
+                                                            ClipboardItem::new_string(
+                                                                snippet.clone(),
+                                                            ),
+                                                        );
+                                                        app.codegen_menu_open = false;
+                                                        cx.notify();
+                                                    }
+                                                }
                                             },
                                         ),
                                     )
@@ -5288,12 +5671,18 @@ impl ZenApiApp {
             )
             .child(
                 div()
+                    .id("codegen-snippet-scroll")
+                    .min_w_0()
+                    .overflow_x_hidden()
+                    .overflow_y_scroll()
+                    .scrollbar_width(px(SCROLLBAR_GUTTER_WIDTH))
                     .h(px(180.))
                     .rounded(px(4.))
                     .border_1()
                     .border_color(ui_border())
                     .bg(ui_surface())
                     .p_3()
+                    .pr(px(SCROLLBAR_CONTENT_RIGHT_PADDING))
                     .font_family(PLATFORM_MONOSPACE_FONT)
                     .line_height(px(18.))
                     .text_size(px(12.))
@@ -5307,6 +5696,8 @@ impl ZenApiApp {
         div()
             .flex()
             .flex_col()
+            .min_w_0()
+            .overflow_hidden()
             .gap_1()
             .child(
                 compact_toggle(snippet_language_label(self.codegen_language), true)
@@ -5314,10 +5705,18 @@ impl ZenApiApp {
                         MouseButton::Left,
                         cx.listener(|app, _event: &MouseUpEvent, _window, cx| {
                             app.codegen_menu_open = !app.codegen_menu_open;
+                            app.import_popover_open = false;
+                            app.method_menu_open = false;
+                            app.collection_context_menu = None;
                             cx.notify();
                         }),
                     )
-                    .child(snippet_language_label(self.codegen_language)),
+                    .child(
+                        div()
+                            .min_w_0()
+                            .truncate()
+                            .child(snippet_language_label(self.codegen_language)),
+                    ),
             )
             .when(self.codegen_menu_open, |menu| {
                 menu.child(
@@ -5371,11 +5770,14 @@ impl ZenApiApp {
             .child(snippet_language_label(language))
     }
 
-    fn codegen_snippet(&self, cx: &mut Context<Self>) -> String {
+    fn codegen_snippet_state(&self, cx: &mut Context<Self>) -> (String, Option<String>) {
         match self.current_codegen_request(cx) {
-            Ok(request) if request.url.is_empty() => "Enter a request URL".to_string(),
-            Ok(request) => generate_snippet(&request, self.codegen_language),
-            Err(error) => format!("Request build failed: {error}"),
+            Ok(request) if can_copy_codegen_request(&request) => {
+                let snippet = generate_snippet(&request, self.codegen_language);
+                (snippet.clone(), Some(snippet))
+            }
+            Ok(_) => ("Enter a request URL".to_string(), None),
+            Err(error) => (format!("Request build failed: {error}"), None),
         }
     }
 
@@ -5477,6 +5879,7 @@ impl ZenApiApp {
             .min_w_0()
             .h_full()
             .overflow_hidden()
+            .bg(ui_response_pane())
             .child(panel_header(
                 &self.response_status,
                 meta,
@@ -5494,6 +5897,7 @@ impl ZenApiApp {
                             .id("response-body-scroll")
                             .h_full()
                             .min_w_0()
+                            .bg(ui_response_pane())
                             .p_3()
                             .pr(px(SCROLLBAR_CONTENT_RIGHT_PADDING))
                             .overflow_y_scroll()
@@ -5504,7 +5908,13 @@ impl ZenApiApp {
                             .text_size(px(13.))
                             .text_color(ui_text_primary())
                             .whitespace_normal()
-                            .child(self.response_body_viewer.clone()),
+                            .child(
+                                div()
+                                    .size_full()
+                                    .min_w_0()
+                                    .overflow_hidden()
+                                    .child(self.response_body_viewer.clone()),
+                            ),
                     )
                     .child(self.render_vertical_scrollbar(
                         ScrollbarKind::Response,
@@ -5515,14 +5925,20 @@ impl ZenApiApp {
     }
 
     fn render_response_tabs(&self, cx: &mut Context<Self>) -> impl IntoElement {
+        let tabs = response_tabs()
+            .into_iter()
+            .map(|(label, view)| self.response_tab(label, view, cx))
+            .collect::<Vec<_>>();
+
         div()
             .flex()
             .items_center()
             .h(px(RESPONSE_TAB_BAR_HEIGHT))
             .min_w_0()
+            .overflow_hidden()
             .border_b_1()
             .border_color(ui_border())
-            .bg(ui_surface_muted())
+            .bg(ui_response_tab_bar())
             .px_3()
             .gap_1()
             .child(
@@ -5531,10 +5947,9 @@ impl ZenApiApp {
                     .items_center()
                     .flex_1()
                     .min_w_0()
+                    .overflow_hidden()
                     .gap_1()
-                    .child(self.response_tab("Pretty", ResponseView::Pretty, cx))
-                    .child(self.response_tab("Raw", ResponseView::Raw, cx))
-                    .child(self.response_tab("Headers", ResponseView::Headers, cx)),
+                    .children(tabs),
             )
             .when(self.response_view == ResponseView::Pretty, |tabs| {
                 tabs.child(self.response_fold_button(cx))
@@ -5548,62 +5963,39 @@ impl ZenApiApp {
         } else {
             "Collapse"
         };
+        let enabled = !self.busy && response_can_collapse(&self.response_raw_body);
 
-        div()
-            .flex()
-            .items_center()
-            .justify_center()
-            .h(px(COMPACT_CONTROL_HEIGHT))
-            .w(px(RESPONSE_FOLD_BUTTON_WIDTH))
-            .flex_shrink_0()
-            .rounded(px(5.))
-            .border_1()
-            .border_color(ui_border_strong())
-            .bg(ui_surface())
-            .text_size(px(12.))
-            .font_weight(FontWeight::BOLD)
-            .text_color(ui_text_secondary())
-            .cursor_pointer()
-            .on_mouse_up(
-                MouseButton::Left,
-                cx.listener(|app, _event: &MouseUpEvent, _window, cx| {
+        response_toolbar_button(label, RESPONSE_FOLD_BUTTON_WIDTH, enabled).on_mouse_up(
+            MouseButton::Left,
+            cx.listener(move |app, _event: &MouseUpEvent, _window, cx| {
+                if enabled {
                     app.response_pretty_collapsed = !app.response_pretty_collapsed;
                     reset_scroll_handle(&app.response_scroll);
                     cx.notify();
-                }),
-            )
-            .child(div().min_w_0().truncate().child(label))
+                }
+            }),
+        )
     }
 
     fn response_copy_button(&self, cx: &mut Context<Self>) -> impl IntoElement {
-        let enabled = !self.busy;
-        let colors = ButtonTone::Neutral.colors(enabled);
+        let has_copy_text = response_copy_text(
+            self.response_view,
+            self.response_pretty_collapsed,
+            &self.response_body,
+            &self.response_raw_body,
+            &self.response_headers,
+        )
+        .is_some();
+        let enabled = !self.busy && has_copy_text;
 
-        div()
-            .flex()
-            .items_center()
-            .justify_center()
-            .h(px(COMPACT_CONTROL_HEIGHT))
-            .w(px(RESPONSE_COPY_BUTTON_WIDTH))
-            .flex_shrink_0()
-            .rounded(px(5.))
-            .border_1()
-            .border_color(colors.border)
-            .bg(colors.background)
-            .text_size(px(12.))
-            .font_weight(FontWeight::BOLD)
-            .text_color(colors.text)
-            .opacity(if enabled { 1.0 } else { 0.62 })
-            .when(enabled, |button| button.cursor_pointer())
-            .on_mouse_up(
-                MouseButton::Left,
-                cx.listener(move |app, _event: &MouseUpEvent, _window, cx| {
-                    if enabled {
-                        app.copy_response_body(cx);
-                    }
-                }),
-            )
-            .child(div().min_w_0().truncate().child("Copy"))
+        response_toolbar_button("Copy", RESPONSE_COPY_BUTTON_WIDTH, enabled).on_mouse_up(
+            MouseButton::Left,
+            cx.listener(move |app, _event: &MouseUpEvent, _window, cx| {
+                if enabled {
+                    app.copy_response_body(cx);
+                }
+            }),
+        )
     }
 
     fn response_tab(
@@ -5611,7 +6003,7 @@ impl ZenApiApp {
         label: &'static str,
         view: ResponseView,
         cx: &mut Context<Self>,
-    ) -> impl IntoElement {
+    ) -> gpui::Div {
         let active = self.response_view == view;
         div()
             .flex()
@@ -5620,6 +6012,7 @@ impl ZenApiApp {
             .h(px(COMPACT_CONTROL_HEIGHT))
             .flex_1()
             .min_w_0()
+            .overflow_hidden()
             .max_w(px(RESPONSE_TAB_WIDTH))
             .rounded(px(5.))
             .border_1()
@@ -5631,19 +6024,16 @@ impl ZenApiApp {
             .bg(if active {
                 ui_surface()
             } else {
-                ui_surface_muted()
+                ui_response_tab_bar()
             })
             .text_size(px(12.))
             .font_weight(FontWeight::BOLD)
-            .text_color(if active {
-                ui_accent()
-            } else {
-                ui_text_secondary()
-            })
+            .text_color(if active { ui_accent() } else { ui_text_body() })
             .cursor_pointer()
             .on_mouse_up(
                 MouseButton::Left,
                 cx.listener(move |app, _event: &MouseUpEvent, _window, cx| {
+                    app.close_transient_layers();
                     app.response_view = view;
                     reset_scroll_handle(&app.response_scroll);
                     cx.notify();
@@ -5664,15 +6054,18 @@ impl ZenApiApp {
 }
 
 impl Render for ZenApiApp {
-    fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         div()
             .relative()
             .flex()
             .flex_col()
             .size_full()
             .key_context("ZenApiApp")
+            .on_action(cx.listener(Self::send_current_request_shortcut))
             .on_action(cx.listener(Self::save_current_request_shortcut))
             .on_action(cx.listener(Self::focus_active_sidebar_input))
+            .on_action(cx.listener(Self::focus_request_url))
+            .on_action(cx.listener(Self::close_transient_ui))
             .font_family(PLATFORM_UI_FONT)
             .text_size(px(13.))
             .text_color(ui_text_primary())
@@ -5684,7 +6077,7 @@ impl Render for ZenApiApp {
                     .flex_1()
                     .min_w_0()
                     .overflow_hidden()
-                    .child(self.render_workspace(cx)),
+                    .child(self.render_workspace(window, cx)),
             )
             .child(self.render_status_bar())
             .when(self.import_popover_open, |root| {
@@ -5708,7 +6101,9 @@ impl Render for CollectionDragPreview {
             .text_size(px(12.))
             .font_weight(FontWeight::BOLD)
             .text_color(ui_accent_text())
-            .child(self.label.clone())
+            .min_w_0()
+            .overflow_hidden()
+            .child(div().min_w_0().truncate().child(self.label.clone()))
     }
 }
 
@@ -5736,9 +6131,11 @@ impl ZenApiApp {
             .justify_between()
             .h(px(32.))
             .w_full()
+            .min_w_0()
+            .overflow_hidden()
             .border_t_1()
             .border_color(ui_border())
-            .bg(ui_surface_muted())
+            .bg(ui_app_chrome())
             .px_3()
             .text_size(px(12.))
             .text_color(ui_text_secondary())
@@ -5746,22 +6143,35 @@ impl ZenApiApp {
                 div()
                     .flex()
                     .items_center()
+                    .flex_1()
+                    .min_w_0()
+                    .overflow_hidden()
                     .gap_3()
-                    .child(route_status)
-                    .child(mock_status),
+                    .child(div().flex_shrink_0().truncate().child(route_status))
+                    .child(div().flex_1().min_w_0().truncate().child(mock_status)),
             )
             .child(
                 div()
                     .flex()
                     .items_center()
+                    .justify_end()
+                    .w(px(STATUS_BAR_TRAILING_WIDTH))
+                    .max_w(px(STATUS_BAR_TRAILING_WIDTH))
+                    .flex_shrink_1()
+                    .min_w_0()
+                    .overflow_hidden()
                     .gap_3()
                     .child(
                         div()
+                            .flex_1()
+                            .min_w_0()
+                            .truncate()
+                            .text_right()
                             .font_family(PLATFORM_MONOSPACE_FONT)
                             .text_color(self.response_tone.color())
                             .child(self.response_status.clone()),
                     )
-                    .child(busy_status),
+                    .child(div().flex_shrink_0().child(busy_status)),
             )
     }
 }
@@ -5783,9 +6193,9 @@ impl ButtonTone {
     fn colors(self, enabled: bool) -> ButtonColors {
         if !enabled {
             return ButtonColors {
-                background: ui_hover(),
-                border: ui_border_strong(),
-                text: ui_text_muted(),
+                background: ui_disabled_surface(),
+                border: ui_disabled_border(),
+                text: ui_disabled_text(),
             };
         }
 
@@ -5814,6 +6224,14 @@ enum ResponseView {
     Pretty,
     Raw,
     Headers,
+}
+
+fn response_tabs() -> [(&'static str, ResponseView); RESPONSE_TAB_COUNT] {
+    [
+        ("Pretty", ResponseView::Pretty),
+        ("Raw", ResponseView::Raw),
+        ("Headers", ResponseView::Headers),
+    ]
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -5857,8 +6275,6 @@ enum TestAssertionKind {
     HeaderEquals,
     BodyContains,
     JsonPathEquals,
-    BodyBytesLessThan,
-    ElapsedLessThan,
 }
 
 impl TestAssertionKind {
@@ -5870,8 +6286,6 @@ impl TestAssertionKind {
             Self::HeaderEquals => "Header =",
             Self::BodyContains => "Body contains",
             Self::JsonPathEquals => "JSON path =",
-            Self::BodyBytesLessThan => "Size <",
-            Self::ElapsedLessThan => "Time <",
         }
     }
 
@@ -5882,9 +6296,7 @@ impl TestAssertionKind {
             Self::HeaderExists => Self::HeaderEquals,
             Self::HeaderEquals => Self::BodyContains,
             Self::BodyContains => Self::JsonPathEquals,
-            Self::JsonPathEquals => Self::BodyBytesLessThan,
-            Self::BodyBytesLessThan => Self::ElapsedLessThan,
-            Self::ElapsedLessThan => Self::StatusEquals,
+            Self::JsonPathEquals => Self::StatusEquals,
         }
     }
 }
@@ -5921,7 +6333,7 @@ enum ResponseTone {
 impl ResponseTone {
     fn color(self) -> Hsla {
         match self {
-            Self::Neutral => ui_text_secondary(),
+            Self::Neutral => ui_text_body(),
             Self::Busy => ui_status_busy(),
             Self::Success => ui_status_success(),
             Self::Error => ui_status_error(),
@@ -5973,6 +6385,15 @@ fn read_key_value_rows(rows: &[KeyValueRow], cx: &mut Context<ZenApiApp>) -> Vec
             Some((key, row.value.read(cx).text().trim().to_string()))
         })
         .collect()
+}
+
+fn has_key_value_rows(rows: &[KeyValueRow], cx: &mut Context<ZenApiApp>) -> bool {
+    rows.iter()
+        .any(|row| key_value_key_is_present(&row.key.read(cx).text()))
+}
+
+fn key_value_key_is_present(key: &str) -> bool {
+    !key.trim().is_empty()
 }
 
 fn set_key_value_rows(rows: &[KeyValueRow], values: Vec<NameValue>, cx: &mut Context<ZenApiApp>) {
@@ -6072,16 +6493,6 @@ fn assertion_fields(assertion: &ResponseAssertion) -> (TestAssertionKind, String
             path.clone(),
             value.to_string(),
         ),
-        ResponseAssertionKind::BodyBytesLessThan { max } => (
-            TestAssertionKind::BodyBytesLessThan,
-            max.to_string(),
-            String::new(),
-        ),
-        ResponseAssertionKind::ElapsedLessThan { max_ms } => (
-            TestAssertionKind::ElapsedLessThan,
-            max_ms.to_string(),
-            String::new(),
-        ),
     }
 }
 
@@ -6128,12 +6539,6 @@ fn response_assertion_from_fields(
             path: target.to_string(),
             value: parse_json_value_field(expected)?,
         },
-        TestAssertionKind::BodyBytesLessThan => ResponseAssertionKind::BodyBytesLessThan {
-            max: parse_usize_field(target, "body size")?,
-        },
-        TestAssertionKind::ElapsedLessThan => ResponseAssertionKind::ElapsedLessThan {
-            max_ms: parse_u128_field(target, "elapsed time")?,
-        },
     };
 
     if let ResponseAssertionKind::StatusInRange { min, max } = &kind {
@@ -6151,18 +6556,6 @@ fn response_assertion_from_fields(
 fn parse_u16_field(input: &str, label: &str) -> Result<u16> {
     input
         .parse::<u16>()
-        .map_err(|error| anyhow!("invalid {label}: {error}"))
-}
-
-fn parse_usize_field(input: &str, label: &str) -> Result<usize> {
-    input
-        .parse::<usize>()
-        .map_err(|error| anyhow!("invalid {label}: {error}"))
-}
-
-fn parse_u128_field(input: &str, label: &str) -> Result<u128> {
-    input
-        .parse::<u128>()
         .map_err(|error| anyhow!("invalid {label}: {error}"))
 }
 
@@ -6193,6 +6586,10 @@ fn assertion_meta(results: &[ResponseAssertionResult]) -> Option<String> {
     Some(format!("{passed}/{} tests", results.len()))
 }
 
+fn response_panel_meta(results: &[ResponseAssertionResult]) -> String {
+    assertion_meta(results).unwrap_or_default()
+}
+
 fn pre_request_status_label(actions: usize) -> String {
     match actions {
         0 => "idle".to_string(),
@@ -6203,6 +6600,71 @@ fn pre_request_status_label(actions: usize) -> String {
 
 fn pre_request_error_label(error: &str) -> String {
     format!("error: {}", preview_text(error))
+}
+
+fn clean_error_message(error: &str) -> &str {
+    let error = error.trim();
+    if error.is_empty() {
+        "Unknown error"
+    } else {
+        error
+    }
+}
+
+fn file_operation_error(action: &str, path: &str, error: &str, next_step: &str) -> String {
+    format!(
+        "{action}\n\nPath\n{}\n\nError\n{}\n\nNext step\n{next_step}",
+        path.trim(),
+        clean_error_message(error)
+    )
+}
+
+fn editor_error(action: &str, error: &str, next_step: &str) -> String {
+    format!(
+        "{action}\n\nError\n{}\n\nNext step\n{next_step}",
+        clean_error_message(error)
+    )
+}
+
+fn request_transport_error(method: &str, url: &str, error: &str) -> String {
+    format!(
+        "Could not complete the request.\n\nRequest\n{} {}\n\nError\n{}\n\nNext step\nCheck the URL, network connection, TLS settings, and server availability.",
+        method.trim(),
+        url.trim(),
+        clean_error_message(error)
+    )
+}
+
+fn mock_server_error(port: u16, error: &str) -> String {
+    format!(
+        "Could not start the mock server.\n\nPort\n{port}\n\nError\n{}\n\nNext step\nStop any process using this port or change the mock server port when port configuration is added.",
+        clean_error_message(error)
+    )
+}
+
+fn realtime_operation_error(
+    action: &str,
+    target_label: &str,
+    target: &str,
+    error: &str,
+    next_step: &str,
+) -> String {
+    format!(
+        "{action}\n\n{target_label}\n{}\n\nError\n{}\n\nNext step\n{next_step}",
+        target.trim(),
+        clean_error_message(error)
+    )
+}
+
+fn runner_failure_text(summary: &CollectionRunSummary) -> String {
+    format!(
+        "{}\n\nNext step\nReview the failed runner rows, fix the request URL, variables, pre-request actions, tests, or server state, then run the collection again.",
+        runner_summary_text(summary)
+    )
+}
+
+fn runner_worker_stopped_message() -> &'static str {
+    "Collection runner stopped before returning a summary.\n\nNext step\nRun the collection again. If this repeats, check the saved collection requests and pre-request actions."
 }
 
 fn set_key_value_pairs(
@@ -6994,7 +7456,7 @@ fn websocket_log_entries(exchange: &client::WebSocketExchange) -> Vec<WebSocketL
 fn websocket_exchange_text(exchange: &client::WebSocketExchange) -> String {
     let mut lines = vec![
         format!("url: {}", exchange.url),
-        format!("elapsed: {}ms", exchange.elapsed_ms),
+        format!("received: {}", exchange.received.len()),
         format!("sent text: {}", exchange.sent),
     ];
 
@@ -7090,8 +7552,7 @@ fn format_sse_log(entries: &[SseLogEntry]) -> String {
 fn sse_exchange_text(exchange: &client::SseExchange) -> String {
     let mut lines = vec![
         format!("url: {}", exchange.url),
-        format!("elapsed: {}ms", exchange.elapsed_ms),
-        format!("events: {}", exchange.events.len()),
+        sse_event_count_label(exchange.events.len()),
     ];
 
     for event in &exchange.events {
@@ -7110,6 +7571,13 @@ fn sse_exchange_text(exchange: &client::SseExchange) -> String {
 
 fn sse_event_label(event: &client::SseEvent) -> &str {
     event.event.as_deref().unwrap_or("message")
+}
+
+fn sse_event_count_label(count: usize) -> String {
+    match count {
+        1 => "1 event".to_string(),
+        count => format!("{count} events"),
+    }
 }
 
 fn graphql_body(query: &str, variables: &str) -> String {
@@ -7671,12 +8139,15 @@ fn key_value_editor(title: &'static str, rows: &[KeyValueRow]) -> impl IntoEleme
         .flex()
         .flex_col()
         .min_w_0()
+        .overflow_hidden()
         .gap_2()
         .child(
             div()
+                .min_w_0()
+                .truncate()
                 .text_size(px(12.))
                 .font_weight(FontWeight::BOLD)
-                .text_color(ui_text_secondary())
+                .text_color(ui_text_primary())
                 .child(title),
         )
         .child(
@@ -7686,16 +8157,18 @@ fn key_value_editor(title: &'static str, rows: &[KeyValueRow]) -> impl IntoEleme
                 .gap_2()
                 .px_2()
                 .min_w_0()
+                .overflow_hidden()
                 .text_size(px(11.))
                 .font_weight(FontWeight::BOLD)
-                .text_color(ui_text_muted())
+                .text_color(ui_text_body())
                 .child(
                     div()
                         .w(px(KEY_VALUE_KEY_COLUMN_WIDTH))
                         .flex_shrink_0()
+                        .truncate()
                         .child("Key"),
                 )
-                .child(div().flex_1().min_w_0().child("Value")),
+                .child(div().flex_1().min_w_0().truncate().child("Value")),
         )
         .child(
             div()
@@ -7712,14 +8185,130 @@ fn key_value_row(key: Entity<TextInput>, value: Entity<TextInput>) -> impl IntoE
         .flex()
         .items_center()
         .min_w_0()
+        .overflow_hidden()
         .gap_2()
         .child(
             div()
                 .w(px(KEY_VALUE_KEY_COLUMN_WIDTH))
                 .flex_shrink_0()
-                .child(key),
+                .child(bounded_text_input(key)),
         )
-        .child(div().flex_1().min_w_0().child(value))
+        .child(div().flex_1().min_w_0().child(bounded_text_input(value)))
+}
+
+fn bounded_text_input(input: Entity<TextInput>) -> gpui::Div {
+    div().min_w_0().overflow_hidden().child(input)
+}
+
+fn panel_button_row() -> gpui::Div {
+    div()
+        .flex()
+        .items_center()
+        .min_w_0()
+        .overflow_hidden()
+        .gap_2()
+}
+
+fn empty_state_row(label: impl Into<SharedString>, height: f32) -> gpui::Div {
+    div()
+        .h(px(height))
+        .flex()
+        .items_center()
+        .min_w_0()
+        .overflow_hidden()
+        .px_2()
+        .text_color(ui_text_body())
+        .text_size(px(13.))
+        .child(div().min_w_0().truncate().child(label.into()))
+}
+
+fn fixed_row_cell(
+    label: impl Into<SharedString>,
+    width: f32,
+    color: Hsla,
+    bold: bool,
+    align_right: bool,
+) -> gpui::Div {
+    div()
+        .w(px(width))
+        .flex_shrink_0()
+        .min_w_0()
+        .overflow_hidden()
+        .truncate()
+        .text_color(color)
+        .when(bold, |cell| cell.font_weight(FontWeight::BOLD))
+        .when(align_right, |cell| cell.text_right())
+        .child(label.into())
+}
+
+fn sidebar_section_header(title: &'static str, trailing: gpui::Div) -> gpui::Div {
+    div()
+        .flex()
+        .justify_between()
+        .items_center()
+        .min_w_0()
+        .gap_2()
+        .h(px(SECTION_HEADER_HEIGHT))
+        .text_size(px(13.))
+        .child(
+            div()
+                .flex_1()
+                .min_w_0()
+                .truncate()
+                .font_weight(FontWeight::BOLD)
+                .text_color(ui_text_primary())
+                .child(title),
+        )
+        .child(trailing)
+}
+
+fn sidebar_count_text(count: impl Into<SharedString>) -> gpui::Div {
+    div()
+        .min_w_0()
+        .flex_shrink_1()
+        .truncate()
+        .font_family(PLATFORM_MONOSPACE_FONT)
+        .text_color(ui_text_secondary())
+        .child(count.into())
+}
+
+fn sidebar_status_text(status: impl Into<SharedString>) -> gpui::Div {
+    div()
+        .min_w_0()
+        .flex_shrink_1()
+        .truncate()
+        .text_color(ui_text_secondary())
+        .child(status.into())
+}
+
+fn sidebar_small_button(
+    label: &'static str,
+    width: f32,
+    height: f32,
+    enabled: bool,
+    tone: ButtonTone,
+) -> gpui::Div {
+    let colors = tone.colors(enabled);
+
+    div()
+        .flex()
+        .items_center()
+        .justify_center()
+        .h(px(height))
+        .w(px(width))
+        .flex_shrink_0()
+        .min_w_0()
+        .overflow_hidden()
+        .rounded(px(4.))
+        .border_1()
+        .border_color(colors.border)
+        .bg(colors.background)
+        .text_size(px(11.))
+        .font_weight(FontWeight::BOLD)
+        .text_color(colors.text)
+        .opacity(control_opacity(enabled))
+        .when(enabled, |button| button.cursor_pointer())
+        .child(div().min_w_0().truncate().child(label))
 }
 
 fn assertion_editor_row(
@@ -7738,7 +8327,7 @@ fn assertion_editor_row(
             div()
                 .w(px(TEST_ASSERTION_NAME_COLUMN_WIDTH))
                 .flex_shrink_0()
-                .child(row.name.clone()),
+                .child(bounded_text_input(row.name.clone())),
         )
         .child(
             compact_toggle(kind.label(), true)
@@ -7753,10 +8342,20 @@ fn assertion_editor_row(
                         }
                     }),
                 )
-                .child(kind.label()),
+                .child(div().min_w_0().truncate().child(kind.label())),
         )
-        .child(div().flex_1().min_w_0().child(row.target.clone()))
-        .child(div().flex_1().min_w_0().child(row.expected.clone()))
+        .child(
+            div()
+                .flex_1()
+                .min_w_0()
+                .child(bounded_text_input(row.target.clone())),
+        )
+        .child(
+            div()
+                .flex_1()
+                .min_w_0()
+                .child(bounded_text_input(row.expected.clone())),
+        )
 }
 
 fn assertion_result_row(result: ResponseAssertionResult) -> gpui::Div {
@@ -7777,29 +8376,32 @@ fn assertion_result_row(result: ResponseAssertionResult) -> gpui::Div {
         .border_color(ui_hover())
         .text_size(px(12.))
         .child(
-            div()
-                .w(px(48.))
-                .flex_shrink_0()
-                .font_family(PLATFORM_MONOSPACE_FONT)
-                .font_weight(FontWeight::BOLD)
-                .text_color(tone.color())
-                .child(if result.passed { "PASS" } else { "FAIL" }),
+            fixed_row_cell(
+                if result.passed { "PASS" } else { "FAIL" },
+                TEST_RESULT_STATUS_COLUMN_WIDTH,
+                tone.color(),
+                true,
+                false,
+            )
+            .font_family(PLATFORM_MONOSPACE_FONT)
+            .text_size(px(12.)),
         )
         .child(
-            div()
-                .w(px(140.))
-                .flex_shrink_0()
-                .truncate()
-                .font_weight(FontWeight::BOLD)
-                .text_color(ui_text_body())
-                .child(result.name),
+            fixed_row_cell(
+                result.name,
+                TEST_RESULT_NAME_COLUMN_WIDTH,
+                ui_text_body(),
+                true,
+                false,
+            )
+            .text_size(px(12.)),
         )
         .child(
             div()
                 .flex_1()
                 .min_w_0()
                 .truncate()
-                .text_color(ui_text_secondary())
+                .text_color(ui_text_body())
                 .child(result.error.unwrap_or_else(|| "ok".to_string())),
         )
 }
@@ -7817,13 +8419,15 @@ fn pre_request_action_row(action: String) -> gpui::Div {
         .border_color(ui_hover())
         .text_size(px(12.))
         .child(
-            div()
-                .w(px(48.))
-                .flex_shrink_0()
-                .font_family(PLATFORM_MONOSPACE_FONT)
-                .font_weight(FontWeight::BOLD)
-                .text_color(ResponseTone::Success.color())
-                .child("PASS"),
+            fixed_row_cell(
+                "PASS",
+                TEST_RESULT_STATUS_COLUMN_WIDTH,
+                ResponseTone::Success.color(),
+                true,
+                false,
+            )
+            .font_family(PLATFORM_MONOSPACE_FONT)
+            .text_size(px(12.)),
         )
         .child(
             div()
@@ -7831,7 +8435,7 @@ fn pre_request_action_row(action: String) -> gpui::Div {
                 .min_w_0()
                 .truncate()
                 .font_family(PLATFORM_MONOSPACE_FONT)
-                .text_color(ui_text_secondary())
+                .text_color(ui_text_body())
                 .child(action),
         )
 }
@@ -7845,6 +8449,8 @@ fn compact_toggle(label: &str, active: bool) -> gpui::Div {
         .justify_center()
         .h(px(COMPACT_CONTROL_HEIGHT))
         .w(width)
+        .min_w_0()
+        .overflow_hidden()
         .px_2()
         .rounded(px(5.))
         .border_1()
@@ -7853,22 +8459,58 @@ fn compact_toggle(label: &str, active: bool) -> gpui::Div {
         } else {
             ui_border_strong()
         })
-        .bg(if active {
-            ui_surface()
-        } else {
-            ui_surface_muted()
-        })
+        .bg(ui_surface())
         .text_size(px(12.))
         .font_weight(FontWeight::BOLD)
-        .text_color(if active {
-            ui_accent()
-        } else {
-            ui_text_secondary()
-        })
+        .text_color(if active { ui_accent() } else { ui_text_body() })
         .cursor_pointer()
 }
 
+fn panel_status_text(label: impl Into<SharedString>, color: Hsla) -> gpui::Div {
+    div()
+        .min_w_0()
+        .flex_shrink_1()
+        .truncate()
+        .text_right()
+        .font_family(PLATFORM_MONOSPACE_FONT)
+        .text_size(px(12.))
+        .text_color(color)
+        .child(label.into())
+}
+
+fn response_toolbar_button(label: &'static str, width: f32, enabled: bool) -> gpui::Div {
+    let colors = ButtonTone::Neutral.colors(enabled);
+
+    div()
+        .flex()
+        .items_center()
+        .justify_center()
+        .h(px(COMPACT_CONTROL_HEIGHT))
+        .w(px(width))
+        .flex_shrink_0()
+        .min_w_0()
+        .overflow_hidden()
+        .rounded(px(5.))
+        .border_1()
+        .border_color(colors.border)
+        .bg(colors.background)
+        .text_size(px(12.))
+        .font_weight(FontWeight::BOLD)
+        .text_color(colors.text)
+        .opacity(control_opacity(enabled))
+        .when(enabled, |button| button.cursor_pointer())
+        .child(div().min_w_0().truncate().child(label))
+}
+
 fn flexible_toggle(label: impl Into<SharedString>, active: bool) -> gpui::Div {
+    flexible_toggle_enabled(label, active, true)
+}
+
+fn flexible_toggle_enabled(
+    label: impl Into<SharedString>,
+    active: bool,
+    enabled: bool,
+) -> gpui::Div {
     let label = label.into();
 
     div()
@@ -7878,28 +8520,36 @@ fn flexible_toggle(label: impl Into<SharedString>, active: bool) -> gpui::Div {
         .h(px(COMPACT_CONTROL_HEIGHT))
         .flex_1()
         .min_w_0()
+        .overflow_hidden()
         .px_2()
         .rounded(px(5.))
         .border_1()
-        .border_color(if active {
+        .border_color(if !enabled {
+            ui_disabled_border()
+        } else if active {
             ui_accent()
         } else {
             ui_border_strong()
         })
-        .bg(if active {
+        .bg(if !enabled {
+            ui_disabled_surface()
+        } else if active {
             ui_surface()
         } else {
-            ui_surface_muted()
+            ui_surface()
         })
         .text_size(px(12.))
         .font_weight(FontWeight::BOLD)
-        .text_color(if active {
+        .text_color(if !enabled {
+            ui_disabled_text()
+        } else if active {
             ui_accent()
         } else {
-            ui_text_secondary()
+            ui_text_body()
         })
-        .cursor_pointer()
-        .child(div().truncate().child(label))
+        .opacity(control_opacity(enabled))
+        .when(enabled, |toggle| toggle.cursor_pointer())
+        .child(div().min_w_0().truncate().child(label))
 }
 
 fn full_width_toggle(label: impl Into<SharedString>, active: bool) -> gpui::Div {
@@ -7912,6 +8562,7 @@ fn full_width_toggle(label: impl Into<SharedString>, active: bool) -> gpui::Div 
         .h(px(COMPACT_CONTROL_HEIGHT))
         .w_full()
         .min_w_0()
+        .overflow_hidden()
         .px_2()
         .rounded(px(5.))
         .border_1()
@@ -7920,20 +8571,12 @@ fn full_width_toggle(label: impl Into<SharedString>, active: bool) -> gpui::Div 
         } else {
             ui_border_strong()
         })
-        .bg(if active {
-            ui_surface()
-        } else {
-            ui_surface_muted()
-        })
+        .bg(ui_surface())
         .text_size(px(12.))
         .font_weight(FontWeight::BOLD)
-        .text_color(if active {
-            ui_accent()
-        } else {
-            ui_text_secondary()
-        })
+        .text_color(if active { ui_accent() } else { ui_text_body() })
         .cursor_pointer()
-        .child(div().truncate().child(label))
+        .child(div().min_w_0().truncate().child(label))
 }
 
 fn bearer_auth_pair(token: &str) -> Option<(String, String)> {
@@ -8043,10 +8686,9 @@ fn runner_status_text(summary: &CollectionRunSummary) -> String {
 
 fn runner_summary_text(summary: &CollectionRunSummary) -> String {
     let mut lines = vec![format!(
-        "{}\n{} in {} ms",
+        "{}\n{}",
         summary.collection_name,
-        runner_status_text(summary),
-        summary.elapsed_ms
+        runner_status_text(summary)
     )];
 
     for result in &summary.results {
@@ -8055,13 +8697,7 @@ fn runner_summary_text(summary: &CollectionRunSummary) -> String {
             .map(|status| status.to_string())
             .unwrap_or_else(|| "ERR".to_string());
         let outcome = if result.success { "PASS" } else { "FAIL" };
-        let mut line = format!(
-            "[{outcome}] {status} {} {} - {} ms, {}",
-            result.method,
-            result.url,
-            result.elapsed_ms,
-            format_bytes(result.body_bytes)
-        );
+        let mut line = format!("[{outcome}] {status} {} {}", result.method, result.url);
         if let Some(error) = &result.error {
             line.push_str(&format!(" - {error}"));
         }
@@ -8093,6 +8729,7 @@ fn runner_result_row(result: CollectionRunResult) -> impl IntoElement {
         ResponseTone::Error
     };
     let path = result.path.join(" / ");
+    let method_color = method_color(&result.method);
 
     div()
         .flex()
@@ -8106,21 +8743,20 @@ fn runner_result_row(result: CollectionRunResult) -> impl IntoElement {
         .border_color(ui_hover())
         .font_family(PLATFORM_MONOSPACE_FONT)
         .text_size(px(12.))
-        .child(
-            div()
-                .w(px(70.))
-                .flex_shrink_0()
-                .font_weight(FontWeight::BOLD)
-                .text_color(method_color(&result.method))
-                .child(result.method),
-        )
-        .child(
-            div()
-                .w(px(42.))
-                .flex_shrink_0()
-                .text_color(tone.color())
-                .child(status),
-        )
+        .child(fixed_row_cell(
+            result.method,
+            RUNNER_METHOD_COLUMN_WIDTH,
+            method_color,
+            true,
+            false,
+        ))
+        .child(fixed_row_cell(
+            status,
+            RUNNER_STATUS_COLUMN_WIDTH,
+            tone.color(),
+            false,
+            false,
+        ))
         .child(
             div()
                 .flex_1()
@@ -8129,23 +8765,14 @@ fn runner_result_row(result: CollectionRunResult) -> impl IntoElement {
                 .text_color(ui_text_body())
                 .child(path),
         )
-        .child(
-            div()
-                .w(px(76.))
-                .flex_shrink_0()
-                .text_right()
-                .text_color(ui_text_secondary())
-                .child(format_bytes(result.body_bytes)),
-        )
         .when(!result.pre_request_actions.is_empty(), |row| {
-            row.child(
-                div()
-                    .w(px(52.))
-                    .flex_shrink_0()
-                    .text_right()
-                    .text_color(ResponseTone::Success.color())
-                    .child(format!("pre {}", result.pre_request_actions.len())),
-            )
+            row.child(fixed_row_cell(
+                format!("pre {}", result.pre_request_actions.len()),
+                RUNNER_PRE_REQUEST_COLUMN_WIDTH,
+                ResponseTone::Success.color(),
+                false,
+                true,
+            ))
         })
         .when(!result.assertions.is_empty(), |row| {
             let failed = result
@@ -8153,26 +8780,27 @@ fn runner_result_row(result: CollectionRunResult) -> impl IntoElement {
                 .iter()
                 .filter(|assertion| !assertion.passed)
                 .count();
-            row.child(
-                div()
-                    .w(px(64.))
-                    .flex_shrink_0()
-                    .text_right()
-                    .text_color(if failed == 0 {
-                        ResponseTone::Success.color()
-                    } else {
-                        ResponseTone::Error.color()
-                    })
-                    .child(format!(
-                        "{}/{}",
-                        result.assertions.len() - failed,
-                        result.assertions.len()
-                    )),
-            )
+            row.child(fixed_row_cell(
+                format!(
+                    "{}/{}",
+                    result.assertions.len() - failed,
+                    result.assertions.len()
+                ),
+                RUNNER_TESTS_COLUMN_WIDTH,
+                if failed == 0 {
+                    ResponseTone::Success.color()
+                } else {
+                    ResponseTone::Error.color()
+                },
+                false,
+                true,
+            ))
         })
 }
 
 fn mock_log_row(method: String, path: String, status: u16) -> impl IntoElement {
+    let method_color = method_color(&method);
+
     div()
         .flex()
         .items_center()
@@ -8185,21 +8813,20 @@ fn mock_log_row(method: String, path: String, status: u16) -> impl IntoElement {
         .border_color(ui_hover())
         .font_family(PLATFORM_MONOSPACE_FONT)
         .text_size(px(12.))
-        .child(
-            div()
-                .w(px(70.))
-                .flex_shrink_0()
-                .font_weight(FontWeight::BOLD)
-                .text_color(method_color(&method))
-                .child(method),
-        )
-        .child(
-            div()
-                .w(px(42.))
-                .flex_shrink_0()
-                .text_color(response_tone(status).color())
-                .child(status.to_string()),
-        )
+        .child(fixed_row_cell(
+            method,
+            RUNNER_METHOD_COLUMN_WIDTH,
+            method_color,
+            true,
+            false,
+        ))
+        .child(fixed_row_cell(
+            status.to_string(),
+            RUNNER_STATUS_COLUMN_WIDTH,
+            response_tone(status).color(),
+            false,
+            false,
+        ))
         .child(
             div()
                 .flex_1()
@@ -8228,21 +8855,20 @@ fn websocket_log_row(entry: WebSocketLogEntry) -> impl IntoElement {
         .border_color(ui_hover())
         .font_family(PLATFORM_MONOSPACE_FONT)
         .text_size(px(12.))
-        .child(
-            div()
-                .w(px(52.))
-                .flex_shrink_0()
-                .font_weight(FontWeight::BOLD)
-                .text_color(direction_color)
-                .child(direction),
-        )
-        .child(
-            div()
-                .w(px(52.))
-                .flex_shrink_0()
-                .text_color(ui_text_secondary())
-                .child(entry.kind),
-        )
+        .child(fixed_row_cell(
+            direction,
+            WEBSOCKET_DIRECTION_COLUMN_WIDTH,
+            direction_color,
+            true,
+            false,
+        ))
+        .child(fixed_row_cell(
+            entry.kind,
+            WEBSOCKET_KIND_COLUMN_WIDTH,
+            ui_text_body(),
+            false,
+            false,
+        ))
         .child(
             div()
                 .flex_1()
@@ -8254,6 +8880,8 @@ fn websocket_log_row(entry: WebSocketLogEntry) -> impl IntoElement {
 }
 
 fn sse_log_row(entry: SseLogEntry) -> impl IntoElement {
+    let id = entry.id.unwrap_or_else(|| "-".to_string());
+
     div()
         .flex()
         .items_center()
@@ -8266,21 +8894,20 @@ fn sse_log_row(entry: SseLogEntry) -> impl IntoElement {
         .border_color(ui_hover())
         .font_family(PLATFORM_MONOSPACE_FONT)
         .text_size(px(12.))
-        .child(
-            div()
-                .w(px(74.))
-                .flex_shrink_0()
-                .font_weight(FontWeight::BOLD)
-                .text_color(ui_accent_text())
-                .child(entry.event),
-        )
-        .child(
-            div()
-                .w(px(58.))
-                .flex_shrink_0()
-                .text_color(ui_text_secondary())
-                .child(entry.id.unwrap_or_else(|| "-".to_string())),
-        )
+        .child(fixed_row_cell(
+            entry.event,
+            SSE_EVENT_COLUMN_WIDTH,
+            ui_accent_text(),
+            true,
+            false,
+        ))
+        .child(fixed_row_cell(
+            id,
+            SSE_ID_COLUMN_WIDTH,
+            ui_text_body(),
+            false,
+            false,
+        ))
         .child(
             div()
                 .flex_1()
@@ -8298,6 +8925,8 @@ fn history_row(
     status: String,
     cx: &mut Context<ZenApiApp>,
 ) -> impl IntoElement + 'static + use<> {
+    let method_color = method_color(&method);
+
     div()
         .id(("history", id))
         .flex()
@@ -8329,13 +8958,14 @@ fn history_row(
                         .min_w_0()
                         .gap_2()
                         .child(
-                            div()
-                                .w(px(HTTP_METHOD_LABEL_WIDTH))
-                                .flex_shrink_0()
-                                .text_size(px(12.))
-                                .font_weight(FontWeight::BOLD)
-                                .text_color(method_color(&method))
-                                .child(method),
+                            fixed_row_cell(
+                                method,
+                                HTTP_METHOD_LABEL_WIDTH,
+                                method_color,
+                                true,
+                                false,
+                            )
+                            .text_size(px(12.)),
                         )
                         .child(
                             div()
@@ -8360,28 +8990,14 @@ fn history_row(
                 ),
         )
         .child(
-            div()
-                .flex()
-                .items_center()
-                .justify_center()
-                .flex_shrink_0()
-                .h(px(SECTION_HEADER_HEIGHT))
-                .w(px(42.))
-                .rounded(px(4.))
-                .border_1()
-                .border_color(ui_border_strong())
-                .bg(ui_surface())
-                .text_size(px(11.))
-                .text_color(ui_text_secondary())
-                .cursor_pointer()
+            sidebar_small_button("Del", 42., SECTION_HEADER_HEIGHT, true, ButtonTone::Neutral)
                 .on_mouse_up(
                     MouseButton::Left,
                     cx.listener(move |app, _event: &MouseUpEvent, _window, cx| {
                         app.history.remove(id);
                         cx.notify();
                     }),
-                )
-                .child("Del"),
+                ),
         )
 }
 
@@ -8418,7 +9034,8 @@ fn append_collection_rows(
 }
 
 fn collection_tree_indent(depth: usize) -> f32 {
-    COLLECTION_TREE_INDENT_BASE + depth as f32 * COLLECTION_TREE_INDENT_STEP
+    (COLLECTION_TREE_INDENT_BASE + depth as f32 * COLLECTION_TREE_INDENT_STEP)
+        .min(COLLECTION_TREE_INDENT_MAX)
 }
 
 fn collection_tree_row_height(kind: CollectionNodeKind) -> f32 {
@@ -8614,6 +9231,7 @@ fn collection_request_row(
     let method = request.method.clone();
     let name = request.name.clone();
     let url = request.url.clone();
+    let method_color = method_color(&method);
     let menu_label = request.name.clone();
     let drop_id = menu_id.clone();
     let drag_value = DraggedCollectionNode {
@@ -8669,13 +9287,8 @@ fn collection_request_row(
             }),
         )
         .child(
-            div()
-                .w(px(HTTP_METHOD_LABEL_WIDTH))
-                .flex_shrink_0()
-                .text_size(px(11.))
-                .font_weight(FontWeight::BOLD)
-                .text_color(method_color(&method))
-                .child(method),
+            fixed_row_cell(method, HTTP_METHOD_LABEL_WIDTH, method_color, true, false)
+                .text_size(px(11.)),
         )
         .child(
             div()
@@ -8714,6 +9327,10 @@ fn collection_item_count(items: &[CollectionItem]) -> usize {
         .sum()
 }
 
+fn can_export_collection(collection: &ApiCollection) -> bool {
+    collection_item_count(&collection.items) > 0
+}
+
 fn method_color(method: &str) -> Hsla {
     match method {
         "GET" => ui_status_success(),
@@ -8724,6 +9341,35 @@ fn method_color(method: &str) -> Hsla {
         "OPTIONS" => rgb(UI_COLOR_METHOD_OPTIONS).into(),
         "HEAD" => rgb(UI_COLOR_METHOD_HEAD).into(),
         _ => ui_text_secondary(),
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum RequestAddressBorderTone {
+    Disabled,
+    Focused,
+    Default,
+}
+
+fn request_address_border_tone(
+    address_enabled: bool,
+    url_focused: bool,
+    _method_menu_open: bool,
+) -> RequestAddressBorderTone {
+    if !address_enabled {
+        RequestAddressBorderTone::Disabled
+    } else if url_focused {
+        RequestAddressBorderTone::Focused
+    } else {
+        RequestAddressBorderTone::Default
+    }
+}
+
+fn request_address_border_color(tone: RequestAddressBorderTone) -> Hsla {
+    match tone {
+        RequestAddressBorderTone::Disabled => ui_disabled_border(),
+        RequestAddressBorderTone::Focused => ui_accent(),
+        RequestAddressBorderTone::Default => ui_border_strong(),
     }
 }
 
@@ -8766,6 +9412,19 @@ fn sidebar_focus_target(section: SidebarSection) -> SidebarFocusTarget {
     }
 }
 
+fn close_transient_ui_state(state: &mut TransientUiState) -> bool {
+    let changed = state.import_popover_open
+        || state.method_menu_open
+        || state.codegen_menu_open
+        || state.collection_menu_open;
+
+    if changed {
+        *state = TransientUiState::default();
+    }
+
+    changed
+}
+
 fn reset_scroll_handle(scroll: &ScrollHandle) {
     scroll.set_offset(point(px(0.), px(0.)));
 }
@@ -8795,6 +9454,91 @@ fn filter_routes(routes: &[ApiRoute], query: &str) -> Vec<ApiRoute> {
         .collect()
 }
 
+fn filtered_count_label(total: usize, visible: usize) -> String {
+    if total == 0 {
+        "0".to_string()
+    } else {
+        format!("{}/{}", visible.min(total), total)
+    }
+}
+
+fn has_trimmed_text(input: &str) -> bool {
+    !input.trim().is_empty()
+}
+
+fn can_submit_path_action(busy: bool, path: &str) -> bool {
+    !busy && has_trimmed_text(path)
+}
+
+fn can_rename_collection_target(kind: CollectionNodeKind, name: &str) -> bool {
+    kind != CollectionNodeKind::Root && has_trimmed_text(name)
+}
+
+fn can_submit_collection_rename(busy: bool, kind: Option<CollectionNodeKind>, name: &str) -> bool {
+    !busy && kind.is_some_and(|kind| can_rename_collection_target(kind, name))
+}
+
+fn can_save_current_request_to_collection(url: &str, pre_request_script: &str) -> bool {
+    can_send_request(url, pre_request_script)
+}
+
+fn can_save_current_request_shortcut(busy: bool, url: &str, pre_request_script: &str) -> bool {
+    !busy && can_save_current_request_to_collection(url, pre_request_script)
+}
+
+fn can_focus_request_url(busy: bool) -> bool {
+    !busy
+}
+
+fn can_send_request_shortcut(busy: bool, url: &str, pre_request_script: &str) -> bool {
+    !busy && can_send_request(url, pre_request_script)
+}
+
+fn can_send_request(url: &str, pre_request_script: &str) -> bool {
+    has_trimmed_text(url) || pre_request_sets_url(pre_request_script)
+}
+
+fn pre_request_sets_url(script: &str) -> bool {
+    script.split([';', '\n']).map(str::trim).any(|action| {
+        if action.is_empty() || action.starts_with('#') || action.starts_with("//") {
+            return false;
+        }
+
+        let Some((name, value)) = action.split_once(char::is_whitespace) else {
+            return false;
+        };
+
+        matches!(name.trim(), "url" | "set_url") && has_trimmed_text(value)
+    })
+}
+
+fn can_send_websocket_message(running: bool, mode: WebSocketMessageMode, message: &str) -> bool {
+    if !running {
+        return false;
+    }
+
+    match mode {
+        WebSocketMessageMode::Text => true,
+        WebSocketMessageMode::BinaryHex => websocket_hex_bytes(message).is_ok(),
+    }
+}
+
+fn can_add_environment(name: &str) -> bool {
+    has_trimmed_text(&normalized_environment_name(name))
+}
+
+fn runner_stop_toggle_enabled(runner_running: bool, busy: bool) -> bool {
+    !runner_running && !busy
+}
+
+fn can_copy_codegen_request(request: &CodegenRequest) -> bool {
+    has_trimmed_text(&request.url)
+}
+
+fn text_input_has_text(input: &Entity<TextInput>, cx: &mut Context<ZenApiApp>) -> bool {
+    has_trimmed_text(&input.read(cx).text())
+}
+
 fn default_request_body(method: &str) -> &'static str {
     match method {
         "POST" | "PUT" | "PATCH" => "{}",
@@ -8817,9 +9561,17 @@ fn formatted_json_body(input: &str) -> Result<String> {
     Ok(pretty_json(&value))
 }
 
+fn can_format_raw_json(format: RawBodyFormat, body: &str) -> bool {
+    format == RawBodyFormat::Json && has_trimmed_text(body)
+}
+
 fn collapsed_json_preview(input: &str) -> Option<String> {
     let value = serde_json::from_str::<serde_json::Value>(input).ok()?;
     Some(collapsed_json_value(&value, 0))
+}
+
+fn response_can_collapse(raw_body: &str) -> bool {
+    collapsed_json_preview(raw_body).is_some()
 }
 
 fn response_body_for_view(
@@ -8839,13 +9591,28 @@ fn response_body_for_view(
         }
         ResponseView::Raw => raw_body.to_string(),
         ResponseView::Headers => {
-            if headers.is_empty() {
+            if headers.trim().is_empty() {
                 "No response headers".to_string()
             } else {
                 headers.to_string()
             }
         }
     }
+}
+
+fn response_copy_text(
+    view: ResponseView,
+    pretty_collapsed: bool,
+    pretty_body: &str,
+    raw_body: &str,
+    headers: &str,
+) -> Option<String> {
+    if view == ResponseView::Headers && headers.trim().is_empty() {
+        return None;
+    }
+
+    let text = response_body_for_view(view, pretty_collapsed, pretty_body, raw_body, headers);
+    (!text.trim().is_empty()).then_some(text)
 }
 
 fn collapsed_json_value(value: &serde_json::Value, depth: usize) -> String {
@@ -8914,29 +9681,12 @@ fn collapsed_json_summary(value: &serde_json::Value) -> String {
     }
 }
 
-fn format_response_meta(elapsed_ms: u128, body_bytes: usize) -> String {
-    format!("{} ms | {}", elapsed_ms, format_bytes(body_bytes))
-}
-
 fn format_headers(headers: &[(String, String)]) -> String {
     headers
         .iter()
         .map(|(name, value)| format!("{name}: {value}"))
         .collect::<Vec<_>>()
         .join("\n")
-}
-
-fn format_bytes(bytes: usize) -> String {
-    const KB: usize = 1024;
-    const MB: usize = 1024 * KB;
-
-    if bytes >= MB {
-        format!("{:.1} MB", bytes as f64 / MB as f64)
-    } else if bytes >= KB {
-        format!("{:.1} KB", bytes as f64 / KB as f64)
-    } else {
-        format!("{bytes} B")
-    }
 }
 
 #[cfg(test)]
@@ -8977,6 +9727,210 @@ mod tests {
     }
 
     #[test]
+    fn filtered_count_labels_show_visible_and_total() {
+        assert_eq!(filtered_count_label(0, 0), "0");
+        assert_eq!(filtered_count_label(4, 4), "4/4");
+        assert_eq!(filtered_count_label(4, 2), "2/4");
+        assert_eq!(filtered_count_label(4, 8), "4/4");
+    }
+
+    #[test]
+    fn trimmed_text_presence_ignores_whitespace() {
+        assert!(!has_trimmed_text(""));
+        assert!(!has_trimmed_text("   \n\t"));
+        assert!(has_trimmed_text("api.yaml"));
+        assert!(has_trimmed_text("  collection.json  "));
+    }
+
+    #[test]
+    fn path_submit_requires_text_and_idle_state() {
+        assert!(!can_submit_path_action(false, ""));
+        assert!(!can_submit_path_action(false, "   "));
+        assert!(!can_submit_path_action(true, "api.yaml"));
+        assert!(can_submit_path_action(false, " api.yaml "));
+    }
+
+    #[test]
+    fn collection_rename_requires_non_root_and_name() {
+        assert!(!can_rename_collection_target(
+            CollectionNodeKind::Root,
+            "Demo"
+        ));
+        assert!(!can_rename_collection_target(
+            CollectionNodeKind::Folder,
+            ""
+        ));
+        assert!(!can_rename_collection_target(
+            CollectionNodeKind::Request,
+            "   "
+        ));
+        assert!(can_rename_collection_target(
+            CollectionNodeKind::Folder,
+            "Accounts"
+        ));
+        assert!(can_rename_collection_target(
+            CollectionNodeKind::Request,
+            "List users"
+        ));
+    }
+
+    #[test]
+    fn collection_rename_submit_matches_button_preconditions() {
+        assert!(!can_submit_collection_rename(false, None, "Demo"));
+        assert!(!can_submit_collection_rename(
+            true,
+            Some(CollectionNodeKind::Folder),
+            "Demo"
+        ));
+        assert!(!can_submit_collection_rename(
+            false,
+            Some(CollectionNodeKind::Root),
+            "Demo"
+        ));
+        assert!(!can_submit_collection_rename(
+            false,
+            Some(CollectionNodeKind::Request),
+            "   "
+        ));
+        assert!(can_submit_collection_rename(
+            false,
+            Some(CollectionNodeKind::Folder),
+            "Users"
+        ));
+        assert!(can_submit_collection_rename(
+            false,
+            Some(CollectionNodeKind::Request),
+            "List users"
+        ));
+    }
+
+    #[test]
+    fn collection_save_requires_url_or_pre_request_url_action() {
+        assert!(!can_save_current_request_to_collection("", ""));
+        assert!(!can_save_current_request_to_collection(
+            "   ",
+            "# set_url https://api.example.com"
+        ));
+        assert!(!can_save_current_request_to_collection(
+            "   ",
+            "// url https://api.example.com"
+        ));
+        assert!(!can_save_current_request_to_collection("   ", "set_url"));
+        assert!(can_save_current_request_to_collection(
+            "https://api.example.com/users",
+            ""
+        ));
+        assert!(can_save_current_request_to_collection(
+            "   ",
+            "set_url https://api.example.com/users"
+        ));
+        assert!(can_save_current_request_to_collection(
+            "   ",
+            "method POST; url https://api.example.com/users"
+        ));
+    }
+
+    #[test]
+    fn save_shortcut_matches_collection_save_preconditions() {
+        assert!(!can_save_current_request_shortcut(false, "", ""));
+        assert!(!can_save_current_request_shortcut(
+            true,
+            "https://api.example.com/users",
+            ""
+        ));
+        assert!(can_save_current_request_shortcut(
+            false,
+            "https://api.example.com/users",
+            ""
+        ));
+        assert!(can_save_current_request_shortcut(
+            false,
+            "   ",
+            "set_url https://api.example.com/users"
+        ));
+    }
+
+    #[test]
+    fn request_send_requires_url_or_pre_request_url_action() {
+        assert!(!can_send_request("", ""));
+        assert!(!can_send_request(
+            "   ",
+            "# set_url https://api.example.com"
+        ));
+        assert!(!can_send_request("   ", "// url https://api.example.com"));
+        assert!(!can_send_request("   ", "url"));
+        assert!(can_send_request("https://api.example.com/users", ""));
+        assert!(can_send_request(
+            "   ",
+            "set_url https://api.example.com/users"
+        ));
+        assert!(can_send_request(
+            "   ",
+            "method POST; url https://api.example.com/users"
+        ));
+    }
+
+    #[test]
+    fn request_send_shortcut_matches_button_preconditions() {
+        assert!(!can_send_request_shortcut(false, "", ""));
+        assert!(!can_send_request_shortcut(
+            true,
+            "https://api.example.com/users",
+            ""
+        ));
+        assert!(can_send_request_shortcut(
+            false,
+            "https://api.example.com/users",
+            ""
+        ));
+        assert!(can_send_request_shortcut(
+            false,
+            "   ",
+            "set_url https://api.example.com/users"
+        ));
+    }
+
+    #[test]
+    fn runner_stop_toggle_disables_while_running_or_busy() {
+        assert!(runner_stop_toggle_enabled(false, false));
+        assert!(!runner_stop_toggle_enabled(true, false));
+        assert!(!runner_stop_toggle_enabled(false, true));
+        assert!(!runner_stop_toggle_enabled(true, true));
+    }
+
+    #[test]
+    fn key_value_presence_uses_key_text_only() {
+        assert!(!key_value_key_is_present(""));
+        assert!(!key_value_key_is_present("   "));
+        assert!(key_value_key_is_present("Accept"));
+        assert!(key_value_key_is_present("  X-Trace-Id  "));
+    }
+
+    #[test]
+    fn request_address_border_ignores_method_menu_state() {
+        assert_eq!(
+            request_address_border_tone(false, false, true),
+            RequestAddressBorderTone::Disabled
+        );
+        assert_eq!(
+            request_address_border_tone(true, true, false),
+            RequestAddressBorderTone::Focused
+        );
+        assert_eq!(
+            request_address_border_tone(true, true, true),
+            RequestAddressBorderTone::Focused
+        );
+        assert_eq!(
+            request_address_border_tone(true, false, false),
+            RequestAddressBorderTone::Default
+        );
+        assert_eq!(
+            request_address_border_tone(true, false, true),
+            RequestAddressBorderTone::Default
+        );
+    }
+
+    #[test]
     fn maps_http_status_to_response_tone() {
         assert!(matches!(response_tone(200), ResponseTone::Success));
         assert!(matches!(response_tone(302), ResponseTone::Success));
@@ -8986,9 +9940,25 @@ mod tests {
     }
 
     #[test]
-    fn formats_response_meta_with_elapsed_time_and_size() {
-        assert_eq!(format_response_meta(42, 17), "42 ms | 17 B");
-        assert_eq!(format_response_meta(5, 2048), "5 ms | 2.0 KB");
+    fn formats_assertion_summary_meta() {
+        assert_eq!(assertion_meta(&[]), None);
+        assert_eq!(response_panel_meta(&[]), "");
+
+        let results = vec![
+            ResponseAssertionResult {
+                name: "status".to_string(),
+                passed: true,
+                error: None,
+            },
+            ResponseAssertionResult {
+                name: "body".to_string(),
+                passed: false,
+                error: Some("missing body text".to_string()),
+            },
+        ];
+
+        assert_eq!(assertion_meta(&results).as_deref(), Some("1/2 tests"));
+        assert_eq!(response_panel_meta(&results), "1/2 tests");
     }
 
     #[test]
@@ -9023,6 +9993,8 @@ mod tests {
 
         assert!(text.contains("[PASS] pre-request set_var token"));
         assert!(text.contains("[PASS] pre-request set_header Authorization"));
+        assert!(!text.contains(" ms"));
+        assert!(!text.contains(" B"));
     }
 
     #[test]
@@ -9054,6 +10026,9 @@ mod tests {
     #[test]
     fn collapsed_json_preview_rejects_non_json() {
         assert_eq!(collapsed_json_preview("not-json"), None);
+        assert!(!response_can_collapse("not-json"));
+        assert!(!response_can_collapse("   "));
+        assert!(response_can_collapse(r#"{"ok":true}"#));
     }
 
     #[test]
@@ -9064,6 +10039,14 @@ mod tests {
         );
         assert!(formatted_json_body("   ").is_err());
         assert!(formatted_json_body("{not-json").is_err());
+    }
+
+    #[test]
+    fn raw_json_format_action_requires_json_mode_and_body() {
+        assert!(can_format_raw_json(RawBodyFormat::Json, r#"{"ok":true}"#));
+        assert!(!can_format_raw_json(RawBodyFormat::Json, "   "));
+        assert!(!can_format_raw_json(RawBodyFormat::Text, r#"{"ok":true}"#));
+        assert!(!can_format_raw_json(RawBodyFormat::Xml, "<ok />"));
     }
 
     #[test]
@@ -9091,6 +10074,34 @@ mod tests {
         assert_eq!(
             response_body_for_view(ResponseView::Headers, false, pretty, raw, ""),
             "No response headers"
+        );
+        assert_eq!(
+            response_body_for_view(ResponseView::Headers, false, pretty, raw, "   \n\t"),
+            "No response headers"
+        );
+        assert_eq!(
+            response_copy_text(ResponseView::Pretty, false, pretty, raw, headers).as_deref(),
+            Some(pretty)
+        );
+        assert_eq!(
+            response_copy_text(ResponseView::Raw, false, pretty, raw, headers).as_deref(),
+            Some(raw)
+        );
+        assert_eq!(
+            response_copy_text(ResponseView::Headers, false, pretty, raw, headers).as_deref(),
+            Some(headers)
+        );
+        assert_eq!(
+            response_copy_text(ResponseView::Headers, false, pretty, raw, ""),
+            None
+        );
+        assert_eq!(
+            response_copy_text(ResponseView::Headers, false, pretty, raw, "   \n\t"),
+            None
+        );
+        assert_eq!(
+            response_copy_text(ResponseView::Pretty, false, "   ", raw, headers),
+            None
         );
     }
 
@@ -9222,6 +10233,47 @@ Cookie: a=b; c=d
     }
 
     #[test]
+    fn user_visible_errors_include_context_and_next_step() {
+        let file_error = file_operation_error(
+            "Could not import OpenAPI document.",
+            "/tmp/api.yaml",
+            "No such file",
+            "Check the path.",
+        );
+        assert!(file_error.contains("Path\n/tmp/api.yaml"));
+        assert!(file_error.contains("Error\nNo such file"));
+        assert!(file_error.contains("Next step\nCheck the path."));
+
+        let request_error = request_transport_error(
+            "POST",
+            "https://api.example.com/users",
+            "connection refused",
+        );
+        assert!(request_error.contains("Request\nPOST https://api.example.com/users"));
+        assert!(request_error.contains("TLS settings"));
+
+        let mock_error = mock_server_error(MOCK_SERVER_PORT, "");
+        assert!(mock_error.contains("Port\n8080"));
+        assert!(mock_error.contains("Unknown error"));
+
+        let editor = editor_error("Could not build the request.", "bad input", "Fix it.");
+        assert!(editor.contains("Error\nbad input"));
+        assert!(editor.contains("Next step\nFix it."));
+
+        let realtime = realtime_operation_error(
+            "Could not keep the SSE subscription open.",
+            "SSE URL",
+            "https://api.example.com/events",
+            "wrong content-type",
+            "Check the stream.",
+        );
+        assert!(realtime.contains("SSE URL\nhttps://api.example.com/events"));
+        assert!(realtime.contains("Next step\nCheck the stream."));
+
+        assert!(runner_worker_stopped_message().contains("Collection runner stopped"));
+    }
+
+    #[test]
     fn pre_request_action_labels_do_not_include_values() {
         let execution = execute_pre_request_actions(
             "set_var token=secret; set_header Authorization=Bearer {{token}}",
@@ -9319,6 +10371,14 @@ Cookie: a=b; c=d
             "qa-team-west"
         );
         assert_eq!(normalized_environment_name("   "), "");
+    }
+
+    #[test]
+    fn add_environment_requires_normalized_name() {
+        assert!(!can_add_environment(""));
+        assert!(!can_add_environment("   \n\t"));
+        assert!(can_add_environment("staging"));
+        assert!(can_add_environment(" qa team  west "));
     }
 
     #[test]
@@ -9715,10 +10775,11 @@ Cookie: a=b; c=d
 
         let text = websocket_exchange_text(&exchange);
         assert!(text.contains("url: ws://localhost/socket"));
-        assert!(text.contains("elapsed: 12ms"));
+        assert!(text.contains("received: 2"));
         assert!(text.contains("sent text: hello"));
         assert!(text.contains("received text: echo:hello"));
         assert!(text.contains("received pong: 0 bytes"));
+        assert!(!text.contains("elapsed:"));
         assert_eq!(
             format_websocket_log(&entries),
             "sent text: hello\nreceived text: echo:hello\nreceived pong: 0 bytes"
@@ -9747,6 +10808,40 @@ Cookie: a=b; c=d
                 .expect_err("invalid")
                 .contains("offset 0")
         );
+    }
+
+    #[test]
+    fn websocket_send_requires_running_and_valid_message_mode_input() {
+        assert!(!can_send_websocket_message(
+            false,
+            WebSocketMessageMode::Text,
+            "hello"
+        ));
+        assert!(can_send_websocket_message(
+            true,
+            WebSocketMessageMode::Text,
+            ""
+        ));
+        assert!(can_send_websocket_message(
+            true,
+            WebSocketMessageMode::BinaryHex,
+            "00 ff 7a"
+        ));
+        assert!(!can_send_websocket_message(
+            true,
+            WebSocketMessageMode::BinaryHex,
+            ""
+        ));
+        assert!(!can_send_websocket_message(
+            true,
+            WebSocketMessageMode::BinaryHex,
+            "0"
+        ));
+        assert!(!can_send_websocket_message(
+            true,
+            WebSocketMessageMode::BinaryHex,
+            "zz"
+        ));
     }
 
     #[test]
@@ -9801,10 +10896,10 @@ Cookie: a=b; c=d
 
         let text = sse_exchange_text(&exchange);
         assert!(text.contains("url: http://localhost/events"));
-        assert!(text.contains("elapsed: 9ms"));
-        assert!(text.contains("events: 2"));
+        assert!(text.contains("2 events"));
         assert!(text.contains("ready: connected [id 1] [retry 3000]"));
         assert!(text.contains("message: plain"));
+        assert!(!text.contains("elapsed:"));
         assert_eq!(
             format_sse_log(&sse_log_entries(&exchange)),
             "ready [id 1]: connected\nmessage: plain"
@@ -9880,7 +10975,6 @@ Cookie: a=b; c=d
         history
             .filtered(query)
             .into_iter()
-            .take(8)
             .map(|entry| VisibleHistoryRow {
                 id: entry.id,
                 method: entry.request.method.clone(),
@@ -9891,7 +10985,7 @@ Cookie: a=b; c=d
     }
 
     #[test]
-    fn history_sidebar_visible_rows_follow_filter_and_limit() {
+    fn history_sidebar_visible_rows_follow_filter_without_display_limit() {
         let mut history = RequestHistory::new();
         for index in 0..10 {
             history.record_at(
@@ -9904,14 +10998,14 @@ Cookie: a=b; c=d
                 },
                 HistoryResponse {
                     status: if index == 9 { "HTTP 201" } else { "HTTP 200" }.to_string(),
-                    meta: format!("{index} ms | 2 B"),
+                    meta: "2/2 tests".to_string(),
                     body_preview: "{}".to_string(),
                 },
             );
         }
 
         let rows = visible_history_rows(&history, "");
-        assert_eq!(rows.len(), 8);
+        assert_eq!(rows.len(), 10);
         assert_eq!(rows[0].url, "https://api.example.com/items/9");
         assert_eq!(rows[0].status, "HTTP 201");
 
@@ -9955,6 +11049,23 @@ Cookie: a=b; c=d
                 ref body
             } if content_type == "application/json" && body == "{\"name\":\"Zen\"}"
         ));
+    }
+
+    #[test]
+    fn codegen_copy_requires_request_url() {
+        let mut request = CodegenRequest {
+            method: "GET".to_string(),
+            url: String::new(),
+            headers: Vec::new(),
+            query_params: Vec::new(),
+            body: RequestBody::None,
+        };
+
+        assert!(!can_copy_codegen_request(&request));
+        request.url = "   ".to_string();
+        assert!(!can_copy_codegen_request(&request));
+        request.url = "https://api.example.com/users".to_string();
+        assert!(can_copy_codegen_request(&request));
     }
 
     #[test]
@@ -10059,6 +11170,39 @@ Cookie: a=b; c=d
         })];
 
         assert_eq!(collection_item_count(&items), 2);
+    }
+
+    #[test]
+    fn collection_export_requires_at_least_one_request() {
+        let empty = ApiCollection::new("Empty");
+        assert!(!can_export_collection(&empty));
+
+        let folders_only = ApiCollection {
+            name: "Folders".to_string(),
+            description: String::new(),
+            items: vec![CollectionItem::Folder(CollectionFolder {
+                name: "Users".to_string(),
+                description: String::new(),
+                items: Vec::new(),
+            })],
+        };
+        assert!(!can_export_collection(&folders_only));
+
+        let with_request = ApiCollection {
+            name: "Requests".to_string(),
+            description: String::new(),
+            items: vec![CollectionItem::Request(CollectionRequest {
+                name: "List".to_string(),
+                method: "GET".to_string(),
+                url: "https://api.example.com/users".to_string(),
+                headers: Vec::new(),
+                query_params: Vec::new(),
+                body: CollectionBody::None,
+                pre_request_script: String::new(),
+                tests: Vec::new(),
+            })],
+        };
+        assert!(can_export_collection(&with_request));
     }
 
     #[test]
@@ -10214,6 +11358,13 @@ Cookie: a=b; c=d
         assert_eq!(SCROLLBAR_CONTENT_RIGHT_PADDING, SCROLLBAR_GUTTER_WIDTH + 8.);
         assert_eq!(SCROLLBAR_MIN_THUMB_HEIGHT, 28.);
         assert_eq!(REQUEST_EDITOR_TAB_BAR_HEIGHT, 34.);
+        assert_eq!(REQUEST_EDITOR_TAB_COUNT, 7);
+        assert_eq!(
+            request_editor_tabs().map(|(label, _)| label),
+            [
+                "Params", "Headers", "Auth", "Body", "Scripts", "Realtime", "Tools"
+            ]
+        );
         assert!(WORKSPACE_SIDEBAR_MIN_RATIO < WORKSPACE_SIDEBAR_DEFAULT_RATIO);
         assert!(WORKSPACE_SIDEBAR_DEFAULT_RATIO < WORKSPACE_SIDEBAR_MAX_RATIO);
         assert!(WORKSPACE_REQUEST_MIN_RATIO < WORKSPACE_REQUEST_DEFAULT_RATIO);
@@ -10228,8 +11379,10 @@ Cookie: a=b; c=d
         assert_eq!(TOP_BAR_BRAND_WIDTH, 132.);
         assert_eq!(TOP_BAR_ACTION_WIDTH, 76.);
         assert_eq!(TOP_BAR_MOCK_ACTION_WIDTH, 68.);
+        assert_eq!(DISABLED_CONTROL_OPACITY, 0.78);
         assert_eq!(IMPORT_POPOVER_WIDTH, 520.);
         assert_eq!(IMPORT_POPOVER_HEIGHT, 58.);
+        assert!(IMPORT_POPOVER_WIDTH > ACTION_BUTTON_WIDTH + IMPORT_POPOVER_PADDING * 2.);
         assert_eq!(SIDEBAR_WIDTH, 320.);
         assert_eq!(REQUEST_BAR_HEIGHT, 52.);
         assert_eq!(REQUEST_BAR_CONTROL_Y_OFFSET, 8.);
@@ -10247,7 +11400,20 @@ Cookie: a=b; c=d
         assert_eq!(ROUTE_ROW_HEIGHT, 48.);
         assert_eq!(ROUTE_SELECTED_MARKER_WIDTH, 3.);
         assert_eq!(RESPONSE_TAB_BAR_HEIGHT, 36.);
+        assert_eq!(RESPONSE_TAB_COUNT, 3);
+        assert_eq!(
+            response_tabs().map(|(label, _)| label),
+            ["Pretty", "Raw", "Headers"]
+        );
         assert_eq!(RESPONSE_COPY_BUTTON_WIDTH, 62.);
+        assert_eq!(STATUS_BAR_TRAILING_WIDTH, 360.);
+        assert_eq!(BODY_EDITOR_HEIGHT, 118.);
+        assert_eq!(GRAPHQL_VARIABLES_EDITOR_HEIGHT, 86.);
+        assert_eq!(BODY_PREVIEW_HEIGHT, 86.);
+        assert_eq!(BODY_PREVIEW_LINE_HEIGHT, 18.);
+        assert_eq!(GRAPHQL_QUERY_TEMPLATE_LIMIT, 5);
+        assert_eq!(GRAPHQL_QUERY_TEMPLATE_USE_BUTTON_WIDTH, 54.);
+        assert_eq!(GRAPHQL_SCHEMA_BROWSER_HEIGHT, 112.);
         assert_eq!(PANEL_HEADER_HEIGHT, 40.);
         assert_eq!(PANEL_HEADER_META_WIDTH, 260.);
         assert_eq!(PANEL_HEADER_RIGHT_PADDING, 14.);
@@ -10255,6 +11421,9 @@ Cookie: a=b; c=d
         assert_eq!(collection_tree_indent(0), 8.);
         assert_eq!(collection_tree_indent(1), 22.);
         assert_eq!(collection_tree_indent(2), 36.);
+        assert_eq!(COLLECTION_TREE_INDENT_MAX, 78.);
+        assert_eq!(collection_tree_indent(5), COLLECTION_TREE_INDENT_MAX);
+        assert_eq!(collection_tree_indent(24), COLLECTION_TREE_INDENT_MAX);
         assert_eq!(
             collection_tree_row_height(CollectionNodeKind::Root),
             collection_tree_row_height(CollectionNodeKind::Folder)
@@ -10265,12 +11434,36 @@ Cookie: a=b; c=d
         );
         assert_eq!(COLLECTION_TREE_MARKER_WIDTH, 14.);
         assert_eq!(HTTP_METHOD_LABEL_WIDTH, 58.);
+        assert_eq!(RUNNER_METHOD_COLUMN_WIDTH, 70.);
+        assert_eq!(RUNNER_STATUS_COLUMN_WIDTH, 42.);
+        assert_eq!(RUNNER_PRE_REQUEST_COLUMN_WIDTH, 52.);
+        assert_eq!(RUNNER_TESTS_COLUMN_WIDTH, 64.);
+        assert_eq!(TEST_RESULT_STATUS_COLUMN_WIDTH, 48.);
+        assert_eq!(TEST_RESULT_NAME_COLUMN_WIDTH, 140.);
+        assert_eq!(WEBSOCKET_DIRECTION_COLUMN_WIDTH, 52.);
+        assert_eq!(WEBSOCKET_KIND_COLUMN_WIDTH, 52.);
+        assert_eq!(SSE_EVENT_COLUMN_WIDTH, 74.);
+        assert_eq!(SSE_ID_COLUMN_WIDTH, 58.);
         assert_eq!(KEY_VALUE_KEY_COLUMN_WIDTH, 150.);
         assert_eq!(
             TEST_ASSERTION_NAME_COLUMN_WIDTH,
             TEST_ASSERTION_KIND_COLUMN_WIDTH
         );
         assert_ne!(UI_COLOR_SURFACE, UI_COLOR_SURFACE_MUTED);
+        assert_ne!(UI_COLOR_APP_CHROME, UI_COLOR_SIDEBAR_PANE);
+        assert_ne!(UI_COLOR_SIDEBAR_PANE, UI_COLOR_REQUEST_PANE);
+        assert_ne!(UI_COLOR_REQUEST_PANE, UI_COLOR_RESPONSE_PANE);
+        assert_eq!(UI_COLOR_SIDEBAR_PANE, 0xf1f6ff);
+        assert_eq!(UI_COLOR_REQUEST_PANE, 0xfffbf5);
+        assert_eq!(UI_COLOR_RESPONSE_PANE, 0xf0fbf7);
+        assert_eq!(UI_COLOR_DISABLED_SURFACE, 0xf2f5f8);
+        assert_eq!(UI_COLOR_DISABLED_BORDER, 0xd7dee8);
+        assert_eq!(UI_COLOR_DISABLED_TEXT, 0x7f8a99);
+        assert_eq!(UI_COLOR_BORDER_STRONG, 0xb8c7d8);
+        assert_eq!(UI_COLOR_TEXT_SECONDARY, 0x4b5563);
+        assert_eq!(UI_COLOR_TEXT_MUTED, 0x64748b);
+        assert_ne!(UI_COLOR_DISABLED_SURFACE, UI_COLOR_HOVER);
+        assert_ne!(UI_COLOR_TEXT_MUTED, UI_COLOR_DISABLED_TEXT);
         assert_ne!(UI_COLOR_BORDER, UI_COLOR_BORDER_STRONG);
         assert_ne!(UI_COLOR_ACCENT, UI_COLOR_ACCENT_SURFACE);
         assert_eq!(UI_COLOR_STATUS_SUCCESS, 0x059669);
@@ -10300,6 +11493,29 @@ Cookie: a=b; c=d
             sidebar_focus_target(SidebarSection::History),
             SidebarFocusTarget::HistoryFilter
         );
+    }
+
+    #[test]
+    fn request_url_focus_shortcut_respects_busy_state() {
+        assert!(can_focus_request_url(false));
+        assert!(!can_focus_request_url(true));
+    }
+
+    #[test]
+    fn close_transient_ui_state_closes_all_temporary_layers() {
+        let mut state = TransientUiState::default();
+        assert!(!close_transient_ui_state(&mut state));
+        assert_eq!(state, TransientUiState::default());
+
+        state = TransientUiState {
+            import_popover_open: true,
+            method_menu_open: true,
+            codegen_menu_open: true,
+            collection_menu_open: true,
+        };
+
+        assert!(close_transient_ui_state(&mut state));
+        assert_eq!(state, TransientUiState::default());
     }
 
     #[test]

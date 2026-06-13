@@ -8,19 +8,17 @@
 
 ZenAPI should eventually support pre-request scripts and response tests for
 collection workflows. The scripting model must fit a local-first native app:
-predictable, sandboxed, testable, and not so heavy that it undermines the
-startup and binary-size goals.
+predictable, sandboxed, testable, and maintainable.
 
 ## Requirements
 
 | Requirement | Notes |
 |-------------|-------|
 | Pre-request mutation | Scripts should be able to set variables and prepare request data before sending |
-| Response assertions | Tests should inspect status, headers, body text, JSON, elapsed time, and size |
+| Response assertions | Tests should inspect status, headers, body text, and JSON |
 | Collection runner integration | Test results should attach to each runner result |
 | Determinism | Scripts should not silently depend on cloud or hidden global state |
 | Sandboxing | Filesystem, network, process, and environment access must be denied by default |
-| Small native footprint | The engine should not erase the native-size advantage |
 | Upgrade-friendly dependencies | Avoid tight version pins unless the engine API requires it |
 
 ## Engine Options
@@ -29,7 +27,7 @@ startup and binary-size goals.
 |--------|-----------|-------|-----|
 | Rhai | Rust-native, small, easy to embed, controllable scope | Not JavaScript; Postman-like `pm.*` compatibility would be an adaptation layer | Best first implementation candidate if ZenAPI accepts a native script dialect |
 | mlua | Mature embeddable Lua, small runtime, good sandbox control | Lua syntax diverges from common API-client scripts; `pm.test` compatibility is unnatural | Reasonable technically, weaker product fit |
-| deno_core | JavaScript/TypeScript-compatible path, closer to Postman/Hoppscotch mental model | V8 footprint, startup and binary-size cost, more complex permissions | Best compatibility candidate, but high cost for current native-size goals |
+| deno_core | JavaScript/TypeScript-compatible path, closer to Postman/Hoppscotch mental model | More complex permissions and embedding surface | Best compatibility candidate, but higher integration complexity |
 
 ## Recommendation
 
@@ -38,10 +36,10 @@ Use a staged strategy:
 1. Define the script host API and test result model before adding an engine.
 2. Implement response assertion plumbing in Rust first so runner/reporting does
    not depend on an engine choice.
-3. Prefer Rhai for the first embedded engine if the priority is small native
-   footprint and predictable sandboxing.
+3. Prefer Rhai for the first embedded engine if the priority is predictable
+   sandboxing and a Rust-native host API.
 4. Revisit `deno_core` only when JavaScript compatibility becomes a hard
-   requirement and binary/startup impact can be measured.
+   requirement.
 5. Avoid `mlua` unless Lua syntax becomes a deliberate product choice.
 
 ## Proposed Host API
@@ -155,8 +153,6 @@ Supported assertion kinds:
 | `header_equals` | Case-insensitive response header value comparison |
 | `body_contains` | Raw body substring check |
 | `json_path_equals` | Dot-path JSON value comparison, including numeric array indexes |
-| `body_bytes_less_than` | Body size threshold |
-| `elapsed_less_than` | Elapsed time threshold |
 
 Runner behavior:
 

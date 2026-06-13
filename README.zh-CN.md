@@ -1,7 +1,7 @@
 # ZenAPI
 
-基于 Rust 和 GPUI 构建的快速、轻量、本地优先的 API 工作站 — 将 API 测试客户端
-和本地 Mock 服务器整合为一个原生可执行文件。
+基于 Rust 和 GPUI 构建的本地优先 API 工作站，将 API 测试客户端和本地 Mock
+服务器整合为一个原生可执行文件。
 
 [文档](docs/) · [设计笔记](docs/DESIGN.md) · [开发路线图](docs/TODO.md)
 
@@ -11,7 +11,7 @@
   交互式 API 树。
 - **HTTP 客户端** — 通过 `reqwest` 发送请求，完整支持 Method、Headers、Query
   Params、Body 和 Authorization。
-- **响应查看器** — 格式化 JSON、原始文本、响应头、状态码、耗时和响应大小。
+- **响应查看器** — 格式化 JSON、原始文本、响应头和状态码。
 - **本地 Mock 服务器** — 一键启动 Axum 服务器，默认开启 CORS，基于 Schema 生成
   JSON 响应，非常适合前端开发。
 - **环境与变量** — 全局和按环境的变量管理，支持 `{{name}}` 语法在 URL、Headers
@@ -21,10 +21,10 @@
   并通过拖拽移动条目。
 - **请求历史** — 本地自动记录历史，支持搜索和一键恢复。
 - **代码生成** — 从任意请求生成 cURL、Python、JavaScript、Rust 和 Go 代码片段。
-- **Rust + GPUI 原生桌面** — 原生性能，亚秒启动，目标体积约 10 MB，无 Chromium
-  依赖。
+- **Rust + GPUI 原生桌面** — 使用 Zed 官方仓库的 GPUI，并在 Linux 下通过
+  `gpui_platform` 启动。
 
-## 快速开始
+## 开始使用
 
 ### 前置依赖
 

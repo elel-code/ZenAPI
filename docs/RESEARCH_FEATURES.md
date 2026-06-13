@@ -12,7 +12,7 @@
 | Auth | Bearer, Basic, API Key, OAuth2, JWT, Digest variants | Bearer, Basic, API Key, JWT implemented; OAuth2 remains future work |
 | Headers/Params | Table editor, presets, bulk import | Key/value editor plus bulk header copy/paste |
 | Body | none, form-data, urlencoded, raw, binary, GraphQL | none, form-data, urlencoded, raw, binary implemented |
-| Response | Pretty/Raw/Headers, status/time/size, copy/select | Pretty/Raw/Headers, status/time/size, read-only selectable response text |
+| Response | Pretty/Raw/Headers, copy/select | Pretty/Raw/Headers, read-only selectable response text |
 | History | Auto-record, search, restore, delete/clear | Implemented with sidebar filter and restore/delete/clear |
 | Mock | Cloud mock or local mock servers | Local Axum mock server with permissive CORS |
 | Codegen | cURL baseline plus language snippets | cURL, Python, JavaScript, Rust, Go snippets |

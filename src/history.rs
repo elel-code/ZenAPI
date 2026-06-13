@@ -118,7 +118,7 @@ mod tests {
     fn response(status: &str) -> HistoryResponse {
         HistoryResponse {
             status: status.to_string(),
-            meta: "12 ms | 2 B".to_string(),
+            meta: "2/2 tests".to_string(),
             body_preview: "{}".to_string(),
         }
     }
@@ -143,7 +143,7 @@ mod tests {
         assert_eq!(history.filtered("delete")[0].request.method, "DELETE");
         assert_eq!(history.filtered("users")[0].request.url, "/users");
         assert_eq!(history.filtered("404")[0].response.status, "HTTP 404");
-        assert_eq!(history.filtered("12 ms").len(), 2);
+        assert_eq!(history.filtered("tests").len(), 2);
     }
 
     #[test]

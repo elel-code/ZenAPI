@@ -34,7 +34,9 @@ text beneath it.
 | Shortcut | Action |
 |----------|--------|
 | Enter in URL | Send request |
+| Ctrl/Cmd+Enter | Send request from the current request editor context |
 | Ctrl/Cmd+F | Focus the active sidebar input |
+| Ctrl/Cmd+L | Focus the request URL input |
 | Ctrl/Cmd+S | Save current request to the collection |
 | Ctrl/Cmd+A in response | Select all response text |
 | Ctrl/Cmd+C in response | Copy selected response text |
@@ -81,8 +83,6 @@ instead of leaving the previous response body visible.
 The response pane shows:
 
 - Status code.
-- Elapsed time.
-- Response size.
 - Pretty body.
 - Raw body.
 - Response headers.
@@ -141,8 +141,6 @@ tests do not use a script engine yet, but they cover common checks:
 - Header equals.
 - Body contains text.
 - JSON path equals a value.
-- Body size is below a threshold.
-- Elapsed time is below a threshold.
 
 Click the kind selector in a test row to cycle through assertion types. Use the
 Target and Expected fields according to the selected kind. For JSON path
@@ -179,7 +177,7 @@ Supported body modes:
 - `graphql`
 - `binary`
 
-Raw mode supports JSON, XML, Text, and HTML content types, with a lightweight
+Raw mode supports JSON, XML, Text, and HTML content types, with a compact
 syntax preview for structured text. In JSON raw mode, `Format JSON` rewrites the
 body as pretty JSON when the content parses successfully. GraphQL mode builds an
 `application/json` body with `query` and `variables`, can fill a standard
@@ -277,6 +275,16 @@ Behavior:
 - Serves generated JSON responses from OpenAPI schemas and examples.
 - Records recent mock requests in the Mock Log panel.
 
+## Error Feedback
+
+Import, collection import/export, request build, request send, test
+configuration, WebSocket, SSE, collection runner, and mock-server failures
+are shown in the Response pane with the operation context, target path
+or URL when relevant, the underlying error, and a next-step hint. Collection
+import/export failures also update the Collection status line, mock failures
+update the Mock status line, and realtime failures update their local
+panel status.
+
 ## Code Generation
 
 The Code panel generates snippets for:
@@ -318,7 +326,7 @@ zenapi run collection.json --delay-ms 100
 - Pre-request script-lite and native response assertions are available in
   collection JSON, but a full script engine and `pm.*` compatibility are not
   implemented yet.
-- GraphQL body editing, introspection query fill, schema summary, lightweight
+- GraphQL body editing, introspection query fill, schema summary, basic
   schema browsing, and root Query templates are available; full field selection
   assistance is still future work. WebSocket persistent text and Binary Hex
   sessions are available with connection headers/subprotocols. SSE event
@@ -326,5 +334,5 @@ zenapi run collection.json --delay-ms 100
   resume plus custom headers and reconnect/backoff. gRPC has an implementation
   plan in `docs/GRPC.md`, but transport/UI support is future work.
 - Plugin APIs are future work.
-- Live benchmark and visual comparison against reference clients still need
-  current-version review.
+- Live visual comparison against reference clients still needs current-version
+  review.

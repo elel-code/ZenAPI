@@ -1,8 +1,7 @@
 # ZenAPI
 
-A fast, lightweight, local-first API workstation built with Rust and GPUI —
-combining an API testing client with a local mock server in a single native
-executable.
+A local-first API workstation built with Rust and GPUI, combining an API
+testing client with a local mock server in a single native executable.
 
 [Documentation](docs/) · [Design Notes](docs/DESIGN.md) · [Roadmap](docs/TODO.md)
 
@@ -12,8 +11,8 @@ executable.
   and build an interactive API tree.
 - **HTTP client** — send requests with full method, header, query param,
   body, and authorization support through `reqwest`.
-- **Response viewer** — formatted JSON, raw text, response headers, status
-  code, elapsed time, and response size.
+- **Response viewer** — formatted JSON, raw text, response headers, and status
+  code.
 - **Local mock server** — one-click Axum server with permissive CORS and
   schema-derived JSON responses, ideal for frontend development.
 - **Environments & variables** — global and per-environment variables with
@@ -25,8 +24,8 @@ executable.
   restore.
 - **Code generation** — generate cURL, Python, JavaScript, Rust, and Go
   snippets from any request.
-- **Rust + GPUI desktop** — native performance, sub-second startup, small
-  binary (~10 MB target), and no Chromium dependency.
+- **Rust + GPUI desktop** — native desktop shell using GPUI from Zed's official
+  repository and `gpui_platform` on Linux.
 
 ## Quick Start
 

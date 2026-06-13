@@ -90,7 +90,7 @@ gRPC 不应塞进 HTTP Body 面板。推荐单独面板或协议工作区：
 与现有功能复用：
 
 - 变量系统: endpoint、metadata、message JSON 支持 `{{var}}`
-- History: 记录 method path、status、elapsed、message preview
+- History: 记录 method path、status、message preview
 - Collection: 增加协议字段时保持 serde 默认值，保证旧 HTTP collection 可读
 - Runner: 后续可将 unary gRPC 请求接入 collection runner
 

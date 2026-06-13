@@ -69,9 +69,11 @@ Baseline shortcuts to consider:
 | Shortcut | Expected Action |
 |----------|-----------------|
 | Enter in URL | Send request |
+| Ctrl/Cmd+Enter | Send current request from editor context |
 | Ctrl/Cmd+C in read-only response | Copy selection |
 | Ctrl/Cmd+A in read-only response | Select all response text |
 | Ctrl/Cmd+F | Focus active list/filter or future global search |
+| Ctrl/Cmd+L | Focus request URL |
 | Ctrl/Cmd+S | Save current request to collection |
 
 ## Offline And Local-First

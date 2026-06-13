@@ -1,12 +1,12 @@
 # UI Research Baseline
 
-> Status: offline baseline, pending live review with current product versions,
-> screenshots, and exact measurements.
+> Status: offline baseline, pending live review with current product versions
+> and screenshots.
 
 ## Target
 
-ZenAPI should be a dense native API workstation: local-first, fast to start,
-and built around the actual request/response workflow on the first screen.
+ZenAPI should be a dense native API workstation: local-first and built around
+the actual request/response workflow on the first screen.
 The visual direction is closer to a workbench than a landing page.
 
 ## Product References
@@ -14,10 +14,10 @@ The visual direction is closer to a workbench than a landing page.
 | Client | Layout Signal | Visual Signal | Useful For ZenAPI |
 |--------|---------------|---------------|-------------------|
 | Postman | Global header, left workspace sidebar, tabbed workbench, response area | Dense light UI, strong command hierarchy, method/status colors | Functional ceiling and familiar request workflow |
-| Hoppscotch | Lightweight single-page request surface, collapsible navigation | Minimal surfaces, web-first responsive behavior | Low-friction request editing and simple protocol switching |
+| Hoppscotch | Minimal single-page request surface, collapsible navigation | Minimal surfaces, web-first responsive behavior | Low-friction request editing and simple protocol switching |
 | Bruno | Collection tree, file-backed request editor, response panel | Git-oriented, quieter chrome, readable text artifacts | Local collection mental model and Bru-style storage |
 | Insomnia | Left collection/sidebar, central request editor, response pane, OpenAPI design tools | Dark-theme heritage, strong editor feel | OpenAPI design/debug bridge and environment UX |
-| Yaak | Native desktop shell, local data, tabbed requests | Small native-app footprint, privacy-first posture | Rust/native expectations and local-first product tone |
+| Yaak | Native desktop shell, local data, tabbed requests | Privacy-first posture, native desktop conventions | Rust/native expectations and local-first product tone |
 
 ## Layout Decisions
 
@@ -34,11 +34,16 @@ The visual direction is closer to a workbench than a landing page.
 | Role | Baseline |
 |------|----------|
 | App surface | `#ffffff` |
-| Toolbar/sidebar surface | `#f9fafb` |
-| Muted control fill | `#f3f4f6` |
-| Border/divider | `#e5e7eb`, `#d1d5db` |
+| App chrome | `#f3f6fb` |
+| Workspace gutter | `#e8edf5` |
+| Sidebar pane | `#f1f6ff` |
+| Request pane | `#fffbf5` |
+| Response pane | `#f0fbf7` |
+| Muted control fill | `#f6f8fb`, hover `#eaf2ff` |
+| Disabled control | `#f2f5f8`, border `#d7dee8`, text `#7f8a99` |
+| Border/divider | `#dbe3ee`, `#b8c7d8` |
 | Primary text | `#111827` |
-| Secondary text | `#6b7280`, `#9ca3af` |
+| Secondary text | `#4b5563`, `#64748b` |
 | Primary action | Blue |
 | Success/ready | Green |
 | Busy/warning | Amber |
@@ -59,6 +64,8 @@ The visual direction is closer to a workbench than a landing page.
 - Cards should be rare; repeated list items, modal surfaces, and framed tools
   are acceptable, but full page regions should remain unframed.
 - HTTP method labels should be fixed-width text markers, not filled badges.
+- Opening a request method picker should not recolor the whole address bar;
+  keep feedback on the method text, chevron, and menu surface.
 - Tabs should be real content switches with stable height and an underline for
   active state.
 - Text editors and response viewers need explicit ZenAPI chrome instead of

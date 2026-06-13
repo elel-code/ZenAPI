@@ -316,6 +316,9 @@ impl Render for ReadOnlyTextView {
     fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         div()
             .size_full()
+            .min_w_0()
+            .overflow_hidden()
+            .whitespace_normal()
             .key_context("ZenApiReadOnlyText")
             .track_focus(&self.focus_handle(cx))
             .cursor(CursorStyle::IBeam)

@@ -149,11 +149,11 @@ When changing collection models:
 
 The scripting engine decision is documented in `docs/SCRIPTING.md`. Do not add
 Rhai, mlua, `deno_core`, or another engine without updating that evaluation and
-measuring the effect on startup and binary size. Native response assertions are
-implemented in Rust and should remain the runner/test result foundation when a
-script engine is added. Native pre-request script-lite actions are implemented
-in Rust and should remain the compatibility layer used by GPUI, runner, and CLI
-until a full engine is deliberately added.
+the sandboxing model. Native response assertions are implemented in Rust and
+should remain the runner/test result foundation when a script engine is added.
+Native pre-request script-lite actions are implemented in Rust and should remain
+the compatibility layer used by GPUI, runner, and CLI until a full engine is
+deliberately added.
 
 ## Adding Features
 
@@ -185,6 +185,5 @@ The repository currently has unit coverage for:
 
 ## Release Notes
 
-Current release-size measurement is documented in `docs/BENCHMARK.md`.
-Release packaging, startup timing, idle memory, Wayland/X11 smoke tests,
-Windows validation, and macOS validation remain open TODO items.
+Release packaging, Wayland/X11 smoke tests, Windows validation, and macOS
+validation remain open TODO items.

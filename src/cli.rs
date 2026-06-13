@@ -95,8 +95,8 @@ fn parse_run_args(args: &[String]) -> Result<ParsedRunArgs> {
 
 fn format_collection_run_summary(summary: &CollectionRunSummary) -> String {
     let mut lines = vec![format!(
-        "{}: {} passed, {} failed, {} total in {} ms",
-        summary.collection_name, summary.passed, summary.failed, summary.total, summary.elapsed_ms
+        "{}: {} passed, {} failed, {} total",
+        summary.collection_name, summary.passed, summary.failed, summary.total
     )];
 
     if summary.stopped_early {
@@ -118,8 +118,8 @@ fn format_collection_run_result(result: &CollectionRunResult) -> String {
     let outcome = if result.success { "PASS" } else { "FAIL" };
     let path = result.path.join(" / ");
     let mut line = format!(
-        "[{outcome}] {status} {} {} ({path}) - {} ms, {} B",
-        result.method, result.url, result.elapsed_ms, result.body_bytes
+        "[{outcome}] {status} {} {} ({path})",
+        result.method, result.url
     );
 
     if let Some(error) = &result.error {
@@ -222,5 +222,7 @@ mod tests {
         assert!(output.contains("Demo: 1 passed, 0 failed, 1 total"));
         assert!(output.contains("[PASS] 200 GET http://localhost/health"));
         assert!(output.contains("pre-request 1"));
+        assert!(!output.contains(" ms"));
+        assert!(!output.contains(" B"));
     }
 }

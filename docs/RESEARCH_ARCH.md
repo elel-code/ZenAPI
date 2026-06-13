@@ -1,15 +1,14 @@
 # Architecture Research Baseline
 
-> Status: offline baseline, pending live review with current product versions
-> and measured binary/startup/memory numbers.
+> Status: offline baseline, pending live review with current product versions.
 
 ## Framework Comparison
 
 | Stack | Example Clients | Strength | Cost |
 |-------|-----------------|----------|------|
-| Electron + React/JS | Postman, Bruno, Insomnia | Mature UI ecosystem and web reuse | Large runtime, slower cold start, higher memory floor |
+| Electron + React/JS | Postman, Bruno, Insomnia | Mature UI ecosystem and web reuse | Browser runtime and app shell complexity |
 | Vue/Nuxt/PWA | Hoppscotch | Easy web/self-host path, very low install friction | Browser/PWA constraints for native local workflows |
-| Tauri + Rust + Web UI | Yaak | Smaller shell, native packaging, web UI reuse | Still depends on webview behavior and frontend bridge |
+| Tauri + Rust + Web UI | Yaak | Native packaging with web UI reuse | Still depends on webview behavior and frontend bridge |
 | GPUI + Rust | ZenAPI | Native Rust UI, direct state ownership, no browser runtime | Smaller ecosystem, more custom widgets required |
 
 ## ZenAPI Architecture Policy
@@ -53,17 +52,6 @@
 - Bru-style text export is a future Git-friendly storage path.
 - History and environments should remain local unless explicit sync support is
   designed later.
-
-## Measurement Plan
-
-Live architecture research still needs measured numbers:
-
-- Release binary size after stripping.
-- Cold start time on Linux/macOS/Windows.
-- Idle memory after opening the app.
-- Memory after importing a medium OpenAPI file.
-- Request latency overhead versus direct `curl`.
-- Mock server throughput for local development workloads.
 
 ## Risks
 

@@ -74,7 +74,7 @@ architecture.
   pointer events must stop propagation so dragging the thumb never selects
   response text or activates rows below it.
 - The visual baseline is a modern light split-pane workstation inspired by
-  Postman: flat white and near-white surfaces, no floating cards, no heavy
+  Postman: flat white and near-white surfaces, no floating cards, no prominent
   shadows, and 1 px dividers instead of broad gutters.
 - Below the global top bar, the app uses three same-level panes: Sidebar,
   Request, and Response. The request method, URL, and Send action belong only
@@ -94,11 +94,17 @@ architecture.
   Request pane owns its 52 px method/URL/Send row, while the Response pane keeps
   status metadata fixed in its header and view/copy actions in the local tab
   row instead of using a separate global status band.
-- Use the current light palette consistently: app and editor surfaces
-  `#ffffff`, toolbar/sidebar surfaces `#f9fafb`, subtle control fills
-  `#f3f4f6`, split dividers and borders `#e5e7eb` / `#d1d5db`, primary text
-  `#111827`, and secondary text `#6b7280` / `#9ca3af`.
-- Implement recurring palette values and stable layout measurements through
+- Use the current light palette consistently without flattening the workspace
+  into one gray field: app and editor surfaces `#ffffff`, app chrome
+  `#f3f6fb`, workspace gutter `#e8edf5`, sidebar pane `#f1f6ff`, request pane
+  `#fffbf5`, response pane `#f0fbf7`, muted control fills `#f6f8fb` with
+  hover `#eaf2ff`, disabled controls `#f2f5f8` with border `#d7dee8` and
+  text `#7f8a99`, split dividers and borders `#dbe3ee` / `#b8c7d8`, primary
+  text `#111827`, and secondary text `#4b5563` / `#64748b`.
+- Keep pane color as a low-saturation orientation cue. Inputs, code blocks,
+  popovers, and dense content surfaces should remain white or near-white so the
+  tint separates regions instead of becoming decoration.
+- Implement recurring palette values and stable layout tokens through
   shared UI tokens/metrics in the GPUI app shell rather than inline numeric
   literals in each panel.
 - Keep controls compact: most buttons should stay at 34-40 px height with a
@@ -110,6 +116,11 @@ architecture.
   value text. When a labeled variant is deliberately used, reserve a 30 px
   label slot, a 10 px gap, and stable horizontal insets so label and value
   baselines do not drift.
+- Request-pane input shells, fixed preview boxes, and mode toggles should use
+  white or near-white fills with primary/body text. Avoid using muted gray text
+  for section titles, table headers, common empty placeholders, or idle control
+  states; muted text is only for low-priority metadata outside the active edit
+  path.
 - Compact address/search inputs should not show large inline labels. The
   request URL field, sidebar route filter, and import popover path field use
   only concise placeholders so controls read like address/search bars instead
@@ -124,6 +135,10 @@ architecture.
   separate control. Give it a stable 100 px width, no outside border while
   embedded, fixed text and chevron coordinates, and a single divider on the
   segment boundary.
+- Opening the method selector should not paint the whole method segment as a
+  selected block or recolor the full address bar. Use method text color, the
+  chevron state, cursor affordance, and menu chrome for feedback; the shared
+  address-bar focus border belongs to the URL input.
 - Method selector text, chevron, and popup option labels should use explicit
   fixed coordinates inside the control so long methods and dropdown glyphs stay
   visually centered and do not create stray line fragments.
@@ -133,6 +148,9 @@ architecture.
 - Disabled input shells must suppress editing affordances, including blue focus
   borders and Enter/accepted submission. Any neighboring action in the same
   control group should share the same disabled condition and callback guard.
+- The Request address bar owns this rule explicitly: when the app is busy, the
+  inline URL `TextInput` is disabled at the input handler level, not merely
+  dimmed by the outer shell.
 - Header buttons must center the actual button rectangle within the toolbar
   slot, not only center the label text inside a drifting button.
 - Top-bar inline controls must use fixed visible heights and slot centering.
@@ -155,6 +173,9 @@ architecture.
 - Button state colors must come from one shared UI helper. Disabled, neutral,
   primary, warning, hover, and pressed states should not be duplicated inside
   individual button instances.
+- Disabled controls must use dedicated disabled tokens instead of borrowing the
+  hover color. Hover is an interaction state; disabled controls should remain
+  readable without implying clickability.
 - HTTP method text colors must come from one shared token/helper. The sidebar
   list, method picker, and request method selector should never duplicate
   separate GET/POST/etc. color maps.
@@ -218,6 +239,9 @@ architecture.
 - Transient popovers should use the same light surface and 1 px border without
   drop shadows. Align popover origins to the triggering control's grid position
   so they do not appear to drift by a pixel.
+- `Escape` should close all transient UI layers, including Import, Method,
+  Codegen, and Collection menus. Opening one transient layer should close the
+  other transient layers so menus do not stack or compete for attention.
 - The import popover is a compact 520 x 58 px surface: 10 px horizontal inset
   and one vertically centered 34 px path/action row. Do not add a title row or
   PATH label; the popup belongs to the Import bar and should not become a

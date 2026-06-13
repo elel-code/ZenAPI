@@ -19,8 +19,6 @@ pub enum ResponseAssertionKind {
     HeaderEquals { name: String, value: String },
     BodyContains { text: String },
     JsonPathEquals { path: String, value: Value },
-    BodyBytesLessThan { max: usize },
-    ElapsedLessThan { max_ms: u128 },
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -77,22 +75,6 @@ pub fn evaluate_response_assertion(
                 Err(error) => Some(format!("failed to parse response JSON: {error}")),
             }
         }
-        ResponseAssertionKind::BodyBytesLessThan { max } => {
-            (response.body_bytes >= *max).then(|| {
-                format!(
-                    "expected body size < {max} B, got {} B",
-                    response.body_bytes
-                )
-            })
-        }
-        ResponseAssertionKind::ElapsedLessThan { max_ms } => {
-            (response.elapsed_ms >= *max_ms).then(|| {
-                format!(
-                    "expected elapsed < {max_ms} ms, got {} ms",
-                    response.elapsed_ms
-                )
-            })
-        }
     };
 
     ResponseAssertionResult {
@@ -140,7 +122,7 @@ mod tests {
     }
 
     #[test]
-    fn evaluates_status_headers_body_and_timing_assertions() {
+    fn evaluates_status_headers_body_assertions() {
         let assertions = vec![
             ResponseAssertion {
                 name: "status".to_string(),
@@ -158,10 +140,6 @@ mod tests {
                 kind: ResponseAssertionKind::BodyContains {
                     text: "Zen".to_string(),
                 },
-            },
-            ResponseAssertion {
-                name: "elapsed".to_string(),
-                kind: ResponseAssertionKind::ElapsedLessThan { max_ms: 50 },
             },
         ];
 

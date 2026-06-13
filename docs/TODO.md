@@ -17,14 +17,14 @@
 > | 客户端 | 定位 | 技术栈 | 许可证 | 调研侧重 |
 > |--------|------|--------|--------|----------|
 > | **Postman** | 行业标杆，全生命周期平台 | Electron + React | 专有 | 功能完备度上限 |
-> | **Hoppscotch** | 开源轻量，Web/PWA 优先 | Vue.js + Nuxt + TS | MIT | 轻量理念、多协议 |
+> | **Hoppscotch** | 开源，Web/PWA 优先 | Vue.js + Nuxt + TS | MIT | 低摩擦体验、多协议 |
 > | **Bruno** | Git-native，本地文件存储 | Electron + JS | MIT | 离线优先、Bru 标记语言 |
 > | **Insomnia** | Kong 维护，设计+调试一体 | Electron + React | Apache 2.0 | OpenAPI 原生、深色主题 |
 > | **Yaak** | 隐私优先，Rust 原生桌面 | Tauri + Rust + React | 专有(源码可用) | 最近技术参照 |
 >
-> **设计参考**: 综合 Postman 的功能深度、Hoppscotch 的轻量理念、Bruno 的文件存储和 Yaak 的原生桌面体验——**目标为功能完备且启动 <1s 的原生 API 工作站**。
+> **设计参考**: 综合 Postman 的功能深度、Hoppscotch 的低摩擦请求体验、Bruno 的文件存储和 Yaak 的原生桌面体验——**目标为功能完备、隐私优先、本地优先的原生 API 工作站**。
 >
-> **当前状态**: 已补充离线基线文档，用于固化 GPUI 重构、Linux `gpui_platform`、依赖升级策略和无 bundled font 资产等方向；实时联网截图、版本号和精确测量仍待复核。
+> **当前状态**: 已补充离线基线文档，用于固化 GPUI 重构、Linux `gpui_platform`、依赖升级策略和无 bundled font 资产等方向；实时联网截图和版本号仍待复核。
 
 ### 0.1 布局与视觉系统调研 【UI 核心·最高优先】
 - [ ] 0.1.1 调研 Postman 布局: Header / Sidebar / Workbench(Tabs) / Footer / Right Sidebar 五区模型
@@ -37,7 +37,7 @@
 - [ ] 0.1.8 横评控件样式: 按钮(主要/次要/危险/禁用)、输入框、下拉菜单、标签页、开关
 - [ ] 0.1.9 横评图标体系: 图标风格(Material/自定义)、尺寸、用途分类
 - [ ] 0.1.10 横评响应查看器: Pretty/Raw/Preview/Headers 的视觉对比和切换
-- [~] 0.1.11 输出 UI 视觉调研文档: `docs/RESEARCH_UI.md` 离线基线已输出，实时截图/测量待复核
+- [~] 0.1.11 输出 UI 视觉调研文档: `docs/RESEARCH_UI.md` 离线基线已输出，实时截图和版本状态待复核
 
 ### 0.2 交互模式调研 【UI 核心·最高优先】
 - [ ] 0.2.1 侧边栏交互横评: 集合树展开/折叠、拖拽排序、右键菜单、搜索过滤、收藏
@@ -69,15 +69,13 @@
 
 ### 0.4 技术架构调研
 - [ ] 0.4.1 横评技术栈: Electron(Postman/Bruno/Insomnia) vs Vue+PWA(Hoppscotch) vs Tauri+Rust(Yaak) vs GPUI+Rust(ZenAPI)
-- [~] 0.4.2 横评应用体积: ZenAPI release 37M / stripped 28M 已测；Postman/Hoppscotch/Yaak 体积与 10MB 优化目标待联网复核
-- [ ] 0.4.3 横评启动时间、内存占用、离线能力
-- [~] 0.4.4 输出技术架构调研文档: `docs/RESEARCH_ARCH.md` 离线基线已输出，体积/启动/内存实测待补齐
+- [ ] 0.4.2 横评离线、本地文件、插件/扩展和跨平台发布模型
+- [~] 0.4.3 输出技术架构调研文档: `docs/RESEARCH_ARCH.md` 离线基线已输出，实时版本复核待补齐
 
 ### 0.5 调研总结与优先级调整
-- [~] 0.5.1 汇总调研发现，明确 ZenAPI 的优势方向: 原生 Mock Server、GPUI 原生性能、OpenAPI 深度集成（离线基线已写入）
+- [~] 0.5.1 汇总调研发现，明确 ZenAPI 的优势方向: 原生 Mock Server、GPUI 原生体验、OpenAPI 深度集成（离线基线已写入）
 - [~] 0.5.2 识别当前功能缺口: 多协议(WebSocket/gRPC)、插件系统、AI 辅助（离线基线已写入）
 - [ ] 0.5.3 基于调研结果调整本文档后续阶段的优先级排序
-- [~] 0.5.4 输出调研总结: `docs/BENCHMARK.md` 离线基线已输出，实测 benchmark 待补齐
 
 ---
 
@@ -123,7 +121,7 @@
 - [x] 3.4 实现 Query Params 编辑面板: 键值对表格、自动拼接到 URL
 - [x] 3.5 实现 Request Body 编辑面板:
   - [x] 3.5.1 支持 `none` / `form-data` / `x-www-form-urlencoded` / `raw` / `binary` 类型切换
-  - [x] 3.5.2 `raw` 模式下支持 JSON/XML/Text/HTML 内容类型切换，并提供 JSON/XML/HTML 轻量语法高亮预览（`syntect` 保留为未来增强选项）
+  - [x] 3.5.2 `raw` 模式下支持 JSON/XML/Text/HTML 内容类型切换，并提供 JSON/XML/HTML 基础语法高亮预览（`syntect` 保留为未来增强选项）
   - [x] 3.5.3 `form-data` 支持文本字段和 `@file` 文件附件
 - [~] 3.6 实现 Authorization 面板:
   - [x] 3.6.1 Bearer Token
@@ -133,12 +131,12 @@
   - [x] 3.6.5 JWT
 - [x] 3.7 实现发送请求: 通过 `reqwest` 发送，显示加载状态，按钮禁用防重入
 - [x] 3.8 实现响应查看器:
-  - [x] 3.8.1 状态码 + 耗时 + 响应大小元数据显示（260px 右对齐，14px 右内边距）
+  - [x] 3.8.1 状态码与响应摘要元数据显示（260px 右对齐，14px 右内边距）
   - [x] 3.8.2 响应体 Pretty 模式: JSON 格式化、缩进与折叠摘要均已支持
   - [x] 3.8.3 响应体 Raw 模式: 原始文本
   - [x] 3.8.4 Response Headers 子标签页
   - [x] 3.8.5 响应查看器使用平台 monospace 样式，并通过专用只读可选中文本组件避免编辑光标
-- [x] 3.9 验证: 本地 Axum HTTP 请求测试覆盖状态码、响应大小、响应头、Raw body 与 Pretty body
+- [x] 3.9 验证: 本地 Axum HTTP 请求测试覆盖状态码、响应头、Raw body 与 Pretty body
 - [~] 3.10 UI 对齐检查: Headers/Body/Response 面板间距一致性、控件颜色使用共享 UI 辅助函数（非硬编码）、HTTP 方法色映射统一；已将 HTTP 方法标签宽度、平台 monospace、主工作区 surface/border/text/accent 色和核心列表 metric 收敛到共享常量/辅助函数，视觉参照 `docs/RESEARCH_UI.md` 调研横评仍需截图复核
 
 ---
@@ -204,7 +202,7 @@
 - [x] 7.2 实现请求自动记录: 每次发送请求后自动保存
 - [x] 7.3 实现历史侧边栏视图: 按时间倒序、搜索过滤
 - [x] 7.4 实现历史条目操作: 点击恢复请求、删除单条/批量清除
-- [x] 7.5 验证: 自动记录、过滤/恢复模型、历史侧边栏可见行限制与无匹配空状态均有自动化测试覆盖
+- [x] 7.5 验证: 自动记录、过滤/恢复模型、历史侧边栏过滤可见行与无匹配空状态均有自动化测试覆盖
 
 ---
 
@@ -234,9 +232,9 @@
 
 > **目标**: 支持 Pre-request Scripts 和 Tests 脚本，实现请求前置处理和响应断言。
 
-- [x] 10.1 评估 Rust 嵌入脚本引擎方案: 已输出 `docs/SCRIPTING.md`，建议先定义宿主 API/结果模型，优先 Rhai，小心评估 `deno_core` 体积成本
+- [x] 10.1 评估 Rust 嵌入脚本引擎方案: 已输出 `docs/SCRIPTING.md`，建议先定义宿主 API/结果模型，优先 Rhai，小心评估 `deno_core` 的权限模型和集成复杂度
 - [~] 10.2 实现 Pre-request Script 编辑器和执行: 已实现原生 script-lite action line，支持 method/url/header/query/body/变量覆盖，并支持删除 header/query/变量覆盖；单次发送、代码生成、GPUI Runner 与 CLI Runner 共用执行路径；保存集合时保留 raw 请求字段和 action line，执行时再应用；完整脚本引擎、多行编辑器和执行日志待实现
-- [~] 10.3 实现 Tests 脚本编辑器和断言 API: 已实现原生 Tests 编辑器与 Rust 响应断言模型（状态码、Header、Body、JSON Path、耗时、大小），支持保存/恢复到集合请求；`pm.test` / `pm.expect` 脚本兼容层待实现
+- [~] 10.3 实现 Tests 脚本编辑器和断言 API: 已实现原生 Tests 编辑器与 Rust 响应断言模型（状态码、Header、Body、JSON Path），支持保存/恢复到集合请求；`pm.test` / `pm.expect` 脚本兼容层待实现
 - [~] 10.4 实现测试结果展示面板: 单次请求 Tests 面板、Runner 结果行与响应摘要均已展示断言通过/失败详情；Pre-request 面板已显示最近 action 执行数量、构建错误和 action 名称/目标明细；GPUI Runner 摘要与 CLI 输出已记录 pre-request action 名称/目标；完整脚本引擎运行日志待实现
 - [~] 10.5 验证: 响应断言编辑器字段解析、断言成功/失败、预期 500、JSON Path 失败、runner 汇总、pre-request script-lite 执行与 pre-request 构建失败路径均有自动化测试覆盖；完整脚本引擎执行验证待实现
 
@@ -267,31 +265,27 @@
 
 ## 阶段 13: 打磨与发布
 
-> **目标**: UI 细节对齐与调研参照、稳定性和性能优化、文档完备，准备首次发布。
+> **目标**: UI 细节对齐与调研参照、稳定性、错误处理和文档完备，准备首次发布。
 >
 > **UI 持续优化原则**: 本阶段是对前序各阶段 UI 对齐检查（3.10/5.7/6.8）的汇总校验。
 > 每个功能模块应在实现阶段当即完成 UI 对齐，不把 UI 债堆积到最后一次性修。
 
 ### 13.1 UI 系统完整性审查（参照: `docs/RESEARCH_UI.md` + `docs/RESEARCH_INTERACTION.md`）
-- [~] 13.1.1 颜色审查: 全局表面色/边框色/强调色、warning/status、HTTP 方法色和 syntax 色已收敛到共享 token，并移除 app/input 渲染路径中的裸 RGB；截图级视觉复核仍待完成
-- [~] 13.1.2 字体排版审查: TextInput 已复用平台 UI/monospace 字体 token，正文/代码路径继续使用共享字体常量；字号层级和各面板视觉复核仍待完成
-- [~] 13.1.3 间距与尺寸审查: 窗口、应用级顶栏、左/中/右三 pane 工作台、Request pane 内组合式请求地址栏 52px/36px、Request editor 34px tab bar、可调整 sidebar/request/response split、左栏 42px 三段导航、响应 meta 260px/14px、选中路由 3px、panel header、empty state、Import 弹出层 520x58、method 菜单、轻量滚动条 6px thumb/12px gutter 与 20px 内容右侧安全区尺寸已 token 化并有回归测试；截图级视觉复核仍待完成
-- [~] 13.1.4 控件样式审查: 顶栏已收敛为品牌、Import 和 Mock/Stop 应用级动作，Mock 详细状态保留在底栏；Import 路径移入轻量弹出层；左栏已从 Endpoints/Collections/History 纵向堆叠重构为单一导航上下文，集合操作按钮改为弹性两行布局；请求栏 method、URL 和 Send 已合并为 Request pane 内的单个地址栏外壳，URL 使用 inline TextInput；Request pane 已从所有编辑器纵向堆叠改为 Params/Headers/Auth/Body/Scripts/Realtime/Tools 内容 tabs，tab 内 Auth/Body/Variables/Realtime/Tests/Runner 控件已改为分行和弹性按钮；sidebar/request 与 request/response divider 已变为可拖拽 resize handle，按钮主色/次要/危险/禁用状态由共享 UI 辅助函数统一管理；更多禁用态细节和弹出层截图复核仍待完成
-- [~] 13.1.5 交互规范审查: Import/Method 临时菜单状态已分离，导入成功、路由选择、请求发送会关闭临时层；Sidebar、Request pane 和 Response body 都改为固定头部/工具条 + 独立滚动内容区，并通过 GPUI ScrollHandle + ZenAPI 自绘 thumb 渲染轻量垂直滚动条；滚动容器已预留 gutter 和内容右侧安全区，thumb 支持拖动和 active state，track 支持点击跳转，滚动条 mouse down/move/up 已截断事件传播以避免激活底层行或选择响应文本；Request tab 切换会重置当前编辑区滚动位置；左栏 route/history/collection 行、Request tab 内部按钮/输入行、key/value 表格、Tests 表格、Runner/WebSocket/SSE/Mock 日志行已约束固定列、收缩行为与截断；Enter in URL、Ctrl/Cmd+A/C in response、Ctrl/Cmd+S 保存当前请求和 Ctrl/Cmd+F 聚焦当前 sidebar 输入已绑定到实际动作；前置条件不满足时动作禁用、过滤计数和快捷键覆盖仍需继续系统复核
+- [~] 13.1.1 颜色审查: 全局表面色/边框色/强调色、warning/status、HTTP 方法色和 syntax 色已收敛到共享 token，并移除 app/input 渲染路径中的裸 RGB；Sidebar/Request/Response pane 已从单一灰阶改为低饱和分区 surface，top/status chrome 与 workspace gutter 也有独立 token；全局 secondary/muted 与 strong border token 已提高对比度，避免输入和空状态读成禁用灰；截图级视觉复核仍待完成
+- [~] 13.1.2 字体排版审查: TextInput 已复用平台 UI/monospace 字体 token，正文/代码路径继续使用共享字体常量；Request pane section title、表格头、preview 标题、Request/Response tab 非激活文本、toggle 默认文本、Scripts 结果行和 Realtime 日志行已从 muted/secondary 提升到 primary/body，TextInput placeholder、Request pane idle/configured 状态与常见空状态也提高到 body 级对比度；字号层级和各面板视觉复核仍待完成
+- [~] 13.1.3 间距与尺寸审查: 窗口、应用级顶栏、左/中/右三 pane 工作台、Request pane 内组合式请求地址栏 52px/36px、Request editor 34px tab bar、Raw/GraphQL body editor 118px、GraphQL variables editor 86px、Body/GraphQL preview 86px、GraphQL schema browser 112px、可调整 sidebar/request/response split、左栏 42px 三段导航、响应 Tests meta 260px/14px、选中路由 3px、panel header、empty state、Import 弹出层 520x58、method 菜单、细窄滚动条 6px thumb/12px gutter 与 20px 内容右侧安全区尺寸已 token 化并有回归测试；截图级视觉复核仍待完成
+- [~] 13.1.4 控件样式审查: 顶栏已收敛为品牌、Import 和 Mock/Stop 应用级动作，Mock 详细状态保留在底栏；Import 路径移入紧凑弹出层；左栏已从 Endpoints/Collections/History 纵向堆叠重构为单一导航上下文，集合操作按钮改为弹性两行布局；请求栏 method、URL 和 Send 已合并为 Request pane 内的单个地址栏外壳，URL 使用 inline TextInput，只有 URL 聚焦会反馈到组合地址栏边框，method 菜单打开只影响 method 文本、箭头和菜单 chrome，busy 期间 URL 输入会随组合地址栏进入真实 disabled 状态并停止编辑/选区/IME 写入；method selector 已移除整块 hover/打开态高亮，不再染色整个 method segment 或整条地址栏，并已补回归测试固定该规则；Request pane 已从所有编辑器纵向堆叠改为 Params/Headers/Auth/Body/Scripts/Realtime/Tools 内容 tabs，tab 内 Auth/Body/Variables/Realtime/Tests/Runner 控件已改为分行和弹性按钮，mode/toggle 默认态也改为白底和 body 文本；sidebar/request 与 request/response divider 已变为可拖拽 resize handle，按钮主色/次要/危险/禁用状态由共享 UI 辅助函数统一管理，disabled controls 已改用独立 surface/border/text token 和共享 opacity，不再复用 hover 色；弹出层截图复核仍待完成
+- [~] 13.1.5 交互规范审查: Import/Method 临时菜单状态已分离，导入成功、路由选择、请求发送会关闭临时层；Escape 已统一关闭 Import、Method、Codegen 和 Collection 菜单，打开任一临时层也会关闭其它临时层避免多层叠加；Sidebar、Request pane 和 Response body 都改为固定头部/工具条 + 独立滚动内容区，并通过 GPUI ScrollHandle + ZenAPI 自绘 thumb 渲染细窄垂直滚动条；滚动容器已预留 gutter 和内容右侧安全区，thumb 支持拖动和 active state，track 支持点击跳转，滚动条 mouse down/move/up 已截断事件传播以避免激活底层行或选择响应文本；Request tab 切换会重置当前编辑区滚动位置；Request tab bar 已显式 min-width/overflow 边界并统一 tab 定义，避免窄 pane 下反向撑开布局；Response tab bar 已显式 overflow 边界并统一 Pretty/Raw/Headers tab 定义，避免窄 pane 下响应工具条向外撑开；Import popover、Endpoints filter、Collection path 和 History filter 输入容器已补 min-width 边界，避免长路径/查询撑开左栏或弹出层；Request URL/method、Import path、key/value 表格、Basic/API Key、Tests assertion、Bearer/JWT、Pre-request、Raw/GraphQL/Binary body、WebSocket/SSE URL 与消息输入已统一通过 bounded input/内部截断外壳挂载，避免长输入撑开 Request pane；Raw/GraphQL multiline 输入也已启用垂直滚动和右侧安全区，避免长 body 被固定高度裁掉；Raw/GraphQL preview、GraphQL schema summary/browser 和 Codegen snippet 固定高度内容框已改为内部垂直滚动并预留滚动条右侧安全区，避免长预览或长代码被直接裁切；左栏 route/history/collection 行、section header、空状态、filter/path/rename 输入和 Collection menu 已约束固定列、收缩行为与截断，空状态行也已收敛到 `empty_state_row` 共享外壳，Collection tree 深层缩进也已加上上限避免多层目录把内容推出左 pane；route/history/collection、Runner/WebSocket/SSE/Mock 和 Tests 结果行已收敛到 `fixed_row_cell` 固定列，Collection drag preview 也补了截断边界；固定宽动作按钮、顶栏按钮、侧栏按钮、Request Send、Codegen 语言按钮和 Tests 类型按钮已统一用内部截断容器，面板按钮行已收敛到 `panel_button_row`，`panel_action_button`、`sidebar_fluid_button`、`flexible_toggle` 和 `full_width_toggle` 共享控件也已补 overflow/min-width/label 截断边界，History Clear/Del 与 Collection menu Close 已收敛到小号固定按钮外壳，WebSocket/SSE/Runner/Raw Body 按钮行也已使用统一收缩边界；WebSocket/SSE/Runner/Pre-request 状态行已统一为右对齐可收缩截断文本，Realtime/Runner 输出已收敛为状态、事件数量、pre-request 和 Tests 摘要，避免长错误状态撑开 Realtime/Tools/Scripts 面板；GraphQL Query Assistant 行头已改为字段名 flex 截断 + 固定 Use 按钮，卡片和 preview 文本也有 min-width/overflow 边界，避免长字段名或长 query 挤出操作按钮和 Tools pane；GraphQL/Raw preview、Codegen 标题行/语言菜单/代码片段、WebSocket/SSE/Runner/Mock 日志列表和底栏 route/mock/response 状态已补 min-width、overflow 和截断边界，减少窄 pane 下的横向溢出；History、WebSocket、SSE、Runner 和 Mock 日志/结果列表已移除额外显示层截断，依赖 Sidebar/Request pane 滚动区浏览全部当前过滤结果或保留日志；Enter in URL、Ctrl/Cmd+A/C in response、Ctrl/Cmd+S 保存当前请求、Ctrl/Cmd+F 聚焦当前 sidebar 输入和 Ctrl/Cmd+L 聚焦 Request URL 已绑定到实际动作；Ctrl/Cmd+L 在 busy 期间不会抢占 disabled URL 输入焦点；Request Send 和 URL 回车会在 URL 为空且 pre-request 未设置 URL 时禁用/阻止；OpenAPI/Collection path、环境名和 Collection Rename 回车提交会随对应按钮前置条件禁用/阻止；Response Headers 对空白 headers 使用统一空状态；Response Copy 会随当前 Pretty/Raw/Headers 视图空状态禁用，避免复制空 headers 占位文案；Response Collapse/Expand 仅在当前 raw body 可解析为 JSON 时启用；History 导航与标题计数已按过滤结果显示 visible/total，空历史时 Clear 禁用；OpenAPI Open、Collection Import 和 Collection Export/Postman 会随路径/集合内容前置条件禁用并阻止无效动作；Collection Save 与 Ctrl/Cmd+S 会在 URL 为空且 pre-request 未设置 URL 时禁用/阻止；Variables Add Env 会随标准化后环境名为空禁用；WebSocket Connect 与 SSE Fetch/Subscribe 会随 URL 空状态禁用；WebSocket Send 会在未连接或 Binary Hex 输入无效时禁用；Headers Copy Bulk 会随有效 header 行空状态禁用；Raw Body Format JSON 仅在 JSON 模式且 body 非空时启用；Runner Stop on fail 在运行中或 busy 时显示禁用态并阻止切换；Codegen Copy 会在请求 URL 为空或请求构建失败时禁用，避免复制占位文案；Collection 菜单 Rename 会在根节点或空名称时禁用并阻止无效动作；更多前置条件不满足时动作禁用、过滤计数和快捷键覆盖仍需继续系统复核
+  - [x] Ctrl/Cmd+Enter 已绑定为从当前 Request editor 上下文发送请求，并复用 Send 按钮的 busy、URL 和 pre-request URL 前置条件。
 
 ### 13.2 功能完整性审查（参照: `docs/RESEARCH_FEATURES.md`）
-- [~] 13.2.1 请求构建器完备度审查: Headers 已支持 key/value 编辑、bulk copy/paste、解析常见 `-H`/`--header` 格式，以及 Accept JSON / Content-Type JSON / Bearer Auth 常用预设且会按 header 名 upsert；Body 已覆盖 none/form-data/urlencoded/raw/GraphQL/binary，Raw JSON 增加局部 Format JSON 操作和结构预览；Auth 已覆盖 None/Bearer/Basic/JWT/API Key header/query；OAuth2、Body 大文本编辑体验和截图级复核仍待完成
-- [~] 13.2.2 响应查看器完备度审查: Pretty/Raw/Headers 各模式已作为局部 tabs 保持一等入口；响应文本使用只读可选择 viewer，Ctrl/Cmd+A 与 Ctrl/Cmd+C 已绑定；Response tab 行已增加局部 Copy 操作用于复制当前 Pretty/Raw/Headers 视图内容，且不污染全局顶栏；大响应体渲染性能和截图级交互复核仍待完成
-- [~] 13.2.3 核心交互流畅度审查: 请求发送中 Response body 已显示明确的 pending method + URL 占位，不再保留旧响应正文；请求成功、请求错误和后台 worker 取消路径都会恢复 Busy 状态并写入 Response/History；路由选择、普通响应、错误响应、Pretty/Raw/Headers 切换和 Pretty collapse/expand 现在都会将 Response body 滚动位置复位到顶部，避免长响应残留旧滚动偏移；路由选择→请求发送→响应展示的端到端延迟测量和截图级交互复核仍待完成
-- [~] 13.2.4 启动性能与内存占用审查: release 构建、本地真实桌面 smoke、2 秒 idle RSS 单点采样已完成；当前 release 运行可进入 GPUI event loop，RSS 采样约 229,132 KiB；first-paint/startup 精确计时、重复采样和大规格导入后的内存曲线仍待实现
-- [x] 13.2.5 更新 `docs/BENCHMARK.md` 调研总结至最新状态: 已记录当前 release binary / stripped 估算 / 桌面 smoke / RSS 基线，并修正 WebSocket/SSE/GraphQL 当前能力与剩余 gap
-
-### 13.3 性能与稳定性
-- [ ] 13.3.1 大规格文件导入流畅度优化（目标：1000+ 路由的 OpenAPI 文件 <2s 解析渲染）
-- [ ] 13.3.2 响应体渲染性能优化（大 JSON 响应的增量渲染和滚动性能）
-- [ ] 13.3.3 启动时间优化（目标 <1s）
-- [ ] 13.3.4 错误处理完善: 网络错误、文件解析错误、Mock 启动失败的用户友好提示
-- [ ] 13.3.5 可执行文件大小优化（目标 ~10 MB）
+- [~] 13.2.1 请求构建器完备度审查: Headers 已支持 key/value 编辑、bulk copy/paste、解析常见 `-H`/`--header` 格式，以及 Accept JSON / Content-Type JSON / Bearer Auth 常用预设且会按 header 名 upsert；Body 已覆盖 none/form-data/urlencoded/raw/GraphQL/binary，Raw JSON 增加局部 Format JSON 操作和结构预览，Raw/GraphQL/schema preview 已改为固定高度边界和内部垂直滚动，避免长文本预览挤乱 Request pane 或被裁掉；Raw body、GraphQL query 和 GraphQL variables 已接入 multiline 输入基础能力，支持粘贴保留换行、CRLF 规范化、Enter/Shift+Enter 插入换行、body 级空状态 placeholder 和内部滚动；Auth 已覆盖 None/Bearer/Basic/JWT/API Key header/query；OAuth2、Body 编辑器截图级复核仍待完成
+- [~] 13.2.2 响应查看器完备度审查: Pretty/Raw/Headers 各模式已作为局部 tabs 保持一等入口；响应文本使用只读可选择 viewer，Ctrl/Cmd+A 与 Ctrl/Cmd+C 已绑定，viewer 根节点也已补 min-width/overflow/wrap 边界避免长行撑开 pane；普通响应 header meta 已收敛为 Tests 摘要，无 Tests 时保持空白，减少右侧 header 文字噪音；Response tab 行已增加局部 Copy 操作用于复制当前 Pretty/Raw/Headers 视图内容，且不污染全局顶栏；Copy 会拒绝空当前视图和空 Headers 占位文案，Headers 视图对空白 headers 也显示统一空状态；Collapse/Expand 会拒绝非 JSON 内容；长响应内容的交互复核和截图级复核仍待完成
+- [~] 13.2.3 核心交互流畅度审查: 请求发送中 Response body 已显示明确的 pending method + URL 占位，不再保留旧响应正文；请求成功、请求错误和后台 worker 取消路径都会恢复 Busy 状态并写入 Response/History；路由选择、普通响应、错误响应、Pretty/Raw/Headers 切换和 Pretty collapse/expand 现在都会将 Response body 滚动位置复位到顶部，避免长响应残留旧滚动偏移；路由选择→请求发送→响应展示的截图级交互复核仍待完成
+### 13.3 稳定性与错误处理
+- [~] 13.3.1 复杂规格文件导入交互审查: 多路由、多分组场景下过滤、选中、滚动和空状态保持可用；Collection tree 深层目录缩进已加上上限并有 metric 回归测试，避免多层导入内容把左 pane 可读区域挤空；OpenAPI 多路由截图级复核仍待完成
+- [~] 13.3.2 长响应内容交互审查: 复杂 JSON/长文本响应的选择、复制、折叠和滚动行为保持稳定；只读响应 viewer 已补自身 min-width/overflow/wrap 边界，避免长行内容反向撑开右 pane；截图级复核仍待完成
+- [~] 13.3.3 错误处理完善: OpenAPI 导入、Collection 导入/导出、请求构建、请求发送、测试配置、WebSocket、SSE、Collection Runner 和 Mock 服务失败已输出包含操作上下文、路径/URL/端口、底层错误与 next-step hint 的 Response pane 文案；Collection/Mock/realtime 状态行也会同步失败状态；仍需截图级复核和少量边缘状态审查
 
 ### 13.4 文档体系
 - [x] 13.4.1 编写用户使用指南 `docs/USER_GUIDE.md`: 安装、导入规格、发送请求、启动 Mock、变量/环境、集合管理、Runner 与 CLI 均已覆盖
@@ -317,7 +311,6 @@
 | `docs/RESEARCH_INTERACTION.md` | 五方交互模式横评 | 0.2 |
 | `docs/RESEARCH_FEATURES.md` | 六方功能对比矩阵 | 0.3 |
 | `docs/RESEARCH_ARCH.md` | 技术架构横评 | 0.4 |
-| `docs/BENCHMARK.md` | 调研总结 | 0.5 |
 | `docs/BRU_FORMAT.md` | Bru-style 集合存储探索记录 | 6.3 |
 | `docs/SCRIPTING.md` | 脚本与测试引擎评估 | 10.1 |
 | `docs/GRPC.md` | gRPC 支持评估与实现拆分 | 11.4 |
