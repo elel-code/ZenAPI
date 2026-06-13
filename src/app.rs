@@ -7,9 +7,10 @@ use anyhow::{Result, anyhow};
 use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64_STANDARD};
 use gpui::prelude::*;
 use gpui::{
-    App, Bounds, ClipboardItem, Context, Entity, FontWeight, HighlightStyle, Hsla, MouseButton,
-    MouseDownEvent, MouseUpEvent, Render, SharedString, StyledText, Window, WindowBounds,
-    WindowOptions, div, px, rgb, size,
+    App, Bounds, ClipboardItem, Context, DefiniteLength, DragMoveEvent, Entity, Focusable,
+    FontWeight, HighlightStyle, Hsla, KeyBinding, MouseButton, MouseDownEvent, MouseMoveEvent,
+    MouseUpEvent, Render, ScrollHandle, SharedString, StyledText, Window, WindowBounds,
+    WindowOptions, actions, canvas, div, point, px, rgb, size,
 };
 use tokio::{
     runtime::Runtime,
@@ -40,9 +41,11 @@ use zenapi::{
 };
 
 use self::{
-    input::{TextAccepted, TextChanged, TextInput, bind_text_input_keys},
+    input::{TextAccepted, TextChanged, TextInput, TextInputChrome, bind_text_input_keys},
     read_only_text::{ReadOnlyTextView, bind_read_only_text_keys},
 };
+
+actions!(zenapi_app, [SaveCurrentRequest, FocusActiveSidebarInput]);
 
 #[cfg(test)]
 use zenapi::variables::replace_variables;
@@ -62,6 +65,81 @@ const UI_COLOR_TEXT_BODY: u32 = 0x374151;
 const UI_COLOR_ACCENT: u32 = 0x2563eb;
 const UI_COLOR_ACCENT_TEXT: u32 = 0x1d4ed8;
 const UI_COLOR_ACCENT_SURFACE: u32 = 0xeff6ff;
+const UI_COLOR_ACCENT_SELECTION_RGBA: u32 = 0x332563eb;
+const UI_COLOR_WARNING: u32 = 0xb45309;
+const UI_COLOR_WARNING_STRONG: u32 = 0x92400e;
+const UI_COLOR_STATUS_BUSY: u32 = 0xd97706;
+const UI_COLOR_STATUS_SUCCESS: u32 = 0x059669;
+const UI_COLOR_STATUS_ERROR: u32 = 0xdc2626;
+const UI_COLOR_METHOD_PATCH: u32 = 0x7c3aed;
+const UI_COLOR_METHOD_OPTIONS: u32 = 0x0891b2;
+const UI_COLOR_METHOD_HEAD: u32 = 0x4b5563;
+const UI_COLOR_SYNTAX_STRING: u32 = 0x047857;
+const UI_COLOR_SYNTAX_NUMBER: u32 = UI_COLOR_METHOD_PATCH;
+const UI_COLOR_SYNTAX_KEYWORD: u32 = UI_COLOR_ACCENT;
+const UI_COLOR_SYNTAX_PUNCTUATION: u32 = UI_COLOR_TEXT_SECONDARY;
+const UI_COLOR_SYNTAX_TAG: u32 = UI_COLOR_WARNING;
+const UI_COLOR_SYNTAX_ATTRIBUTE: u32 = UI_COLOR_METHOD_OPTIONS;
+const APP_WINDOW_WIDTH: f32 = 1180.;
+const APP_WINDOW_HEIGHT: f32 = 760.;
+const SIDEBAR_WIDTH: f32 = 320.;
+const WORKSPACE_SIDEBAR_DEFAULT_RATIO: f32 = SIDEBAR_WIDTH / APP_WINDOW_WIDTH;
+const WORKSPACE_SIDEBAR_MIN_RATIO: f32 = 0.20;
+const WORKSPACE_SIDEBAR_MAX_RATIO: f32 = 0.38;
+const WORKSPACE_REQUEST_DEFAULT_RATIO: f32 = 0.37;
+const WORKSPACE_REQUEST_MIN_RATIO: f32 = 0.28;
+const WORKSPACE_REQUEST_MAX_RATIO: f32 = 0.56;
+const WORKSPACE_RESPONSE_MIN_RATIO: f32 = 0.24;
+const WORKSPACE_SPLIT_HANDLE_WIDTH: f32 = 8.;
+const WORKSPACE_SPLIT_DIVIDER_WIDTH: f32 = 1.;
+const SIDEBAR_NAV_HEIGHT: f32 = 42.;
+const SCROLLBAR_WIDTH: f32 = 6.;
+const SCROLLBAR_RIGHT_OFFSET: f32 = 3.;
+const SCROLLBAR_GUTTER_WIDTH: f32 = SCROLLBAR_WIDTH + SCROLLBAR_RIGHT_OFFSET * 2.;
+const SCROLLBAR_CONTENT_RIGHT_PADDING: f32 = SCROLLBAR_GUTTER_WIDTH + 8.;
+const SCROLLBAR_MIN_THUMB_HEIGHT: f32 = 28.;
+const TOP_BAR_HEIGHT: f32 = 40.;
+const TOP_BAR_BRAND_WIDTH: f32 = 132.;
+const TOP_BAR_ACTION_WIDTH: f32 = 76.;
+const TOP_BAR_MOCK_ACTION_WIDTH: f32 = 68.;
+const IMPORT_POPOVER_WIDTH: f32 = 520.;
+const IMPORT_POPOVER_HEIGHT: f32 = 58.;
+const IMPORT_POPOVER_PADDING: f32 = 10.;
+const IMPORT_POPOVER_TOP_OFFSET: f32 = TOP_BAR_HEIGHT + 6.;
+const IMPORT_POPOVER_RIGHT_OFFSET: f32 = TOP_BAR_MOCK_ACTION_WIDTH + 20.;
+const SECTION_HEADER_HEIGHT: f32 = 24.;
+const ROUTE_ROW_HEIGHT: f32 = 48.;
+const ROUTE_SELECTED_MARKER_WIDTH: f32 = 3.;
+const REQUEST_BAR_HEIGHT: f32 = 52.;
+const REQUEST_BAR_CONTROL_Y_OFFSET: f32 = 8.;
+const REQUEST_METHOD_SEGMENT_WIDTH: f32 = 100.;
+const REQUEST_ADDRESS_RADIUS: f32 = TEXT_INPUT_RADIUS;
+const REQUEST_EDITOR_TAB_BAR_HEIGHT: f32 = 34.;
+const METHOD_MENU_WIDTH: f32 = REQUEST_METHOD_SEGMENT_WIDTH;
+const METHOD_MENU_TOP_OFFSET: f32 =
+    PANEL_HEADER_HEIGHT + REQUEST_BAR_CONTROL_Y_OFFSET + TEXT_INPUT_HEIGHT + 4.;
+const METHOD_MENU_LEFT_OFFSET: f32 = 12.;
+const REQUEST_SEND_WIDTH: f32 = 86.;
+const ACTION_BUTTON_WIDTH: f32 = 112.;
+const ACTION_BUTTON_HEIGHT: f32 = 34.;
+const SIDEBAR_BUTTON_HEIGHT: f32 = 26.;
+const COMPACT_CONTROL_HEIGHT: f32 = 26.;
+const RESPONSE_TAB_BAR_HEIGHT: f32 = 36.;
+const RESPONSE_TAB_WIDTH: f32 = 84.;
+const RESPONSE_FOLD_BUTTON_WIDTH: f32 = 86.;
+const RESPONSE_COPY_BUTTON_WIDTH: f32 = 62.;
+const CODEGEN_COPY_BUTTON_WIDTH: f32 = 72.;
+const CODEGEN_MENU_WIDTH: f32 = 156.;
+const GRAPHQL_SCHEMA_BROWSER_MIN_HEIGHT: f32 = 112.;
+const PANEL_HEADER_HEIGHT: f32 = 40.;
+const PANEL_HEADER_META_WIDTH: f32 = 260.;
+const PANEL_HEADER_RIGHT_PADDING: f32 = 14.;
+const PANEL_HEADER_UNDERLINE_WIDTH: f32 = 80.;
+const PANEL_HEADER_UNDERLINE_HEIGHT: f32 = 2.;
+const EMPTY_STATE_ROW_HEIGHT: f32 = 34.;
+const TEXT_INPUT_HEIGHT: f32 = 36.;
+const TEXT_INPUT_LINE_HEIGHT: f32 = 20.;
+const TEXT_INPUT_RADIUS: f32 = 6.;
 const KEY_VALUE_KEY_COLUMN_WIDTH: f32 = 150.;
 const TEST_ASSERTION_NAME_COLUMN_WIDTH: f32 = 132.;
 const TEST_ASSERTION_KIND_COLUMN_WIDTH: f32 = 132.;
@@ -78,16 +156,18 @@ const GRAPHQL_QUERY_TEMPLATE_LIMIT: usize = 5;
 const WEBSOCKET_LOG_LIMIT: usize = 24;
 const SSE_EVENT_FETCH_LIMIT: usize = 6;
 const SSE_LOG_LIMIT: usize = 24;
+const HTTP_METHODS: [&str; 7] = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"];
 const GRAPHQL_INTROSPECTION_QUERY: &str = "query IntrospectionQuery { __schema { queryType { name } mutationType { name } subscriptionType { name } types { kind name description fields(includeDeprecated: true) { name description args { name description type { kind name ofType { kind name ofType { kind name } } } defaultValue } type { kind name ofType { kind name ofType { kind name } } } isDeprecated deprecationReason } inputFields { name description type { kind name ofType { kind name ofType { kind name } } } defaultValue } interfaces { kind name ofType { kind name } } enumValues(includeDeprecated: true) { name description isDeprecated deprecationReason } possibleTypes { kind name ofType { kind name } } } directives { name description locations args { name description type { kind name ofType { kind name ofType { kind name } } } defaultValue } } } }";
 
 pub fn run() -> Result<()> {
     let runtime = Arc::new(Runtime::new()?);
 
     gpui_platform::application().run(move |cx: &mut App| {
+        bind_app_keys(cx);
         bind_text_input_keys(cx);
         bind_read_only_text_keys(cx);
 
-        let bounds = Bounds::centered(None, size(px(1180.), px(760.)), cx);
+        let bounds = Bounds::centered(None, size(px(APP_WINDOW_WIDTH), px(APP_WINDOW_HEIGHT)), cx);
         cx.open_window(
             WindowOptions {
                 window_bounds: Some(WindowBounds::Windowed(bounds)),
@@ -105,14 +185,33 @@ pub fn run() -> Result<()> {
     Ok(())
 }
 
+fn bind_app_keys(cx: &mut App) {
+    cx.bind_keys([
+        KeyBinding::new("ctrl-f", FocusActiveSidebarInput, None),
+        KeyBinding::new("cmd-f", FocusActiveSidebarInput, None),
+        KeyBinding::new("ctrl-s", SaveCurrentRequest, None),
+        KeyBinding::new("cmd-s", SaveCurrentRequest, None),
+    ]);
+}
+
 struct ZenApiApp {
     runtime: Arc<Runtime>,
+    workspace_sidebar_ratio: f32,
+    workspace_request_ratio: f32,
+    active_sidebar_section: SidebarSection,
+    active_request_tab: RequestPaneTab,
+    sidebar_scroll: ScrollHandle,
+    request_scroll: ScrollHandle,
+    response_scroll: ScrollHandle,
+    scrollbar_drag: Option<ScrollbarDragState>,
     import_path: Entity<TextInput>,
     collection_path: Entity<TextInput>,
     collection_rename_input: Entity<TextInput>,
     route_filter: Entity<TextInput>,
     history_filter: Entity<TextInput>,
     url: Entity<TextInput>,
+    import_popover_open: bool,
+    method_menu_open: bool,
     environment_name_input: Entity<TextInput>,
     active_environment: Option<String>,
     global_variables: Vec<KeyValueRow>,
@@ -148,6 +247,7 @@ struct ZenApiApp {
     websocket_command_tx: Option<mpsc::UnboundedSender<client::WebSocketSessionCommand>>,
     websocket_messages: Vec<WebSocketLogEntry>,
     sse_url: Entity<TextInput>,
+    sse_headers: Vec<KeyValueRow>,
     sse_status: String,
     sse_running: bool,
     sse_subscription: Option<JoinHandle<()>>,
@@ -189,6 +289,61 @@ struct ZenApiApp {
     history: RequestHistory,
     history_query: String,
     busy: bool,
+}
+
+#[derive(Clone, Copy, Debug)]
+enum WorkspaceSplitDrag {
+    SidebarRequest,
+    RequestResponse,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum ScrollbarKind {
+    Sidebar,
+    Request,
+    Response,
+}
+
+#[derive(Clone, Copy, Debug)]
+struct ScrollbarDragState {
+    kind: ScrollbarKind,
+    track_top: f32,
+    thumb_grab_y: f32,
+    max_thumb_top: f32,
+    max_offset: f32,
+}
+
+#[derive(Clone, Copy, Debug)]
+struct ScrollbarMetrics {
+    max_offset: f32,
+    thumb_top: f32,
+    thumb_height: f32,
+    max_thumb_top: f32,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum SidebarSection {
+    Endpoints,
+    Collections,
+    History,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum SidebarFocusTarget {
+    RouteFilter,
+    CollectionPath,
+    HistoryFilter,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum RequestPaneTab {
+    Params,
+    Headers,
+    Auth,
+    Body,
+    Scripts,
+    Realtime,
+    Tools,
 }
 
 struct KeyValueRow {
@@ -326,6 +481,26 @@ fn ui_accent_surface() -> Hsla {
     rgb(UI_COLOR_ACCENT_SURFACE).into()
 }
 
+fn ui_warning() -> Hsla {
+    rgb(UI_COLOR_WARNING).into()
+}
+
+fn ui_warning_strong() -> Hsla {
+    rgb(UI_COLOR_WARNING_STRONG).into()
+}
+
+fn ui_status_busy() -> Hsla {
+    rgb(UI_COLOR_STATUS_BUSY).into()
+}
+
+fn ui_status_success() -> Hsla {
+    rgb(UI_COLOR_STATUS_SUCCESS).into()
+}
+
+fn ui_status_error() -> Hsla {
+    rgb(UI_COLOR_STATUS_ERROR).into()
+}
+
 impl ZenApiApp {
     fn new(runtime: Arc<Runtime>, cx: &mut Context<Self>) -> Self {
         let import_path = cx.new(|cx| TextInput::new(cx, "OpenAPI / Swagger file path", true));
@@ -334,7 +509,8 @@ impl ZenApiApp {
         let route_filter =
             cx.new(|cx| TextInput::new(cx, "Filter method, path, or summary", false));
         let history_filter = cx.new(|cx| TextInput::new(cx, "Filter history", false));
-        let url = cx.new(|cx| TextInput::new(cx, "Request URL", true));
+        let url = cx
+            .new(|cx| TextInput::new(cx, "Request URL", true).with_chrome(TextInputChrome::Inline));
         let environment_name_input = cx.new(|cx| TextInput::new(cx, "New environment", true));
         let global_variables = key_value_rows(
             cx,
@@ -401,6 +577,7 @@ impl ZenApiApp {
         let websocket_headers = key_value_rows(cx, &[("X-Token", "token"), ("", "")]);
         let websocket_message = cx.new(|cx| TextInput::new(cx, "WebSocket message", true));
         let sse_url = cx.new(|cx| TextInput::new(cx, "http://localhost:8080/events", true));
+        let sse_headers = key_value_rows(cx, &[("Authorization", "Bearer token"), ("", "")]);
         let response_body_viewer = cx.new(|cx| ReadOnlyTextView::new(cx, INITIAL_RESPONSE_BODY));
         let form_data_body = key_value_rows(
             cx,
@@ -471,12 +648,22 @@ impl ZenApiApp {
 
         Self {
             runtime,
+            workspace_sidebar_ratio: WORKSPACE_SIDEBAR_DEFAULT_RATIO,
+            workspace_request_ratio: WORKSPACE_REQUEST_DEFAULT_RATIO,
+            active_sidebar_section: SidebarSection::Endpoints,
+            active_request_tab: RequestPaneTab::Params,
+            sidebar_scroll: ScrollHandle::new(),
+            request_scroll: ScrollHandle::new(),
+            response_scroll: ScrollHandle::new(),
+            scrollbar_drag: None,
             import_path,
             collection_path,
             collection_rename_input,
             route_filter,
             history_filter,
             url,
+            import_popover_open: false,
+            method_menu_open: false,
             environment_name_input,
             active_environment: None,
             global_variables,
@@ -512,6 +699,7 @@ impl ZenApiApp {
             websocket_command_tx: None,
             websocket_messages: Vec::new(),
             sse_url,
+            sse_headers,
             sse_status: "idle".to_string(),
             sse_running: false,
             sse_subscription: None,
@@ -589,6 +777,7 @@ impl ZenApiApp {
                 self.routes = routes;
                 self.selected_route = None;
                 self.spec_label = display_spec_label(path);
+                self.import_popover_open = false;
                 self.server_running = false;
                 self.server_status = if self.routes.is_empty() {
                     "No mock routes".to_string()
@@ -743,6 +932,32 @@ impl ZenApiApp {
             "Saved current request to collection.",
         );
         cx.notify();
+    }
+
+    fn save_current_request_shortcut(
+        &mut self,
+        _: &SaveCurrentRequest,
+        _: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        if !self.busy {
+            self.save_current_request_to_collection(cx);
+        }
+    }
+
+    fn focus_active_sidebar_input(
+        &mut self,
+        _: &FocusActiveSidebarInput,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        let input = match sidebar_focus_target(self.active_sidebar_section) {
+            SidebarFocusTarget::RouteFilter => self.route_filter.clone(),
+            SidebarFocusTarget::CollectionPath => self.collection_path.clone(),
+            SidebarFocusTarget::HistoryFilter => self.history_filter.clone(),
+        };
+        let focus_handle = input.read(cx).focus_handle(cx);
+        focus_handle.focus(window, cx);
     }
 
     fn open_collection_menu(&mut self, menu: CollectionContextMenu, cx: &mut Context<Self>) {
@@ -977,6 +1192,8 @@ impl ZenApiApp {
             return;
         };
 
+        self.method_menu_open = false;
+        self.import_popover_open = false;
         self.selected_route = Some(index);
         self.method = route.method.clone();
         self.url.update(cx, |input, cx| {
@@ -1009,6 +1226,8 @@ impl ZenApiApp {
         if self.busy {
             return;
         }
+        self.method_menu_open = false;
+        self.import_popover_open = false;
 
         let build = match self.current_request_build(cx) {
             Ok(build) => build,
@@ -1063,7 +1282,7 @@ impl ZenApiApp {
             "Sending",
             "",
             ResponseTone::Busy,
-            self.response_body.clone(),
+            sending_response_body(&method, &url),
         );
         cx.notify();
 
@@ -1074,59 +1293,71 @@ impl ZenApiApp {
         });
 
         cx.spawn(async move |app, cx| {
-            if let Ok(result) = rx.await {
-                app.update(cx, |app, cx| {
-                    match result {
-                        Ok(response) => {
-                            let response_status = format!("HTTP {}", response.status);
-                            let assertion_results =
-                                evaluate_response_assertions(&response, &assertions);
-                            let mut response_meta =
-                                format_response_meta(response.elapsed_ms, response.body_bytes);
-                            if let Some(test_meta) = assertion_meta(&assertion_results) {
-                                response_meta = format!("{response_meta} | {test_meta}");
-                            }
-                            let history_response = HistoryResponse {
-                                status: response_status.clone(),
-                                meta: response_meta.clone(),
-                                body_preview: preview_text(&response.body),
-                            };
-                            let headers = format_headers(&response.headers);
-                            let tone = if assertion_results.iter().any(|result| !result.passed) {
-                                ResponseTone::Error
-                            } else {
-                                response_tone(response.status)
-                            };
-                            app.record_history(history_request.clone(), history_response);
-                            app.last_assertion_results = assertion_results;
-                            app.set_http_response(
-                                response_status,
-                                response_meta,
-                                tone,
-                                response.body,
-                                response.raw_body,
-                                headers,
-                            );
+            let result = rx.await;
+            app.update(cx, |app, cx| {
+                match result {
+                    Ok(Ok(response)) => {
+                        let response_status = format!("HTTP {}", response.status);
+                        let assertion_results =
+                            evaluate_response_assertions(&response, &assertions);
+                        let mut response_meta =
+                            format_response_meta(response.elapsed_ms, response.body_bytes);
+                        if let Some(test_meta) = assertion_meta(&assertion_results) {
+                            response_meta = format!("{response_meta} | {test_meta}");
                         }
-                        Err(error) => {
-                            let error = error.to_string();
-                            app.record_history(
-                                history_request.clone(),
-                                HistoryResponse {
-                                    status: "Request failed".to_string(),
-                                    meta: String::new(),
-                                    body_preview: preview_text(&error),
-                                },
-                            );
-                            app.last_assertion_results.clear();
-                            app.set_response("Request failed", "", ResponseTone::Error, error);
-                        }
+                        let history_response = HistoryResponse {
+                            status: response_status.clone(),
+                            meta: response_meta.clone(),
+                            body_preview: preview_text(&response.body),
+                        };
+                        let headers = format_headers(&response.headers);
+                        let tone = if assertion_results.iter().any(|result| !result.passed) {
+                            ResponseTone::Error
+                        } else {
+                            response_tone(response.status)
+                        };
+                        app.record_history(history_request.clone(), history_response);
+                        app.last_assertion_results = assertion_results;
+                        app.set_http_response(
+                            response_status,
+                            response_meta,
+                            tone,
+                            response.body,
+                            response.raw_body,
+                            headers,
+                        );
                     }
-                    app.busy = false;
-                    cx.notify();
-                })
-                .ok();
-            }
+                    Ok(Err(error)) => {
+                        let error = error.to_string();
+                        app.record_history(
+                            history_request.clone(),
+                            HistoryResponse {
+                                status: "Request failed".to_string(),
+                                meta: String::new(),
+                                body_preview: preview_text(&error),
+                            },
+                        );
+                        app.last_assertion_results.clear();
+                        app.set_response("Request failed", "", ResponseTone::Error, error);
+                    }
+                    Err(_) => {
+                        let error = request_worker_stopped_message();
+                        app.record_history(
+                            history_request.clone(),
+                            HistoryResponse {
+                                status: "Request failed".to_string(),
+                                meta: String::new(),
+                                body_preview: preview_text(error),
+                            },
+                        );
+                        app.last_assertion_results.clear();
+                        app.set_response("Request failed", "", ResponseTone::Error, error);
+                    }
+                }
+                app.busy = false;
+                cx.notify();
+            })
+            .ok();
         })
         .detach();
     }
@@ -1317,6 +1548,7 @@ impl ZenApiApp {
         }
 
         let runtime = self.runtime.clone();
+        let headers = read_key_value_rows(&self.sse_headers, cx);
         let (tx, rx) = oneshot::channel();
         self.sse_running = true;
         self.sse_status = "connecting".to_string();
@@ -1329,7 +1561,9 @@ impl ZenApiApp {
         cx.notify();
 
         runtime.spawn(async move {
-            let _ = tx.send(client::collect_sse_events(&url, SSE_EVENT_FETCH_LIMIT).await);
+            let _ = tx.send(
+                client::collect_sse_events_with_headers(&url, SSE_EVENT_FETCH_LIMIT, headers).await,
+            );
         });
 
         cx.spawn(async move |app, cx| {
@@ -1389,8 +1623,16 @@ impl ZenApiApp {
 
         let runtime = self.runtime.clone();
         let last_event_id = self.sse_last_event_id.clone();
+        let headers = read_key_value_rows(&self.sse_headers, cx);
+        let options = client::SseSubscriptionOptions {
+            last_event_id,
+            headers,
+            ..Default::default()
+        };
         let (event_tx, event_rx) = mpsc::unbounded_channel();
-        let handle = runtime.spawn(client::run_sse_subscription(url, last_event_id, event_tx));
+        let handle = runtime.spawn(client::run_sse_subscription_with_options(
+            url, options, event_tx,
+        ));
         self.sse_subscription = Some(handle);
         self.sse_running = true;
         self.sse_status = "subscribing".to_string();
@@ -1457,6 +1699,20 @@ impl ZenApiApp {
                 self.push_sse_log(sse_log_entry(&event));
                 self.sse_status = format!("event {label}");
                 self.set_response("SSE event", label, ResponseTone::Success, data);
+            }
+            client::SseStreamEvent::Reconnecting {
+                attempt,
+                delay_ms,
+                reason,
+            } => {
+                self.sse_running = true;
+                self.sse_status = format!("reconnect {attempt} in {delay_ms}ms");
+                self.set_response(
+                    "SSE reconnecting",
+                    self.sse_status.clone(),
+                    ResponseTone::Busy,
+                    reason,
+                );
             }
             client::SseStreamEvent::Closed(reason) => {
                 self.sse_subscription = None;
@@ -1698,6 +1954,7 @@ impl ZenApiApp {
         self.graphql_schema_summary.clear();
         self.graphql_schema_browser.clear();
         self.graphql_query_templates.clear();
+        reset_scroll_handle(&self.response_scroll);
     }
 
     fn set_http_response(
@@ -1722,6 +1979,7 @@ impl ZenApiApp {
             graphql_query_templates(&self.response_raw_body).unwrap_or_default();
         self.response_headers = headers.into();
         self.response_pretty_collapsed = false;
+        reset_scroll_handle(&self.response_scroll);
     }
 
     fn record_mock_log(&mut self, entry: MockRequestLog) {
@@ -1880,6 +2138,50 @@ impl ZenApiApp {
         cx.notify();
     }
 
+    fn copy_sse_log(&mut self, cx: &mut Context<Self>) {
+        if self.sse_events.is_empty() {
+            self.set_response(
+                "No SSE log",
+                "",
+                ResponseTone::Neutral,
+                "There are no SSE events to copy.",
+            );
+            cx.notify();
+            return;
+        }
+
+        let log = format_sse_log(&self.sse_events);
+        cx.write_to_clipboard(ClipboardItem::new_string(log));
+        self.set_response(
+            "SSE log copied",
+            self.sse_events.len().to_string(),
+            ResponseTone::Success,
+            "SSE events were copied as text.",
+        );
+        cx.notify();
+    }
+
+    fn copy_response_body(&mut self, cx: &mut Context<Self>) {
+        cx.write_to_clipboard(ClipboardItem::new_string(self.response_body_for_view()));
+    }
+
+    fn clear_sse_log(&mut self, cx: &mut Context<Self>) {
+        self.sse_events.clear();
+        self.sse_last_event_id = None;
+        self.sse_status = if self.sse_running {
+            "subscribed".to_string()
+        } else {
+            "idle".to_string()
+        };
+        self.set_response(
+            "SSE log cleared",
+            "",
+            ResponseTone::Neutral,
+            "SSE event history was cleared.",
+        );
+        cx.notify();
+    }
+
     fn paste_headers_bulk(&mut self, cx: &mut Context<Self>) {
         let Some(text) = cx.read_from_clipboard().and_then(|item| item.text()) else {
             self.set_response(
@@ -1910,6 +2212,49 @@ impl ZenApiApp {
             ResponseTone::Success,
             "Bulk headers were applied to the request.",
         );
+        cx.notify();
+    }
+
+    fn apply_header_preset(
+        &mut self,
+        name: &'static str,
+        value: &'static str,
+        cx: &mut Context<Self>,
+    ) {
+        let headers = read_key_value_rows(&self.request_headers, cx);
+        let headers = upsert_header_pair(&headers, name, value);
+        set_key_value_pairs(&mut self.request_headers, headers, cx);
+        self.set_response(
+            "Header preset applied",
+            name,
+            ResponseTone::Success,
+            format!("{name}: {value}"),
+        );
+        cx.notify();
+    }
+
+    fn format_raw_json_body(&mut self, cx: &mut Context<Self>) {
+        let body = self.request_body.read(cx).text();
+        match formatted_json_body(&body) {
+            Ok(formatted) => {
+                self.request_body
+                    .update(cx, |input, cx| input.set_text(formatted, cx));
+                self.set_response(
+                    "Body formatted",
+                    "JSON",
+                    ResponseTone::Success,
+                    "Raw JSON body was formatted.",
+                );
+            }
+            Err(error) => {
+                self.set_response(
+                    "Body format failed",
+                    "JSON",
+                    ResponseTone::Error,
+                    error.to_string(),
+                );
+            }
+        }
         cx.notify();
     }
 
@@ -2084,39 +2429,377 @@ impl ZenApiApp {
             .collect()
     }
 
-    fn method_button(&self, method: &'static str, cx: &mut Context<Self>) -> impl IntoElement {
-        let active = self.method == method;
+    fn workspace_ratios(&self) -> (f32, f32, f32) {
+        let sidebar = self
+            .workspace_sidebar_ratio
+            .clamp(WORKSPACE_SIDEBAR_MIN_RATIO, WORKSPACE_SIDEBAR_MAX_RATIO);
+        let max_request = WORKSPACE_REQUEST_MAX_RATIO
+            .min(1.0 - sidebar - WORKSPACE_RESPONSE_MIN_RATIO)
+            .max(WORKSPACE_REQUEST_MIN_RATIO);
+        let request = self
+            .workspace_request_ratio
+            .clamp(WORKSPACE_REQUEST_MIN_RATIO, max_request);
+        let response = 1.0 - sidebar - request;
+        (sidebar, request, response)
+    }
+
+    fn resize_workspace_split(
+        &mut self,
+        event: &DragMoveEvent<WorkspaceSplitDrag>,
+        _window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        let width = event.bounds.right() - event.bounds.left();
+        if width <= px(0.) {
+            return;
+        }
+
+        let pointer_ratio =
+            ((event.event.position.x - event.bounds.left()) / width).clamp(0.0, 1.0);
+        match *event.drag(cx) {
+            WorkspaceSplitDrag::SidebarRequest => {
+                let (_, request_ratio, _) = self.workspace_ratios();
+                let max_sidebar = WORKSPACE_SIDEBAR_MAX_RATIO
+                    .min(1.0 - request_ratio - WORKSPACE_RESPONSE_MIN_RATIO)
+                    .max(WORKSPACE_SIDEBAR_MIN_RATIO);
+                self.workspace_sidebar_ratio =
+                    pointer_ratio.clamp(WORKSPACE_SIDEBAR_MIN_RATIO, max_sidebar);
+                self.workspace_request_ratio = request_ratio;
+            }
+            WorkspaceSplitDrag::RequestResponse => {
+                let (sidebar_ratio, _, _) = self.workspace_ratios();
+                let request_ratio = pointer_ratio - sidebar_ratio;
+                let max_request = WORKSPACE_REQUEST_MAX_RATIO
+                    .min(1.0 - sidebar_ratio - WORKSPACE_RESPONSE_MIN_RATIO)
+                    .max(WORKSPACE_REQUEST_MIN_RATIO);
+                self.workspace_sidebar_ratio = sidebar_ratio;
+                self.workspace_request_ratio =
+                    request_ratio.clamp(WORKSPACE_REQUEST_MIN_RATIO, max_request);
+            }
+        }
+        cx.notify();
+    }
+
+    fn reset_workspace_split(&mut self, cx: &mut Context<Self>) {
+        self.workspace_sidebar_ratio = WORKSPACE_SIDEBAR_DEFAULT_RATIO;
+        self.workspace_request_ratio = WORKSPACE_REQUEST_DEFAULT_RATIO;
+        cx.notify();
+    }
+
+    fn method_selector(&self, cx: &mut Context<Self>) -> gpui::Div {
         let enabled = !self.busy;
+        div()
+            .relative()
+            .flex()
+            .items_center()
+            .justify_between()
+            .h(px(TEXT_INPUT_HEIGHT))
+            .w(px(REQUEST_METHOD_SEGMENT_WIDTH))
+            .flex_shrink_0()
+            .px_2()
+            .text_size(px(12.))
+            .font_weight(FontWeight::BOLD)
+            .text_color(method_color(&self.method))
+            .opacity(if enabled { 1.0 } else { 0.55 })
+            .when(enabled, |selector| selector.cursor_pointer())
+            .hover(|selector| selector.bg(ui_hover()))
+            .on_mouse_up(
+                MouseButton::Left,
+                cx.listener(|app, _event: &MouseUpEvent, _window, cx| {
+                    if !app.busy {
+                        app.method_menu_open = !app.method_menu_open;
+                        app.import_popover_open = false;
+                        cx.notify();
+                    }
+                }),
+            )
+            .child(self.method.clone())
+            .child(
+                div()
+                    .text_size(px(10.))
+                    .text_color(ui_text_secondary())
+                    .child("v"),
+            )
+    }
+
+    fn workspace_split_handle(
+        &self,
+        split: WorkspaceSplitDrag,
+        cx: &mut Context<Self>,
+    ) -> impl IntoElement {
+        div()
+            .id(match split {
+                WorkspaceSplitDrag::SidebarRequest => "sidebar-request-split-handle",
+                WorkspaceSplitDrag::RequestResponse => "request-response-split-handle",
+            })
+            .relative()
+            .h_full()
+            .w(px(WORKSPACE_SPLIT_HANDLE_WIDTH))
+            .flex_shrink_0()
+            .cursor_col_resize()
+            .hover(|handle| handle.bg(ui_hover()))
+            .on_click(cx.listener(|app, event: &gpui::ClickEvent, _window, cx| {
+                if event.click_count() >= 2 {
+                    app.reset_workspace_split(cx);
+                }
+            }))
+            .on_drag(split, |_, _, _, cx| cx.new(|_| gpui::Empty))
+            .child(
+                div()
+                    .absolute()
+                    .left(px((WORKSPACE_SPLIT_HANDLE_WIDTH
+                        - WORKSPACE_SPLIT_DIVIDER_WIDTH)
+                        / 2.))
+                    .w(px(WORKSPACE_SPLIT_DIVIDER_WIDTH))
+                    .h_full()
+                    .bg(ui_border()),
+            )
+    }
+
+    fn scrollbar_metrics(scroll: &ScrollHandle) -> Option<ScrollbarMetrics> {
+        let viewport_height = scroll.bounds().size.height.as_f32();
+        let max_offset = scroll.max_offset().y.as_f32();
+
+        if viewport_height <= 0.0 || max_offset <= 1.0 {
+            return None;
+        }
+
+        let content_height = viewport_height + max_offset;
+        let thumb_height = (viewport_height * viewport_height / content_height)
+            .clamp(SCROLLBAR_MIN_THUMB_HEIGHT, viewport_height);
+        let max_thumb_top = (viewport_height - thumb_height).max(0.0);
+        let scroll_top = (-scroll.offset().y.as_f32()).clamp(0.0, max_offset);
+        let thumb_top = if max_offset <= 0.0 {
+            0.0
+        } else {
+            (scroll_top / max_offset * max_thumb_top).clamp(0.0, max_thumb_top)
+        };
+
+        Some(ScrollbarMetrics {
+            max_offset,
+            thumb_top,
+            thumb_height,
+            max_thumb_top,
+        })
+    }
+
+    fn set_scrollbar_offset_from_pointer(
+        scroll: &ScrollHandle,
+        drag: ScrollbarDragState,
+        pointer_y: f32,
+    ) {
+        let thumb_top =
+            (pointer_y - drag.track_top - drag.thumb_grab_y).clamp(0.0, drag.max_thumb_top);
+        let scroll_top = if drag.max_thumb_top <= 0.0 {
+            0.0
+        } else {
+            thumb_top / drag.max_thumb_top * drag.max_offset
+        };
+        let current_offset = scroll.offset();
+        scroll.set_offset(point(current_offset.x, px(-scroll_top)));
+    }
+
+    fn render_vertical_scrollbar(
+        &self,
+        kind: ScrollbarKind,
+        scroll: &ScrollHandle,
+        cx: &mut Context<Self>,
+    ) -> gpui::Div {
+        let Some(metrics) = Self::scrollbar_metrics(scroll) else {
+            return div()
+                .absolute()
+                .right(px(0.))
+                .top(px(0.))
+                .w(px(0.))
+                .h(px(0.));
+        };
+        let entity = cx.entity();
+        let scroll_handle = scroll.clone();
+        let dragging = self
+            .scrollbar_drag
+            .map(|drag| drag.kind == kind)
+            .unwrap_or(false);
+
+        div()
+            .absolute()
+            .top(px(0.))
+            .right(px(0.))
+            .w(px(SCROLLBAR_GUTTER_WIDTH))
+            .h_full()
+            .border_l_1()
+            .border_color(ui_border())
+            .bg(if dragging {
+                ui_hover()
+            } else {
+                ui_surface_muted()
+            })
+            .cursor_pointer()
+            .hover(|track| track.bg(ui_hover()))
+            .child(
+                div()
+                    .absolute()
+                    .right(px(SCROLLBAR_RIGHT_OFFSET))
+                    .top(px(metrics.thumb_top))
+                    .w(px(SCROLLBAR_WIDTH))
+                    .h(px(metrics.thumb_height))
+                    .rounded(px(SCROLLBAR_WIDTH / 2.))
+                    .bg(if dragging {
+                        ui_text_secondary()
+                    } else {
+                        ui_border_strong()
+                    })
+                    .hover(|thumb| thumb.bg(ui_text_muted())),
+            )
+            .child(
+                canvas(
+                    |_, _, _| (),
+                    move |track_bounds, _, window, _| {
+                        window.on_mouse_event({
+                            let entity = entity.clone();
+                            let scroll_handle = scroll_handle.clone();
+                            move |event: &MouseDownEvent, _, _, cx| {
+                                if event.button != MouseButton::Left
+                                    || !track_bounds.contains(&event.position)
+                                {
+                                    return;
+                                }
+
+                                let pointer_y = (event.position.y - track_bounds.origin.y).as_f32();
+                                let thumb_bottom = metrics.thumb_top + metrics.thumb_height;
+                                let pointer_in_thumb =
+                                    pointer_y >= metrics.thumb_top && pointer_y <= thumb_bottom;
+                                let thumb_grab_y = if pointer_in_thumb {
+                                    pointer_y - metrics.thumb_top
+                                } else {
+                                    metrics.thumb_height / 2.
+                                };
+                                let drag = ScrollbarDragState {
+                                    kind,
+                                    track_top: track_bounds.origin.y.as_f32(),
+                                    thumb_grab_y,
+                                    max_thumb_top: metrics.max_thumb_top,
+                                    max_offset: metrics.max_offset,
+                                };
+
+                                if !pointer_in_thumb {
+                                    Self::set_scrollbar_offset_from_pointer(
+                                        &scroll_handle,
+                                        drag,
+                                        event.position.y.as_f32(),
+                                    );
+                                }
+
+                                entity.update(cx, |app, _| {
+                                    app.scrollbar_drag = Some(drag);
+                                });
+                                cx.stop_propagation();
+                                cx.notify(entity.entity_id());
+                            }
+                        });
+                        window.on_mouse_event({
+                            let entity = entity.clone();
+                            move |_: &MouseUpEvent, _, _, cx| {
+                                let should_clear = entity
+                                    .read(cx)
+                                    .scrollbar_drag
+                                    .map(|drag| drag.kind == kind)
+                                    .unwrap_or(false);
+                                if should_clear {
+                                    entity.update(cx, |app, _| {
+                                        app.scrollbar_drag = None;
+                                    });
+                                    cx.stop_propagation();
+                                    cx.notify(entity.entity_id());
+                                }
+                            }
+                        });
+                        window.on_mouse_event({
+                            let entity = entity.clone();
+                            let scroll_handle = scroll_handle.clone();
+                            move |event: &MouseMoveEvent, _, _, cx| {
+                                if !event.dragging() {
+                                    let should_clear = entity
+                                        .read(cx)
+                                        .scrollbar_drag
+                                        .map(|drag| drag.kind == kind)
+                                        .unwrap_or(false);
+                                    if should_clear {
+                                        entity.update(cx, |app, _| {
+                                            app.scrollbar_drag = None;
+                                        });
+                                        cx.stop_propagation();
+                                        cx.notify(entity.entity_id());
+                                    }
+                                    return;
+                                }
+
+                                let Some(drag) = entity.read(cx).scrollbar_drag else {
+                                    return;
+                                };
+                                if drag.kind != kind {
+                                    return;
+                                }
+
+                                Self::set_scrollbar_offset_from_pointer(
+                                    &scroll_handle,
+                                    drag,
+                                    event.position.y.as_f32(),
+                                );
+                                cx.stop_propagation();
+                                cx.notify(entity.entity_id());
+                            }
+                        });
+                    },
+                )
+                .size_full(),
+            )
+    }
+
+    fn render_method_menu_overlay(&self, cx: &mut Context<Self>) -> impl IntoElement {
+        let items = HTTP_METHODS
+            .iter()
+            .map(|method| self.method_menu_item(*method, cx))
+            .collect::<Vec<_>>();
+
+        div()
+            .absolute()
+            .top(px(METHOD_MENU_TOP_OFFSET))
+            .left(px(METHOD_MENU_LEFT_OFFSET))
+            .w(px(METHOD_MENU_WIDTH))
+            .rounded(px(5.))
+            .border_1()
+            .border_color(ui_border_strong())
+            .bg(ui_surface())
+            .occlude()
+            .children(items)
+    }
+
+    fn method_menu_item(&self, method: &'static str, cx: &mut Context<Self>) -> gpui::Div {
+        let active = self.method == method;
         div()
             .flex()
             .items_center()
-            .justify_center()
-            .h(px(32.))
-            .w(px(74.))
-            .rounded(px(5.))
-            .border_1()
-            .border_color(if active {
-                method_color(method)
+            .h(px(28.))
+            .px_2()
+            .font_weight(if active {
+                FontWeight::BOLD
             } else {
-                ui_border_strong()
-            })
-            .bg(if active {
-                ui_surface_muted()
-            } else {
-                ui_surface()
+                FontWeight::NORMAL
             })
             .text_size(px(12.))
-            .font_weight(FontWeight::BOLD)
-            .text_color(method_color(method))
-            .opacity(if enabled { 1.0 } else { 0.55 })
+            .text_color(if active {
+                method_color(method)
+            } else {
+                ui_text_body()
+            })
+            .hover(|row| row.bg(ui_hover()))
             .cursor_pointer()
             .on_mouse_up(
                 MouseButton::Left,
                 cx.listener(move |app, _event: &MouseUpEvent, _window, cx| {
-                    if !app.busy {
-                        app.method = method.to_string();
-                        cx.notify();
-                    }
+                    app.method = method.to_string();
+                    app.method_menu_open = false;
+                    cx.notify();
                 }),
             )
             .child(method)
@@ -2130,6 +2813,18 @@ impl ZenApiApp {
         on_click: impl Fn(&mut Self, &MouseUpEvent, &mut Window, &mut Context<Self>) + 'static,
         cx: &mut Context<Self>,
     ) -> impl IntoElement {
+        self.sized_action_button(label, ACTION_BUTTON_WIDTH, enabled, tone, on_click, cx)
+    }
+
+    fn sized_action_button(
+        &self,
+        label: impl Into<SharedString>,
+        width: f32,
+        enabled: bool,
+        tone: ButtonTone,
+        on_click: impl Fn(&mut Self, &MouseUpEvent, &mut Window, &mut Context<Self>) + 'static,
+        cx: &mut Context<Self>,
+    ) -> gpui::Div {
         let enabled = enabled && !self.busy;
         let colors = tone.colors(enabled);
 
@@ -2137,8 +2832,8 @@ impl ZenApiApp {
             .flex()
             .items_center()
             .justify_center()
-            .h(px(34.))
-            .w(px(112.))
+            .h(px(ACTION_BUTTON_HEIGHT))
+            .w(px(width))
             .rounded(px(6.))
             .border_1()
             .border_color(colors.border)
@@ -2159,60 +2854,125 @@ impl ZenApiApp {
             .child(label.into())
     }
 
-    fn render_top_bar(&self, cx: &mut Context<Self>) -> impl IntoElement {
-        let can_toggle_mock = self.server_running || !self.routes.is_empty();
+    fn top_bar_action_button(
+        &self,
+        label: impl Into<SharedString>,
+        width: f32,
+        enabled: bool,
+        tone: ButtonTone,
+        on_click: impl Fn(&mut Self, &MouseUpEvent, &mut Window, &mut Context<Self>) + 'static,
+        cx: &mut Context<Self>,
+    ) -> gpui::Div {
+        let enabled = enabled && !self.busy;
+        let colors = tone.colors(enabled);
+
         div()
             .flex()
             .items_center()
-            .h(px(48.))
+            .justify_center()
+            .h(px(30.))
+            .w(px(width))
+            .rounded(px(5.))
+            .border_1()
+            .border_color(colors.border)
+            .bg(colors.background)
+            .text_size(px(12.))
+            .font_weight(FontWeight::BOLD)
+            .text_color(colors.text)
+            .opacity(if enabled { 1.0 } else { 0.62 })
+            .when(enabled, |button| button.cursor_pointer())
+            .on_mouse_up(
+                MouseButton::Left,
+                cx.listener(move |app, event, window, cx| {
+                    if enabled {
+                        on_click(app, event, window, cx);
+                    }
+                }),
+            )
+            .child(label.into())
+    }
+
+    fn request_send_segment(&self, cx: &mut Context<Self>) -> gpui::Div {
+        let enabled = !self.busy;
+
+        div()
+            .flex()
+            .items_center()
+            .justify_center()
+            .h(px(TEXT_INPUT_HEIGHT))
+            .w(px(REQUEST_SEND_WIDTH))
+            .flex_shrink_0()
+            .border_l_1()
+            .border_color(ui_border())
+            .bg(if enabled {
+                ui_accent_surface()
+            } else {
+                ui_surface_muted()
+            })
+            .text_size(px(12.))
+            .font_weight(FontWeight::BOLD)
+            .text_color(if enabled {
+                ui_accent()
+            } else {
+                ui_text_muted()
+            })
+            .when(enabled, |segment| segment.cursor_pointer())
+            .hover(|segment| {
+                if enabled {
+                    segment.bg(ui_hover())
+                } else {
+                    segment
+                }
+            })
+            .on_mouse_up(
+                MouseButton::Left,
+                cx.listener(|app, _event: &MouseUpEvent, _window, cx| {
+                    if !app.busy {
+                        app.send_request(cx);
+                    }
+                }),
+            )
+            .child("Send")
+    }
+
+    fn render_top_bar(&self, cx: &mut Context<Self>) -> impl IntoElement {
+        let can_toggle_mock = self.server_running || !self.routes.is_empty();
+        div()
+            .relative()
+            .flex()
+            .items_center()
+            .h(px(TOP_BAR_HEIGHT))
             .w_full()
             .border_b_1()
             .border_color(ui_border())
             .bg(ui_surface_muted())
             .px_3()
-            .gap_3()
+            .gap_2()
             .child(
                 div()
-                    .w(px(230.))
+                    .w(px(TOP_BAR_BRAND_WIDTH))
+                    .flex_shrink_0()
                     .font_weight(FontWeight::BOLD)
                     .text_size(px(15.))
                     .text_color(ui_text_primary())
                     .child("ZenAPI"),
             )
-            .child(div().flex_1().child(self.import_path.clone()))
-            .child(self.action_button(
+            .child(div().flex_1())
+            .child(self.top_bar_action_button(
                 "Import",
+                TOP_BAR_ACTION_WIDTH,
                 true,
                 ButtonTone::Neutral,
-                |app, _event, _window, cx| app.import_openapi(cx),
+                |app, _event, _window, cx| {
+                    app.import_popover_open = !app.import_popover_open;
+                    app.method_menu_open = false;
+                    cx.notify();
+                },
                 cx,
             ))
-            .child(
-                div()
-                    .w(px(124.))
-                    .truncate()
-                    .text_size(px(12.))
-                    .text_color(ui_text_secondary())
-                    .child(self.spec_label.clone()),
-            )
-            .child(
-                div()
-                    .w(px(132.))
-                    .truncate()
-                    .text_size(px(12.))
-                    .text_color(if self.server_running {
-                        ResponseTone::Success.color()
-                    } else {
-                        ui_text_secondary()
-                    })
-                    .child(self.server_status.clone()),
-            )
-            .child(self.action_button(
-                if self.server_running {
-                    "Stop Mock"
-                } else {
-                    "Start Mock"
-                },
+            .child(self.top_bar_action_button(
+                mock_button_label(self.server_running),
+                TOP_BAR_MOCK_ACTION_WIDTH,
                 can_toggle_mock,
                 if self.server_running {
                     ButtonTone::Warning
@@ -2224,7 +2984,173 @@ impl ZenApiApp {
             ))
     }
 
+    fn render_import_popover(&self, cx: &mut Context<Self>) -> impl IntoElement {
+        div()
+            .absolute()
+            .top(px(IMPORT_POPOVER_TOP_OFFSET))
+            .right(px(IMPORT_POPOVER_RIGHT_OFFSET))
+            .w(px(IMPORT_POPOVER_WIDTH))
+            .h(px(IMPORT_POPOVER_HEIGHT))
+            .rounded(px(5.))
+            .border_1()
+            .border_color(ui_border_strong())
+            .bg(ui_surface())
+            .occlude()
+            .p(px(IMPORT_POPOVER_PADDING))
+            .child(
+                div()
+                    .flex()
+                    .items_center()
+                    .gap_2()
+                    .child(div().flex_1().child(self.import_path.clone()))
+                    .child(self.action_button(
+                        "Open",
+                        true,
+                        ButtonTone::Primary,
+                        |app, _event, _window, cx| app.import_openapi(cx),
+                        cx,
+                    )),
+            )
+    }
+
     fn render_sidebar(&self, cx: &mut Context<Self>) -> impl IntoElement {
+        div()
+            .relative()
+            .flex()
+            .flex_col()
+            .w_full()
+            .h_full()
+            .min_w_0()
+            .bg(ui_surface_muted())
+            .overflow_hidden()
+            .child(self.render_sidebar_nav(cx))
+            .child(self.render_sidebar_body(cx))
+    }
+
+    fn render_sidebar_nav(&self, cx: &mut Context<Self>) -> impl IntoElement {
+        let endpoints_count = if self.routes.is_empty() {
+            "0".to_string()
+        } else {
+            format!("{}/{}", self.visible_routes.len(), self.routes.len())
+        };
+        let collection_count = collection_item_count(&self.collection.items).to_string();
+        let history_count = self.history.entries().len().to_string();
+
+        div()
+            .flex()
+            .items_center()
+            .h(px(SIDEBAR_NAV_HEIGHT))
+            .flex_shrink_0()
+            .gap_1()
+            .p_2()
+            .border_b_1()
+            .border_color(ui_border())
+            .child(self.sidebar_section_button(
+                "Endpoints",
+                endpoints_count,
+                SidebarSection::Endpoints,
+                cx,
+            ))
+            .child(self.sidebar_section_button(
+                "Collections",
+                collection_count,
+                SidebarSection::Collections,
+                cx,
+            ))
+            .child(self.sidebar_section_button(
+                "History",
+                history_count,
+                SidebarSection::History,
+                cx,
+            ))
+    }
+
+    fn sidebar_section_button(
+        &self,
+        label: &'static str,
+        count: String,
+        section: SidebarSection,
+        cx: &mut Context<Self>,
+    ) -> gpui::Div {
+        let active = self.active_sidebar_section == section;
+
+        div()
+            .flex()
+            .items_center()
+            .justify_between()
+            .h(px(28.))
+            .flex_1()
+            .min_w_0()
+            .px_2()
+            .rounded(px(5.))
+            .border_1()
+            .border_color(if active { ui_accent() } else { ui_border() })
+            .bg(if active {
+                ui_surface()
+            } else {
+                ui_surface_muted()
+            })
+            .text_size(px(11.))
+            .font_weight(FontWeight::BOLD)
+            .text_color(if active {
+                ui_accent()
+            } else {
+                ui_text_secondary()
+            })
+            .cursor_pointer()
+            .hover(|button| {
+                if active {
+                    button
+                } else {
+                    button.bg(ui_hover())
+                }
+            })
+            .on_mouse_up(
+                MouseButton::Left,
+                cx.listener(move |app, _event: &MouseUpEvent, _window, cx| {
+                    app.active_sidebar_section = section;
+                    app.collection_context_menu = None;
+                    cx.notify();
+                }),
+            )
+            .child(div().min_w_0().truncate().child(label))
+            .child(
+                div()
+                    .ml_1()
+                    .flex_shrink_0()
+                    .font_family(PLATFORM_MONOSPACE_FONT)
+                    .text_color(if active { ui_accent() } else { ui_text_muted() })
+                    .child(count),
+            )
+    }
+
+    fn render_sidebar_body(&self, cx: &mut Context<Self>) -> impl IntoElement {
+        let body = match self.active_sidebar_section {
+            SidebarSection::Endpoints => self.render_endpoints_sidebar(cx).into_any(),
+            SidebarSection::Collections => self.render_collection_section(cx).into_any(),
+            SidebarSection::History => self.render_history_section(cx).into_any(),
+        };
+
+        div()
+            .relative()
+            .flex_1()
+            .min_w_0()
+            .overflow_hidden()
+            .child(
+                div()
+                    .id("sidebar-scroll")
+                    .h_full()
+                    .min_w_0()
+                    .pr(px(SCROLLBAR_CONTENT_RIGHT_PADDING))
+                    .overflow_y_scroll()
+                    .scrollbar_width(px(SCROLLBAR_GUTTER_WIDTH))
+                    .track_scroll(&self.sidebar_scroll)
+                    .child(body),
+            )
+            .child(self.render_vertical_scrollbar(ScrollbarKind::Sidebar, &self.sidebar_scroll, cx))
+    }
+
+    fn render_endpoints_sidebar(&self, cx: &mut Context<Self>) -> gpui::Div {
         let rows = self
             .visible_routes
             .iter()
@@ -2239,15 +3165,16 @@ impl ZenApiApp {
                 )
             })
             .collect::<Vec<_>>();
+        let count = if self.routes.is_empty() {
+            String::new()
+        } else {
+            format!("{}/{}", self.visible_routes.len(), self.routes.len())
+        };
 
         div()
             .flex()
             .flex_col()
-            .w(px(320.))
-            .h_full()
-            .border_r_1()
-            .border_color(rgb(0xe5e7eb))
-            .bg(rgb(0xf9fafb))
+            .min_w_0()
             .p_3()
             .gap_3()
             .child(
@@ -2255,22 +3182,20 @@ impl ZenApiApp {
                     .flex()
                     .justify_between()
                     .items_center()
-                    .h(px(24.))
+                    .h(px(SECTION_HEADER_HEIGHT))
                     .text_size(px(13.))
                     .child(
                         div()
                             .font_weight(FontWeight::BOLD)
-                            .text_color(rgb(0x111827))
+                            .text_color(ui_text_primary())
                             .child("Endpoints"),
                     )
                     .child(
                         div()
-                            .text_color(rgb(0x6b7280))
-                            .child(if self.routes.is_empty() {
-                                String::new()
-                            } else {
-                                format!("{}/{}", self.visible_routes.len(), self.routes.len())
-                            }),
+                            .flex_shrink_0()
+                            .font_family(PLATFORM_MONOSPACE_FONT)
+                            .text_color(ui_text_secondary())
+                            .child(count),
                     ),
             )
             .child(self.route_filter.clone())
@@ -2278,16 +3203,16 @@ impl ZenApiApp {
                 div()
                     .flex()
                     .flex_col()
-                    .flex_1()
+                    .min_w_0()
                     .gap_1()
                     .children(rows)
                     .when(self.visible_routes.is_empty(), |list| {
                         list.child(
                             div()
-                                .h(px(34.))
+                                .h(px(EMPTY_STATE_ROW_HEIGHT))
                                 .flex()
                                 .items_center()
-                                .text_color(rgb(0x9ca3af))
+                                .text_color(ui_text_muted())
                                 .text_size(px(13.))
                                 .child(if self.routes.is_empty() {
                                     "No imported routes"
@@ -2297,11 +3222,9 @@ impl ZenApiApp {
                         )
                     }),
             )
-            .child(self.render_collection_section(cx))
-            .child(self.render_history_section(cx))
     }
 
-    fn render_collection_section(&self, cx: &mut Context<Self>) -> impl IntoElement {
+    fn render_collection_section(&self, cx: &mut Context<Self>) -> gpui::Div {
         let mut rows = vec![collection_root_row(
             self.collection.name.clone(),
             collection_item_count(&self.collection.items),
@@ -2327,29 +3250,30 @@ impl ZenApiApp {
         }
 
         div()
+            .relative()
             .flex()
             .flex_col()
-            .gap_2()
-            .pt_2()
-            .border_t_1()
-            .border_color(rgb(0xe5e7eb))
+            .min_w_0()
+            .p_3()
+            .gap_3()
             .child(
                 div()
                     .flex()
                     .justify_between()
                     .items_center()
-                    .h(px(24.))
+                    .h(px(SECTION_HEADER_HEIGHT))
                     .text_size(px(13.))
                     .child(
                         div()
                             .font_weight(FontWeight::BOLD)
-                            .text_color(rgb(0x111827))
+                            .text_color(ui_text_primary())
                             .child("Collections"),
                     )
                     .child(
                         div()
+                            .min_w_0()
                             .truncate()
-                            .text_color(rgb(0x6b7280))
+                            .text_color(ui_text_secondary())
                             .child(self.collection_status.clone()),
                     ),
             )
@@ -2357,60 +3281,71 @@ impl ZenApiApp {
             .child(
                 div()
                     .flex()
-                    .items_center()
+                    .flex_col()
                     .gap_2()
-                    .child(self.sidebar_action_button(
-                        "Import",
-                        58.,
-                        true,
-                        ButtonTone::Neutral,
-                        |app, _event, _window, cx| app.import_collection(cx),
-                        cx,
-                    ))
-                    .child(self.sidebar_action_button(
-                        "Save",
-                        52.,
-                        true,
-                        ButtonTone::Primary,
-                        |app, _event, _window, cx| app.save_current_request_to_collection(cx),
-                        cx,
-                    ))
-                    .child(self.sidebar_action_button(
-                        "Export",
-                        58.,
-                        true,
-                        ButtonTone::Neutral,
-                        |app, _event, _window, cx| app.export_collection(false, cx),
-                        cx,
-                    ))
-                    .child(self.sidebar_action_button(
-                        "Postman",
-                        70.,
-                        true,
-                        ButtonTone::Neutral,
-                        |app, _event, _window, cx| app.export_collection(true, cx),
-                        cx,
-                    )),
+                    .child(
+                        div()
+                            .flex()
+                            .items_center()
+                            .gap_2()
+                            .child(self.sidebar_fluid_button(
+                                "Import",
+                                true,
+                                ButtonTone::Neutral,
+                                |app, _event, _window, cx| app.import_collection(cx),
+                                cx,
+                            ))
+                            .child(self.sidebar_fluid_button(
+                                "Save",
+                                true,
+                                ButtonTone::Primary,
+                                |app, _event, _window, cx| {
+                                    app.save_current_request_to_collection(cx)
+                                },
+                                cx,
+                            )),
+                    )
+                    .child(
+                        div()
+                            .flex()
+                            .items_center()
+                            .gap_2()
+                            .child(self.sidebar_fluid_button(
+                                "Export",
+                                true,
+                                ButtonTone::Neutral,
+                                |app, _event, _window, cx| app.export_collection(false, cx),
+                                cx,
+                            ))
+                            .child(self.sidebar_fluid_button(
+                                "Postman",
+                                true,
+                                ButtonTone::Neutral,
+                                |app, _event, _window, cx| app.export_collection(true, cx),
+                                cx,
+                            )),
+                    ),
             )
             .child(
                 div()
                     .flex()
                     .flex_col()
+                    .min_w_0()
                     .gap_1()
                     .rounded(px(4.))
                     .border_1()
-                    .border_color(rgb(0xe5e7eb))
-                    .bg(rgb(0xffffff))
+                    .border_color(ui_border())
+                    .bg(ui_surface())
                     .p_1()
                     .children(rows)
                     .when(self.collection.items.is_empty(), |list| {
                         list.child(
                             div()
-                                .h(px(30.))
+                                .h(px(COLLECTION_TREE_ROOT_ROW_HEIGHT))
                                 .flex()
                                 .items_center()
                                 .px_2()
-                                .text_color(rgb(0x9ca3af))
+                                .text_color(ui_text_muted())
                                 .text_size(px(12.))
                                 .child("No collection requests"),
                         )
@@ -2442,20 +3377,22 @@ impl ZenApiApp {
             .gap_2()
             .rounded(px(5.))
             .border_1()
-            .border_color(rgb(0xd1d5db))
-            .bg(rgb(0xffffff))
+            .border_color(ui_border_strong())
+            .bg(ui_surface())
             .p_2()
             .child(
                 div()
                     .flex()
                     .items_center()
                     .justify_between()
+                    .min_w_0()
                     .child(
                         div()
+                            .min_w_0()
                             .truncate()
                             .text_size(px(12.))
                             .font_weight(FontWeight::BOLD)
-                            .text_color(rgb(0x374151))
+                            .text_color(ui_text_body())
                             .child(menu.label),
                     )
                     .child(
@@ -2463,14 +3400,15 @@ impl ZenApiApp {
                             .flex()
                             .items_center()
                             .justify_center()
+                            .flex_shrink_0()
                             .h(px(22.))
                             .w(px(44.))
                             .rounded(px(4.))
                             .border_1()
-                            .border_color(rgb(0xd1d5db))
-                            .bg(rgb(0xf9fafb))
+                            .border_color(ui_border_strong())
+                            .bg(ui_surface_muted())
                             .text_size(px(11.))
-                            .text_color(rgb(0x6b7280))
+                            .text_color(ui_text_secondary())
                             .cursor_pointer()
                             .on_mouse_up(
                                 MouseButton::Left,
@@ -2484,55 +3422,68 @@ impl ZenApiApp {
             .child(
                 div()
                     .flex()
-                    .items_center()
+                    .flex_col()
                     .gap_2()
-                    .child(self.sidebar_action_button(
-                        "New Req",
-                        72.,
-                        true,
-                        ButtonTone::Neutral,
-                        move |app, _event, _window, cx| {
-                            app.add_collection_request(new_request_target.clone(), cx);
-                        },
-                        cx,
-                    ))
-                    .child(self.sidebar_action_button(
-                        "New Dir",
-                        72.,
-                        true,
-                        ButtonTone::Neutral,
-                        move |app, _event, _window, cx| {
-                            app.add_collection_folder(new_folder_target.clone(), cx);
-                        },
-                        cx,
-                    ))
-                    .child(self.sidebar_action_button(
-                        "Copy",
-                        52.,
-                        can_mutate_item,
-                        ButtonTone::Neutral,
-                        move |app, _event, _window, cx| {
-                            app.copy_collection_target(copy_target.clone(), cx);
-                        },
-                        cx,
-                    ))
-                    .child(self.sidebar_action_button(
-                        "Delete",
-                        58.,
-                        can_mutate_item,
-                        ButtonTone::Warning,
-                        move |app, _event, _window, cx| {
-                            app.delete_collection_target(delete_target.clone(), cx);
-                        },
-                        cx,
-                    )),
+                    .child(
+                        div()
+                            .flex()
+                            .items_center()
+                            .gap_2()
+                            .child(self.sidebar_fluid_button(
+                                "New Req",
+                                true,
+                                ButtonTone::Neutral,
+                                move |app, _event, _window, cx| {
+                                    app.add_collection_request(new_request_target.clone(), cx);
+                                },
+                                cx,
+                            ))
+                            .child(self.sidebar_fluid_button(
+                                "New Dir",
+                                true,
+                                ButtonTone::Neutral,
+                                move |app, _event, _window, cx| {
+                                    app.add_collection_folder(new_folder_target.clone(), cx);
+                                },
+                                cx,
+                            )),
+                    )
+                    .child(
+                        div()
+                            .flex()
+                            .items_center()
+                            .gap_2()
+                            .child(self.sidebar_fluid_button(
+                                "Copy",
+                                can_mutate_item,
+                                ButtonTone::Neutral,
+                                move |app, _event, _window, cx| {
+                                    app.copy_collection_target(copy_target.clone(), cx);
+                                },
+                                cx,
+                            ))
+                            .child(self.sidebar_fluid_button(
+                                "Delete",
+                                can_mutate_item,
+                                ButtonTone::Warning,
+                                move |app, _event, _window, cx| {
+                                    app.delete_collection_target(delete_target.clone(), cx);
+                                },
+                                cx,
+                            )),
+                    ),
             )
             .child(
                 div()
                     .flex()
                     .items_center()
                     .gap_2()
-                    .child(div().flex_1().child(self.collection_rename_input.clone()))
+                    .child(
+                        div()
+                            .flex_1()
+                            .min_w_0()
+                            .child(self.collection_rename_input.clone()),
+                    )
                     .child(self.sidebar_action_button(
                         "Rename",
                         70.,
@@ -2560,7 +3511,7 @@ impl ZenApiApp {
             .flex()
             .items_center()
             .justify_center()
-            .h(px(26.))
+            .h(px(SIDEBAR_BUTTON_HEIGHT))
             .w(px(width))
             .rounded(px(5.))
             .border_1()
@@ -2582,13 +3533,88 @@ impl ZenApiApp {
             .child(label)
     }
 
-    fn render_history_section(&self, cx: &mut Context<Self>) -> impl IntoElement {
+    fn sidebar_fluid_button(
+        &self,
+        label: &'static str,
+        enabled: bool,
+        tone: ButtonTone,
+        on_click: impl Fn(&mut Self, &MouseUpEvent, &mut Window, &mut Context<Self>) + 'static,
+        cx: &mut Context<Self>,
+    ) -> gpui::Div {
+        let enabled = enabled && !self.busy;
+        let colors = tone.colors(enabled);
+
+        div()
+            .flex()
+            .items_center()
+            .justify_center()
+            .h(px(SIDEBAR_BUTTON_HEIGHT))
+            .flex_1()
+            .min_w_0()
+            .rounded(px(5.))
+            .border_1()
+            .border_color(colors.border)
+            .bg(colors.background)
+            .text_size(px(11.))
+            .font_weight(FontWeight::BOLD)
+            .text_color(colors.text)
+            .opacity(if enabled { 1.0 } else { 0.62 })
+            .when(enabled, |button| button.cursor_pointer())
+            .on_mouse_up(
+                MouseButton::Left,
+                cx.listener(move |app, event, window, cx| {
+                    if enabled {
+                        on_click(app, event, window, cx);
+                    }
+                }),
+            )
+            .child(div().truncate().child(label))
+    }
+
+    fn panel_action_button(
+        &self,
+        label: &'static str,
+        enabled: bool,
+        tone: ButtonTone,
+        on_click: impl Fn(&mut Self, &MouseUpEvent, &mut Window, &mut Context<Self>) + 'static,
+        cx: &mut Context<Self>,
+    ) -> gpui::Div {
+        let enabled = enabled && !self.busy;
+        let colors = tone.colors(enabled);
+
+        div()
+            .flex()
+            .items_center()
+            .justify_center()
+            .h(px(ACTION_BUTTON_HEIGHT))
+            .flex_1()
+            .min_w_0()
+            .rounded(px(6.))
+            .border_1()
+            .border_color(colors.border)
+            .bg(colors.background)
+            .text_size(px(13.))
+            .font_weight(FontWeight::BOLD)
+            .text_color(colors.text)
+            .opacity(if enabled { 1.0 } else { 0.62 })
+            .when(enabled, |button| button.cursor_pointer())
+            .on_mouse_up(
+                MouseButton::Left,
+                cx.listener(move |app, event, window, cx| {
+                    if enabled {
+                        on_click(app, event, window, cx);
+                    }
+                }),
+            )
+            .child(div().truncate().child(label))
+    }
+
+    fn render_history_section(&self, cx: &mut Context<Self>) -> gpui::Div {
         let filtered_entries = self.history.filtered(&self.history_query);
         let has_history = !self.history.entries().is_empty();
         let has_matches = !filtered_entries.is_empty();
         let rows = filtered_entries
             .into_iter()
-            .take(8)
             .map(|entry| {
                 history_row(
                     entry.id,
@@ -2603,21 +3629,20 @@ impl ZenApiApp {
         div()
             .flex()
             .flex_col()
-            .gap_2()
-            .pt_2()
-            .border_t_1()
-            .border_color(rgb(0xe5e7eb))
+            .min_w_0()
+            .p_3()
+            .gap_3()
             .child(
                 div()
                     .flex()
                     .justify_between()
                     .items_center()
-                    .h(px(24.))
+                    .h(px(SECTION_HEADER_HEIGHT))
                     .text_size(px(13.))
                     .child(
                         div()
                             .font_weight(FontWeight::BOLD)
-                            .text_color(rgb(0x111827))
+                            .text_color(ui_text_primary())
                             .child("History"),
                     )
                     .child(
@@ -2627,7 +3652,9 @@ impl ZenApiApp {
                             .gap_2()
                             .child(
                                 div()
-                                    .text_color(rgb(0x6b7280))
+                                    .flex_shrink_0()
+                                    .font_family(PLATFORM_MONOSPACE_FONT)
+                                    .text_color(ui_text_secondary())
                                     .child(self.history.entries().len().to_string()),
                             )
                             .child(
@@ -2635,15 +3662,15 @@ impl ZenApiApp {
                                     .flex()
                                     .items_center()
                                     .justify_center()
-                                    .h(px(24.))
+                                    .h(px(SECTION_HEADER_HEIGHT))
                                     .w(px(58.))
                                     .rounded(px(4.))
                                     .border_1()
-                                    .border_color(rgb(0xd1d5db))
-                                    .bg(rgb(0xffffff))
+                                    .border_color(ui_border_strong())
+                                    .bg(ui_surface())
                                     .text_size(px(11.))
                                     .font_weight(FontWeight::BOLD)
-                                    .text_color(rgb(0x6b7280))
+                                    .text_color(ui_text_secondary())
                                     .cursor_pointer()
                                     .on_mouse_up(
                                         MouseButton::Left,
@@ -2661,15 +3688,16 @@ impl ZenApiApp {
                 div()
                     .flex()
                     .flex_col()
+                    .min_w_0()
                     .gap_1()
                     .children(rows)
                     .when(!has_history, |list| {
                         list.child(
                             div()
-                                .h(px(34.))
+                                .h(px(EMPTY_STATE_ROW_HEIGHT))
                                 .flex()
                                 .items_center()
-                                .text_color(rgb(0x9ca3af))
+                                .text_color(ui_text_muted())
                                 .text_size(px(13.))
                                 .child("No request history"),
                         )
@@ -2677,10 +3705,10 @@ impl ZenApiApp {
                     .when(has_history && !has_matches, |list| {
                         list.child(
                             div()
-                                .h(px(34.))
+                                .h(px(EMPTY_STATE_ROW_HEIGHT))
                                 .flex()
                                 .items_center()
-                                .text_color(rgb(0x9ca3af))
+                                .text_color(ui_text_muted())
                                 .text_size(px(13.))
                                 .child("No matching history"),
                         )
@@ -2701,9 +3729,11 @@ impl ZenApiApp {
             .id(("route", index))
             .flex()
             .flex_col()
-            .h(px(48.))
+            .h(px(ROUTE_ROW_HEIGHT))
+            .min_w_0()
+            .overflow_hidden()
             .rounded(px(4.))
-            .border_l(px(3.))
+            .border_l(px(ROUTE_SELECTED_MARKER_WIDTH))
             .border_color(if selected {
                 ui_accent()
             } else {
@@ -2728,10 +3758,12 @@ impl ZenApiApp {
                 div()
                     .flex()
                     .items_center()
+                    .min_w_0()
                     .gap_2()
                     .child(
                         div()
                             .w(px(HTTP_METHOD_LABEL_WIDTH))
+                            .flex_shrink_0()
                             .text_size(px(12.))
                             .font_weight(FontWeight::BOLD)
                             .text_color(method_color(&method))
@@ -2740,6 +3772,7 @@ impl ZenApiApp {
                     .child(
                         div()
                             .flex_1()
+                            .min_w_0()
                             .truncate()
                             .text_size(px(13.))
                             .text_color(ui_text_primary())
@@ -2750,6 +3783,7 @@ impl ZenApiApp {
             .child(
                 div()
                     .ml(px(66.))
+                    .min_w_0()
                     .truncate()
                     .text_size(px(12.))
                     .text_color(ui_text_secondary())
@@ -2758,19 +3792,44 @@ impl ZenApiApp {
     }
 
     fn render_workspace(&self, cx: &mut Context<Self>) -> impl IntoElement {
+        let (sidebar_ratio, request_ratio, response_ratio) = self.workspace_ratios();
+
         div()
+            .relative()
             .flex()
-            .flex_col()
+            .flex_row()
             .flex_1()
             .h_full()
             .bg(ui_surface())
-            .child(self.render_request_bar(cx))
+            .overflow_hidden()
+            .on_drag_move::<WorkspaceSplitDrag>(cx.listener(Self::resize_workspace_split))
             .child(
                 div()
-                    .flex()
-                    .flex_row()
-                    .flex_1()
-                    .child(self.render_request_panel(cx))
+                    .h_full()
+                    .min_w_0()
+                    .flex_shrink_1()
+                    .w(DefiniteLength::Fraction(sidebar_ratio))
+                    .overflow_hidden()
+                    .child(self.render_sidebar(cx)),
+            )
+            .child(self.workspace_split_handle(WorkspaceSplitDrag::SidebarRequest, cx))
+            .child(
+                div()
+                    .h_full()
+                    .min_w_0()
+                    .flex_shrink_1()
+                    .w(DefiniteLength::Fraction(request_ratio))
+                    .overflow_hidden()
+                    .child(self.render_request_panel(cx)),
+            )
+            .child(self.workspace_split_handle(WorkspaceSplitDrag::RequestResponse, cx))
+            .child(
+                div()
+                    .h_full()
+                    .min_w_0()
+                    .flex_shrink_1()
+                    .w(DefiniteLength::Fraction(response_ratio))
+                    .overflow_hidden()
                     .child(self.render_response_panel(cx)),
             )
     }
@@ -2779,57 +3838,191 @@ impl ZenApiApp {
         div()
             .flex()
             .items_center()
-            .h(px(54.))
+            .h(px(REQUEST_BAR_HEIGHT))
+            .min_w_0()
             .border_b_1()
             .border_color(ui_border())
             .px_3()
-            .gap_2()
-            .child(self.method_button("GET", cx))
-            .child(self.method_button("POST", cx))
-            .child(self.method_button("PUT", cx))
-            .child(self.method_button("PATCH", cx))
-            .child(self.method_button("DELETE", cx))
-            .child(self.method_button("OPTIONS", cx))
-            .child(self.method_button("HEAD", cx))
-            .child(div().flex_1().child(self.url.clone()))
-            .child(self.action_button(
-                "Send",
-                true,
-                ButtonTone::Primary,
-                |app, _event, _window, cx| app.send_request(cx),
-                cx,
-            ))
+            .child(
+                div()
+                    .flex()
+                    .items_center()
+                    .flex_1()
+                    .min_w_0()
+                    .h(px(TEXT_INPUT_HEIGHT))
+                    .rounded(px(REQUEST_ADDRESS_RADIUS))
+                    .border_1()
+                    .border_color(if self.method_menu_open {
+                        method_color(&self.method)
+                    } else {
+                        ui_border_strong()
+                    })
+                    .bg(ui_surface())
+                    .overflow_hidden()
+                    .child(self.method_selector(cx))
+                    .child(div().h(px(20.)).w(px(1.)).bg(ui_border()))
+                    .child(div().flex_1().min_w_0().child(self.url.clone()))
+                    .child(self.request_send_segment(cx)),
+            )
+    }
+
+    fn render_request_editor_tabs(&self, cx: &mut Context<Self>) -> impl IntoElement {
+        div()
+            .flex()
+            .items_center()
+            .h(px(REQUEST_EDITOR_TAB_BAR_HEIGHT))
+            .flex_shrink_0()
+            .border_b_1()
+            .border_color(ui_border())
+            .bg(ui_surface_muted())
+            .px_2()
+            .child(self.request_editor_tab("Params", RequestPaneTab::Params, cx))
+            .child(self.request_editor_tab("Headers", RequestPaneTab::Headers, cx))
+            .child(self.request_editor_tab("Auth", RequestPaneTab::Auth, cx))
+            .child(self.request_editor_tab("Body", RequestPaneTab::Body, cx))
+            .child(self.request_editor_tab("Scripts", RequestPaneTab::Scripts, cx))
+            .child(self.request_editor_tab("Realtime", RequestPaneTab::Realtime, cx))
+            .child(self.request_editor_tab("Tools", RequestPaneTab::Tools, cx))
+    }
+
+    fn request_editor_tab(
+        &self,
+        label: &'static str,
+        tab: RequestPaneTab,
+        cx: &mut Context<Self>,
+    ) -> gpui::Div {
+        let active = self.active_request_tab == tab;
+
+        div()
+            .flex()
+            .flex_col()
+            .items_center()
+            .justify_between()
+            .h_full()
+            .flex_1()
+            .min_w_0()
+            .px_1()
+            .text_size(px(11.))
+            .font_weight(if active {
+                FontWeight::BOLD
+            } else {
+                FontWeight::NORMAL
+            })
+            .text_color(if active {
+                ui_accent()
+            } else {
+                ui_text_secondary()
+            })
+            .cursor_pointer()
+            .hover(|tab| if active { tab } else { tab.bg(ui_hover()) })
+            .on_mouse_up(
+                MouseButton::Left,
+                cx.listener(move |app, _event: &MouseUpEvent, _window, cx| {
+                    app.active_request_tab = tab;
+                    app.request_scroll.set_offset(point(px(0.), px(0.)));
+                    cx.notify();
+                }),
+            )
+            .child(
+                div()
+                    .flex()
+                    .flex_1()
+                    .items_center()
+                    .justify_center()
+                    .min_w_0()
+                    .truncate()
+                    .child(label),
+            )
+            .child(
+                div()
+                    .h(px(PANEL_HEADER_UNDERLINE_HEIGHT))
+                    .w_full()
+                    .bg(if active {
+                        ui_accent()
+                    } else {
+                        ui_surface_muted()
+                    }),
+            )
+    }
+
+    fn render_request_tab_body(&self, cx: &mut Context<Self>) -> gpui::Div {
+        let active_tab = self.active_request_tab;
+
+        div()
+            .flex()
+            .flex_col()
+            .min_w_0()
+            .gap_3()
+            .when(active_tab == RequestPaneTab::Params, |body| {
+                body.child(self.render_variables_panel(cx))
+                    .child(key_value_editor("Query Params", &self.query_params))
+            })
+            .when(active_tab == RequestPaneTab::Headers, |body| {
+                body.child(self.render_headers_editor(cx))
+            })
+            .when(active_tab == RequestPaneTab::Auth, |body| {
+                body.child(self.render_auth_panel(cx))
+            })
+            .when(active_tab == RequestPaneTab::Body, |body| {
+                body.child(self.render_body_panel(cx))
+            })
+            .when(active_tab == RequestPaneTab::Scripts, |body| {
+                body.child(self.render_pre_request_panel())
+                    .child(self.render_tests_panel(cx))
+            })
+            .when(active_tab == RequestPaneTab::Realtime, |body| {
+                body.child(self.render_websocket_panel(cx))
+                    .child(self.render_sse_panel(cx))
+            })
+            .when(active_tab == RequestPaneTab::Tools, |body| {
+                body.child(self.render_codegen_panel(cx))
+                    .child(self.render_collection_runner(cx))
+                    .child(self.render_mock_log())
+            })
     }
 
     fn render_request_panel(&self, cx: &mut Context<Self>) -> impl IntoElement {
         div()
+            .relative()
             .flex()
             .flex_col()
             .flex_1()
+            .min_w_0()
             .h_full()
-            .border_r_1()
-            .border_color(ui_border())
+            .overflow_hidden()
             .child(panel_header("Request", None, ResponseTone::Neutral))
+            .child(self.render_request_bar(cx))
+            .child(self.render_request_editor_tabs(cx))
             .child(
                 div()
-                    .flex()
-                    .flex_col()
+                    .relative()
                     .flex_1()
-                    .p_3()
-                    .gap_3()
-                    .child(self.render_variables_panel(cx))
-                    .child(key_value_editor("Query Params", &self.query_params))
-                    .child(self.render_headers_editor(cx))
-                    .child(self.render_auth_panel(cx))
-                    .child(self.render_pre_request_panel())
-                    .child(self.render_body_panel(cx))
-                    .child(self.render_websocket_panel(cx))
-                    .child(self.render_sse_panel(cx))
-                    .child(self.render_tests_panel(cx))
-                    .child(self.render_codegen_panel(cx))
-                    .child(self.render_collection_runner(cx))
-                    .child(self.render_mock_log()),
+                    .min_w_0()
+                    .overflow_hidden()
+                    .child(
+                        div()
+                            .id("request-pane-scroll")
+                            .flex()
+                            .flex_col()
+                            .h_full()
+                            .min_w_0()
+                            .p_3()
+                            .pr(px(SCROLLBAR_CONTENT_RIGHT_PADDING))
+                            .gap_3()
+                            .overflow_y_scroll()
+                            .scrollbar_width(px(SCROLLBAR_GUTTER_WIDTH))
+                            .track_scroll(&self.request_scroll)
+                            .child(self.render_request_tab_body(cx)),
+                    )
+                    .child(self.render_vertical_scrollbar(
+                        ScrollbarKind::Request,
+                        &self.request_scroll,
+                        cx,
+                    )),
             )
+            .when(self.method_menu_open && !self.busy, |panel| {
+                panel.child(self.render_method_menu_overlay(cx))
+            })
     }
 
     fn render_websocket_panel(&self, cx: &mut Context<Self>) -> impl IntoElement {
@@ -2877,30 +4070,37 @@ impl ZenApiApp {
             .child(
                 div()
                     .flex()
-                    .items_center()
+                    .flex_col()
+                    .min_w_0()
                     .gap_2()
-                    .child(div().flex_1().child(self.websocket_url.clone()))
-                    .child(self.action_button(
-                        "Connect",
-                        !self.websocket_running,
-                        ButtonTone::Primary,
-                        |app, _event, _window, cx| app.connect_websocket(cx),
-                        cx,
-                    ))
-                    .child(self.action_button(
-                        "Send",
-                        self.websocket_running,
-                        ButtonTone::Neutral,
-                        |app, _event, _window, cx| app.send_websocket_message(cx),
-                        cx,
-                    ))
-                    .child(self.action_button(
-                        "Close",
-                        self.websocket_running,
-                        ButtonTone::Warning,
-                        |app, _event, _window, cx| app.close_websocket(cx),
-                        cx,
-                    )),
+                    .child(div().min_w_0().child(self.websocket_url.clone()))
+                    .child(
+                        div()
+                            .flex()
+                            .items_center()
+                            .gap_2()
+                            .child(self.panel_action_button(
+                                "Connect",
+                                !self.websocket_running,
+                                ButtonTone::Primary,
+                                |app, _event, _window, cx| app.connect_websocket(cx),
+                                cx,
+                            ))
+                            .child(self.panel_action_button(
+                                "Send",
+                                self.websocket_running,
+                                ButtonTone::Neutral,
+                                |app, _event, _window, cx| app.send_websocket_message(cx),
+                                cx,
+                            ))
+                            .child(self.panel_action_button(
+                                "Close",
+                                self.websocket_running,
+                                ButtonTone::Warning,
+                                |app, _event, _window, cx| app.close_websocket(cx),
+                                cx,
+                            )),
+                    ),
             )
             .child(self.websocket_protocols.clone())
             .child(key_value_editor(
@@ -2910,18 +4110,25 @@ impl ZenApiApp {
             .child(
                 div()
                     .flex()
-                    .items_center()
+                    .flex_col()
+                    .min_w_0()
                     .gap_2()
-                    .child(self.websocket_message_mode_button(
-                        "Text",
-                        WebSocketMessageMode::Text,
-                        cx,
-                    ))
-                    .child(self.websocket_message_mode_button(
-                        "Binary Hex",
-                        WebSocketMessageMode::BinaryHex,
-                        cx,
-                    ))
+                    .child(
+                        div()
+                            .flex()
+                            .items_center()
+                            .gap_2()
+                            .child(self.websocket_message_mode_button(
+                                "Text",
+                                WebSocketMessageMode::Text,
+                                cx,
+                            ))
+                            .child(self.websocket_message_mode_button(
+                                "Binary Hex",
+                                WebSocketMessageMode::BinaryHex,
+                                cx,
+                            )),
+                    )
                     .child(
                         div()
                             .truncate()
@@ -2936,14 +4143,14 @@ impl ZenApiApp {
                     .flex()
                     .items_center()
                     .gap_2()
-                    .child(self.action_button(
+                    .child(self.panel_action_button(
                         "Copy Log",
                         !self.websocket_messages.is_empty(),
                         ButtonTone::Neutral,
                         |app, _event, _window, cx| app.copy_websocket_log(cx),
                         cx,
                     ))
-                    .child(self.action_button(
+                    .child(self.panel_action_button(
                         "Clear Log",
                         !self.websocket_messages.is_empty(),
                         ButtonTone::Warning,
@@ -2963,7 +4170,7 @@ impl ZenApiApp {
                     .when(self.websocket_messages.is_empty(), |list| {
                         list.child(
                             div()
-                                .h(px(34.))
+                                .h(px(EMPTY_STATE_ROW_HEIGHT))
                                 .flex()
                                 .items_center()
                                 .px_2()
@@ -3016,28 +4223,56 @@ impl ZenApiApp {
             .child(
                 div()
                     .flex()
+                    .flex_col()
+                    .min_w_0()
+                    .gap_2()
+                    .child(div().min_w_0().child(self.sse_url.clone()))
+                    .child(
+                        div()
+                            .flex()
+                            .items_center()
+                            .gap_2()
+                            .child(self.panel_action_button(
+                                "Fetch",
+                                !self.sse_running,
+                                ButtonTone::Primary,
+                                |app, _event, _window, cx| app.fetch_sse_events(cx),
+                                cx,
+                            ))
+                            .child(self.panel_action_button(
+                                "Subscribe",
+                                !self.sse_running,
+                                ButtonTone::Neutral,
+                                |app, _event, _window, cx| app.subscribe_sse_events(cx),
+                                cx,
+                            ))
+                            .child(self.panel_action_button(
+                                "Stop",
+                                self.sse_subscription.is_some(),
+                                ButtonTone::Warning,
+                                |app, _event, _window, cx| app.stop_sse_subscription(cx),
+                                cx,
+                            )),
+                    ),
+            )
+            .child(key_value_editor("SSE Headers", &self.sse_headers))
+            .child(
+                div()
+                    .flex()
                     .items_center()
                     .gap_2()
-                    .child(div().flex_1().child(self.sse_url.clone()))
-                    .child(self.action_button(
-                        "Fetch Events",
-                        !self.sse_running,
-                        ButtonTone::Primary,
-                        |app, _event, _window, cx| app.fetch_sse_events(cx),
-                        cx,
-                    ))
-                    .child(self.action_button(
-                        "Subscribe",
-                        !self.sse_running,
+                    .child(self.panel_action_button(
+                        "Copy Log",
+                        !self.sse_events.is_empty(),
                         ButtonTone::Neutral,
-                        |app, _event, _window, cx| app.subscribe_sse_events(cx),
+                        |app, _event, _window, cx| app.copy_sse_log(cx),
                         cx,
                     ))
-                    .child(self.action_button(
-                        "Stop",
-                        self.sse_subscription.is_some(),
+                    .child(self.panel_action_button(
+                        "Clear Log",
+                        !self.sse_events.is_empty(),
                         ButtonTone::Warning,
-                        |app, _event, _window, cx| app.stop_sse_subscription(cx),
+                        |app, _event, _window, cx| app.clear_sse_log(cx),
                         cx,
                     )),
             )
@@ -3053,7 +4288,7 @@ impl ZenApiApp {
                     .when(self.sse_events.is_empty(), |list| {
                         list.child(
                             div()
-                                .h(px(34.))
+                                .h(px(EMPTY_STATE_ROW_HEIGHT))
                                 .flex()
                                 .items_center()
                                 .px_2()
@@ -3114,14 +4349,14 @@ impl ZenApiApp {
                     .flex()
                     .items_center()
                     .gap_2()
-                    .child(self.action_button(
+                    .child(self.panel_action_button(
                         "Add Test",
                         true,
                         ButtonTone::Neutral,
                         |app, _event, _window, cx| app.add_response_assertion_row(cx),
                         cx,
                     ))
-                    .child(self.action_button(
+                    .child(self.panel_action_button(
                         "Clear Results",
                         !self.last_assertion_results.is_empty(),
                         ButtonTone::Neutral,
@@ -3133,17 +4368,35 @@ impl ZenApiApp {
                 div()
                     .flex()
                     .items_center()
+                    .min_w_0()
                     .gap_2()
                     .px_2()
                     .text_size(px(11.))
                     .font_weight(FontWeight::BOLD)
                     .text_color(ui_text_muted())
-                    .child(div().w(px(TEST_ASSERTION_NAME_COLUMN_WIDTH)).child("Name"))
-                    .child(div().w(px(TEST_ASSERTION_KIND_COLUMN_WIDTH)).child("Kind"))
-                    .child(div().flex_1().child("Target"))
-                    .child(div().flex_1().child("Expected")),
+                    .child(
+                        div()
+                            .w(px(TEST_ASSERTION_NAME_COLUMN_WIDTH))
+                            .flex_shrink_0()
+                            .child("Name"),
+                    )
+                    .child(
+                        div()
+                            .w(px(TEST_ASSERTION_KIND_COLUMN_WIDTH))
+                            .flex_shrink_0()
+                            .child("Kind"),
+                    )
+                    .child(div().flex_1().min_w_0().child("Target"))
+                    .child(div().flex_1().min_w_0().child("Expected")),
             )
-            .child(div().flex().flex_col().gap_1().children(editor_rows))
+            .child(
+                div()
+                    .flex()
+                    .flex_col()
+                    .min_w_0()
+                    .gap_1()
+                    .children(editor_rows),
+            )
             .when(!self.last_assertion_results.is_empty(), |panel| {
                 panel.child(
                     div()
@@ -3203,19 +4456,17 @@ impl ZenApiApp {
                     .items_center()
                     .gap_2()
                     .child(
-                        compact_toggle("Stop on fail", self.runner_stop_on_failure)
-                            .on_mouse_up(
-                                MouseButton::Left,
-                                cx.listener(|app, _event: &MouseUpEvent, _window, cx| {
-                                    if !app.runner_running && !app.busy {
-                                        app.runner_stop_on_failure = !app.runner_stop_on_failure;
-                                        cx.notify();
-                                    }
-                                }),
-                            )
-                            .child("Stop on fail"),
+                        flexible_toggle("Stop on fail", self.runner_stop_on_failure).on_mouse_up(
+                            MouseButton::Left,
+                            cx.listener(|app, _event: &MouseUpEvent, _window, cx| {
+                                if !app.runner_running && !app.busy {
+                                    app.runner_stop_on_failure = !app.runner_stop_on_failure;
+                                    cx.notify();
+                                }
+                            }),
+                        ),
                     )
-                    .child(self.action_button(
+                    .child(self.panel_action_button(
                         "Run All",
                         total > 0 && !self.runner_running,
                         ButtonTone::Primary,
@@ -3235,7 +4486,7 @@ impl ZenApiApp {
                     .when(self.runner_results.is_empty(), |list| {
                         list.child(
                             div()
-                                .h(px(34.))
+                                .h(px(EMPTY_STATE_ROW_HEIGHT))
                                 .flex()
                                 .items_center()
                                 .px_2()
@@ -3285,7 +4536,7 @@ impl ZenApiApp {
                     .when(self.mock_logs.is_empty(), |list| {
                         list.child(
                             div()
-                                .h(px(34.))
+                                .h(px(EMPTY_STATE_ROW_HEIGHT))
                                 .flex()
                                 .items_center()
                                 .px_2()
@@ -3306,28 +4557,68 @@ impl ZenApiApp {
             .child(
                 div()
                     .flex()
-                    .items_center()
+                    .flex_col()
+                    .min_w_0()
                     .gap_2()
-                    .child(self.action_button(
-                        "Copy Bulk",
-                        true,
-                        ButtonTone::Neutral,
-                        |app, _event, _window, cx| app.copy_headers_bulk(cx),
-                        cx,
-                    ))
-                    .child(self.action_button(
-                        "Paste Bulk",
-                        true,
-                        ButtonTone::Primary,
-                        |app, _event, _window, cx| app.paste_headers_bulk(cx),
-                        cx,
-                    ))
+                    .child(
+                        div()
+                            .flex()
+                            .items_center()
+                            .gap_2()
+                            .child(self.panel_action_button(
+                                "Copy Bulk",
+                                true,
+                                ButtonTone::Neutral,
+                                |app, _event, _window, cx| app.copy_headers_bulk(cx),
+                                cx,
+                            ))
+                            .child(self.panel_action_button(
+                                "Paste Bulk",
+                                true,
+                                ButtonTone::Primary,
+                                |app, _event, _window, cx| app.paste_headers_bulk(cx),
+                                cx,
+                            )),
+                    )
+                    .child(
+                        div()
+                            .flex()
+                            .items_center()
+                            .gap_2()
+                            .child(self.panel_action_button(
+                                "Accept JSON",
+                                true,
+                                ButtonTone::Neutral,
+                                |app, _event, _window, cx| {
+                                    app.apply_header_preset("Accept", "application/json", cx)
+                                },
+                                cx,
+                            ))
+                            .child(self.panel_action_button(
+                                "Content JSON",
+                                true,
+                                ButtonTone::Neutral,
+                                |app, _event, _window, cx| {
+                                    app.apply_header_preset("Content-Type", "application/json", cx)
+                                },
+                                cx,
+                            ))
+                            .child(self.panel_action_button(
+                                "Bearer Auth",
+                                true,
+                                ButtonTone::Neutral,
+                                |app, _event, _window, cx| {
+                                    app.apply_header_preset("Authorization", "Bearer {{token}}", cx)
+                                },
+                                cx,
+                            )),
+                    )
                     .child(
                         div()
                             .truncate()
                             .text_size(px(12.))
                             .text_color(ui_text_secondary())
-                            .child("Key: Value per line"),
+                            .child("Key: Value per line; presets update existing header names"),
                     ),
             )
     }
@@ -3354,42 +4645,62 @@ impl ZenApiApp {
             .child(
                 div()
                     .flex()
+                    .min_w_0()
                     .items_center()
-                    .gap_2()
-                    .child(self.environment_button("No Env".to_string(), cx))
-                    .children(environment_buttons)
+                    .justify_between()
                     .child(
                         div()
-                            .ml_2()
+                            .text_size(px(12.))
+                            .font_weight(FontWeight::BOLD)
+                            .text_color(ui_text_muted())
+                            .child("Environment"),
+                    )
+                    .child(
+                        div()
+                            .min_w_0()
                             .truncate()
                             .text_size(px(12.))
                             .font_family(PLATFORM_MONOSPACE_FONT)
                             .text_color(ui_text_secondary())
-                            .child(format!("active: {active_environment}")),
+                            .child(active_environment.to_string()),
                     ),
             )
             .child(
                 div()
                     .flex()
-                    .items_center()
+                    .flex_col()
+                    .min_w_0()
+                    .gap_1()
+                    .child(self.environment_button("No Env".to_string(), cx))
+                    .children(environment_buttons),
+            )
+            .child(
+                div()
+                    .flex()
+                    .flex_col()
+                    .min_w_0()
                     .gap_2()
-                    .child(div().flex_1().child(self.environment_name_input.clone()))
-                    .child(self.sidebar_action_button(
-                        "Add Env",
-                        72.,
-                        true,
-                        ButtonTone::Neutral,
-                        |app, _event, _window, cx| app.add_environment(cx),
-                        cx,
-                    ))
-                    .child(self.sidebar_action_button(
-                        "Delete",
-                        62.,
-                        self.active_environment.is_some(),
-                        ButtonTone::Warning,
-                        |app, _event, _window, cx| app.delete_active_environment(cx),
-                        cx,
-                    )),
+                    .child(div().min_w_0().child(self.environment_name_input.clone()))
+                    .child(
+                        div()
+                            .flex()
+                            .items_center()
+                            .gap_2()
+                            .child(self.panel_action_button(
+                                "Add Env",
+                                true,
+                                ButtonTone::Neutral,
+                                |app, _event, _window, cx| app.add_environment(cx),
+                                cx,
+                            ))
+                            .child(self.panel_action_button(
+                                "Delete",
+                                self.active_environment.is_some(),
+                                ButtonTone::Warning,
+                                |app, _event, _window, cx| app.delete_active_environment(cx),
+                                cx,
+                            )),
+                    ),
             )
             .child(key_value_editor("Global Variables", &self.global_variables))
             .when_some(self.active_environment_variables(), |panel, variables| {
@@ -3404,15 +4715,13 @@ impl ZenApiApp {
             Some(label.clone())
         };
         let active = self.active_environment == environment;
-        compact_toggle(&label, active)
-            .on_mouse_up(
-                MouseButton::Left,
-                cx.listener(move |app, _event: &MouseUpEvent, _window, cx| {
-                    app.active_environment = environment.clone();
-                    cx.notify();
-                }),
-            )
-            .child(label)
+        full_width_toggle(label, active).on_mouse_up(
+            MouseButton::Left,
+            cx.listener(move |app, _event: &MouseUpEvent, _window, cx| {
+                app.active_environment = environment.clone();
+                cx.notify();
+            }),
+        )
     }
 
     fn render_auth_panel(&self, cx: &mut Context<Self>) -> impl IntoElement {
@@ -3430,13 +4739,26 @@ impl ZenApiApp {
             .child(
                 div()
                     .flex()
-                    .items_center()
+                    .flex_col()
+                    .min_w_0()
                     .gap_2()
-                    .child(self.auth_mode_button("None", AuthMode::None, cx))
-                    .child(self.auth_mode_button("Bearer", AuthMode::Bearer, cx))
-                    .child(self.auth_mode_button("Basic", AuthMode::Basic, cx))
-                    .child(self.auth_mode_button("JWT", AuthMode::Jwt, cx))
-                    .child(self.auth_mode_button("API Key", AuthMode::ApiKey, cx)),
+                    .child(
+                        div()
+                            .flex()
+                            .items_center()
+                            .gap_2()
+                            .child(self.auth_mode_button("None", AuthMode::None, cx))
+                            .child(self.auth_mode_button("Bearer", AuthMode::Bearer, cx))
+                            .child(self.auth_mode_button("Basic", AuthMode::Basic, cx)),
+                    )
+                    .child(
+                        div()
+                            .flex()
+                            .items_center()
+                            .gap_2()
+                            .child(self.auth_mode_button("JWT", AuthMode::Jwt, cx))
+                            .child(self.auth_mode_button("API Key", AuthMode::ApiKey, cx)),
+                    ),
             )
             .when(self.auth_mode == AuthMode::Bearer, |panel| {
                 panel.child(self.bearer_token.clone())
@@ -3446,13 +4768,15 @@ impl ZenApiApp {
                     div()
                         .flex()
                         .items_center()
+                        .min_w_0()
                         .gap_2()
                         .child(
                             div()
                                 .w(px(KEY_VALUE_KEY_COLUMN_WIDTH))
+                                .flex_shrink_0()
                                 .child(self.basic_username.clone()),
                         )
-                        .child(div().flex_1().child(self.basic_password.clone())),
+                        .child(div().flex_1().min_w_0().child(self.basic_password.clone())),
                 )
             })
             .when(self.auth_mode == AuthMode::Jwt, |panel| {
@@ -3464,18 +4788,21 @@ impl ZenApiApp {
                         div()
                             .flex()
                             .items_center()
+                            .min_w_0()
                             .gap_2()
                             .child(
                                 div()
                                     .w(px(KEY_VALUE_KEY_COLUMN_WIDTH))
+                                    .flex_shrink_0()
                                     .child(self.api_key_name.clone()),
                             )
-                            .child(div().flex_1().child(self.api_key_value.clone())),
+                            .child(div().flex_1().min_w_0().child(self.api_key_value.clone())),
                     )
                     .child(
                         div()
                             .flex()
                             .items_center()
+                            .min_w_0()
                             .gap_2()
                             .child(self.api_key_placement_button(
                                 "Header",
@@ -3557,18 +4884,41 @@ impl ZenApiApp {
             .child(
                 div()
                     .flex()
-                    .items_center()
+                    .flex_col()
+                    .min_w_0()
                     .gap_2()
-                    .child(self.body_mode_button("None", RequestBodyMode::None, cx))
-                    .child(self.body_mode_button("form-data", RequestBodyMode::FormData, cx))
-                    .child(self.body_mode_button(
-                        "x-www-form-urlencoded",
-                        RequestBodyMode::UrlEncoded,
-                        cx,
-                    ))
-                    .child(self.body_mode_button("raw", RequestBodyMode::Raw, cx))
-                    .child(self.body_mode_button("GraphQL", RequestBodyMode::GraphQL, cx))
-                    .child(self.body_mode_button("binary", RequestBodyMode::Binary, cx)),
+                    .child(
+                        div()
+                            .flex()
+                            .items_center()
+                            .gap_2()
+                            .child(self.body_mode_button("None", RequestBodyMode::None, cx))
+                            .child(self.body_mode_button(
+                                "form-data",
+                                RequestBodyMode::FormData,
+                                cx,
+                            )),
+                    )
+                    .child(
+                        div()
+                            .flex()
+                            .items_center()
+                            .gap_2()
+                            .child(self.body_mode_button(
+                                "x-www-form-urlencoded",
+                                RequestBodyMode::UrlEncoded,
+                                cx,
+                            ))
+                            .child(self.body_mode_button("raw", RequestBodyMode::Raw, cx)),
+                    )
+                    .child(
+                        div()
+                            .flex()
+                            .items_center()
+                            .gap_2()
+                            .child(self.body_mode_button("GraphQL", RequestBodyMode::GraphQL, cx))
+                            .child(self.body_mode_button("binary", RequestBodyMode::Binary, cx)),
+                    ),
             )
             .when(
                 self.request_body_mode == RequestBodyMode::FormData,
@@ -3589,11 +4939,25 @@ impl ZenApiApp {
                         div()
                             .flex()
                             .items_center()
+                            .min_w_0()
                             .gap_2()
                             .child(self.raw_format_button("JSON", RawBodyFormat::Json, cx))
                             .child(self.raw_format_button("XML", RawBodyFormat::Xml, cx))
                             .child(self.raw_format_button("Text", RawBodyFormat::Text, cx))
                             .child(self.raw_format_button("HTML", RawBodyFormat::Html, cx)),
+                    )
+                    .child(
+                        div()
+                            .flex()
+                            .items_center()
+                            .min_w_0()
+                            .child(self.panel_action_button(
+                                "Format JSON",
+                                self.raw_body_format == RawBodyFormat::Json,
+                                ButtonTone::Neutral,
+                                |app, _event, _window, cx| app.format_raw_json_body(cx),
+                                cx,
+                            )),
                     )
                     .child(self.request_body.clone())
                     .child(self.render_raw_body_preview(cx))
@@ -3721,7 +5085,7 @@ impl ZenApiApp {
             )
             .child(
                 div()
-                    .min_h(px(112.))
+                    .min_h(px(GRAPHQL_SCHEMA_BROWSER_MIN_HEIGHT))
                     .rounded(px(4.))
                     .border_1()
                     .border_color(ui_border())
@@ -3766,13 +5130,16 @@ impl ZenApiApp {
                             .justify_between()
                             .child(
                                 div()
+                                    .min_w_0()
+                                    .truncate()
                                     .font_family(PLATFORM_MONOSPACE_FONT)
                                     .text_size(px(12.))
                                     .text_color(ui_text_primary())
                                     .child(template.field_name.clone()),
                             )
-                            .child(self.action_button(
+                            .child(self.sized_action_button(
                                 "Use",
+                                54.,
                                 true,
                                 ButtonTone::Neutral,
                                 move |app, _event, _window, cx| {
@@ -3893,8 +5260,8 @@ impl ZenApiApp {
                                     .flex()
                                     .items_center()
                                     .justify_center()
-                                    .h(px(26.))
-                                    .w(px(72.))
+                                    .h(px(COMPACT_CONTROL_HEIGHT))
+                                    .w(px(CODEGEN_COPY_BUTTON_WIDTH))
                                     .rounded(px(5.))
                                     .border_1()
                                     .border_color(ui_border_strong())
@@ -3981,8 +5348,8 @@ impl ZenApiApp {
         div()
             .flex()
             .items_center()
-            .h(px(26.))
-            .w(px(156.))
+            .h(px(COMPACT_CONTROL_HEIGHT))
+            .w(px(CODEGEN_MENU_WIDTH))
             .px_2()
             .text_size(px(12.))
             .font_weight(if active {
@@ -4019,15 +5386,13 @@ impl ZenApiApp {
         cx: &mut Context<Self>,
     ) -> impl IntoElement {
         let active = self.request_body_mode == mode;
-        compact_toggle(label, active)
-            .on_mouse_up(
-                MouseButton::Left,
-                cx.listener(move |app, _event: &MouseUpEvent, _window, cx| {
-                    app.request_body_mode = mode;
-                    cx.notify();
-                }),
-            )
-            .child(label)
+        flexible_toggle(label, active).on_mouse_up(
+            MouseButton::Left,
+            cx.listener(move |app, _event: &MouseUpEvent, _window, cx| {
+                app.request_body_mode = mode;
+                cx.notify();
+            }),
+        )
     }
 
     fn raw_format_button(
@@ -4037,15 +5402,13 @@ impl ZenApiApp {
         cx: &mut Context<Self>,
     ) -> impl IntoElement {
         let active = self.raw_body_format == format;
-        compact_toggle(label, active)
-            .on_mouse_up(
-                MouseButton::Left,
-                cx.listener(move |app, _event: &MouseUpEvent, _window, cx| {
-                    app.raw_body_format = format;
-                    cx.notify();
-                }),
-            )
-            .child(label)
+        flexible_toggle(label, active).on_mouse_up(
+            MouseButton::Left,
+            cx.listener(move |app, _event: &MouseUpEvent, _window, cx| {
+                app.raw_body_format = format;
+                cx.notify();
+            }),
+        )
     }
 
     fn websocket_message_mode_button(
@@ -4055,15 +5418,13 @@ impl ZenApiApp {
         cx: &mut Context<Self>,
     ) -> impl IntoElement {
         let active = self.websocket_message_mode == mode;
-        compact_toggle(label, active)
-            .on_mouse_up(
-                MouseButton::Left,
-                cx.listener(move |app, _event: &MouseUpEvent, _window, cx| {
-                    app.websocket_message_mode = mode;
-                    cx.notify();
-                }),
-            )
-            .child(label)
+        flexible_toggle(label, active).on_mouse_up(
+            MouseButton::Left,
+            cx.listener(move |app, _event: &MouseUpEvent, _window, cx| {
+                app.websocket_message_mode = mode;
+                cx.notify();
+            }),
+        )
     }
 
     fn auth_mode_button(
@@ -4073,15 +5434,13 @@ impl ZenApiApp {
         cx: &mut Context<Self>,
     ) -> impl IntoElement {
         let active = self.auth_mode == mode;
-        compact_toggle(label, active)
-            .on_mouse_up(
-                MouseButton::Left,
-                cx.listener(move |app, _event: &MouseUpEvent, _window, cx| {
-                    app.auth_mode = mode;
-                    cx.notify();
-                }),
-            )
-            .child(label)
+        flexible_toggle(label, active).on_mouse_up(
+            MouseButton::Left,
+            cx.listener(move |app, _event: &MouseUpEvent, _window, cx| {
+                app.auth_mode = mode;
+                cx.notify();
+            }),
+        )
     }
 
     fn api_key_placement_button(
@@ -4091,15 +5450,13 @@ impl ZenApiApp {
         cx: &mut Context<Self>,
     ) -> impl IntoElement {
         let active = self.api_key_placement == placement;
-        compact_toggle(label, active)
-            .on_mouse_up(
-                MouseButton::Left,
-                cx.listener(move |app, _event: &MouseUpEvent, _window, cx| {
-                    app.api_key_placement = placement;
-                    cx.notify();
-                }),
-            )
-            .child(label)
+        flexible_toggle(label, active).on_mouse_up(
+            MouseButton::Left,
+            cx.listener(move |app, _event: &MouseUpEvent, _window, cx| {
+                app.api_key_placement = placement;
+                cx.notify();
+            }),
+        )
     }
 
     fn render_response_panel(&self, cx: &mut Context<Self>) -> impl IntoElement {
@@ -4117,7 +5474,9 @@ impl ZenApiApp {
             .flex()
             .flex_col()
             .flex_1()
+            .min_w_0()
             .h_full()
+            .overflow_hidden()
             .child(panel_header(
                 &self.response_status,
                 meta,
@@ -4126,14 +5485,32 @@ impl ZenApiApp {
             .child(self.render_response_tabs(cx))
             .child(
                 div()
+                    .relative()
                     .flex_1()
-                    .p_3()
-                    .font_family(PLATFORM_MONOSPACE_FONT)
-                    .line_height(px(20.))
-                    .text_size(px(13.))
-                    .text_color(ui_text_primary())
-                    .whitespace_normal()
-                    .child(self.response_body_viewer.clone()),
+                    .min_w_0()
+                    .overflow_hidden()
+                    .child(
+                        div()
+                            .id("response-body-scroll")
+                            .h_full()
+                            .min_w_0()
+                            .p_3()
+                            .pr(px(SCROLLBAR_CONTENT_RIGHT_PADDING))
+                            .overflow_y_scroll()
+                            .scrollbar_width(px(SCROLLBAR_GUTTER_WIDTH))
+                            .track_scroll(&self.response_scroll)
+                            .font_family(PLATFORM_MONOSPACE_FONT)
+                            .line_height(px(20.))
+                            .text_size(px(13.))
+                            .text_color(ui_text_primary())
+                            .whitespace_normal()
+                            .child(self.response_body_viewer.clone()),
+                    )
+                    .child(self.render_vertical_scrollbar(
+                        ScrollbarKind::Response,
+                        &self.response_scroll,
+                        cx,
+                    )),
             )
     }
 
@@ -4141,18 +5518,28 @@ impl ZenApiApp {
         div()
             .flex()
             .items_center()
-            .h(px(36.))
+            .h(px(RESPONSE_TAB_BAR_HEIGHT))
+            .min_w_0()
             .border_b_1()
             .border_color(ui_border())
             .bg(ui_surface_muted())
             .px_3()
-            .gap_2()
-            .child(self.response_tab("Pretty", ResponseView::Pretty, cx))
-            .child(self.response_tab("Raw", ResponseView::Raw, cx))
-            .child(self.response_tab("Headers", ResponseView::Headers, cx))
+            .gap_1()
+            .child(
+                div()
+                    .flex()
+                    .items_center()
+                    .flex_1()
+                    .min_w_0()
+                    .gap_1()
+                    .child(self.response_tab("Pretty", ResponseView::Pretty, cx))
+                    .child(self.response_tab("Raw", ResponseView::Raw, cx))
+                    .child(self.response_tab("Headers", ResponseView::Headers, cx)),
+            )
             .when(self.response_view == ResponseView::Pretty, |tabs| {
                 tabs.child(self.response_fold_button(cx))
             })
+            .child(self.response_copy_button(cx))
     }
 
     fn response_fold_button(&self, cx: &mut Context<Self>) -> impl IntoElement {
@@ -4166,8 +5553,9 @@ impl ZenApiApp {
             .flex()
             .items_center()
             .justify_center()
-            .h(px(26.))
-            .w(px(86.))
+            .h(px(COMPACT_CONTROL_HEIGHT))
+            .w(px(RESPONSE_FOLD_BUTTON_WIDTH))
+            .flex_shrink_0()
             .rounded(px(5.))
             .border_1()
             .border_color(ui_border_strong())
@@ -4180,10 +5568,42 @@ impl ZenApiApp {
                 MouseButton::Left,
                 cx.listener(|app, _event: &MouseUpEvent, _window, cx| {
                     app.response_pretty_collapsed = !app.response_pretty_collapsed;
+                    reset_scroll_handle(&app.response_scroll);
                     cx.notify();
                 }),
             )
-            .child(label)
+            .child(div().min_w_0().truncate().child(label))
+    }
+
+    fn response_copy_button(&self, cx: &mut Context<Self>) -> impl IntoElement {
+        let enabled = !self.busy;
+        let colors = ButtonTone::Neutral.colors(enabled);
+
+        div()
+            .flex()
+            .items_center()
+            .justify_center()
+            .h(px(COMPACT_CONTROL_HEIGHT))
+            .w(px(RESPONSE_COPY_BUTTON_WIDTH))
+            .flex_shrink_0()
+            .rounded(px(5.))
+            .border_1()
+            .border_color(colors.border)
+            .bg(colors.background)
+            .text_size(px(12.))
+            .font_weight(FontWeight::BOLD)
+            .text_color(colors.text)
+            .opacity(if enabled { 1.0 } else { 0.62 })
+            .when(enabled, |button| button.cursor_pointer())
+            .on_mouse_up(
+                MouseButton::Left,
+                cx.listener(move |app, _event: &MouseUpEvent, _window, cx| {
+                    if enabled {
+                        app.copy_response_body(cx);
+                    }
+                }),
+            )
+            .child(div().min_w_0().truncate().child("Copy"))
     }
 
     fn response_tab(
@@ -4197,8 +5617,10 @@ impl ZenApiApp {
             .flex()
             .items_center()
             .justify_center()
-            .h(px(26.))
-            .w(px(84.))
+            .h(px(COMPACT_CONTROL_HEIGHT))
+            .flex_1()
+            .min_w_0()
+            .max_w(px(RESPONSE_TAB_WIDTH))
             .rounded(px(5.))
             .border_1()
             .border_color(if active {
@@ -4223,40 +5645,34 @@ impl ZenApiApp {
                 MouseButton::Left,
                 cx.listener(move |app, _event: &MouseUpEvent, _window, cx| {
                     app.response_view = view;
+                    reset_scroll_handle(&app.response_scroll);
                     cx.notify();
                 }),
             )
-            .child(label)
+            .child(div().min_w_0().truncate().child(label))
     }
 
     fn response_body_for_view(&self) -> String {
-        match self.response_view {
-            ResponseView::Pretty => {
-                if self.response_pretty_collapsed {
-                    collapsed_json_preview(&self.response_raw_body)
-                        .unwrap_or_else(|| self.response_body.clone())
-                } else {
-                    self.response_body.clone()
-                }
-            }
-            ResponseView::Raw => self.response_raw_body.clone(),
-            ResponseView::Headers => {
-                if self.response_headers.is_empty() {
-                    "No response headers".to_string()
-                } else {
-                    self.response_headers.clone()
-                }
-            }
-        }
+        response_body_for_view(
+            self.response_view,
+            self.response_pretty_collapsed,
+            &self.response_body,
+            &self.response_raw_body,
+            &self.response_headers,
+        )
     }
 }
 
 impl Render for ZenApiApp {
     fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         div()
+            .relative()
             .flex()
             .flex_col()
             .size_full()
+            .key_context("ZenApiApp")
+            .on_action(cx.listener(Self::save_current_request_shortcut))
+            .on_action(cx.listener(Self::focus_active_sidebar_input))
             .font_family(PLATFORM_UI_FONT)
             .text_size(px(13.))
             .text_color(ui_text_primary())
@@ -4265,12 +5681,15 @@ impl Render for ZenApiApp {
             .child(
                 div()
                     .flex()
-                    .flex_row()
                     .flex_1()
-                    .child(self.render_sidebar(cx))
+                    .min_w_0()
+                    .overflow_hidden()
                     .child(self.render_workspace(cx)),
             )
             .child(self.render_status_bar())
+            .when(self.import_popover_open, |root| {
+                root.child(self.render_import_popover(cx))
+            })
     }
 }
 
@@ -4382,8 +5801,8 @@ impl ButtonTone {
                 text: ui_surface(),
             },
             Self::Warning => ButtonColors {
-                background: rgb(0xb45309).into(),
-                border: rgb(0x92400e).into(),
+                background: ui_warning(),
+                border: ui_warning_strong(),
                 text: ui_surface(),
             },
         }
@@ -4503,9 +5922,9 @@ impl ResponseTone {
     fn color(self) -> Hsla {
         match self {
             Self::Neutral => ui_text_secondary(),
-            Self::Busy => rgb(0xd97706).into(),
-            Self::Success => rgb(0x059669).into(),
-            Self::Error => rgb(0xdc2626).into(),
+            Self::Busy => ui_status_busy(),
+            Self::Success => ui_status_success(),
+            Self::Error => ui_status_error(),
         }
     }
 }
@@ -4805,6 +6224,24 @@ fn set_key_value_pairs(
     }
 }
 
+fn upsert_header_pair(
+    headers: &[(String, String)],
+    name: &str,
+    value: &str,
+) -> Vec<(String, String)> {
+    let mut headers = headers.to_vec();
+    if let Some((existing_name, existing_value)) = headers
+        .iter_mut()
+        .find(|(existing_name, _)| existing_name.eq_ignore_ascii_case(name))
+    {
+        *existing_name = name.to_string();
+        *existing_value = value.to_string();
+    } else {
+        headers.push((name.to_string(), value.to_string()));
+    }
+    headers
+}
+
 fn parse_header_bulk(input: &str) -> Vec<(String, String)> {
     input.lines().filter_map(parse_header_bulk_line).collect()
 }
@@ -5046,12 +6483,12 @@ fn syntax_highlights(input: &str, format: RawBodyFormat) -> Vec<(Range<usize>, S
 
 fn syntax_highlight_style(kind: SyntaxTokenKind) -> HighlightStyle {
     let color = match kind {
-        SyntaxTokenKind::String => rgb(0x047857).into(),
-        SyntaxTokenKind::Number => rgb(0x7c3aed).into(),
-        SyntaxTokenKind::Keyword => rgb(0x2563eb).into(),
-        SyntaxTokenKind::Punctuation => rgb(0x6b7280).into(),
-        SyntaxTokenKind::Tag => rgb(0xb45309).into(),
-        SyntaxTokenKind::Attribute => rgb(0x0891b2).into(),
+        SyntaxTokenKind::String => rgb(UI_COLOR_SYNTAX_STRING).into(),
+        SyntaxTokenKind::Number => rgb(UI_COLOR_SYNTAX_NUMBER).into(),
+        SyntaxTokenKind::Keyword => rgb(UI_COLOR_SYNTAX_KEYWORD).into(),
+        SyntaxTokenKind::Punctuation => rgb(UI_COLOR_SYNTAX_PUNCTUATION).into(),
+        SyntaxTokenKind::Tag => rgb(UI_COLOR_SYNTAX_TAG).into(),
+        SyntaxTokenKind::Attribute => rgb(UI_COLOR_SYNTAX_ATTRIBUTE).into(),
     };
 
     HighlightStyle {
@@ -5572,6 +7009,20 @@ fn websocket_exchange_text(exchange: &client::WebSocketExchange) -> String {
     lines.join("\n")
 }
 
+fn format_websocket_log(entries: &[WebSocketLogEntry]) -> String {
+    entries
+        .iter()
+        .map(|entry| {
+            let direction = match entry.direction {
+                WebSocketDirection::Sent => "sent",
+                WebSocketDirection::Received => "received",
+            };
+            format!("{direction} {}: {}", entry.kind, entry.data)
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
 fn websocket_message_kind_label(kind: &client::WebSocketMessageKind) -> &'static str {
     match kind {
         client::WebSocketMessageKind::Text => "text",
@@ -5623,6 +7074,17 @@ fn sse_log_entry(event: &client::SseEvent) -> SseLogEntry {
         data: event.data.clone(),
         id: event.id.clone(),
     }
+}
+
+fn format_sse_log(entries: &[SseLogEntry]) -> String {
+    entries
+        .iter()
+        .map(|entry| match &entry.id {
+            Some(id) => format!("{} [id {}]: {}", entry.event, id, entry.data),
+            None => format!("{}: {}", entry.event, entry.data),
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
 }
 
 fn sse_exchange_text(exchange: &client::SseExchange) -> String {
@@ -6208,6 +7670,7 @@ fn key_value_editor(title: &'static str, rows: &[KeyValueRow]) -> impl IntoEleme
     div()
         .flex()
         .flex_col()
+        .min_w_0()
         .gap_2()
         .child(
             div()
@@ -6222,22 +7685,41 @@ fn key_value_editor(title: &'static str, rows: &[KeyValueRow]) -> impl IntoEleme
                 .items_center()
                 .gap_2()
                 .px_2()
+                .min_w_0()
                 .text_size(px(11.))
                 .font_weight(FontWeight::BOLD)
                 .text_color(ui_text_muted())
-                .child(div().w(px(KEY_VALUE_KEY_COLUMN_WIDTH)).child("Key"))
-                .child(div().flex_1().child("Value")),
+                .child(
+                    div()
+                        .w(px(KEY_VALUE_KEY_COLUMN_WIDTH))
+                        .flex_shrink_0()
+                        .child("Key"),
+                )
+                .child(div().flex_1().min_w_0().child("Value")),
         )
-        .child(div().flex().flex_col().gap_1().children(rendered_rows))
+        .child(
+            div()
+                .flex()
+                .flex_col()
+                .min_w_0()
+                .gap_1()
+                .children(rendered_rows),
+        )
 }
 
 fn key_value_row(key: Entity<TextInput>, value: Entity<TextInput>) -> impl IntoElement {
     div()
         .flex()
         .items_center()
+        .min_w_0()
         .gap_2()
-        .child(div().w(px(KEY_VALUE_KEY_COLUMN_WIDTH)).child(key))
-        .child(div().flex_1().child(value))
+        .child(
+            div()
+                .w(px(KEY_VALUE_KEY_COLUMN_WIDTH))
+                .flex_shrink_0()
+                .child(key),
+        )
+        .child(div().flex_1().min_w_0().child(value))
 }
 
 fn assertion_editor_row(
@@ -6249,15 +7731,19 @@ fn assertion_editor_row(
     div()
         .flex()
         .items_center()
+        .min_w_0()
+        .overflow_hidden()
         .gap_2()
         .child(
             div()
                 .w(px(TEST_ASSERTION_NAME_COLUMN_WIDTH))
+                .flex_shrink_0()
                 .child(row.name.clone()),
         )
         .child(
             compact_toggle(kind.label(), true)
                 .w(px(TEST_ASSERTION_KIND_COLUMN_WIDTH))
+                .flex_shrink_0()
                 .on_mouse_up(
                     MouseButton::Left,
                     cx.listener(move |app, _event: &MouseUpEvent, _window, cx| {
@@ -6269,8 +7755,8 @@ fn assertion_editor_row(
                 )
                 .child(kind.label()),
         )
-        .child(div().flex_1().child(row.target.clone()))
-        .child(div().flex_1().child(row.expected.clone()))
+        .child(div().flex_1().min_w_0().child(row.target.clone()))
+        .child(div().flex_1().min_w_0().child(row.expected.clone()))
 }
 
 fn assertion_result_row(result: ResponseAssertionResult) -> gpui::Div {
@@ -6283,6 +7769,8 @@ fn assertion_result_row(result: ResponseAssertionResult) -> gpui::Div {
         .flex()
         .items_center()
         .h(px(30.))
+        .min_w_0()
+        .overflow_hidden()
         .px_2()
         .gap_2()
         .border_b_1()
@@ -6291,6 +7779,7 @@ fn assertion_result_row(result: ResponseAssertionResult) -> gpui::Div {
         .child(
             div()
                 .w(px(48.))
+                .flex_shrink_0()
                 .font_family(PLATFORM_MONOSPACE_FONT)
                 .font_weight(FontWeight::BOLD)
                 .text_color(tone.color())
@@ -6299,6 +7788,7 @@ fn assertion_result_row(result: ResponseAssertionResult) -> gpui::Div {
         .child(
             div()
                 .w(px(140.))
+                .flex_shrink_0()
                 .truncate()
                 .font_weight(FontWeight::BOLD)
                 .text_color(ui_text_body())
@@ -6307,6 +7797,7 @@ fn assertion_result_row(result: ResponseAssertionResult) -> gpui::Div {
         .child(
             div()
                 .flex_1()
+                .min_w_0()
                 .truncate()
                 .text_color(ui_text_secondary())
                 .child(result.error.unwrap_or_else(|| "ok".to_string())),
@@ -6318,6 +7809,8 @@ fn pre_request_action_row(action: String) -> gpui::Div {
         .flex()
         .items_center()
         .h(px(30.))
+        .min_w_0()
+        .overflow_hidden()
         .px_2()
         .gap_2()
         .border_b_1()
@@ -6326,6 +7819,7 @@ fn pre_request_action_row(action: String) -> gpui::Div {
         .child(
             div()
                 .w(px(48.))
+                .flex_shrink_0()
                 .font_family(PLATFORM_MONOSPACE_FONT)
                 .font_weight(FontWeight::BOLD)
                 .text_color(ResponseTone::Success.color())
@@ -6334,6 +7828,7 @@ fn pre_request_action_row(action: String) -> gpui::Div {
         .child(
             div()
                 .flex_1()
+                .min_w_0()
                 .truncate()
                 .font_family(PLATFORM_MONOSPACE_FONT)
                 .text_color(ui_text_secondary())
@@ -6348,7 +7843,7 @@ fn compact_toggle(label: &str, active: bool) -> gpui::Div {
         .flex()
         .items_center()
         .justify_center()
-        .h(px(26.))
+        .h(px(COMPACT_CONTROL_HEIGHT))
         .w(width)
         .px_2()
         .rounded(px(5.))
@@ -6371,6 +7866,74 @@ fn compact_toggle(label: &str, active: bool) -> gpui::Div {
             ui_text_secondary()
         })
         .cursor_pointer()
+}
+
+fn flexible_toggle(label: impl Into<SharedString>, active: bool) -> gpui::Div {
+    let label = label.into();
+
+    div()
+        .flex()
+        .items_center()
+        .justify_center()
+        .h(px(COMPACT_CONTROL_HEIGHT))
+        .flex_1()
+        .min_w_0()
+        .px_2()
+        .rounded(px(5.))
+        .border_1()
+        .border_color(if active {
+            ui_accent()
+        } else {
+            ui_border_strong()
+        })
+        .bg(if active {
+            ui_surface()
+        } else {
+            ui_surface_muted()
+        })
+        .text_size(px(12.))
+        .font_weight(FontWeight::BOLD)
+        .text_color(if active {
+            ui_accent()
+        } else {
+            ui_text_secondary()
+        })
+        .cursor_pointer()
+        .child(div().truncate().child(label))
+}
+
+fn full_width_toggle(label: impl Into<SharedString>, active: bool) -> gpui::Div {
+    let label = label.into();
+
+    div()
+        .flex()
+        .items_center()
+        .justify_center()
+        .h(px(COMPACT_CONTROL_HEIGHT))
+        .w_full()
+        .min_w_0()
+        .px_2()
+        .rounded(px(5.))
+        .border_1()
+        .border_color(if active {
+            ui_accent()
+        } else {
+            ui_border_strong()
+        })
+        .bg(if active {
+            ui_surface()
+        } else {
+            ui_surface_muted()
+        })
+        .text_size(px(12.))
+        .font_weight(FontWeight::BOLD)
+        .text_color(if active {
+            ui_accent()
+        } else {
+            ui_text_secondary()
+        })
+        .cursor_pointer()
+        .child(div().truncate().child(label))
 }
 
 fn bearer_auth_pair(token: &str) -> Option<(String, String)> {
@@ -6419,7 +7982,7 @@ fn panel_header(
     div()
         .flex()
         .flex_col()
-        .h(px(40.))
+        .h(px(PANEL_HEADER_HEIGHT))
         .border_b_1()
         .border_color(ui_border())
         .bg(ui_surface())
@@ -6429,10 +7992,14 @@ fn panel_header(
                 .items_center()
                 .justify_between()
                 .flex_1()
+                .min_w_0()
                 .pl_3()
-                .pr(px(14.))
+                .pr(px(PANEL_HEADER_RIGHT_PADDING))
                 .child(
                     div()
+                        .flex_1()
+                        .min_w_0()
+                        .truncate()
                         .font_weight(FontWeight::BOLD)
                         .text_size(px(13.))
                         .text_color(ui_text_primary())
@@ -6440,7 +8007,10 @@ fn panel_header(
                 )
                 .child(
                     div()
-                        .w(px(260.))
+                        .w(px(PANEL_HEADER_META_WIDTH))
+                        .max_w(px(PANEL_HEADER_META_WIDTH))
+                        .flex_shrink_1()
+                        .min_w_0()
                         .truncate()
                         .text_right()
                         .font_family(PLATFORM_MONOSPACE_FONT)
@@ -6450,7 +8020,13 @@ fn panel_header(
                         .child(meta.unwrap_or("").to_string()),
                 ),
         )
-        .child(div().ml(px(12.)).h(px(2.)).w(px(80.)).bg(ui_accent()))
+        .child(
+            div()
+                .ml(px(12.))
+                .h(px(PANEL_HEADER_UNDERLINE_HEIGHT))
+                .w(px(PANEL_HEADER_UNDERLINE_WIDTH))
+                .bg(ui_accent()),
+        )
 }
 
 fn runner_status_text(summary: &CollectionRunSummary) -> String {
@@ -6522,6 +8098,8 @@ fn runner_result_row(result: CollectionRunResult) -> impl IntoElement {
         .flex()
         .items_center()
         .h(px(30.))
+        .min_w_0()
+        .overflow_hidden()
         .px_2()
         .gap_2()
         .border_b_1()
@@ -6531,14 +8109,22 @@ fn runner_result_row(result: CollectionRunResult) -> impl IntoElement {
         .child(
             div()
                 .w(px(70.))
+                .flex_shrink_0()
                 .font_weight(FontWeight::BOLD)
                 .text_color(method_color(&result.method))
                 .child(result.method),
         )
-        .child(div().w(px(42.)).text_color(tone.color()).child(status))
+        .child(
+            div()
+                .w(px(42.))
+                .flex_shrink_0()
+                .text_color(tone.color())
+                .child(status),
+        )
         .child(
             div()
                 .flex_1()
+                .min_w_0()
                 .truncate()
                 .text_color(ui_text_body())
                 .child(path),
@@ -6546,6 +8132,7 @@ fn runner_result_row(result: CollectionRunResult) -> impl IntoElement {
         .child(
             div()
                 .w(px(76.))
+                .flex_shrink_0()
                 .text_right()
                 .text_color(ui_text_secondary())
                 .child(format_bytes(result.body_bytes)),
@@ -6554,6 +8141,7 @@ fn runner_result_row(result: CollectionRunResult) -> impl IntoElement {
             row.child(
                 div()
                     .w(px(52.))
+                    .flex_shrink_0()
                     .text_right()
                     .text_color(ResponseTone::Success.color())
                     .child(format!("pre {}", result.pre_request_actions.len())),
@@ -6568,6 +8156,7 @@ fn runner_result_row(result: CollectionRunResult) -> impl IntoElement {
             row.child(
                 div()
                     .w(px(64.))
+                    .flex_shrink_0()
                     .text_right()
                     .text_color(if failed == 0 {
                         ResponseTone::Success.color()
@@ -6588,6 +8177,8 @@ fn mock_log_row(method: String, path: String, status: u16) -> impl IntoElement {
         .flex()
         .items_center()
         .h(px(30.))
+        .min_w_0()
+        .overflow_hidden()
         .px_2()
         .gap_2()
         .border_b_1()
@@ -6597,6 +8188,7 @@ fn mock_log_row(method: String, path: String, status: u16) -> impl IntoElement {
         .child(
             div()
                 .w(px(70.))
+                .flex_shrink_0()
                 .font_weight(FontWeight::BOLD)
                 .text_color(method_color(&method))
                 .child(method),
@@ -6604,12 +8196,14 @@ fn mock_log_row(method: String, path: String, status: u16) -> impl IntoElement {
         .child(
             div()
                 .w(px(42.))
+                .flex_shrink_0()
                 .text_color(response_tone(status).color())
                 .child(status.to_string()),
         )
         .child(
             div()
                 .flex_1()
+                .min_w_0()
                 .truncate()
                 .text_color(ui_text_body())
                 .child(path),
@@ -6626,6 +8220,8 @@ fn websocket_log_row(entry: WebSocketLogEntry) -> impl IntoElement {
         .flex()
         .items_center()
         .h(px(30.))
+        .min_w_0()
+        .overflow_hidden()
         .px_2()
         .gap_2()
         .border_b_1()
@@ -6635,6 +8231,7 @@ fn websocket_log_row(entry: WebSocketLogEntry) -> impl IntoElement {
         .child(
             div()
                 .w(px(52.))
+                .flex_shrink_0()
                 .font_weight(FontWeight::BOLD)
                 .text_color(direction_color)
                 .child(direction),
@@ -6642,12 +8239,14 @@ fn websocket_log_row(entry: WebSocketLogEntry) -> impl IntoElement {
         .child(
             div()
                 .w(px(52.))
+                .flex_shrink_0()
                 .text_color(ui_text_secondary())
                 .child(entry.kind),
         )
         .child(
             div()
                 .flex_1()
+                .min_w_0()
                 .truncate()
                 .text_color(ui_text_body())
                 .child(entry.data),
@@ -6659,6 +8258,8 @@ fn sse_log_row(entry: SseLogEntry) -> impl IntoElement {
         .flex()
         .items_center()
         .h(px(30.))
+        .min_w_0()
+        .overflow_hidden()
         .px_2()
         .gap_2()
         .border_b_1()
@@ -6668,6 +8269,7 @@ fn sse_log_row(entry: SseLogEntry) -> impl IntoElement {
         .child(
             div()
                 .w(px(74.))
+                .flex_shrink_0()
                 .font_weight(FontWeight::BOLD)
                 .text_color(ui_accent_text())
                 .child(entry.event),
@@ -6675,12 +8277,14 @@ fn sse_log_row(entry: SseLogEntry) -> impl IntoElement {
         .child(
             div()
                 .w(px(58.))
+                .flex_shrink_0()
                 .text_color(ui_text_secondary())
                 .child(entry.id.unwrap_or_else(|| "-".to_string())),
         )
         .child(
             div()
                 .flex_1()
+                .min_w_0()
                 .truncate()
                 .text_color(ui_text_body())
                 .child(entry.data),
@@ -6699,6 +8303,8 @@ fn history_row(
         .flex()
         .items_center()
         .h(px(46.))
+        .min_w_0()
+        .overflow_hidden()
         .rounded(px(4.))
         .px_2()
         .py_1()
@@ -6708,6 +8314,7 @@ fn history_row(
                 .flex()
                 .flex_col()
                 .flex_1()
+                .min_w_0()
                 .cursor_pointer()
                 .on_mouse_up(
                     MouseButton::Left,
@@ -6719,10 +8326,12 @@ fn history_row(
                     div()
                         .flex()
                         .items_center()
+                        .min_w_0()
                         .gap_2()
                         .child(
                             div()
                                 .w(px(HTTP_METHOD_LABEL_WIDTH))
+                                .flex_shrink_0()
                                 .text_size(px(12.))
                                 .font_weight(FontWeight::BOLD)
                                 .text_color(method_color(&method))
@@ -6731,6 +8340,7 @@ fn history_row(
                         .child(
                             div()
                                 .flex_1()
+                                .min_w_0()
                                 .truncate()
                                 .font_family(PLATFORM_MONOSPACE_FONT)
                                 .text_size(px(12.))
@@ -6741,6 +8351,7 @@ fn history_row(
                 .child(
                     div()
                         .ml(px(66.))
+                        .min_w_0()
                         .truncate()
                         .font_family(PLATFORM_MONOSPACE_FONT)
                         .text_size(px(11.))
@@ -6753,7 +8364,8 @@ fn history_row(
                 .flex()
                 .items_center()
                 .justify_center()
-                .h(px(24.))
+                .flex_shrink_0()
+                .h(px(SECTION_HEADER_HEIGHT))
                 .w(px(42.))
                 .rounded(px(4.))
                 .border_1()
@@ -6834,6 +8446,8 @@ fn collection_root_row(
         .flex()
         .items_center()
         .h(px(collection_tree_row_height(CollectionNodeKind::Root)))
+        .min_w_0()
+        .overflow_hidden()
         .rounded(px(4.))
         .px_2()
         .gap_2()
@@ -6871,6 +8485,7 @@ fn collection_root_row(
         .child(
             div()
                 .w(px(COLLECTION_TREE_MARKER_WIDTH))
+                .flex_shrink_0()
                 .font_family(PLATFORM_MONOSPACE_FONT)
                 .text_color(ui_text_secondary())
                 .child(marker),
@@ -6878,6 +8493,7 @@ fn collection_root_row(
         .child(
             div()
                 .flex_1()
+                .min_w_0()
                 .truncate()
                 .font_weight(FontWeight::BOLD)
                 .text_color(ui_text_primary())
@@ -6885,6 +8501,7 @@ fn collection_root_row(
         )
         .child(
             div()
+                .flex_shrink_0()
                 .font_family(PLATFORM_MONOSPACE_FONT)
                 .text_color(ui_text_muted())
                 .child(item_count.to_string()),
@@ -6917,6 +8534,8 @@ fn collection_folder_row(
         .flex()
         .items_center()
         .h(px(collection_tree_row_height(CollectionNodeKind::Folder)))
+        .min_w_0()
+        .overflow_hidden()
         .rounded(px(4.))
         .pl(px(collection_tree_indent(depth)))
         .pr_2()
@@ -6960,6 +8579,7 @@ fn collection_folder_row(
         .child(
             div()
                 .w(px(COLLECTION_TREE_MARKER_WIDTH))
+                .flex_shrink_0()
                 .font_family(PLATFORM_MONOSPACE_FONT)
                 .text_color(ui_text_secondary())
                 .child(marker),
@@ -6967,6 +8587,7 @@ fn collection_folder_row(
         .child(
             div()
                 .flex_1()
+                .min_w_0()
                 .truncate()
                 .font_weight(FontWeight::BOLD)
                 .text_color(ui_text_body())
@@ -6974,6 +8595,7 @@ fn collection_folder_row(
         )
         .child(
             div()
+                .flex_shrink_0()
                 .font_family(PLATFORM_MONOSPACE_FONT)
                 .text_color(ui_text_muted())
                 .child(item_count.to_string()),
@@ -7005,6 +8627,8 @@ fn collection_request_row(
         .flex()
         .items_center()
         .h(px(collection_tree_row_height(CollectionNodeKind::Request)))
+        .min_w_0()
+        .overflow_hidden()
         .rounded(px(4.))
         .pl(px(collection_tree_indent(depth)))
         .pr_2()
@@ -7047,6 +8671,7 @@ fn collection_request_row(
         .child(
             div()
                 .w(px(HTTP_METHOD_LABEL_WIDTH))
+                .flex_shrink_0()
                 .text_size(px(11.))
                 .font_weight(FontWeight::BOLD)
                 .text_color(method_color(&method))
@@ -7057,8 +8682,10 @@ fn collection_request_row(
                 .flex()
                 .flex_col()
                 .flex_1()
+                .min_w_0()
                 .child(
                     div()
+                        .min_w_0()
                         .truncate()
                         .text_size(px(12.))
                         .text_color(ui_text_primary())
@@ -7066,6 +8693,7 @@ fn collection_request_row(
                 )
                 .child(
                     div()
+                        .min_w_0()
                         .truncate()
                         .font_family(PLATFORM_MONOSPACE_FONT)
                         .text_size(px(11.))
@@ -7088,14 +8716,14 @@ fn collection_item_count(items: &[CollectionItem]) -> usize {
 
 fn method_color(method: &str) -> Hsla {
     match method {
-        "GET" => rgb(0x059669).into(),
-        "POST" => rgb(0xd97706).into(),
-        "PUT" => rgb(0x2563eb).into(),
-        "PATCH" => rgb(0x7c3aed).into(),
-        "DELETE" => rgb(0xdc2626).into(),
-        "OPTIONS" => rgb(0x0891b2).into(),
-        "HEAD" => rgb(0x4b5563).into(),
-        _ => rgb(0x6b7280).into(),
+        "GET" => ui_status_success(),
+        "POST" => ui_status_busy(),
+        "PUT" => ui_accent(),
+        "PATCH" => rgb(UI_COLOR_METHOD_PATCH).into(),
+        "DELETE" => ui_status_error(),
+        "OPTIONS" => rgb(UI_COLOR_METHOD_OPTIONS).into(),
+        "HEAD" => rgb(UI_COLOR_METHOD_HEAD).into(),
+        _ => ui_text_secondary(),
     }
 }
 
@@ -7126,6 +8754,30 @@ fn display_spec_label(path: &str) -> String {
         .to_string()
 }
 
+fn mock_button_label(server_running: bool) -> &'static str {
+    if server_running { "Stop" } else { "Mock" }
+}
+
+fn sidebar_focus_target(section: SidebarSection) -> SidebarFocusTarget {
+    match section {
+        SidebarSection::Endpoints => SidebarFocusTarget::RouteFilter,
+        SidebarSection::Collections => SidebarFocusTarget::CollectionPath,
+        SidebarSection::History => SidebarFocusTarget::HistoryFilter,
+    }
+}
+
+fn reset_scroll_handle(scroll: &ScrollHandle) {
+    scroll.set_offset(point(px(0.), px(0.)));
+}
+
+fn sending_response_body(method: &str, url: &str) -> String {
+    format!("Waiting for response\n\n{} {}", method, preview_text(url))
+}
+
+fn request_worker_stopped_message() -> &'static str {
+    "Request worker stopped before returning a response."
+}
+
 fn filter_routes(routes: &[ApiRoute], query: &str) -> Vec<ApiRoute> {
     let query = query.trim().to_lowercase();
     if query.is_empty() {
@@ -7154,9 +8806,46 @@ fn pretty_json(value: &serde_json::Value) -> String {
     serde_json::to_string_pretty(value).unwrap_or_else(|_| value.to_string())
 }
 
+fn formatted_json_body(input: &str) -> Result<String> {
+    let input = input.trim();
+    if input.is_empty() {
+        return Err(anyhow!("Enter a JSON body before formatting."));
+    }
+
+    let value = serde_json::from_str::<serde_json::Value>(input)
+        .map_err(|error| anyhow!("Invalid JSON: {error}"))?;
+    Ok(pretty_json(&value))
+}
+
 fn collapsed_json_preview(input: &str) -> Option<String> {
     let value = serde_json::from_str::<serde_json::Value>(input).ok()?;
     Some(collapsed_json_value(&value, 0))
+}
+
+fn response_body_for_view(
+    view: ResponseView,
+    pretty_collapsed: bool,
+    pretty_body: &str,
+    raw_body: &str,
+    headers: &str,
+) -> String {
+    match view {
+        ResponseView::Pretty => {
+            if pretty_collapsed {
+                collapsed_json_preview(raw_body).unwrap_or_else(|| pretty_body.to_string())
+            } else {
+                pretty_body.to_string()
+            }
+        }
+        ResponseView::Raw => raw_body.to_string(),
+        ResponseView::Headers => {
+            if headers.is_empty() {
+                "No response headers".to_string()
+            } else {
+                headers.to_string()
+            }
+        }
+    }
 }
 
 fn collapsed_json_value(value: &serde_json::Value, depth: usize) -> String {
@@ -7368,6 +9057,44 @@ mod tests {
     }
 
     #[test]
+    fn formats_raw_json_body_text() {
+        assert_eq!(
+            formatted_json_body(r#"{"ok":true,"items":[1,2]}"#).expect("formatted"),
+            "{\n  \"ok\": true,\n  \"items\": [\n    1,\n    2\n  ]\n}"
+        );
+        assert!(formatted_json_body("   ").is_err());
+        assert!(formatted_json_body("{not-json").is_err());
+    }
+
+    #[test]
+    fn response_view_text_matches_active_tab_for_copy() {
+        let pretty = "{\n  \"ok\": true\n}";
+        let raw = r#"{"ok":true}"#;
+        let headers = "content-type: application/json";
+
+        assert_eq!(
+            response_body_for_view(ResponseView::Pretty, false, pretty, raw, headers),
+            pretty
+        );
+        assert!(
+            response_body_for_view(ResponseView::Pretty, true, pretty, raw, headers)
+                .contains("\"ok\": true")
+        );
+        assert_eq!(
+            response_body_for_view(ResponseView::Raw, false, pretty, raw, headers),
+            raw
+        );
+        assert_eq!(
+            response_body_for_view(ResponseView::Headers, false, pretty, raw, headers),
+            headers
+        );
+        assert_eq!(
+            response_body_for_view(ResponseView::Headers, false, pretty, raw, ""),
+            "No response headers"
+        );
+    }
+
+    #[test]
     fn parses_bulk_header_text() {
         let headers = parse_header_bulk(
             r#"
@@ -7402,6 +9129,33 @@ Cookie: a=b; c=d
         assert_eq!(
             format_header_bulk(&headers),
             "Accept: application/json\nX-Trace-Id: abc"
+        );
+    }
+
+    #[test]
+    fn header_presets_upsert_without_duplicate_names() {
+        let headers = vec![
+            ("accept".to_string(), "text/plain".to_string()),
+            ("X-Trace-Id".to_string(), "abc".to_string()),
+        ];
+
+        let headers = upsert_header_pair(&headers, "Accept", "application/json");
+        assert_eq!(
+            headers,
+            vec![
+                ("Accept".to_string(), "application/json".to_string()),
+                ("X-Trace-Id".to_string(), "abc".to_string()),
+            ]
+        );
+
+        let headers = upsert_header_pair(&headers, "Authorization", "Bearer {{token}}");
+        assert_eq!(
+            headers,
+            vec![
+                ("Accept".to_string(), "application/json".to_string()),
+                ("X-Trace-Id".to_string(), "abc".to_string()),
+                ("Authorization".to_string(), "Bearer {{token}}".to_string()),
+            ]
         );
     }
 
@@ -7965,6 +9719,10 @@ Cookie: a=b; c=d
         assert!(text.contains("sent text: hello"));
         assert!(text.contains("received text: echo:hello"));
         assert!(text.contains("received pong: 0 bytes"));
+        assert_eq!(
+            format_websocket_log(&entries),
+            "sent text: hello\nreceived text: echo:hello\nreceived pong: 0 bytes"
+        );
     }
 
     #[test]
@@ -8047,6 +9805,10 @@ Cookie: a=b; c=d
         assert!(text.contains("events: 2"));
         assert!(text.contains("ready: connected [id 1] [retry 3000]"));
         assert!(text.contains("message: plain"));
+        assert_eq!(
+            format_sse_log(&sse_log_entries(&exchange)),
+            "ready [id 1]: connected\nmessage: plain"
+        );
     }
 
     #[test]
@@ -8428,6 +10190,68 @@ Cookie: a=b; c=d
 
     #[test]
     fn ui_metrics_keep_collection_tree_and_editors_aligned() {
+        assert_eq!(APP_WINDOW_WIDTH, 1180.);
+        assert_eq!(APP_WINDOW_HEIGHT, 760.);
+        assert_eq!(
+            WORKSPACE_SIDEBAR_DEFAULT_RATIO,
+            SIDEBAR_WIDTH / APP_WINDOW_WIDTH
+        );
+        assert_eq!(WORKSPACE_SIDEBAR_MIN_RATIO, 0.20);
+        assert_eq!(WORKSPACE_SIDEBAR_MAX_RATIO, 0.38);
+        assert_eq!(WORKSPACE_REQUEST_DEFAULT_RATIO, 0.37);
+        assert_eq!(WORKSPACE_REQUEST_MIN_RATIO, 0.28);
+        assert_eq!(WORKSPACE_REQUEST_MAX_RATIO, 0.56);
+        assert_eq!(WORKSPACE_RESPONSE_MIN_RATIO, 0.24);
+        assert_eq!(WORKSPACE_SPLIT_HANDLE_WIDTH, 8.);
+        assert_eq!(WORKSPACE_SPLIT_DIVIDER_WIDTH, 1.);
+        assert_eq!(SIDEBAR_NAV_HEIGHT, 42.);
+        assert_eq!(SCROLLBAR_WIDTH, 6.);
+        assert_eq!(SCROLLBAR_RIGHT_OFFSET, 3.);
+        assert_eq!(
+            SCROLLBAR_GUTTER_WIDTH,
+            SCROLLBAR_WIDTH + SCROLLBAR_RIGHT_OFFSET * 2.
+        );
+        assert_eq!(SCROLLBAR_CONTENT_RIGHT_PADDING, SCROLLBAR_GUTTER_WIDTH + 8.);
+        assert_eq!(SCROLLBAR_MIN_THUMB_HEIGHT, 28.);
+        assert_eq!(REQUEST_EDITOR_TAB_BAR_HEIGHT, 34.);
+        assert!(WORKSPACE_SIDEBAR_MIN_RATIO < WORKSPACE_SIDEBAR_DEFAULT_RATIO);
+        assert!(WORKSPACE_SIDEBAR_DEFAULT_RATIO < WORKSPACE_SIDEBAR_MAX_RATIO);
+        assert!(WORKSPACE_REQUEST_MIN_RATIO < WORKSPACE_REQUEST_DEFAULT_RATIO);
+        assert!(WORKSPACE_REQUEST_DEFAULT_RATIO < WORKSPACE_REQUEST_MAX_RATIO);
+        assert!(
+            WORKSPACE_SIDEBAR_DEFAULT_RATIO
+                + WORKSPACE_REQUEST_DEFAULT_RATIO
+                + WORKSPACE_RESPONSE_MIN_RATIO
+                < 1.
+        );
+        assert_eq!(TOP_BAR_HEIGHT, 40.);
+        assert_eq!(TOP_BAR_BRAND_WIDTH, 132.);
+        assert_eq!(TOP_BAR_ACTION_WIDTH, 76.);
+        assert_eq!(TOP_BAR_MOCK_ACTION_WIDTH, 68.);
+        assert_eq!(IMPORT_POPOVER_WIDTH, 520.);
+        assert_eq!(IMPORT_POPOVER_HEIGHT, 58.);
+        assert_eq!(SIDEBAR_WIDTH, 320.);
+        assert_eq!(REQUEST_BAR_HEIGHT, 52.);
+        assert_eq!(REQUEST_BAR_CONTROL_Y_OFFSET, 8.);
+        assert_eq!(REQUEST_METHOD_SEGMENT_WIDTH, 100.);
+        assert_eq!(REQUEST_ADDRESS_RADIUS, TEXT_INPUT_RADIUS);
+        assert_eq!(
+            METHOD_MENU_TOP_OFFSET,
+            PANEL_HEADER_HEIGHT + REQUEST_BAR_CONTROL_Y_OFFSET + TEXT_INPUT_HEIGHT + 4.
+        );
+        assert_eq!(METHOD_MENU_WIDTH, REQUEST_METHOD_SEGMENT_WIDTH);
+        assert_eq!(REQUEST_SEND_WIDTH, 86.);
+        assert_eq!(TEXT_INPUT_HEIGHT, 36.);
+        assert_eq!(TEXT_INPUT_LINE_HEIGHT, 20.);
+        assert_eq!(TEXT_INPUT_RADIUS, 6.);
+        assert_eq!(ROUTE_ROW_HEIGHT, 48.);
+        assert_eq!(ROUTE_SELECTED_MARKER_WIDTH, 3.);
+        assert_eq!(RESPONSE_TAB_BAR_HEIGHT, 36.);
+        assert_eq!(RESPONSE_COPY_BUTTON_WIDTH, 62.);
+        assert_eq!(PANEL_HEADER_HEIGHT, 40.);
+        assert_eq!(PANEL_HEADER_META_WIDTH, 260.);
+        assert_eq!(PANEL_HEADER_RIGHT_PADDING, 14.);
+        assert_eq!(PANEL_HEADER_UNDERLINE_HEIGHT, 2.);
         assert_eq!(collection_tree_indent(0), 8.);
         assert_eq!(collection_tree_indent(1), 22.);
         assert_eq!(collection_tree_indent(2), 36.);
@@ -8449,6 +10273,58 @@ Cookie: a=b; c=d
         assert_ne!(UI_COLOR_SURFACE, UI_COLOR_SURFACE_MUTED);
         assert_ne!(UI_COLOR_BORDER, UI_COLOR_BORDER_STRONG);
         assert_ne!(UI_COLOR_ACCENT, UI_COLOR_ACCENT_SURFACE);
+        assert_eq!(UI_COLOR_STATUS_SUCCESS, 0x059669);
+        assert_eq!(UI_COLOR_STATUS_BUSY, 0xd97706);
+        assert_eq!(UI_COLOR_STATUS_ERROR, 0xdc2626);
+        assert_eq!(UI_COLOR_SYNTAX_KEYWORD, UI_COLOR_ACCENT);
+        assert_eq!(UI_COLOR_SYNTAX_PUNCTUATION, UI_COLOR_TEXT_SECONDARY);
+    }
+
+    #[test]
+    fn top_bar_labels_stay_compact() {
+        assert_eq!(mock_button_label(false), "Mock");
+        assert_eq!(mock_button_label(true), "Stop");
+    }
+
+    #[test]
+    fn sidebar_focus_shortcut_targets_active_section_input() {
+        assert_eq!(
+            sidebar_focus_target(SidebarSection::Endpoints),
+            SidebarFocusTarget::RouteFilter
+        );
+        assert_eq!(
+            sidebar_focus_target(SidebarSection::Collections),
+            SidebarFocusTarget::CollectionPath
+        );
+        assert_eq!(
+            sidebar_focus_target(SidebarSection::History),
+            SidebarFocusTarget::HistoryFilter
+        );
+    }
+
+    #[test]
+    fn reset_scroll_handle_returns_scroll_to_origin() {
+        let scroll = ScrollHandle::new();
+        scroll.set_offset(point(px(12.), px(-128.)));
+
+        reset_scroll_handle(&scroll);
+
+        assert_eq!(scroll.offset(), point(px(0.), px(0.)));
+    }
+
+    #[test]
+    fn sending_response_body_identifies_pending_request() {
+        let body = sending_response_body("POST", "https://api.example.com/users");
+
+        assert_eq!(
+            body,
+            "Waiting for response\n\nPOST https://api.example.com/users"
+        );
+    }
+
+    #[test]
+    fn request_worker_stopped_message_is_user_visible() {
+        assert!(request_worker_stopped_message().contains("Request worker stopped"));
     }
 
     #[derive(Debug, PartialEq, Eq)]

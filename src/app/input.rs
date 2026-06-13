@@ -7,7 +7,13 @@ use gpui::{
     MouseUpEvent, PaintQuad, Pixels, Point, ShapedLine, SharedString, Style, TextRun,
     UTF16Selection, UnderlineStyle, Window, actions, fill, hsla, point, px, rgba, size,
 };
-use gpui::{div, prelude::*, relative, rgb};
+use gpui::{div, prelude::*, relative};
+
+use super::{
+    PLATFORM_MONOSPACE_FONT, PLATFORM_UI_FONT, TEXT_INPUT_HEIGHT, TEXT_INPUT_LINE_HEIGHT,
+    TEXT_INPUT_RADIUS, UI_COLOR_ACCENT_SELECTION_RGBA, ui_accent, ui_border_strong, ui_surface,
+    ui_text_primary,
+};
 
 actions!(
     zenapi_input,
@@ -36,6 +42,12 @@ pub(super) struct TextChanged {
 #[derive(Clone, Debug)]
 pub(super) struct TextAccepted;
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(super) enum TextInputChrome {
+    Shell,
+    Inline,
+}
+
 pub(super) struct TextInput {
     focus_handle: FocusHandle,
     content: SharedString,
@@ -47,6 +59,7 @@ pub(super) struct TextInput {
     last_bounds: Option<Bounds<Pixels>>,
     is_selecting: bool,
     mono: bool,
+    chrome: TextInputChrome,
 }
 
 impl TextInput {
@@ -62,7 +75,13 @@ impl TextInput {
             last_bounds: None,
             is_selecting: false,
             mono,
+            chrome: TextInputChrome::Shell,
         }
+    }
+
+    pub fn with_chrome(mut self, chrome: TextInputChrome) -> Self {
+        self.chrome = chrome;
+        self
     }
 
     pub fn text(&self) -> String {
@@ -561,7 +580,7 @@ impl Element for TextElement {
                         point(bounds.left() + cursor_pos, bounds.top()),
                         size(px(2.), bounds.bottom() - bounds.top()),
                     ),
-                    rgb(0x2563eb),
+                    ui_accent(),
                 )),
             )
         } else {
@@ -577,7 +596,7 @@ impl Element for TextElement {
                             bounds.bottom(),
                         ),
                     ),
-                    rgba(0x332563eb),
+                    rgba(UI_COLOR_ACCENT_SELECTION_RGBA),
                 )),
                 None,
             )
@@ -636,12 +655,12 @@ impl Element for TextElement {
 impl Render for TextInput {
     fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let family = if self.mono {
-            "monospace"
+            PLATFORM_MONOSPACE_FONT
         } else {
-            ".SystemUIFont"
+            PLATFORM_UI_FONT
         };
 
-        div()
+        let input = div()
             .flex()
             .items_center()
             .key_context("ZenApiTextInput")
@@ -664,18 +683,23 @@ impl Render for TextInput {
             .on_mouse_up(MouseButton::Left, cx.listener(Self::on_mouse_up))
             .on_mouse_up_out(MouseButton::Left, cx.listener(Self::on_mouse_up))
             .on_mouse_move(cx.listener(Self::on_mouse_move))
-            .h(px(34.))
+            .h(px(TEXT_INPUT_HEIGHT))
             .w_full()
-            .px_3()
-            .rounded(px(6.))
-            .border_1()
-            .border_color(rgb(0xd1d5db))
-            .bg(rgb(0xffffff))
-            .line_height(px(20.))
+            .line_height(px(TEXT_INPUT_LINE_HEIGHT))
             .text_size(px(13.))
             .font_family(family)
-            .text_color(rgb(0x111827))
-            .child(TextElement { input: cx.entity() })
+            .text_color(ui_text_primary())
+            .child(TextElement { input: cx.entity() });
+
+        match self.chrome {
+            TextInputChrome::Shell => input
+                .px_3()
+                .rounded(px(TEXT_INPUT_RADIUS))
+                .border_1()
+                .border_color(ui_border_strong())
+                .bg(ui_surface()),
+            TextInputChrome::Inline => input.px_2(),
+        }
     }
 }
 

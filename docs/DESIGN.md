@@ -68,21 +68,21 @@ architecture.
   match ZenAPI.
 - Embedded `TextInput` instances must set selection colors and cursor width
   explicitly instead of inheriting toolkit style metrics.
-- GPUI scroll containers may be used for behavior, but default scrollbar chrome
-  must be disabled or replaced with a ZenAPI-styled scrollbar before it is
-  exposed in the UI.
+- GPUI scroll containers provide behavior only. ZenAPI panes use app-styled
+  vertical scrollbars with a reserved gutter, explicit content-side padding,
+  draggable thumb, active drag state, and track click jump behavior. Scrollbar
+  pointer events must stop propagation so dragging the thumb never selects
+  response text or activates rows below it.
 - The visual baseline is a modern light split-pane workstation inspired by
   Postman: flat white and near-white surfaces, no floating cards, no heavy
   shadows, and 1 px dividers instead of broad gutters.
-- Below the global top bar, the app uses a fixed Endpoints sidebar and a main
-  workspace. The main workspace starts with one shared 52 px request address
-  utility band; below that band, Request and Response are peer editor regions
-  separated by a 1 px divider.
+- Below the global top bar, the app uses three same-level panes: Sidebar,
+  Request, and Response. The request method, URL, and Send action belong only
+  to the Request pane. The top bar stays reserved for app-level chrome.
 - Region lines must have a single owner. The app shell owns the top-bar bottom
-  rule and the Endpoints/main split. The shared request utility band owns its
-  bottom rule, and the Request/Response vertical divider starts below that
-  band; child panels should not add competing outside borders on the same
-  edges.
+  rule, and the two workspace resize handles own the Sidebar/Request and
+  Request/Response splits. Pane headers and toolbars own their bottom rules;
+  child panels should not add competing outside borders on the same edges.
 - Do not add ornamental dots, short divider strokes, or stray line fragments.
   Status should be expressed through button state, concise text, or color on an
   existing control; lines are only for region splits, control borders, and tab
@@ -91,9 +91,9 @@ architecture.
   editor surface or carries nearby status metadata. Do not add inactive tabs
   unless their content and behavior exist.
 - Request and Response should preserve a compact Postman-like rhythm. The
-  shared main-workspace address utility band is 52 px; request/response content
-  starts below it with aligned 40 px tab headers. Response status metadata
-  belongs in the Response tab row instead of a separate 52 px status band.
+  Request pane owns its 52 px method/URL/Send row, while the Response pane keeps
+  status metadata fixed in its header and view/copy actions in the local tab
+  row instead of using a separate global status band.
 - Use the current light palette consistently: app and editor surfaces
   `#ffffff`, toolbar/sidebar surfaces `#f9fafb`, subtle control fills
   `#f3f4f6`, split dividers and borders `#e5e7eb` / `#d1d5db`, primary text
@@ -146,8 +146,9 @@ architecture.
   counters or response metadata into place, because content changes can shift
   perceived baselines.
 - Split panes and primary content regions must declare explicit stretch rules.
-  The sidebar can be fixed width, but the main work area, route list, panels,
-  and editor panes should not depend on implicit layout expansion.
+  Sidebar/Request and Request/Response separators are draggable resize handles.
+  Route lists, editor panes, response bodies, and logs use fixed headers plus
+  independent scroll regions instead of letting content overflow downward.
 - Use functional accents sparingly: green for selected/ready states, blue for
   primary request actions, amber for waiting or mock-stop actions, and red for
   errors.
@@ -190,19 +191,18 @@ architecture.
   viewers should keep text selection but must not show editing affordances such
   as an insertion cursor or blue editing focus border.
 - The top bar is a global console, not a form. Keep it fixed height, align the
-  brand area exactly with the sidebar width, use a single bottom divider, avoid
-  internal structural split lines, and avoid explanatory status sentences. Show
-  specification state and import action as one centered search-like Import bar;
-  keep path entry inside the import popover instead of making it the persistent
-  visual center.
-- The request address bar should span the main workspace as one 36 px shell
-  inside a shared 52 px utility band with an explicit y offset. Do not rely on
-  a nested layout to vertically center the visible address-bar rectangle.
+  brand slot and right-side actions with stable widths, use a single bottom
+  divider, avoid internal structural split lines, and avoid explanatory status
+  sentences. Keep file path entry inside the import popover instead of making it
+  persistent chrome.
+- The request address bar belongs inside the Request pane as one 36 px method /
+  URL / Send shell in a 52 px request row. Do not let it span Sidebar or
+  Response.
 - Response status metadata is a 260 px right-aligned text slot inside the 40 px
-  Response tab row, with a 14 px right inset and explicit vertical centering.
-- Pane tab rows are 40 px fixed-height slots with a 1 px bottom divider and a
-  2 px active underline. Title and status text should use explicit x/y
-  coordinates, left/right insets, and elision instead of inner layout centering.
+  Response panel header, with a 14 px right inset and explicit truncation.
+- Pane tab rows use fixed-height slots with a 1 px bottom divider. Title,
+  action, and status text should use explicit insets, fixed action widths, and
+  elision instead of letting content resize the pane.
 - Top-bar status labels must use fixed-height, non-stretching slots and explicit
   text height so the label rectangle and its contents are both vertically
   centered against neighboring buttons.

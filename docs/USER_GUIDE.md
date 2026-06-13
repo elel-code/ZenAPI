@@ -14,6 +14,31 @@ The desktop app is built with GPUI from Zed's official repository. Linux uses
 `gpui_platform` with Wayland and X11 support. The old Slint prototype is not a
 compatibility target.
 
+## Workbench Layout
+
+The main window is a three-pane workbench:
+
+- Sidebar for Endpoints, Collections, and History.
+- Request for method, URL, parameters, headers, auth, body, scripts, realtime,
+  and tools.
+- Response for status, Pretty/Raw/Header views, and response body text.
+
+The two pane dividers can be dragged to resize the workbench. Sidebar, Request,
+and Response body content each scroll independently with ZenAPI-styled vertical
+scrollbars. The scrollbar gutter is reserved outside the content area; drag the
+thumb or click the track to jump without activating rows or selecting response
+text beneath it.
+
+## Keyboard Shortcuts
+
+| Shortcut | Action |
+|----------|--------|
+| Enter in URL | Send request |
+| Ctrl/Cmd+F | Focus the active sidebar input |
+| Ctrl/Cmd+S | Save current request to the collection |
+| Ctrl/Cmd+A in response | Select all response text |
+| Ctrl/Cmd+C in response | Copy selected response text |
+
 ## Install And Run
 
 From the repository:
@@ -33,10 +58,11 @@ The GPUI shell uses platform fonts. No bundled font assets are required.
 
 ## Import An API Specification
 
-1. Enter a local OpenAPI or Swagger file path in the top import field.
-2. Press Enter or click `Import`.
-3. Parsed routes appear in the left Endpoints list.
-4. Use the Endpoints filter to narrow by method, path, or summary.
+1. Click `Import` in the top bar.
+2. Enter a local OpenAPI or Swagger file path in the import popover.
+3. Press Enter or click `Open`.
+4. Parsed routes appear in the left Endpoints list.
+5. Use the Endpoints filter to narrow by method, path, or summary.
 
 Supported inputs include JSON and YAML OpenAPI/Swagger files. Importing a new
 spec stops any currently running mock server so the visible route list and
@@ -49,6 +75,9 @@ mock routes stay aligned.
 3. Add query params, headers, auth, and body data as needed.
 4. Click `Send` or press Enter in the URL field.
 
+While a request is in flight, the response pane shows the pending method and URL
+instead of leaving the previous response body visible.
+
 The response pane shows:
 
 - Status code.
@@ -59,7 +88,9 @@ The response pane shows:
 - Response headers.
 
 Pretty JSON responses can be collapsed to a structural summary. Response text is
-read-only but selectable and copyable.
+read-only but selectable and copyable. The Response tab row also includes
+`Copy`, which copies the currently visible Pretty, Raw, or Headers view. New
+responses and response view switches start at the top of the response body.
 
 ## Pre-request
 
@@ -133,7 +164,9 @@ Authorization=Bearer token
 --header "X-Mode: test"
 ```
 
-Use `Copy Bulk` to copy the current headers as one header per line.
+Use `Copy Bulk` to copy the current headers as one header per line. Header
+presets add or update common values: `Accept JSON`, `Content JSON`, and
+`Bearer Auth`.
 
 ## Request Body
 
@@ -147,11 +180,12 @@ Supported body modes:
 - `binary`
 
 Raw mode supports JSON, XML, Text, and HTML content types, with a lightweight
-syntax preview for structured text. GraphQL mode builds an `application/json`
-body with `query` and `variables`, can fill a standard introspection query,
-shows schema summary/browser panels when an introspection response is returned,
-and offers root Query templates that can be applied back into the editor.
-Form-data file fields use an `@path` prefix.
+syntax preview for structured text. In JSON raw mode, `Format JSON` rewrites the
+body as pretty JSON when the content parses successfully. GraphQL mode builds an
+`application/json` body with `query` and `variables`, can fill a standard
+introspection query, shows schema summary/browser panels when an introspection
+response is returned, and offers root Query templates that can be applied back
+into the editor. Form-data file fields use an `@path` prefix.
 
 ## WebSocket
 
@@ -161,16 +195,20 @@ The WebSocket panel opens a persistent `ws://` or `wss://` session. Use
 subprotocols are sent during the handshake. The message editor supports Text and
 Binary Hex modes; Binary Hex accepts byte input such as `00 ff 7a`. Sent and
 received messages are recorded in the panel, and the latest event is mirrored in
-the response viewer.
+the response viewer. `Copy Log` copies the current message history as text, and
+`Clear Log` clears the panel history.
 
 ## SSE
 
 The SSE panel works with `http://` or `https://` `text/event-stream` endpoints.
 Use `Fetch Events` for a bounded preview, `Subscribe` for a background stream,
-and `Stop` to cancel the active subscription. Event names, ids, and data are
-recorded in the panel and mirrored in the response viewer. When an event id is
-seen, the next subscription resumes with `Last-Event-ID`. Automatic reconnect
-backoff is future work.
+and `Stop` to cancel the active subscription. SSE headers are sent on both
+preview fetches and subscriptions. Event names, ids, and data are recorded in
+the panel and mirrored in the response viewer. `Copy Log` copies the current
+event history as text, and `Clear Log` clears the panel history and resume
+cursor. When an event id is seen, reconnect attempts resume with
+`Last-Event-ID`. Subscriptions reconnect automatically with backoff until
+stopped.
 
 ## Authorization
 
@@ -285,8 +323,8 @@ zenapi run collection.json --delay-ms 100
   assistance is still future work. WebSocket persistent text and Binary Hex
   sessions are available with connection headers/subprotocols. SSE event
   previews are available with background subscription and `Last-Event-ID`
-  resume; reconnect strategy is future work. gRPC has an implementation plan in
-  `docs/GRPC.md`, but transport/UI support is future work.
+  resume plus custom headers and reconnect/backoff. gRPC has an implementation
+  plan in `docs/GRPC.md`, but transport/UI support is future work.
 - Plugin APIs are future work.
 - Live benchmark and visual comparison against reference clients still need
   current-version review.

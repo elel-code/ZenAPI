@@ -247,8 +247,8 @@
 > **目标**: 扩展协议支持，覆盖 GraphQL、WebSocket、SSE 和 gRPC。
 
 - [~] 11.1 GraphQL 支持: GraphQL 请求体模式已接入 query/variables 编辑并生成标准 `application/json` 请求体，内置 introspection 查询填充、introspection 响应 schema 摘要、根字段浏览、类型索引、directive 列表和根 Query 模板应用已实现；完整字段选择器/查询辅助仍待实现
-- [~] 11.2 WebSocket 支持: 基于 `tokio-tungstenite` 的 `ws://`/`wss://` 持久连接、连接级 headers/subprotocols、文本消息多次发送/接收、Binary Hex 二进制发送、显式关闭控制、GPUI 消息面板和本地 echo/handshake 会话测试已实现；更完整的消息历史操作仍待实现
-- [~] 11.3 SSE (Server-Sent Events) 支持: 基于 `reqwest` stream 的 `text/event-stream` 事件解析、最多 N 条事件采集、长连接后台订阅、手动停止、Last-Event-ID 续订、GPUI SSE 面板、事件日志和本地 Axum SSE 流测试已实现；自动重连/backoff、订阅级 headers 和更完整的历史操作仍待实现
+- [x] 11.2 WebSocket 支持: 基于 `tokio-tungstenite` 的 `ws://`/`wss://` 持久连接、连接级 headers/subprotocols、文本消息多次发送/接收、Binary Hex 二进制发送、显式关闭控制、GPUI 消息面板、消息历史复制/清空和本地 echo/handshake 会话测试已实现
+- [x] 11.3 SSE (Server-Sent Events) 支持: 基于 `reqwest` stream 的 `text/event-stream` 事件解析、最多 N 条事件采集、Fetch/Subscribe 自定义 headers、长连接后台订阅、手动停止、Last-Event-ID 续订、自动重连/backoff、GPUI SSE 面板、事件日志复制/清空和本地 Axum SSE 流/headers/重连测试已实现
 - [~] 11.4 gRPC 支持评估: 已输出 `docs/GRPC.md`，明确 `tonic` + `prost-reflect` + `tonic-reflection` 路线、运行时 descriptor 加载、unary MVP 与 streaming 后续拆分；domain model、descriptor 加载和 unary 传输层仍待实现
 
 ---
@@ -273,16 +273,16 @@
 > 每个功能模块应在实现阶段当即完成 UI 对齐，不把 UI 债堆积到最后一次性修。
 
 ### 13.1 UI 系统完整性审查（参照: `docs/RESEARCH_UI.md` + `docs/RESEARCH_INTERACTION.md`）
-- [ ] 13.1.1 颜色审查: 全局表面色/边框色/强调色一致、HTTP 方法色映射（如 1.2/2.3 定义）无硬编码色值、响应状态色调（绿/红/琥珀/灰）全程统一
-- [ ] 13.1.2 字体排版审查: 正文/代码字体一致、字号层级不乱跳、monospace 覆盖 URL/文件路径/API 路径/代码体/本地服务地址、placeholder 字体族与输入值一致
-- [ ] 13.1.3 间距与尺寸审查: 标签页行 40px 固定高度 + 2px 活跃下划线；请求地址栏 36px 在 52px 工具带内显式 y 偏移；响应状态元数据 260px 右对齐 14px 右内边距；侧边栏选中路由 3px 主色左边标记；导入弹出窗口 520×58px
-- [ ] 13.1.4 控件样式审查: 按钮主色/次要/危险/禁用状态由共享 UI 辅助函数统一管理；禁用控件无指针手势；侧边栏 HTTP 方法为定宽文本非填充徽章；弹出窗口对齐触发控件原点
-- [ ] 13.1.5 交互规范审查: 前置条件不满足时动作禁用且 UI 可见表达；导入新规格自动停止运行中的 Mock 服务；过滤仅改变视图不改变全局操作计数；单行输入 Enter 触发主动作；不预埋未实现功能的标签或控件
+- [~] 13.1.1 颜色审查: 全局表面色/边框色/强调色、warning/status、HTTP 方法色和 syntax 色已收敛到共享 token，并移除 app/input 渲染路径中的裸 RGB；截图级视觉复核仍待完成
+- [~] 13.1.2 字体排版审查: TextInput 已复用平台 UI/monospace 字体 token，正文/代码路径继续使用共享字体常量；字号层级和各面板视觉复核仍待完成
+- [~] 13.1.3 间距与尺寸审查: 窗口、应用级顶栏、左/中/右三 pane 工作台、Request pane 内组合式请求地址栏 52px/36px、Request editor 34px tab bar、可调整 sidebar/request/response split、左栏 42px 三段导航、响应 meta 260px/14px、选中路由 3px、panel header、empty state、Import 弹出层 520x58、method 菜单、轻量滚动条 6px thumb/12px gutter 与 20px 内容右侧安全区尺寸已 token 化并有回归测试；截图级视觉复核仍待完成
+- [~] 13.1.4 控件样式审查: 顶栏已收敛为品牌、Import 和 Mock/Stop 应用级动作，Mock 详细状态保留在底栏；Import 路径移入轻量弹出层；左栏已从 Endpoints/Collections/History 纵向堆叠重构为单一导航上下文，集合操作按钮改为弹性两行布局；请求栏 method、URL 和 Send 已合并为 Request pane 内的单个地址栏外壳，URL 使用 inline TextInput；Request pane 已从所有编辑器纵向堆叠改为 Params/Headers/Auth/Body/Scripts/Realtime/Tools 内容 tabs，tab 内 Auth/Body/Variables/Realtime/Tests/Runner 控件已改为分行和弹性按钮；sidebar/request 与 request/response divider 已变为可拖拽 resize handle，按钮主色/次要/危险/禁用状态由共享 UI 辅助函数统一管理；更多禁用态细节和弹出层截图复核仍待完成
+- [~] 13.1.5 交互规范审查: Import/Method 临时菜单状态已分离，导入成功、路由选择、请求发送会关闭临时层；Sidebar、Request pane 和 Response body 都改为固定头部/工具条 + 独立滚动内容区，并通过 GPUI ScrollHandle + ZenAPI 自绘 thumb 渲染轻量垂直滚动条；滚动容器已预留 gutter 和内容右侧安全区，thumb 支持拖动和 active state，track 支持点击跳转，滚动条 mouse down/move/up 已截断事件传播以避免激活底层行或选择响应文本；Request tab 切换会重置当前编辑区滚动位置；左栏 route/history/collection 行、Request tab 内部按钮/输入行、key/value 表格、Tests 表格、Runner/WebSocket/SSE/Mock 日志行已约束固定列、收缩行为与截断；Enter in URL、Ctrl/Cmd+A/C in response、Ctrl/Cmd+S 保存当前请求和 Ctrl/Cmd+F 聚焦当前 sidebar 输入已绑定到实际动作；前置条件不满足时动作禁用、过滤计数和快捷键覆盖仍需继续系统复核
 
 ### 13.2 功能完整性审查（参照: `docs/RESEARCH_FEATURES.md`）
-- [ ] 13.2.1 请求构建器完备度审查: Headers/Body/Auth 编辑器功能覆盖
-- [ ] 13.2.2 响应查看器完备度审查: Pretty/Raw/Headers 各模式功能完整
-- [ ] 13.2.3 核心交互流畅度审查: 路由选择→请求发送→响应展示的往返延迟
+- [~] 13.2.1 请求构建器完备度审查: Headers 已支持 key/value 编辑、bulk copy/paste、解析常见 `-H`/`--header` 格式，以及 Accept JSON / Content-Type JSON / Bearer Auth 常用预设且会按 header 名 upsert；Body 已覆盖 none/form-data/urlencoded/raw/GraphQL/binary，Raw JSON 增加局部 Format JSON 操作和结构预览；Auth 已覆盖 None/Bearer/Basic/JWT/API Key header/query；OAuth2、Body 大文本编辑体验和截图级复核仍待完成
+- [~] 13.2.2 响应查看器完备度审查: Pretty/Raw/Headers 各模式已作为局部 tabs 保持一等入口；响应文本使用只读可选择 viewer，Ctrl/Cmd+A 与 Ctrl/Cmd+C 已绑定；Response tab 行已增加局部 Copy 操作用于复制当前 Pretty/Raw/Headers 视图内容，且不污染全局顶栏；大响应体渲染性能和截图级交互复核仍待完成
+- [~] 13.2.3 核心交互流畅度审查: 请求发送中 Response body 已显示明确的 pending method + URL 占位，不再保留旧响应正文；请求成功、请求错误和后台 worker 取消路径都会恢复 Busy 状态并写入 Response/History；路由选择、普通响应、错误响应、Pretty/Raw/Headers 切换和 Pretty collapse/expand 现在都会将 Response body 滚动位置复位到顶部，避免长响应残留旧滚动偏移；路由选择→请求发送→响应展示的端到端延迟测量和截图级交互复核仍待完成
 - [ ] 13.2.4 启动性能与内存占用审查
 - [ ] 13.2.5 更新 `docs/BENCHMARK.md` 调研总结至最新状态
 

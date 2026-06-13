@@ -5,8 +5,9 @@ mod websocket;
 
 pub use response::{ClientResponse, pretty_body};
 pub use sse::{
-    SseEvent, SseExchange, SseStreamEvent, collect_sse_events, collect_sse_events_with_timeout,
-    run_sse_subscription,
+    SseEvent, SseExchange, SseStreamEvent, SseSubscriptionOptions, collect_sse_events,
+    collect_sse_events_with_headers, collect_sse_events_with_headers_and_timeout,
+    collect_sse_events_with_timeout, run_sse_subscription, run_sse_subscription_with_options,
 };
 pub use transport::{RequestBody, send_request, send_request_with_body, send_request_with_options};
 pub use websocket::{
