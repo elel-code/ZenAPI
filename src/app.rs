@@ -63,27 +63,27 @@ const PLATFORM_UI_FONT: &str = ".SystemUIFont";
 const PLATFORM_MONOSPACE_FONT: &str = "monospace";
 const INITIAL_RESPONSE_BODY: &str = "Import an OpenAPI or Swagger document to begin.";
 const UI_COLOR_SURFACE: u32 = 0xffffff;
-const UI_COLOR_SURFACE_MUTED: u32 = 0xf6f8fb;
-const UI_COLOR_APP_CHROME: u32 = 0xf3f6fb;
-const UI_COLOR_WORKSPACE_GUTTER: u32 = 0xe8edf5;
-const UI_COLOR_SIDEBAR_PANE: u32 = 0xf1f6ff;
-const UI_COLOR_REQUEST_PANE: u32 = 0xfffbf5;
-const UI_COLOR_REQUEST_TAB_BAR: u32 = 0xfff6e8;
-const UI_COLOR_RESPONSE_PANE: u32 = 0xf0fbf7;
-const UI_COLOR_RESPONSE_TAB_BAR: u32 = 0xe8f7f1;
-const UI_COLOR_HOVER: u32 = 0xeaf2ff;
-const UI_COLOR_DISABLED_SURFACE: u32 = 0xf2f5f8;
-const UI_COLOR_DISABLED_BORDER: u32 = 0xd7dee8;
-const UI_COLOR_DISABLED_TEXT: u32 = 0x7f8a99;
-const UI_COLOR_BORDER: u32 = 0xdbe3ee;
-const UI_COLOR_BORDER_STRONG: u32 = 0xb8c7d8;
+const UI_COLOR_SURFACE_MUTED: u32 = UI_COLOR_SURFACE;
+const UI_COLOR_APP_CHROME: u32 = 0xf7f7f8;
+const UI_COLOR_WORKSPACE_GUTTER: u32 = 0xf0f1f3;
+const UI_COLOR_SIDEBAR_PANE: u32 = UI_COLOR_SURFACE;
+const UI_COLOR_REQUEST_PANE: u32 = UI_COLOR_SURFACE;
+const UI_COLOR_REQUEST_TAB_BAR: u32 = UI_COLOR_SURFACE_MUTED;
+const UI_COLOR_RESPONSE_PANE: u32 = UI_COLOR_SURFACE;
+const UI_COLOR_RESPONSE_TAB_BAR: u32 = UI_COLOR_SURFACE_MUTED;
+const UI_COLOR_HOVER: u32 = 0xf4f4f5;
+const UI_COLOR_DISABLED_SURFACE: u32 = 0xf2f2f3;
+const UI_COLOR_DISABLED_BORDER: u32 = 0xd9d9df;
+const UI_COLOR_DISABLED_TEXT: u32 = 0x8a8f98;
+const UI_COLOR_BORDER: u32 = 0xe2e4e8;
+const UI_COLOR_BORDER_STRONG: u32 = 0xc7ccd3;
 const UI_COLOR_TEXT_PRIMARY: u32 = 0x111827;
 const UI_COLOR_TEXT_SECONDARY: u32 = 0x4b5563;
 const UI_COLOR_TEXT_MUTED: u32 = 0x64748b;
-const UI_COLOR_TEXT_BODY: u32 = 0x374151;
+const UI_COLOR_TEXT_PLACEHOLDER: u32 = 0xe3e7ee;
+const UI_COLOR_TEXT_BODY: u32 = 0x1f2937;
 const UI_COLOR_ACCENT: u32 = 0x2563eb;
 const UI_COLOR_ACCENT_TEXT: u32 = 0x1d4ed8;
-const UI_COLOR_ACCENT_SURFACE: u32 = 0xeff6ff;
 const UI_COLOR_ACCENT_SELECTION_RGBA: u32 = 0x332563eb;
 const UI_COLOR_WARNING: u32 = 0xb45309;
 const UI_COLOR_WARNING_STRONG: u32 = 0x92400e;
@@ -99,6 +99,124 @@ const UI_COLOR_SYNTAX_KEYWORD: u32 = UI_COLOR_ACCENT;
 const UI_COLOR_SYNTAX_PUNCTUATION: u32 = UI_COLOR_TEXT_SECONDARY;
 const UI_COLOR_SYNTAX_TAG: u32 = UI_COLOR_WARNING;
 const UI_COLOR_SYNTAX_ATTRIBUTE: u32 = UI_COLOR_METHOD_OPTIONS;
+const PLACEHOLDER_IMPORT_PATH: &str = "Spec path";
+const PLACEHOLDER_COLLECTION_PATH: &str = "JSON path";
+const PLACEHOLDER_COLLECTION_ITEM: &str = "Item name";
+const PLACEHOLDER_ROUTE_FILTER: &str = "Filter";
+const PLACEHOLDER_HISTORY_FILTER: &str = "Filter";
+const PLACEHOLDER_REQUEST_URL: &str = "URL";
+const PLACEHOLDER_ENVIRONMENT_NAME: &str = "Env";
+const PLACEHOLDER_BEARER_TOKEN: &str = "Token";
+const PLACEHOLDER_OAUTH2_ACCESS_TOKEN: &str = "Access token";
+const PLACEHOLDER_BASIC_USERNAME: &str = "User";
+const PLACEHOLDER_BASIC_PASSWORD: &str = "Pass";
+const PLACEHOLDER_JWT_TOKEN: &str = "JWT";
+const PLACEHOLDER_API_KEY_NAME: &str = "X-API-Key";
+const PLACEHOLDER_API_KEY_VALUE: &str = "Key value";
+const PLACEHOLDER_REQUEST_BODY: &str = "Body";
+const PLACEHOLDER_GRAPHQL_QUERY: &str = "Query";
+const PLACEHOLDER_GRAPHQL_VARIABLES: &str = "Vars";
+const PLACEHOLDER_BINARY_BODY_PATH: &str = "File path";
+const AUTH_PANEL_TITLE: &str = "Auth";
+const AUTH_NONE_LABEL: &str = "None";
+const AUTH_BEARER_LABEL: &str = "Bearer";
+const AUTH_OAUTH_LABEL: &str = "OAuth";
+const AUTH_BASIC_LABEL: &str = "Basic";
+const AUTH_JWT_LABEL: &str = "JWT";
+const AUTH_API_KEY_LABEL: &str = "API";
+const AUTH_API_KEY_HEADER_LABEL: &str = "Header";
+const AUTH_API_KEY_QUERY_LABEL: &str = "Query";
+const HEADER_COPY_BULK_LABEL: &str = "Copy";
+const HEADER_PASTE_BULK_LABEL: &str = "Paste";
+const HEADER_ACCEPT_JSON_LABEL: &str = "Accept";
+const HEADER_CONTENT_JSON_LABEL: &str = "Content";
+const HEADER_BEARER_AUTH_LABEL: &str = "Bearer";
+const PARAMS_PANEL_TITLE: &str = "Params";
+const RUNNER_STOP_ON_FAILURE_LABEL: &str = "Stop Fail";
+const RUNNER_RUN_ALL_LABEL: &str = "Run";
+const RUNNER_EMPTY_REQUESTS_LABEL: &str = "No requests";
+const RUNNER_EMPTY_RESULTS_LABEL: &str = "No results";
+const RAW_FORMAT_JSON_LABEL: &str = "Format";
+const RAW_PREVIEW_TITLE: &str = "Preview";
+const RAW_EMPTY_PREVIEW_LABEL: &str = "No body";
+const GRAPHQL_INTROSPECT_LABEL: &str = "Schema";
+const GRAPHQL_PAYLOAD_TITLE: &str = "Payload";
+const GRAPHQL_SCHEMA_TITLE: &str = "Schema";
+const GRAPHQL_SCHEMA_BROWSER_TITLE: &str = "Fields";
+const GRAPHQL_QUERY_ASSISTANT_TITLE: &str = "Templates";
+const BODY_MODE_NONE_LABEL: &str = "None";
+const BODY_MODE_FORM_LABEL: &str = "Form";
+const BODY_MODE_URL_ENCODED_LABEL: &str = "URL Enc";
+const BODY_MODE_RAW_LABEL: &str = "Raw";
+const BODY_MODE_GRAPHQL_LABEL: &str = "GraphQL";
+const BODY_MODE_BINARY_LABEL: &str = "Binary";
+const BODY_FORM_FIELDS_TITLE: &str = "Form";
+const BODY_URL_ENCODED_TITLE: &str = "URL Enc";
+const SIDEBAR_ROUTES_LABEL: &str = "Routes";
+const SIDEBAR_SAVED_LABEL: &str = "Saved";
+const SIDEBAR_HISTORY_LABEL: &str = "History";
+const SIDEBAR_EMPTY_ROUTES_LABEL: &str = "No routes";
+const SIDEBAR_EMPTY_SAVED_LABEL: &str = "No saved";
+const SIDEBAR_EMPTY_HISTORY_LABEL: &str = "No history";
+const SIDEBAR_EMPTY_MATCHES_LABEL: &str = "No matches";
+const COLLECTION_IMPORT_LABEL: &str = "Import";
+const COLLECTION_SAVE_LABEL: &str = "Save";
+const COLLECTION_EXPORT_LABEL: &str = "Export";
+const COLLECTION_POSTMAN_LABEL: &str = "PM";
+const COLLECTION_MENU_CLOSE_LABEL: &str = "x";
+const COLLECTION_MENU_NEW_REQUEST_LABEL: &str = "+ Req";
+const COLLECTION_MENU_NEW_FOLDER_LABEL: &str = "+ Dir";
+const COLLECTION_MENU_COPY_LABEL: &str = "Copy";
+const COLLECTION_MENU_DELETE_LABEL: &str = "Del";
+const COLLECTION_MENU_RENAME_LABEL: &str = "Rename";
+const VARIABLES_PANEL_TITLE: &str = "Vars";
+const VARIABLES_ENV_LABEL: &str = "Env";
+const VARIABLES_NO_ENV_LABEL: &str = "No Env";
+const VARIABLES_ADD_ENV_LABEL: &str = "+ Env";
+const VARIABLES_DELETE_ENV_LABEL: &str = "Del";
+const VARIABLES_GLOBAL_TITLE: &str = "Global";
+const VARIABLES_ENV_TITLE: &str = "Env";
+const VARIABLES_ENV_NEEDED_TITLE: &str = "Env needed";
+const VARIABLES_ENV_SELECTED_TITLE: &str = "Env selected";
+const VARIABLES_ENV_CREATED_TITLE: &str = "Env created";
+const VARIABLES_ENV_DELETED_TITLE: &str = "Env deleted";
+const PLACEHOLDER_WEBSOCKET_URL: &str = "WS URL";
+const PLACEHOLDER_WEBSOCKET_PROTOCOLS: &str = "Protocols";
+const PLACEHOLDER_SSE_URL: &str = "SSE URL";
+const REALTIME_WEBSOCKET_TITLE: &str = "WS";
+const REALTIME_WEBSOCKET_CONNECT_LABEL: &str = "Open";
+const REALTIME_WEBSOCKET_SEND_LABEL: &str = "Send";
+const REALTIME_WEBSOCKET_CLOSE_LABEL: &str = "End";
+const REALTIME_WEBSOCKET_HEADERS_TITLE: &str = "WS Headers";
+const REALTIME_WEBSOCKET_TEXT_LABEL: &str = "Text";
+const REALTIME_WEBSOCKET_BINARY_LABEL: &str = "Hex";
+const REALTIME_WEBSOCKET_EMPTY_LABEL: &str = "No WS messages";
+const REALTIME_SSE_TITLE: &str = "SSE";
+const REALTIME_SSE_FETCH_LABEL: &str = "Once";
+const REALTIME_SSE_SUBSCRIBE_LABEL: &str = "Stream";
+const REALTIME_SSE_STOP_LABEL: &str = "Stop";
+const REALTIME_SSE_HEADERS_TITLE: &str = "SSE Headers";
+const REALTIME_SSE_EMPTY_LABEL: &str = "No events";
+const TESTS_PANEL_TITLE: &str = "Tests";
+const TEST_ASSERTION_NAME_HEADER: &str = "Test";
+const TEST_ASSERTION_KIND_HEADER: &str = "Kind";
+const TEST_ASSERTION_TARGET_HEADER: &str = "Target";
+const TEST_ASSERTION_EXPECTED_HEADER: &str = "Expect";
+const PLACEHOLDER_TEST_ASSERTION_NAME: &str = "Test";
+const PLACEHOLDER_TEST_ASSERTION_TARGET: &str = "Target";
+const PLACEHOLDER_TEST_ASSERTION_EXPECTED: &str = "Expect";
+const TEST_ASSERTION_STATUS_EQUALS_LABEL: &str = "Status =";
+const TEST_ASSERTION_STATUS_RANGE_LABEL: &str = "Range";
+const TEST_ASSERTION_HEADER_EXISTS_LABEL: &str = "Header ?";
+const TEST_ASSERTION_HEADER_EQUALS_LABEL: &str = "Header =";
+const TEST_ASSERTION_BODY_CONTAINS_LABEL: &str = "Body ?";
+const TEST_ASSERTION_JSON_PATH_EQUALS_LABEL: &str = "JSON =";
+const RESPONSE_PRETTY_LABEL: &str = "Pretty";
+const RESPONSE_RAW_LABEL: &str = "Raw";
+const RESPONSE_HEADERS_LABEL: &str = "Hdrs";
+const RESPONSE_FOLD_LABEL: &str = "Fold";
+const RESPONSE_OPEN_LABEL: &str = "Open";
+const RESPONSE_COPY_LABEL: &str = "Copy";
 const APP_WINDOW_WIDTH: f32 = 1180.;
 const APP_WINDOW_HEIGHT: f32 = 760.;
 const SIDEBAR_WIDTH: f32 = 320.;
@@ -111,6 +229,8 @@ const WORKSPACE_REQUEST_MAX_RATIO: f32 = 0.56;
 const WORKSPACE_RESPONSE_MIN_RATIO: f32 = 0.24;
 const WORKSPACE_SPLIT_HANDLE_WIDTH: f32 = 8.;
 const WORKSPACE_SPLIT_DIVIDER_WIDTH: f32 = 1.;
+const WORKSPACE_SPLIT_RATIO_EPSILON: f32 = 0.001;
+const WORKSPACE_SPLIT_UPDATE_STEP_PX: f32 = 48.;
 const SIDEBAR_NAV_HEIGHT: f32 = 42.;
 const SCROLLBAR_WIDTH: f32 = 6.;
 const SCROLLBAR_RIGHT_OFFSET: f32 = 3.;
@@ -146,10 +266,10 @@ const ACTION_BUTTON_HEIGHT: f32 = 34.;
 const SIDEBAR_BUTTON_HEIGHT: f32 = 26.;
 const COMPACT_CONTROL_HEIGHT: f32 = 26.;
 const RESPONSE_TAB_BAR_HEIGHT: f32 = 36.;
-const RESPONSE_TAB_WIDTH: f32 = 84.;
+const RESPONSE_TAB_WIDTH: f32 = 72.;
 const RESPONSE_TAB_COUNT: usize = 3;
-const RESPONSE_FOLD_BUTTON_WIDTH: f32 = 86.;
-const RESPONSE_COPY_BUTTON_WIDTH: f32 = 62.;
+const RESPONSE_FOLD_BUTTON_WIDTH: f32 = 54.;
+const RESPONSE_COPY_BUTTON_WIDTH: f32 = 54.;
 const CODEGEN_COPY_BUTTON_WIDTH: f32 = 72.;
 const CODEGEN_MENU_WIDTH: f32 = 156.;
 const STATUS_BAR_TRAILING_WIDTH: f32 = 360.;
@@ -169,8 +289,12 @@ const TEXT_INPUT_HEIGHT: f32 = 36.;
 const TEXT_INPUT_LINE_HEIGHT: f32 = 20.;
 const TEXT_INPUT_RADIUS: f32 = 6.;
 const KEY_VALUE_KEY_COLUMN_WIDTH: f32 = 150.;
+const KEY_VALUE_EDITOR_KEY_COLUMN_WIDTH: f32 = 128.;
+const KEY_VALUE_EDITOR_COMPACT_KEY_COLUMN_WIDTH: f32 = 112.;
+const KEY_VALUE_ROW_ACTION_BUTTON_WIDTH: f32 = 28.;
 const TEST_ASSERTION_NAME_COLUMN_WIDTH: f32 = 132.;
-const TEST_ASSERTION_KIND_COLUMN_WIDTH: f32 = 132.;
+const TEST_ASSERTION_KIND_COLUMN_WIDTH: f32 = 96.;
+const TESTS_CLEAR_RESULTS_BUTTON_WIDTH: f32 = 54.;
 const COLLECTION_TREE_ROOT_ROW_HEIGHT: f32 = 30.;
 const COLLECTION_TREE_FOLDER_ROW_HEIGHT: f32 = 30.;
 const COLLECTION_TREE_REQUEST_ROW_HEIGHT: f32 = 36.;
@@ -243,6 +367,7 @@ struct ZenApiApp {
     runtime: Arc<Runtime>,
     workspace_sidebar_ratio: f32,
     workspace_request_ratio: f32,
+    workspace_split_pending: Option<WorkspaceSplitPreview>,
     active_sidebar_section: SidebarSection,
     active_request_tab: RequestPaneTab,
     sidebar_scroll: ScrollHandle,
@@ -265,6 +390,7 @@ struct ZenApiApp {
     request_headers: Vec<KeyValueRow>,
     auth_mode: AuthMode,
     bearer_token: Entity<TextInput>,
+    oauth2_access_token: Entity<TextInput>,
     basic_username: Entity<TextInput>,
     basic_password: Entity<TextInput>,
     jwt_token: Entity<TextInput>,
@@ -338,10 +464,17 @@ struct ZenApiApp {
     busy: bool,
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 enum WorkspaceSplitDrag {
     SidebarRequest,
     RequestResponse,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+struct WorkspaceSplitPreview {
+    split: WorkspaceSplitDrag,
+    sidebar_ratio: f32,
+    request_ratio: f32,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -418,6 +551,18 @@ struct KeyValueRow {
     value: Entity<TextInput>,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum KeyValueEditorTarget {
+    QueryParams,
+    RequestHeaders,
+    GlobalVariables,
+    ActiveEnvironmentVariables,
+    FormDataBody,
+    UrlEncodedBody,
+    WebSocketHeaders,
+    SseHeaders,
+}
+
 struct TestAssertionRow {
     name: Entity<TextInput>,
     kind: TestAssertionKind,
@@ -453,6 +598,8 @@ struct DraggedCollectionNode {
 struct CollectionDragPreview {
     label: String,
 }
+
+struct WorkspaceSplitDragPreview;
 
 struct RequestBuild {
     request: CodegenRequest,
@@ -572,6 +719,10 @@ fn ui_text_muted() -> Hsla {
     rgb(UI_COLOR_TEXT_MUTED).into()
 }
 
+fn ui_text_placeholder() -> Hsla {
+    rgb(UI_COLOR_TEXT_PLACEHOLDER).into()
+}
+
 fn ui_text_body() -> Hsla {
     rgb(UI_COLOR_TEXT_BODY).into()
 }
@@ -582,14 +733,6 @@ fn ui_accent() -> Hsla {
 
 fn ui_accent_text() -> Hsla {
     rgb(UI_COLOR_ACCENT_TEXT).into()
-}
-
-fn ui_accent_surface() -> Hsla {
-    rgb(UI_COLOR_ACCENT_SURFACE).into()
-}
-
-fn ui_warning() -> Hsla {
-    rgb(UI_COLOR_WARNING).into()
 }
 
 fn ui_warning_strong() -> Hsla {
@@ -616,17 +759,23 @@ fn control_opacity(enabled: bool) -> f32 {
     }
 }
 
+fn can_activate_render_enabled_control(render_enabled: bool, busy: bool) -> bool {
+    render_enabled && !busy
+}
+
 impl ZenApiApp {
     fn new(runtime: Arc<Runtime>, cx: &mut Context<Self>) -> Self {
-        let import_path = cx.new(|cx| TextInput::new(cx, "OpenAPI / Swagger file path", true));
-        let collection_path = cx.new(|cx| TextInput::new(cx, "Collection JSON path", true));
-        let collection_rename_input = cx.new(|cx| TextInput::new(cx, "Collection item name", true));
-        let route_filter =
-            cx.new(|cx| TextInput::new(cx, "Filter method, path, or summary", false));
-        let history_filter = cx.new(|cx| TextInput::new(cx, "Filter history", false));
-        let url = cx
-            .new(|cx| TextInput::new(cx, "Request URL", true).with_chrome(TextInputChrome::Inline));
-        let environment_name_input = cx.new(|cx| TextInput::new(cx, "New environment", true));
+        let import_path = cx.new(|cx| TextInput::new(cx, PLACEHOLDER_IMPORT_PATH, true));
+        let collection_path = cx.new(|cx| TextInput::new(cx, PLACEHOLDER_COLLECTION_PATH, true));
+        let collection_rename_input =
+            cx.new(|cx| TextInput::new(cx, PLACEHOLDER_COLLECTION_ITEM, true));
+        let route_filter = cx.new(|cx| TextInput::new(cx, PLACEHOLDER_ROUTE_FILTER, false));
+        let history_filter = cx.new(|cx| TextInput::new(cx, PLACEHOLDER_HISTORY_FILTER, false));
+        let url = cx.new(|cx| {
+            TextInput::new(cx, PLACEHOLDER_REQUEST_URL, true).with_chrome(TextInputChrome::Inline)
+        });
+        let environment_name_input =
+            cx.new(|cx| TextInput::new(cx, PLACEHOLDER_ENVIRONMENT_NAME, true));
         let global_variables = key_value_rows(
             cx,
             &[
@@ -677,26 +826,31 @@ impl ZenApiApp {
                 ("", ""),
             ],
         );
-        let bearer_token = cx.new(|cx| TextInput::new(cx, "Bearer token", true));
-        let basic_username = cx.new(|cx| TextInput::new(cx, "Username", true));
-        let basic_password = cx.new(|cx| TextInput::new(cx, "Password", true));
-        let jwt_token = cx.new(|cx| TextInput::new(cx, "JWT token", true));
-        let api_key_name = cx.new(|cx| TextInput::new(cx, "X-API-Key", true));
-        let api_key_value = cx.new(|cx| TextInput::new(cx, "API key value", true));
-        let pre_request_script = cx.new(|cx| TextInput::new(cx, "Pre-request action line", true));
-        let request_body =
-            cx.new(|cx| TextInput::new(cx, "JSON body", true).with_multiline(BODY_EDITOR_HEIGHT));
-        let graphql_query = cx
-            .new(|cx| TextInput::new(cx, "GraphQL query", true).with_multiline(BODY_EDITOR_HEIGHT));
+        let bearer_token = cx.new(|cx| TextInput::new(cx, PLACEHOLDER_BEARER_TOKEN, true));
+        let oauth2_access_token =
+            cx.new(|cx| TextInput::new(cx, PLACEHOLDER_OAUTH2_ACCESS_TOKEN, true));
+        let basic_username = cx.new(|cx| TextInput::new(cx, PLACEHOLDER_BASIC_USERNAME, true));
+        let basic_password = cx.new(|cx| TextInput::new(cx, PLACEHOLDER_BASIC_PASSWORD, true));
+        let jwt_token = cx.new(|cx| TextInput::new(cx, PLACEHOLDER_JWT_TOKEN, true));
+        let api_key_name = cx.new(|cx| TextInput::new(cx, PLACEHOLDER_API_KEY_NAME, true));
+        let api_key_value = cx.new(|cx| TextInput::new(cx, PLACEHOLDER_API_KEY_VALUE, true));
+        let pre_request_script = cx.new(|cx| TextInput::new(cx, "Action", true));
+        let request_body = cx.new(|cx| {
+            TextInput::new(cx, PLACEHOLDER_REQUEST_BODY, true).with_multiline(BODY_EDITOR_HEIGHT)
+        });
+        let graphql_query = cx.new(|cx| {
+            TextInput::new(cx, PLACEHOLDER_GRAPHQL_QUERY, true).with_multiline(BODY_EDITOR_HEIGHT)
+        });
         let graphql_variables = cx.new(|cx| {
-            TextInput::new(cx, "GraphQL variables JSON", true)
+            TextInput::new(cx, PLACEHOLDER_GRAPHQL_VARIABLES, true)
                 .with_multiline(GRAPHQL_VARIABLES_EDITOR_HEIGHT)
         });
-        let websocket_url = cx.new(|cx| TextInput::new(cx, "ws://localhost:8080/socket", true));
-        let websocket_protocols = cx.new(|cx| TextInput::new(cx, "Subprotocols: chat, json", true));
+        let websocket_url = cx.new(|cx| TextInput::new(cx, PLACEHOLDER_WEBSOCKET_URL, true));
+        let websocket_protocols =
+            cx.new(|cx| TextInput::new(cx, PLACEHOLDER_WEBSOCKET_PROTOCOLS, true));
         let websocket_headers = key_value_rows(cx, &[("X-Token", "token"), ("", "")]);
-        let websocket_message = cx.new(|cx| TextInput::new(cx, "WebSocket message", true));
-        let sse_url = cx.new(|cx| TextInput::new(cx, "http://localhost:8080/events", true));
+        let websocket_message = cx.new(|cx| TextInput::new(cx, "Message", true));
+        let sse_url = cx.new(|cx| TextInput::new(cx, PLACEHOLDER_SSE_URL, true));
         let sse_headers = key_value_rows(cx, &[("Authorization", "Bearer token"), ("", "")]);
         let response_body_viewer = cx.new(|cx| ReadOnlyTextView::new(cx, INITIAL_RESPONSE_BODY));
         let form_data_body = key_value_rows(
@@ -717,7 +871,7 @@ impl ZenApiApp {
                 ("", ""),
             ],
         );
-        let binary_body_path = cx.new(|cx| TextInput::new(cx, "Binary file path", true));
+        let binary_body_path = cx.new(|cx| TextInput::new(cx, PLACEHOLDER_BINARY_BODY_PATH, true));
         let request_assertions = assertion_rows_from_assertions(cx, &[]);
 
         cx.subscribe(&import_path, |app, _input, _event: &TextAccepted, cx| {
@@ -765,12 +919,11 @@ impl ZenApiApp {
         .detach();
 
         cx.subscribe(&url, |app, _input, _event: &TextAccepted, cx| {
-            if !app.busy
-                && can_send_request(
-                    &app.url.read(cx).text(),
-                    &app.pre_request_script.read(cx).text(),
-                )
-            {
+            if can_send_request_shortcut(
+                app.busy,
+                &app.url.read(cx).text(),
+                &app.pre_request_script.read(cx).text(),
+            ) {
                 app.send_request(cx);
             }
         })
@@ -779,7 +932,8 @@ impl ZenApiApp {
         cx.subscribe(
             &environment_name_input,
             |app, _input, _event: &TextAccepted, cx| {
-                if !app.busy && can_add_environment(&app.environment_name_input.read(cx).text()) {
+                if can_submit_environment_add(app.busy, &app.environment_name_input.read(cx).text())
+                {
                     app.add_environment(cx);
                 }
             },
@@ -790,6 +944,7 @@ impl ZenApiApp {
             runtime,
             workspace_sidebar_ratio: WORKSPACE_SIDEBAR_DEFAULT_RATIO,
             workspace_request_ratio: WORKSPACE_REQUEST_DEFAULT_RATIO,
+            workspace_split_pending: None,
             active_sidebar_section: SidebarSection::Endpoints,
             active_request_tab: RequestPaneTab::Params,
             sidebar_scroll: ScrollHandle::new(),
@@ -812,6 +967,7 @@ impl ZenApiApp {
             request_headers,
             auth_mode: AuthMode::None,
             bearer_token,
+            oauth2_access_token,
             basic_username,
             basic_password,
             jwt_token,
@@ -954,14 +1110,18 @@ impl ZenApiApp {
     }
 
     fn import_collection(&mut self, cx: &mut Context<Self>) {
+        if self.busy {
+            return;
+        }
+
         let path = self.collection_path.read(cx).text();
         let path = path.trim();
         if path.is_empty() {
             self.set_response(
-                "Collection path needed",
+                "Path needed",
                 "",
                 ResponseTone::Error,
-                "Enter a ZenAPI or Postman collection JSON path.",
+                "Enter a ZenAPI or Postman JSON path.",
             );
             cx.notify();
             return;
@@ -998,6 +1158,10 @@ impl ZenApiApp {
     }
 
     fn export_collection(&mut self, postman: bool, cx: &mut Context<Self>) {
+        if self.busy {
+            return;
+        }
+
         if !can_export_collection(&self.collection) {
             self.collection_status = "Nothing to export".to_string();
             self.set_response(
@@ -1014,10 +1178,10 @@ impl ZenApiApp {
         let path = path.trim();
         if path.is_empty() {
             self.set_response(
-                "Collection path needed",
+                "Path needed",
                 "",
                 ResponseTone::Error,
-                "Enter a target collection JSON path.",
+                "Enter a target JSON path.",
             );
             cx.notify();
             return;
@@ -1062,6 +1226,10 @@ impl ZenApiApp {
     }
 
     fn save_current_request_to_collection(&mut self, cx: &mut Context<Self>) {
+        if self.busy {
+            return;
+        }
+
         let raw_request = self.current_raw_codegen_request(cx);
         match self.current_request_build(cx) {
             Ok(build) if build.request.url.is_empty() => {
@@ -1200,18 +1368,55 @@ impl ZenApiApp {
 
     fn set_busy(&mut self, busy: bool, cx: &mut Context<Self>) {
         if self.busy == busy {
-            self.sync_request_url_enabled(cx);
+            self.sync_busy_sensitive_inputs_enabled(cx);
             return;
         }
 
         self.busy = busy;
-        self.sync_request_url_enabled(cx);
+        if busy {
+            self.close_transient_layers();
+        }
+        self.sync_busy_sensitive_inputs_enabled(cx);
     }
 
-    fn sync_request_url_enabled(&mut self, cx: &mut Context<Self>) {
-        let enabled = !self.busy;
-        self.url
-            .update(cx, |input, cx| input.set_enabled(enabled, cx));
+    fn sync_busy_sensitive_inputs_enabled(&mut self, cx: &mut Context<Self>) {
+        let enabled = can_edit_request_configuration(self.busy);
+        for input in [
+            &self.import_path,
+            &self.collection_path,
+            &self.collection_rename_input,
+            &self.url,
+            &self.environment_name_input,
+            &self.bearer_token,
+            &self.oauth2_access_token,
+            &self.basic_username,
+            &self.basic_password,
+            &self.jwt_token,
+            &self.api_key_name,
+            &self.api_key_value,
+            &self.pre_request_script,
+            &self.request_body,
+            &self.graphql_query,
+            &self.graphql_variables,
+            &self.websocket_url,
+            &self.websocket_protocols,
+            &self.websocket_message,
+            &self.sse_url,
+            &self.binary_body_path,
+        ] {
+            set_text_input_enabled(input, enabled, cx);
+        }
+        set_key_value_rows_enabled(&self.global_variables, enabled, cx);
+        set_key_value_rows_enabled(&self.query_params, enabled, cx);
+        set_key_value_rows_enabled(&self.request_headers, enabled, cx);
+        set_key_value_rows_enabled(&self.websocket_headers, enabled, cx);
+        set_key_value_rows_enabled(&self.sse_headers, enabled, cx);
+        set_key_value_rows_enabled(&self.form_data_body, enabled, cx);
+        set_key_value_rows_enabled(&self.urlencoded_body, enabled, cx);
+        for environment in &self.environments {
+            set_key_value_rows_enabled(&environment.variables, enabled, cx);
+        }
+        set_assertion_rows_enabled(&self.request_assertions, enabled, cx);
     }
 
     fn focus_active_sidebar_input(
@@ -1220,7 +1425,12 @@ impl ZenApiApp {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
-        let input = match sidebar_focus_target(self.active_sidebar_section) {
+        let target = sidebar_focus_target(self.active_sidebar_section);
+        if !can_focus_sidebar_input(self.busy, target) {
+            return;
+        }
+
+        let input = match target {
             SidebarFocusTarget::RouteFilter => self.route_filter.clone(),
             SidebarFocusTarget::CollectionPath => self.collection_path.clone(),
             SidebarFocusTarget::HistoryFilter => self.history_filter.clone(),
@@ -1250,6 +1460,10 @@ impl ZenApiApp {
     }
 
     fn open_collection_menu(&mut self, menu: CollectionContextMenu, cx: &mut Context<Self>) {
+        if !can_open_collection_context_menu(self.busy) {
+            return;
+        }
+
         let label = menu.label.clone();
         self.collection_rename_input
             .update(cx, |input, cx| input.set_text(label, cx));
@@ -1266,6 +1480,10 @@ impl ZenApiApp {
     }
 
     fn add_collection_request(&mut self, target_id: String, cx: &mut Context<Self>) {
+        if !can_mutate_collection(self.busy) {
+            return;
+        }
+
         let request = CollectionItem::Request(blank_collection_request());
         if insert_collection_item(&mut self.collection.items, &target_id, request) {
             self.ensure_collection_node_expanded(target_id);
@@ -1277,6 +1495,10 @@ impl ZenApiApp {
     }
 
     fn add_collection_folder(&mut self, target_id: String, cx: &mut Context<Self>) {
+        if !can_mutate_collection(self.busy) {
+            return;
+        }
+
         let folder = CollectionItem::Folder(CollectionFolder {
             name: "New Folder".to_string(),
             description: String::new(),
@@ -1292,6 +1514,10 @@ impl ZenApiApp {
     }
 
     fn copy_collection_target(&mut self, target_id: String, cx: &mut Context<Self>) {
+        if !can_mutate_collection(self.busy) {
+            return;
+        }
+
         if duplicate_collection_item(&mut self.collection.items, &target_id) {
             self.refresh_collection_status("Item copied");
             self.collection_context_menu = None;
@@ -1302,6 +1528,10 @@ impl ZenApiApp {
     }
 
     fn delete_collection_target(&mut self, target_id: String, cx: &mut Context<Self>) {
+        if !can_mutate_collection(self.busy) {
+            return;
+        }
+
         if remove_collection_item(&mut self.collection.items, &target_id).is_some() {
             self.expanded_collection_nodes
                 .retain(|node| !node.starts_with(&target_id));
@@ -1319,6 +1549,10 @@ impl ZenApiApp {
         target_id: String,
         cx: &mut Context<Self>,
     ) {
+        if !can_mutate_collection(self.busy) {
+            return;
+        }
+
         if move_collection_item(&mut self.collection.items, &source_id, &target_id) {
             self.ensure_collection_node_expanded("collection".to_string());
             self.refresh_collection_status("Item moved");
@@ -1335,9 +1569,11 @@ impl ZenApiApp {
         };
         let name = self.collection_rename_input.read(cx).text();
         let name = name.trim();
-        if !can_rename_collection_target(menu.kind, name) {
+        if !can_submit_collection_rename(self.busy, Some(menu.kind), name) {
             self.collection_status = if name.is_empty() {
                 "Name needed".to_string()
+            } else if self.busy {
+                "Rename unavailable while busy".to_string()
             } else {
                 "Rename unavailable".to_string()
             };
@@ -1385,6 +1621,10 @@ impl ZenApiApp {
     }
 
     fn restore_collection_request(&mut self, request: CollectionRequest, cx: &mut Context<Self>) {
+        if !can_restore_request_from_sidebar(self.busy) {
+            return;
+        }
+
         self.close_transient_layers();
         self.method = request.method;
         self.url
@@ -1446,16 +1686,48 @@ impl ZenApiApp {
     }
 
     fn add_response_assertion_row(&mut self, cx: &mut Context<Self>) {
+        if !can_edit_request_configuration(self.busy) {
+            return;
+        }
+
         self.request_assertions.push(blank_assertion_row(cx));
         cx.notify();
     }
 
+    fn cycle_response_assertion_kind(&mut self, index: usize, cx: &mut Context<Self>) {
+        if !can_edit_response_assertion_row(self.busy, self.request_assertions.len(), index) {
+            return;
+        }
+
+        if let Some(row) = self.request_assertions.get_mut(index) {
+            row.kind = row.kind.next();
+            cx.notify();
+        }
+    }
+
+    fn remove_response_assertion_row(&mut self, index: usize, cx: &mut Context<Self>) {
+        if !can_remove_response_assertion_row(self.busy, self.request_assertions.len(), index) {
+            return;
+        }
+
+        self.request_assertions.remove(index);
+        cx.notify();
+    }
+
     fn clear_response_assertion_results(&mut self, cx: &mut Context<Self>) {
+        if !can_clear_response_assertion_results(self.busy, self.last_assertion_results.len()) {
+            return;
+        }
+
         self.last_assertion_results.clear();
         cx.notify();
     }
 
     fn load_graphql_introspection_query(&mut self, cx: &mut Context<Self>) {
+        if !can_edit_request_configuration(self.busy) {
+            return;
+        }
+
         self.request_body_mode = RequestBodyMode::GraphQL;
         self.graphql_query.update(cx, |input, cx| {
             input.set_text(GRAPHQL_INTROSPECTION_QUERY, cx)
@@ -1471,6 +1743,10 @@ impl ZenApiApp {
         variables: String,
         cx: &mut Context<Self>,
     ) {
+        if !can_edit_request_configuration(self.busy) {
+            return;
+        }
+
         self.request_body_mode = RequestBodyMode::GraphQL;
         self.graphql_query
             .update(cx, |input, cx| input.set_text(operation, cx));
@@ -1485,6 +1761,10 @@ impl ZenApiApp {
     }
 
     fn select_route(&mut self, index: usize, cx: &mut Context<Self>) {
+        if !can_restore_request_from_sidebar(self.busy) {
+            return;
+        }
+
         let Some(route) = self.visible_routes.get(index).cloned() else {
             return;
         };
@@ -1672,18 +1952,21 @@ impl ZenApiApp {
     }
 
     fn connect_websocket(&mut self, cx: &mut Context<Self>) {
-        if self.websocket_running {
-            return;
-        }
-
         let url = self.websocket_url.read(cx).text();
-        if url.trim().is_empty() {
-            self.websocket_status = "URL required".to_string();
+        if !can_connect_websocket(self.busy, self.websocket_running, &url) {
+            if self.busy || self.websocket_running {
+                return;
+            }
+            self.websocket_status = if has_trimmed_text(&url) {
+                "invalid URL".to_string()
+            } else {
+                "URL required".to_string()
+            };
             self.set_response(
                 "WebSocket needs a URL",
                 "",
                 ResponseTone::Error,
-                "Enter a ws:// or wss:// URL before sending a WebSocket message.",
+                "Enter a ws:// or wss:// URL before connecting.",
             );
             cx.notify();
             return;
@@ -1736,13 +2019,17 @@ impl ZenApiApp {
 
     fn send_websocket_message(&mut self, cx: &mut Context<Self>) {
         let message = self.websocket_message.read(cx).text();
+        if self.busy {
+            return;
+        }
+
         let Some(command_tx) = self.websocket_command_tx.as_ref() else {
             self.websocket_status = "not connected".to_string();
             self.set_response(
-                "WebSocket not connected",
+                "WS not open",
                 "",
                 ResponseTone::Error,
-                "Connect before sending a WebSocket message.",
+                "Open a WS session before sending.",
             );
             cx.notify();
             return;
@@ -1775,11 +2062,11 @@ impl ZenApiApp {
                 "",
                 ResponseTone::Error,
                 realtime_operation_error(
-                    "Could not send the WebSocket message.",
-                    "WebSocket URL",
+                    "Could not send the WS message.",
+                    "WS URL",
                     &self.websocket_session_url,
                     "The WebSocket command channel is closed.",
-                    "Reconnect the WebSocket session, then send the message again.",
+                    "Open the WS session again, then send the message.",
                 ),
             );
         } else {
@@ -1789,6 +2076,10 @@ impl ZenApiApp {
     }
 
     fn close_websocket(&mut self, cx: &mut Context<Self>) {
+        if !can_close_websocket(self.busy, self.websocket_running) {
+            return;
+        }
+
         if let Some(command_tx) = self.websocket_command_tx.as_ref() {
             let _ = command_tx.send(client::WebSocketSessionCommand::Close);
             self.websocket_status = "closing".to_string();
@@ -1846,8 +2137,8 @@ impl ZenApiApp {
                     "",
                     ResponseTone::Error,
                     realtime_operation_error(
-                        "Could not keep the WebSocket session open.",
-                        "WebSocket URL",
+                        "Could not keep the WS session open.",
+                        "WS URL",
                         &self.websocket_session_url,
                         &error,
                         "Check the URL, headers, subprotocols, server availability, and TLS settings.",
@@ -1869,13 +2160,16 @@ impl ZenApiApp {
     }
 
     fn fetch_sse_events(&mut self, cx: &mut Context<Self>) {
-        if self.sse_running {
-            return;
-        }
-
         let url = self.sse_url.read(cx).text();
-        if url.trim().is_empty() {
-            self.sse_status = "URL required".to_string();
+        if !can_start_sse(self.busy, self.sse_running, &url) {
+            if self.busy || self.sse_running {
+                return;
+            }
+            self.sse_status = if has_trimmed_text(&url) {
+                "invalid URL".to_string()
+            } else {
+                "URL required".to_string()
+            };
             self.set_response(
                 "SSE needs a URL",
                 "",
@@ -1948,13 +2242,16 @@ impl ZenApiApp {
     }
 
     fn subscribe_sse_events(&mut self, cx: &mut Context<Self>) {
-        if self.sse_running {
-            return;
-        }
-
         let url = self.sse_url.read(cx).text();
-        if url.trim().is_empty() {
-            self.sse_status = "URL required".to_string();
+        if !can_start_sse(self.busy, self.sse_running, &url) {
+            if self.busy || self.sse_running {
+                return;
+            }
+            self.sse_status = if has_trimmed_text(&url) {
+                "invalid URL".to_string()
+            } else {
+                "URL required".to_string()
+            };
             self.set_response(
                 "SSE needs a URL",
                 "",
@@ -2012,6 +2309,10 @@ impl ZenApiApp {
     }
 
     fn stop_sse_subscription(&mut self, cx: &mut Context<Self>) {
+        if !can_stop_sse_subscription(self.busy, self.sse_subscription.is_some()) {
+            return;
+        }
+
         if let Some(handle) = self.sse_subscription.take() {
             handle.abort();
             self.sse_running = false;
@@ -2110,12 +2411,12 @@ impl ZenApiApp {
 
         let total = collection_item_count(&self.collection.items);
         if total == 0 {
-            self.runner_status = "No collection requests".to_string();
+            self.runner_status = RUNNER_EMPTY_REQUESTS_LABEL.to_string();
             self.set_response(
                 "Runner needs requests",
                 "",
                 ResponseTone::Error,
-                "Add or import collection requests before running the collection.",
+                "Add or import saved requests before running.",
             );
             cx.notify();
             return;
@@ -2385,14 +2686,18 @@ impl ZenApiApp {
     }
 
     fn add_environment(&mut self, cx: &mut Context<Self>) {
+        if !can_edit_request_configuration(self.busy) {
+            return;
+        }
+
         let name = self.environment_name_input.read(cx).text();
         let name = normalized_environment_name(&name);
         if name.is_empty() {
             self.set_response(
-                "Environment name needed",
+                VARIABLES_ENV_NEEDED_TITLE,
                 "",
                 ResponseTone::Error,
-                "Enter an environment name before creating it.",
+                "Enter an env name before creating it.",
             );
             cx.notify();
             return;
@@ -2407,10 +2712,10 @@ impl ZenApiApp {
             self.environment_name_input
                 .update(cx, |input, cx| input.set_text("", cx));
             self.set_response(
-                "Environment selected",
+                VARIABLES_ENV_SELECTED_TITLE,
                 name,
                 ResponseTone::Neutral,
-                "Existing environment is now active.",
+                "Existing env is now active.",
             );
             cx.notify();
             return;
@@ -2425,15 +2730,19 @@ impl ZenApiApp {
         self.environment_name_input
             .update(cx, |input, cx| input.set_text("", cx));
         self.set_response(
-            "Environment created",
+            VARIABLES_ENV_CREATED_TITLE,
             name,
             ResponseTone::Success,
-            "New environment is ready for variables.",
+            "Env ready.",
         );
         cx.notify();
     }
 
     fn delete_active_environment(&mut self, cx: &mut Context<Self>) {
+        if !can_edit_request_configuration(self.busy) {
+            return;
+        }
+
         let Some(active_environment) = self.active_environment.clone() else {
             return;
         };
@@ -2446,10 +2755,10 @@ impl ZenApiApp {
             self.environments.remove(index);
             self.active_environment = None;
             self.set_response(
-                "Environment deleted",
+                VARIABLES_ENV_DELETED_TITLE,
                 active_environment,
                 ResponseTone::Success,
-                "Environment variables were removed from the active session.",
+                "Env vars were removed from the active session.",
             );
             cx.notify();
         }
@@ -2457,7 +2766,10 @@ impl ZenApiApp {
 
     fn copy_headers_bulk(&mut self, cx: &mut Context<Self>) {
         let headers = read_key_value_rows(&self.request_headers, cx);
-        if headers.is_empty() {
+        if !can_copy_headers_bulk(self.busy, !headers.is_empty()) {
+            if self.busy {
+                return;
+            }
             self.set_response(
                 "No headers",
                 "",
@@ -2479,7 +2791,11 @@ impl ZenApiApp {
     }
 
     fn copy_websocket_log(&mut self, cx: &mut Context<Self>) {
-        if self.websocket_messages.is_empty() {
+        if self.busy {
+            return;
+        }
+
+        if !can_use_realtime_log_actions(self.busy, self.websocket_messages.len()) {
             self.set_response(
                 "No WebSocket log",
                 "",
@@ -2502,6 +2818,21 @@ impl ZenApiApp {
     }
 
     fn clear_websocket_log(&mut self, cx: &mut Context<Self>) {
+        if self.busy {
+            return;
+        }
+
+        if !can_use_realtime_log_actions(self.busy, self.websocket_messages.len()) {
+            self.set_response(
+                "No WebSocket log",
+                "",
+                ResponseTone::Neutral,
+                "There are no WebSocket messages to clear.",
+            );
+            cx.notify();
+            return;
+        }
+
         self.websocket_messages.clear();
         self.websocket_status = if self.websocket_running {
             "connected".to_string()
@@ -2518,7 +2849,11 @@ impl ZenApiApp {
     }
 
     fn copy_sse_log(&mut self, cx: &mut Context<Self>) {
-        if self.sse_events.is_empty() {
+        if self.busy {
+            return;
+        }
+
+        if !can_use_realtime_log_actions(self.busy, self.sse_events.len()) {
             self.set_response(
                 "No SSE log",
                 "",
@@ -2541,6 +2876,17 @@ impl ZenApiApp {
     }
 
     fn copy_response_body(&mut self, cx: &mut Context<Self>) {
+        if !can_copy_response_view(
+            self.busy,
+            self.response_view,
+            self.response_pretty_collapsed,
+            &self.response_body,
+            &self.response_raw_body,
+            &self.response_headers,
+        ) {
+            return;
+        }
+
         if let Some(text) = response_copy_text(
             self.response_view,
             self.response_pretty_collapsed,
@@ -2553,6 +2899,21 @@ impl ZenApiApp {
     }
 
     fn clear_sse_log(&mut self, cx: &mut Context<Self>) {
+        if self.busy {
+            return;
+        }
+
+        if !can_use_realtime_log_actions(self.busy, self.sse_events.len()) {
+            self.set_response(
+                "No SSE log",
+                "",
+                ResponseTone::Neutral,
+                "There are no SSE events to clear.",
+            );
+            cx.notify();
+            return;
+        }
+
         self.sse_events.clear();
         self.sse_last_event_id = None;
         self.sse_status = if self.sse_running {
@@ -2570,6 +2931,10 @@ impl ZenApiApp {
     }
 
     fn paste_headers_bulk(&mut self, cx: &mut Context<Self>) {
+        if !can_edit_request_configuration(self.busy) {
+            return;
+        }
+
         let Some(text) = cx.read_from_clipboard().and_then(|item| item.text()) else {
             self.set_response(
                 "Clipboard empty",
@@ -2608,6 +2973,10 @@ impl ZenApiApp {
         value: &'static str,
         cx: &mut Context<Self>,
     ) {
+        if !can_edit_request_configuration(self.busy) {
+            return;
+        }
+
         let headers = read_key_value_rows(&self.request_headers, cx);
         let headers = upsert_header_pair(&headers, name, value);
         set_key_value_pairs(&mut self.request_headers, headers, cx);
@@ -2622,6 +2991,10 @@ impl ZenApiApp {
 
     fn format_raw_json_body(&mut self, cx: &mut Context<Self>) {
         let body = self.request_body.read(cx).text();
+        if !can_format_request_raw_json(self.busy, self.raw_body_format, &body) {
+            return;
+        }
+
         match formatted_json_body(&body) {
             Ok(formatted) => {
                 self.request_body
@@ -2646,6 +3019,10 @@ impl ZenApiApp {
     }
 
     fn restore_history_entry(&mut self, id: u64, cx: &mut Context<Self>) {
+        if !can_restore_request_from_sidebar(self.busy) {
+            return;
+        }
+
         let Some(entry) = self.history.find(id).cloned() else {
             return;
         };
@@ -2677,6 +3054,11 @@ impl ZenApiApp {
             AuthMode::Bearer => {
                 let token = self.bearer_token.read(cx).text();
                 let headers = bearer_auth_pair(&token).into_iter().collect();
+                (headers, Vec::new())
+            }
+            AuthMode::OAuth2 => {
+                let token = self.oauth2_access_token.read(cx).text();
+                let headers = oauth2_access_token_pair(&token).into_iter().collect();
                 (headers, Vec::new())
             }
             AuthMode::Basic => {
@@ -2771,6 +3153,111 @@ impl ZenApiApp {
             .map(|environment| environment.variables.as_slice())
     }
 
+    fn add_key_value_row(&mut self, target: KeyValueEditorTarget, cx: &mut Context<Self>) {
+        if !can_add_key_value_row(self.busy, target, self.active_environment.is_some()) {
+            return;
+        }
+
+        let (key_placeholder, value_placeholder) = key_value_editor_add_placeholders(target);
+        let row = key_value_row_entity(cx, key_placeholder, value_placeholder);
+
+        match target {
+            KeyValueEditorTarget::QueryParams => self.query_params.push(row),
+            KeyValueEditorTarget::RequestHeaders => self.request_headers.push(row),
+            KeyValueEditorTarget::GlobalVariables => self.global_variables.push(row),
+            KeyValueEditorTarget::ActiveEnvironmentVariables => {
+                let Some(active_environment) = self.active_environment.as_deref() else {
+                    return;
+                };
+                let Some(environment) = self
+                    .environments
+                    .iter_mut()
+                    .find(|environment| environment.name == active_environment)
+                else {
+                    return;
+                };
+                environment.variables.push(row);
+            }
+            KeyValueEditorTarget::FormDataBody => self.form_data_body.push(row),
+            KeyValueEditorTarget::UrlEncodedBody => self.urlencoded_body.push(row),
+            KeyValueEditorTarget::WebSocketHeaders => self.websocket_headers.push(row),
+            KeyValueEditorTarget::SseHeaders => self.sse_headers.push(row),
+        }
+
+        cx.notify();
+    }
+
+    fn remove_key_value_row(
+        &mut self,
+        target: KeyValueEditorTarget,
+        index: usize,
+        cx: &mut Context<Self>,
+    ) {
+        if !can_remove_key_value_row(
+            self.busy,
+            target,
+            self.active_environment.is_some(),
+            self.key_value_row_count(target),
+            index,
+        ) {
+            return;
+        }
+
+        match target {
+            KeyValueEditorTarget::QueryParams => {
+                self.query_params.remove(index);
+            }
+            KeyValueEditorTarget::RequestHeaders => {
+                self.request_headers.remove(index);
+            }
+            KeyValueEditorTarget::GlobalVariables => {
+                self.global_variables.remove(index);
+            }
+            KeyValueEditorTarget::ActiveEnvironmentVariables => {
+                let Some(active_environment) = self.active_environment.as_deref() else {
+                    return;
+                };
+                let Some(environment) = self
+                    .environments
+                    .iter_mut()
+                    .find(|environment| environment.name == active_environment)
+                else {
+                    return;
+                };
+                environment.variables.remove(index);
+            }
+            KeyValueEditorTarget::FormDataBody => {
+                self.form_data_body.remove(index);
+            }
+            KeyValueEditorTarget::UrlEncodedBody => {
+                self.urlencoded_body.remove(index);
+            }
+            KeyValueEditorTarget::WebSocketHeaders => {
+                self.websocket_headers.remove(index);
+            }
+            KeyValueEditorTarget::SseHeaders => {
+                self.sse_headers.remove(index);
+            }
+        }
+
+        cx.notify();
+    }
+
+    fn key_value_row_count(&self, target: KeyValueEditorTarget) -> usize {
+        match target {
+            KeyValueEditorTarget::QueryParams => self.query_params.len(),
+            KeyValueEditorTarget::RequestHeaders => self.request_headers.len(),
+            KeyValueEditorTarget::GlobalVariables => self.global_variables.len(),
+            KeyValueEditorTarget::ActiveEnvironmentVariables => self
+                .active_environment_variables()
+                .map_or(0, |rows| rows.len()),
+            KeyValueEditorTarget::FormDataBody => self.form_data_body.len(),
+            KeyValueEditorTarget::UrlEncodedBody => self.urlencoded_body.len(),
+            KeyValueEditorTarget::WebSocketHeaders => self.websocket_headers.len(),
+            KeyValueEditorTarget::SseHeaders => self.sse_headers.len(),
+        }
+    }
+
     fn request_body_for_send(&self, cx: &mut Context<Self>) -> RequestBody {
         match self.request_body_mode {
             RequestBodyMode::None => RequestBody::None,
@@ -2838,44 +3325,55 @@ impl ZenApiApp {
         cx: &mut Context<Self>,
     ) {
         let width = event.bounds.right() - event.bounds.left();
-        if width <= px(0.) {
+        let width_px = width.as_f32();
+        if width_px <= 0.0 {
             return;
         }
 
-        let pointer_ratio =
-            ((event.event.position.x - event.bounds.left()) / width).clamp(0.0, 1.0);
-        match *event.drag(cx) {
-            WorkspaceSplitDrag::SidebarRequest => {
-                let (_, request_ratio, _) = self.workspace_ratios();
-                let max_sidebar = WORKSPACE_SIDEBAR_MAX_RATIO
-                    .min(1.0 - request_ratio - WORKSPACE_RESPONSE_MIN_RATIO)
-                    .max(WORKSPACE_SIDEBAR_MIN_RATIO);
-                self.workspace_sidebar_ratio =
-                    pointer_ratio.clamp(WORKSPACE_SIDEBAR_MIN_RATIO, max_sidebar);
-                self.workspace_request_ratio = request_ratio;
-            }
-            WorkspaceSplitDrag::RequestResponse => {
-                let (sidebar_ratio, _, _) = self.workspace_ratios();
-                let request_ratio = pointer_ratio - sidebar_ratio;
-                let max_request = WORKSPACE_REQUEST_MAX_RATIO
-                    .min(1.0 - sidebar_ratio - WORKSPACE_RESPONSE_MIN_RATIO)
-                    .max(WORKSPACE_REQUEST_MIN_RATIO);
-                self.workspace_sidebar_ratio = sidebar_ratio;
-                self.workspace_request_ratio =
-                    request_ratio.clamp(WORKSPACE_REQUEST_MIN_RATIO, max_request);
-            }
+        let pointer_ratio = quantize_workspace_split_ratio(
+            ((event.event.position.x - event.bounds.left()) / width).clamp(0.0, 1.0),
+            width_px,
+        );
+        let (current_sidebar, current_request, _) = self.workspace_ratios();
+        let next_pending = workspace_split_preview(
+            *event.drag(cx),
+            pointer_ratio,
+            current_sidebar,
+            current_request,
+        );
+        if workspace_split_pending_changed(self.workspace_split_pending, next_pending) {
+            // Keep pane layout stable during drag; the GPUI drag preview tracks the pointer.
+            self.workspace_split_pending = next_pending;
         }
-        cx.notify();
+    }
+
+    fn finish_workspace_split_resize(&mut self, cx: &mut Context<Self>) -> bool {
+        let Some(preview) = self.workspace_split_pending.take() else {
+            return false;
+        };
+        let (current_sidebar, current_request, _) = self.workspace_ratios();
+        if workspace_split_ratios_changed(
+            current_sidebar,
+            current_request,
+            preview.sidebar_ratio,
+            preview.request_ratio,
+        ) {
+            self.workspace_sidebar_ratio = preview.sidebar_ratio;
+            self.workspace_request_ratio = preview.request_ratio;
+            cx.notify();
+        }
+        true
     }
 
     fn reset_workspace_split(&mut self, cx: &mut Context<Self>) {
+        self.workspace_split_pending = None;
         self.workspace_sidebar_ratio = WORKSPACE_SIDEBAR_DEFAULT_RATIO;
         self.workspace_request_ratio = WORKSPACE_REQUEST_DEFAULT_RATIO;
         cx.notify();
     }
 
     fn method_selector(&self, cx: &mut Context<Self>) -> gpui::Div {
-        let enabled = !self.busy;
+        let enabled = can_select_request_method(self.busy);
         div()
             .relative()
             .flex()
@@ -2897,7 +3395,7 @@ impl ZenApiApp {
             .on_mouse_up(
                 MouseButton::Left,
                 cx.listener(|app, _event: &MouseUpEvent, _window, cx| {
-                    if !app.busy {
+                    if can_select_request_method(app.busy) {
                         app.method_menu_open = !app.method_menu_open;
                         app.import_popover_open = false;
                         app.codegen_menu_open = false;
@@ -2950,7 +3448,7 @@ impl ZenApiApp {
                     app.reset_workspace_split(cx);
                 }
             }))
-            .on_drag(split, |_, _, _, cx| cx.new(|_| gpui::Empty))
+            .on_drag(split, |_, _, _, cx| cx.new(|_| WorkspaceSplitDragPreview))
             .child(
                 div()
                     .absolute()
@@ -3205,9 +3703,11 @@ impl ZenApiApp {
             .on_mouse_up(
                 MouseButton::Left,
                 cx.listener(move |app, _event: &MouseUpEvent, _window, cx| {
-                    app.method = method.to_string();
-                    app.method_menu_open = false;
-                    cx.notify();
+                    if can_select_request_method(app.busy) {
+                        app.method = method.to_string();
+                        app.method_menu_open = false;
+                        cx.notify();
+                    }
                 }),
             )
             .child(method)
@@ -3257,7 +3757,7 @@ impl ZenApiApp {
             .on_mouse_up(
                 MouseButton::Left,
                 cx.listener(move |app, event, window, cx| {
-                    if enabled {
+                    if can_activate_render_enabled_control(enabled, app.busy) {
                         on_click(app, event, window, cx);
                     }
                 }),
@@ -3298,7 +3798,7 @@ impl ZenApiApp {
             .on_mouse_up(
                 MouseButton::Left,
                 cx.listener(move |app, event, window, cx| {
-                    if enabled {
+                    if can_activate_render_enabled_control(enabled, app.busy) {
                         on_click(app, event, window, cx);
                     }
                 }),
@@ -3307,11 +3807,11 @@ impl ZenApiApp {
     }
 
     fn request_send_segment(&self, cx: &mut Context<Self>) -> gpui::Div {
-        let enabled = !self.busy
-            && can_send_request(
-                &self.url.read(cx).text(),
-                &self.pre_request_script.read(cx).text(),
-            );
+        let enabled = can_send_request_shortcut(
+            self.busy,
+            &self.url.read(cx).text(),
+            &self.pre_request_script.read(cx).text(),
+        );
 
         div()
             .flex()
@@ -3325,7 +3825,7 @@ impl ZenApiApp {
             .border_l_1()
             .border_color(ui_border())
             .bg(if enabled {
-                ui_accent_surface()
+                ui_surface()
             } else {
                 ui_disabled_surface()
             })
@@ -3347,7 +3847,11 @@ impl ZenApiApp {
             .on_mouse_up(
                 MouseButton::Left,
                 cx.listener(move |app, _event: &MouseUpEvent, _window, cx| {
-                    if enabled {
+                    if can_send_request_shortcut(
+                        app.busy,
+                        &app.url.read(cx).text(),
+                        &app.pre_request_script.read(cx).text(),
+                    ) {
                         app.send_request(cx);
                     }
                 }),
@@ -3381,9 +3885,12 @@ impl ZenApiApp {
             .child(self.top_bar_action_button(
                 "Import",
                 TOP_BAR_ACTION_WIDTH,
-                true,
+                can_toggle_import_popover(self.busy),
                 ButtonTone::Neutral,
                 |app, _event, _window, cx| {
+                    if !can_toggle_import_popover(app.busy) {
+                        return;
+                    }
                     app.import_popover_open = !app.import_popover_open;
                     app.method_menu_open = false;
                     app.codegen_menu_open = false;
@@ -3473,19 +3980,19 @@ impl ZenApiApp {
             .border_color(ui_border())
             .bg(ui_sidebar_pane())
             .child(self.sidebar_section_button(
-                "Endpoints",
+                SIDEBAR_ROUTES_LABEL,
                 endpoints_count,
                 SidebarSection::Endpoints,
                 cx,
             ))
             .child(self.sidebar_section_button(
-                "Collections",
+                SIDEBAR_SAVED_LABEL,
                 collection_count,
                 SidebarSection::Collections,
                 cx,
             ))
             .child(self.sidebar_section_button(
-                "History",
+                SIDEBAR_HISTORY_LABEL,
                 history_count,
                 SidebarSection::History,
                 cx,
@@ -3574,6 +4081,7 @@ impl ZenApiApp {
     }
 
     fn render_endpoints_sidebar(&self, cx: &mut Context<Self>) -> gpui::Div {
+        let can_restore_request = can_restore_request_from_sidebar(self.busy);
         let rows = self
             .visible_routes
             .iter()
@@ -3584,6 +4092,7 @@ impl ZenApiApp {
                     route.method.clone(),
                     route.path.clone(),
                     route.summary.clone(),
+                    can_restore_request,
                     cx,
                 )
             })
@@ -3597,7 +4106,7 @@ impl ZenApiApp {
             .p_3()
             .gap_3()
             .child(sidebar_section_header(
-                "Endpoints",
+                SIDEBAR_ROUTES_LABEL,
                 sidebar_count_text(count),
             ))
             .child(bounded_text_input(self.route_filter.clone()))
@@ -3611,9 +4120,9 @@ impl ZenApiApp {
                     .when(self.visible_routes.is_empty(), |list| {
                         list.child(empty_state_row(
                             if self.routes.is_empty() {
-                                "No imported routes"
+                                SIDEBAR_EMPTY_ROUTES_LABEL
                             } else {
-                                "No matching routes"
+                                SIDEBAR_EMPTY_MATCHES_LABEL
                             },
                             EMPTY_STATE_ROW_HEIGHT,
                         ))
@@ -3623,6 +4132,8 @@ impl ZenApiApp {
 
     fn render_collection_section(&self, cx: &mut Context<Self>) -> gpui::Div {
         let can_export = can_export_collection(&self.collection);
+        let can_restore_request = can_restore_request_from_sidebar(self.busy);
+        let can_mutate_collection_tree = can_mutate_collection(self.busy);
         let has_collection_path = text_input_has_text(&self.collection_path, cx);
         let can_save_current_request = can_save_current_request_to_collection(
             &self.url.read(cx).text(),
@@ -3634,6 +4145,7 @@ impl ZenApiApp {
             self.expanded_collection_nodes
                 .iter()
                 .any(|node| node == "collection"),
+            can_mutate_collection_tree,
             cx,
         )];
 
@@ -3648,6 +4160,8 @@ impl ZenApiApp {
                 "collection",
                 1,
                 &self.expanded_collection_nodes,
+                can_restore_request,
+                can_mutate_collection_tree,
                 cx,
             );
         }
@@ -3660,7 +4174,7 @@ impl ZenApiApp {
             .p_3()
             .gap_3()
             .child(sidebar_section_header(
-                "Collections",
+                SIDEBAR_SAVED_LABEL,
                 sidebar_status_text(self.collection_status.clone()),
             ))
             .child(bounded_text_input(self.collection_path.clone()))
@@ -3674,14 +4188,14 @@ impl ZenApiApp {
                     .child(
                         panel_button_row()
                             .child(self.sidebar_fluid_button(
-                                "Import",
+                                COLLECTION_IMPORT_LABEL,
                                 has_collection_path,
                                 ButtonTone::Neutral,
                                 |app, _event, _window, cx| app.import_collection(cx),
                                 cx,
                             ))
                             .child(self.sidebar_fluid_button(
-                                "Save",
+                                COLLECTION_SAVE_LABEL,
                                 can_save_current_request,
                                 ButtonTone::Primary,
                                 |app, _event, _window, cx| {
@@ -3693,14 +4207,14 @@ impl ZenApiApp {
                     .child(
                         panel_button_row()
                             .child(self.sidebar_fluid_button(
-                                "Export",
+                                COLLECTION_EXPORT_LABEL,
                                 can_export && has_collection_path,
                                 ButtonTone::Neutral,
                                 |app, _event, _window, cx| app.export_collection(false, cx),
                                 cx,
                             ))
                             .child(self.sidebar_fluid_button(
-                                "Postman",
+                                COLLECTION_POSTMAN_LABEL,
                                 can_export && has_collection_path,
                                 ButtonTone::Neutral,
                                 |app, _event, _window, cx| app.export_collection(true, cx),
@@ -3722,7 +4236,7 @@ impl ZenApiApp {
                     .children(rows)
                     .when(self.collection.items.is_empty(), |list| {
                         list.child(empty_state_row(
-                            "No collection requests",
+                            SIDEBAR_EMPTY_SAVED_LABEL,
                             COLLECTION_TREE_ROOT_ROW_HEIGHT,
                         ))
                     }),
@@ -3741,9 +4255,14 @@ impl ZenApiApp {
         menu: CollectionContextMenu,
         cx: &mut Context<Self>,
     ) -> impl IntoElement {
-        let can_mutate_item = menu.kind != CollectionNodeKind::Root;
-        let can_rename =
-            can_rename_collection_target(menu.kind, &self.collection_rename_input.read(cx).text());
+        let can_create_child = can_use_collection_context_action(self.busy, true);
+        let can_mutate_item =
+            can_use_collection_context_action(self.busy, menu.kind != CollectionNodeKind::Root);
+        let can_rename = can_submit_collection_rename(
+            self.busy,
+            Some(menu.kind),
+            &self.collection_rename_input.read(cx).text(),
+        );
         let new_request_target = menu.node_id.clone();
         let new_folder_target = menu.node_id.clone();
         let copy_target = menu.node_id.clone();
@@ -3777,13 +4296,19 @@ impl ZenApiApp {
                             .child(menu.label),
                     )
                     .child(
-                        sidebar_small_button("Close", 44., 22., true, ButtonTone::Neutral)
-                            .on_mouse_up(
-                                MouseButton::Left,
-                                cx.listener(|app, _event: &MouseUpEvent, _window, cx| {
-                                    app.close_collection_menu(cx);
-                                }),
-                            ),
+                        sidebar_small_button(
+                            COLLECTION_MENU_CLOSE_LABEL,
+                            28.,
+                            22.,
+                            true,
+                            ButtonTone::Neutral,
+                        )
+                        .on_mouse_up(
+                            MouseButton::Left,
+                            cx.listener(|app, _event: &MouseUpEvent, _window, cx| {
+                                app.close_collection_menu(cx);
+                            }),
+                        ),
                     ),
             )
             .child(
@@ -3796,8 +4321,8 @@ impl ZenApiApp {
                     .child(
                         panel_button_row()
                             .child(self.sidebar_fluid_button(
-                                "New Req",
-                                true,
+                                COLLECTION_MENU_NEW_REQUEST_LABEL,
+                                can_create_child,
                                 ButtonTone::Neutral,
                                 move |app, _event, _window, cx| {
                                     app.add_collection_request(new_request_target.clone(), cx);
@@ -3805,8 +4330,8 @@ impl ZenApiApp {
                                 cx,
                             ))
                             .child(self.sidebar_fluid_button(
-                                "New Dir",
-                                true,
+                                COLLECTION_MENU_NEW_FOLDER_LABEL,
+                                can_create_child,
                                 ButtonTone::Neutral,
                                 move |app, _event, _window, cx| {
                                     app.add_collection_folder(new_folder_target.clone(), cx);
@@ -3817,7 +4342,7 @@ impl ZenApiApp {
                     .child(
                         panel_button_row()
                             .child(self.sidebar_fluid_button(
-                                "Copy",
+                                COLLECTION_MENU_COPY_LABEL,
                                 can_mutate_item,
                                 ButtonTone::Neutral,
                                 move |app, _event, _window, cx| {
@@ -3826,7 +4351,7 @@ impl ZenApiApp {
                                 cx,
                             ))
                             .child(self.sidebar_fluid_button(
-                                "Delete",
+                                COLLECTION_MENU_DELETE_LABEL,
                                 can_mutate_item,
                                 ButtonTone::Warning,
                                 move |app, _event, _window, cx| {
@@ -3845,7 +4370,7 @@ impl ZenApiApp {
                             .child(bounded_text_input(self.collection_rename_input.clone())),
                     )
                     .child(self.sidebar_action_button(
-                        "Rename",
+                        COLLECTION_MENU_RENAME_LABEL,
                         70.,
                         can_rename,
                         ButtonTone::Primary,
@@ -3888,7 +4413,7 @@ impl ZenApiApp {
             .on_mouse_up(
                 MouseButton::Left,
                 cx.listener(move |app, event, window, cx| {
-                    if enabled {
+                    if can_activate_render_enabled_control(enabled, app.busy) {
                         on_click(app, event, window, cx);
                     }
                 }),
@@ -3927,7 +4452,7 @@ impl ZenApiApp {
             .on_mouse_up(
                 MouseButton::Left,
                 cx.listener(move |app, event, window, cx| {
-                    if enabled {
+                    if can_activate_render_enabled_control(enabled, app.busy) {
                         on_click(app, event, window, cx);
                     }
                 }),
@@ -3966,7 +4491,7 @@ impl ZenApiApp {
             .on_mouse_up(
                 MouseButton::Left,
                 cx.listener(move |app, event, window, cx| {
-                    if enabled {
+                    if can_activate_render_enabled_control(enabled, app.busy) {
                         on_click(app, event, window, cx);
                     }
                 }),
@@ -3976,12 +4501,14 @@ impl ZenApiApp {
 
     fn render_history_section(&self, cx: &mut Context<Self>) -> gpui::Div {
         let filtered_entries = self.history.filtered(&self.history_query);
+        let can_restore_request = can_restore_request_from_sidebar(self.busy);
         let history_total = self.history.entries().len();
         let visible_count = filtered_entries.len();
         let has_history = history_total > 0;
         let has_matches = visible_count > 0;
         let count = filtered_count_label(history_total, visible_count);
-        let clear_enabled = has_history && !self.busy;
+        let clear_enabled = can_clear_history(self.busy, history_total);
+        let delete_enabled = can_delete_history_entry(self.busy);
         let rows = filtered_entries
             .into_iter()
             .map(|entry| {
@@ -3990,6 +4517,8 @@ impl ZenApiApp {
                     entry.request.method.clone(),
                     entry.request.url.clone(),
                     entry.response.status.clone(),
+                    can_restore_request,
+                    delete_enabled,
                     cx,
                 )
             })
@@ -4002,7 +4531,7 @@ impl ZenApiApp {
             .p_3()
             .gap_3()
             .child(sidebar_section_header(
-                "History",
+                SIDEBAR_HISTORY_LABEL,
                 panel_button_row()
                     .justify_end()
                     .child(sidebar_count_text(count))
@@ -4017,7 +4546,7 @@ impl ZenApiApp {
                         .on_mouse_up(
                             MouseButton::Left,
                             cx.listener(move |app, _event: &MouseUpEvent, _window, cx| {
-                                if clear_enabled {
+                                if can_clear_history(app.busy, app.history.entries().len()) {
                                     app.history.clear();
                                     cx.notify();
                                 }
@@ -4035,13 +4564,13 @@ impl ZenApiApp {
                     .children(rows)
                     .when(!has_history, |list| {
                         list.child(empty_state_row(
-                            "No request history",
+                            SIDEBAR_EMPTY_HISTORY_LABEL,
                             EMPTY_STATE_ROW_HEIGHT,
                         ))
                     })
                     .when(has_history && !has_matches, |list| {
                         list.child(empty_state_row(
-                            "No matching history",
+                            SIDEBAR_EMPTY_MATCHES_LABEL,
                             EMPTY_STATE_ROW_HEIGHT,
                         ))
                     }),
@@ -4054,6 +4583,7 @@ impl ZenApiApp {
         method: String,
         path: String,
         summary: String,
+        enabled: bool,
         cx: &mut Context<Self>,
     ) -> impl IntoElement + 'static + use<> {
         let selected = self.selected_route == Some(index);
@@ -4074,18 +4604,27 @@ impl ZenApiApp {
                 ui_surface_muted()
             })
             .bg(if selected {
-                ui_accent_surface()
+                ui_surface()
             } else {
                 ui_surface_muted()
             })
             .px_2()
             .py_1()
-            .cursor_pointer()
-            .hover(|row| if selected { row } else { row.bg(ui_hover()) })
+            .opacity(control_opacity(enabled))
+            .when(enabled, |row| row.cursor_pointer())
+            .hover(move |row| {
+                if enabled && !selected {
+                    row.bg(ui_hover())
+                } else {
+                    row
+                }
+            })
             .on_mouse_up(
                 MouseButton::Left,
                 cx.listener(move |app, _event: &MouseUpEvent, _window, cx| {
-                    app.select_route(index, cx);
+                    if can_restore_request_from_sidebar(app.busy) {
+                        app.select_route(index, cx);
+                    }
                 }),
             )
             .child(
@@ -4132,6 +4671,19 @@ impl ZenApiApp {
             .bg(ui_workspace_gutter())
             .overflow_hidden()
             .on_drag_move::<WorkspaceSplitDrag>(cx.listener(Self::resize_workspace_split))
+            .capture_any_mouse_up(cx.listener(|app, event: &MouseUpEvent, _window, cx| {
+                if event.button == MouseButton::Left && app.finish_workspace_split_resize(cx) {
+                    cx.stop_propagation();
+                }
+            }))
+            .on_mouse_up_out(
+                MouseButton::Left,
+                cx.listener(|app, _event: &MouseUpEvent, _window, cx| {
+                    if app.finish_workspace_split_resize(cx) {
+                        cx.stop_propagation();
+                    }
+                }),
+            )
             .child(
                 div()
                     .h_full()
@@ -4298,7 +4850,12 @@ impl ZenApiApp {
             .gap_3()
             .when(active_tab == RequestPaneTab::Params, |body| {
                 body.child(self.render_variables_panel(cx))
-                    .child(key_value_editor("Query Params", &self.query_params))
+                    .child(self.key_value_editor(
+                        PARAMS_PANEL_TITLE,
+                        &self.query_params,
+                        KeyValueEditorTarget::QueryParams,
+                        cx,
+                    ))
             })
             .when(active_tab == RequestPaneTab::Headers, |body| {
                 body.child(self.render_headers_editor(cx))
@@ -4375,9 +4932,12 @@ impl ZenApiApp {
     }
 
     fn render_websocket_panel(&self, cx: &mut Context<Self>) -> impl IntoElement {
-        let has_websocket_url = text_input_has_text(&self.websocket_url, cx);
+        let websocket_url = self.websocket_url.read(cx).text();
+        let can_connect_websocket =
+            can_connect_websocket(self.busy, self.websocket_running, &websocket_url);
         let websocket_message_text = self.websocket_message.read(cx).text();
         let can_send_websocket = can_send_websocket_message(
+            self.busy,
             self.websocket_running,
             self.websocket_message_mode,
             &websocket_message_text,
@@ -4389,11 +4949,6 @@ impl ZenApiApp {
             .cloned()
             .map(websocket_log_row)
             .collect::<Vec<_>>();
-        let input_hint = match self.websocket_message_mode {
-            WebSocketMessageMode::Text => "message text",
-            WebSocketMessageMode::BinaryHex => "hex bytes, e.g. 00 ff 7a",
-        };
-
         div()
             .flex()
             .flex_col()
@@ -4413,7 +4968,7 @@ impl ZenApiApp {
                             .text_size(px(12.))
                             .font_weight(FontWeight::BOLD)
                             .text_color(ui_text_primary())
-                            .child("WebSocket"),
+                            .child(REALTIME_WEBSOCKET_TITLE),
                     )
                     .child(panel_status_text(
                         self.websocket_status.clone(),
@@ -4434,22 +4989,22 @@ impl ZenApiApp {
                     .child(
                         panel_button_row()
                             .child(self.panel_action_button(
-                                "Connect",
-                                has_websocket_url && !self.websocket_running,
+                                REALTIME_WEBSOCKET_CONNECT_LABEL,
+                                can_connect_websocket,
                                 ButtonTone::Primary,
                                 |app, _event, _window, cx| app.connect_websocket(cx),
                                 cx,
                             ))
                             .child(self.panel_action_button(
-                                "Send",
+                                REALTIME_WEBSOCKET_SEND_LABEL,
                                 can_send_websocket,
                                 ButtonTone::Neutral,
                                 |app, _event, _window, cx| app.send_websocket_message(cx),
                                 cx,
                             ))
                             .child(self.panel_action_button(
-                                "Close",
-                                self.websocket_running,
+                                REALTIME_WEBSOCKET_CLOSE_LABEL,
+                                can_close_websocket(self.busy, self.websocket_running),
                                 ButtonTone::Warning,
                                 |app, _event, _window, cx| app.close_websocket(cx),
                                 cx,
@@ -4457,50 +5012,40 @@ impl ZenApiApp {
                     ),
             )
             .child(bounded_text_input(self.websocket_protocols.clone()))
-            .child(key_value_editor(
-                "WebSocket Headers",
+            .child(self.key_value_editor(
+                REALTIME_WEBSOCKET_HEADERS_TITLE,
                 &self.websocket_headers,
+                KeyValueEditorTarget::WebSocketHeaders,
+                cx,
             ))
             .child(
-                div()
-                    .flex()
-                    .flex_col()
-                    .min_w_0()
-                    .gap_2()
-                    .child(
-                        panel_button_row()
-                            .child(self.websocket_message_mode_button(
-                                "Text",
-                                WebSocketMessageMode::Text,
-                                cx,
-                            ))
-                            .child(self.websocket_message_mode_button(
-                                "Binary Hex",
-                                WebSocketMessageMode::BinaryHex,
-                                cx,
-                            )),
-                    )
-                    .child(
-                        div()
-                            .truncate()
-                            .text_size(px(12.))
-                            .text_color(ui_text_body())
-                            .child(input_hint),
-                    ),
+                div().flex().flex_col().min_w_0().gap_2().child(
+                    panel_button_row()
+                        .child(self.websocket_message_mode_button(
+                            REALTIME_WEBSOCKET_TEXT_LABEL,
+                            WebSocketMessageMode::Text,
+                            cx,
+                        ))
+                        .child(self.websocket_message_mode_button(
+                            REALTIME_WEBSOCKET_BINARY_LABEL,
+                            WebSocketMessageMode::BinaryHex,
+                            cx,
+                        )),
+                ),
             )
             .child(bounded_text_input(self.websocket_message.clone()))
             .child(
                 panel_button_row()
                     .child(self.panel_action_button(
-                        "Copy Log",
-                        !self.websocket_messages.is_empty(),
+                        "Copy",
+                        can_use_realtime_log_actions(self.busy, self.websocket_messages.len()),
                         ButtonTone::Neutral,
                         |app, _event, _window, cx| app.copy_websocket_log(cx),
                         cx,
                     ))
                     .child(self.panel_action_button(
-                        "Clear Log",
-                        !self.websocket_messages.is_empty(),
+                        "Clear",
+                        can_use_realtime_log_actions(self.busy, self.websocket_messages.len()),
                         ButtonTone::Warning,
                         |app, _event, _window, cx| app.clear_websocket_log(cx),
                         cx,
@@ -4519,7 +5064,7 @@ impl ZenApiApp {
                     .children(rows)
                     .when(self.websocket_messages.is_empty(), |list| {
                         list.child(empty_state_row(
-                            "No WebSocket messages",
+                            REALTIME_WEBSOCKET_EMPTY_LABEL,
                             EMPTY_STATE_ROW_HEIGHT,
                         ))
                     }),
@@ -4527,7 +5072,8 @@ impl ZenApiApp {
     }
 
     fn render_sse_panel(&self, cx: &mut Context<Self>) -> impl IntoElement {
-        let has_sse_url = text_input_has_text(&self.sse_url, cx);
+        let sse_url = self.sse_url.read(cx).text();
+        let can_start_sse = can_start_sse(self.busy, self.sse_running, &sse_url);
         let rows = self
             .sse_events
             .iter()
@@ -4555,7 +5101,7 @@ impl ZenApiApp {
                             .text_size(px(12.))
                             .font_weight(FontWeight::BOLD)
                             .text_color(ui_text_primary())
-                            .child("SSE"),
+                            .child(REALTIME_SSE_TITLE),
                     )
                     .child(panel_status_text(
                         self.sse_status.clone(),
@@ -4576,41 +5122,49 @@ impl ZenApiApp {
                     .child(
                         panel_button_row()
                             .child(self.panel_action_button(
-                                "Fetch",
-                                has_sse_url && !self.sse_running,
+                                REALTIME_SSE_FETCH_LABEL,
+                                can_start_sse,
                                 ButtonTone::Primary,
                                 |app, _event, _window, cx| app.fetch_sse_events(cx),
                                 cx,
                             ))
                             .child(self.panel_action_button(
-                                "Subscribe",
-                                has_sse_url && !self.sse_running,
+                                REALTIME_SSE_SUBSCRIBE_LABEL,
+                                can_start_sse,
                                 ButtonTone::Neutral,
                                 |app, _event, _window, cx| app.subscribe_sse_events(cx),
                                 cx,
                             ))
                             .child(self.panel_action_button(
-                                "Stop",
-                                self.sse_subscription.is_some(),
+                                REALTIME_SSE_STOP_LABEL,
+                                can_stop_sse_subscription(
+                                    self.busy,
+                                    self.sse_subscription.is_some(),
+                                ),
                                 ButtonTone::Warning,
                                 |app, _event, _window, cx| app.stop_sse_subscription(cx),
                                 cx,
                             )),
                     ),
             )
-            .child(key_value_editor("SSE Headers", &self.sse_headers))
+            .child(self.key_value_editor(
+                REALTIME_SSE_HEADERS_TITLE,
+                &self.sse_headers,
+                KeyValueEditorTarget::SseHeaders,
+                cx,
+            ))
             .child(
                 panel_button_row()
                     .child(self.panel_action_button(
-                        "Copy Log",
-                        !self.sse_events.is_empty(),
+                        "Copy",
+                        can_use_realtime_log_actions(self.busy, self.sse_events.len()),
                         ButtonTone::Neutral,
                         |app, _event, _window, cx| app.copy_sse_log(cx),
                         cx,
                     ))
                     .child(self.panel_action_button(
-                        "Clear Log",
-                        !self.sse_events.is_empty(),
+                        "Clear",
+                        can_use_realtime_log_actions(self.busy, self.sse_events.len()),
                         ButtonTone::Warning,
                         |app, _event, _window, cx| app.clear_sse_log(cx),
                         cx,
@@ -4628,7 +5182,10 @@ impl ZenApiApp {
                     .bg(ui_surface())
                     .children(rows)
                     .when(self.sse_events.is_empty(), |list| {
-                        list.child(empty_state_row("No SSE events", EMPTY_STATE_ROW_HEIGHT))
+                        list.child(empty_state_row(
+                            REALTIME_SSE_EMPTY_LABEL,
+                            EMPTY_STATE_ROW_HEIGHT,
+                        ))
                     }),
             )
     }
@@ -4644,7 +5201,9 @@ impl ZenApiApp {
             .request_assertions
             .iter()
             .enumerate()
-            .map(|(index, row)| assertion_editor_row(index, row, cx))
+            .map(|(index, row)| {
+                assertion_editor_row(index, row, self.request_assertions.len(), self.busy, cx)
+            })
             .collect::<Vec<_>>();
         let meta = assertion_meta(&self.last_assertion_results).unwrap_or_else(|| {
             format!(
@@ -4672,26 +5231,21 @@ impl ZenApiApp {
                             .text_size(px(12.))
                             .font_weight(FontWeight::BOLD)
                             .text_color(ui_text_primary())
-                            .child("Tests"),
+                            .child(TESTS_PANEL_TITLE),
                     )
-                    .child(panel_status_text(meta, ui_text_body())),
-            )
-            .child(
-                panel_button_row()
-                    .child(self.panel_action_button(
-                        "Add Test",
-                        true,
-                        ButtonTone::Neutral,
-                        |app, _event, _window, cx| app.add_response_assertion_row(cx),
-                        cx,
-                    ))
-                    .child(self.panel_action_button(
-                        "Clear Results",
-                        !self.last_assertion_results.is_empty(),
-                        ButtonTone::Neutral,
-                        |app, _event, _window, cx| app.clear_response_assertion_results(cx),
-                        cx,
-                    )),
+                    .child(
+                        div()
+                            .flex()
+                            .items_center()
+                            .justify_end()
+                            .min_w_0()
+                            .gap_2()
+                            .child(panel_status_text(meta, ui_text_body()))
+                            .when(!self.last_assertion_results.is_empty(), |actions| {
+                                actions.child(self.response_assertions_clear_button(cx))
+                            })
+                            .child(self.response_assertions_add_button(cx)),
+                    ),
             )
             .child(
                 div()
@@ -4707,16 +5261,26 @@ impl ZenApiApp {
                         div()
                             .w(px(TEST_ASSERTION_NAME_COLUMN_WIDTH))
                             .flex_shrink_0()
-                            .child("Name"),
+                            .child(TEST_ASSERTION_NAME_HEADER),
                     )
                     .child(
                         div()
                             .w(px(TEST_ASSERTION_KIND_COLUMN_WIDTH))
                             .flex_shrink_0()
-                            .child("Kind"),
+                            .child(TEST_ASSERTION_KIND_HEADER),
                     )
-                    .child(div().flex_1().min_w_0().child("Target"))
-                    .child(div().flex_1().min_w_0().child("Expected")),
+                    .child(div().flex_1().min_w_0().child(TEST_ASSERTION_TARGET_HEADER))
+                    .child(
+                        div()
+                            .flex_1()
+                            .min_w_0()
+                            .child(TEST_ASSERTION_EXPECTED_HEADER),
+                    )
+                    .child(
+                        div()
+                            .w(px(KEY_VALUE_ROW_ACTION_BUTTON_WIDTH))
+                            .flex_shrink_0(),
+                    ),
             )
             .child(
                 div()
@@ -4740,6 +5304,69 @@ impl ZenApiApp {
                         .children(result_rows),
                 )
             })
+    }
+
+    fn response_assertions_add_button(&self, cx: &mut Context<Self>) -> gpui::Div {
+        self.compact_action_button(
+            "+",
+            KEY_VALUE_ROW_ACTION_BUTTON_WIDTH,
+            can_edit_request_configuration(self.busy),
+            ButtonTone::Neutral,
+            |app, _event, _window, cx| app.add_response_assertion_row(cx),
+            cx,
+        )
+    }
+
+    fn response_assertions_clear_button(&self, cx: &mut Context<Self>) -> gpui::Div {
+        self.compact_action_button(
+            "Clear",
+            TESTS_CLEAR_RESULTS_BUTTON_WIDTH,
+            can_clear_response_assertion_results(self.busy, self.last_assertion_results.len()),
+            ButtonTone::Neutral,
+            |app, _event, _window, cx| app.clear_response_assertion_results(cx),
+            cx,
+        )
+    }
+
+    fn compact_action_button(
+        &self,
+        label: &'static str,
+        width: f32,
+        enabled: bool,
+        tone: ButtonTone,
+        on_click: impl Fn(&mut Self, &MouseUpEvent, &mut Window, &mut Context<Self>) + 'static,
+        cx: &mut Context<Self>,
+    ) -> gpui::Div {
+        let enabled = enabled && !self.busy;
+        let colors = tone.colors(enabled);
+
+        div()
+            .flex()
+            .items_center()
+            .justify_center()
+            .h(px(COMPACT_CONTROL_HEIGHT))
+            .w(px(width))
+            .flex_shrink_0()
+            .min_w_0()
+            .overflow_hidden()
+            .rounded(px(5.))
+            .border_1()
+            .border_color(colors.border)
+            .bg(colors.background)
+            .text_size(px(11.))
+            .font_weight(FontWeight::BOLD)
+            .text_color(colors.text)
+            .opacity(control_opacity(enabled))
+            .when(enabled, |button| button.cursor_pointer())
+            .on_mouse_up(
+                MouseButton::Left,
+                cx.listener(move |app, event, window, cx| {
+                    if can_activate_render_enabled_control(enabled, app.busy) {
+                        on_click(app, event, window, cx);
+                    }
+                }),
+            )
+            .child(div().min_w_0().truncate().child(label))
     }
 
     fn render_collection_runner(&self, cx: &mut Context<Self>) -> impl IntoElement {
@@ -4787,14 +5414,14 @@ impl ZenApiApp {
                 panel_button_row()
                     .child(
                         flexible_toggle_enabled(
-                            "Stop on fail",
+                            RUNNER_STOP_ON_FAILURE_LABEL,
                             self.runner_stop_on_failure,
                             stop_toggle_enabled,
                         )
                         .on_mouse_up(
                             MouseButton::Left,
                             cx.listener(move |app, _event: &MouseUpEvent, _window, cx| {
-                                if stop_toggle_enabled {
+                                if runner_stop_toggle_enabled(app.runner_running, app.busy) {
                                     app.runner_stop_on_failure = !app.runner_stop_on_failure;
                                     cx.notify();
                                 }
@@ -4802,8 +5429,8 @@ impl ZenApiApp {
                         ),
                     )
                     .child(self.panel_action_button(
-                        "Run All",
-                        total > 0 && !self.runner_running,
+                        RUNNER_RUN_ALL_LABEL,
+                        can_run_collection_runner(total, self.runner_running, self.busy),
                         ButtonTone::Primary,
                         |app, _event, _window, cx| app.run_collection_runner(cx),
                         cx,
@@ -4823,9 +5450,9 @@ impl ZenApiApp {
                     .when(self.runner_results.is_empty(), |list| {
                         list.child(empty_state_row(
                             if total == 0 {
-                                "No collection requests"
+                                RUNNER_EMPTY_REQUESTS_LABEL
                             } else {
-                                "No runner results"
+                                RUNNER_EMPTY_RESULTS_LABEL
                             },
                             EMPTY_STATE_ROW_HEIGHT,
                         ))
@@ -4875,6 +5502,8 @@ impl ZenApiApp {
 
     fn render_headers_editor(&self, cx: &mut Context<Self>) -> impl IntoElement {
         let has_request_headers = has_key_value_rows(&self.request_headers, cx);
+        let can_edit_request = can_edit_request_configuration(self.busy);
+        let can_copy_bulk_headers = can_copy_headers_bulk(self.busy, has_request_headers);
 
         div()
             .flex()
@@ -4882,7 +5511,12 @@ impl ZenApiApp {
             .min_w_0()
             .overflow_hidden()
             .gap_2()
-            .child(key_value_editor("Headers", &self.request_headers))
+            .child(self.key_value_editor(
+                "Headers",
+                &self.request_headers,
+                KeyValueEditorTarget::RequestHeaders,
+                cx,
+            ))
             .child(
                 div()
                     .flex()
@@ -4892,15 +5526,15 @@ impl ZenApiApp {
                     .child(
                         panel_button_row()
                             .child(self.panel_action_button(
-                                "Copy Bulk",
-                                has_request_headers,
+                                HEADER_COPY_BULK_LABEL,
+                                can_copy_bulk_headers,
                                 ButtonTone::Neutral,
                                 |app, _event, _window, cx| app.copy_headers_bulk(cx),
                                 cx,
                             ))
                             .child(self.panel_action_button(
-                                "Paste Bulk",
-                                true,
+                                HEADER_PASTE_BULK_LABEL,
+                                can_edit_request,
                                 ButtonTone::Primary,
                                 |app, _event, _window, cx| app.paste_headers_bulk(cx),
                                 cx,
@@ -4909,8 +5543,8 @@ impl ZenApiApp {
                     .child(
                         panel_button_row()
                             .child(self.panel_action_button(
-                                "Accept JSON",
-                                true,
+                                HEADER_ACCEPT_JSON_LABEL,
+                                can_edit_request,
                                 ButtonTone::Neutral,
                                 |app, _event, _window, cx| {
                                     app.apply_header_preset("Accept", "application/json", cx)
@@ -4918,8 +5552,8 @@ impl ZenApiApp {
                                 cx,
                             ))
                             .child(self.panel_action_button(
-                                "Content JSON",
-                                true,
+                                HEADER_CONTENT_JSON_LABEL,
+                                can_edit_request,
                                 ButtonTone::Neutral,
                                 |app, _event, _window, cx| {
                                     app.apply_header_preset("Content-Type", "application/json", cx)
@@ -4927,21 +5561,14 @@ impl ZenApiApp {
                                 cx,
                             ))
                             .child(self.panel_action_button(
-                                "Bearer Auth",
-                                true,
+                                HEADER_BEARER_AUTH_LABEL,
+                                can_edit_request,
                                 ButtonTone::Neutral,
                                 |app, _event, _window, cx| {
                                     app.apply_header_preset("Authorization", "Bearer {{token}}", cx)
                                 },
                                 cx,
                             )),
-                    )
-                    .child(
-                        div()
-                            .truncate()
-                            .text_size(px(12.))
-                            .text_color(ui_text_body())
-                            .child("Key: Value per line; presets update existing header names"),
                     ),
             )
     }
@@ -4953,7 +5580,8 @@ impl ZenApiApp {
             .map(|environment| self.environment_button(environment.name.clone(), cx))
             .collect::<Vec<_>>();
         let active_environment = self.active_environment.as_deref().unwrap_or("none");
-        let can_add_environment = can_add_environment(&self.environment_name_input.read(cx).text());
+        let can_add_environment =
+            can_submit_environment_add(self.busy, &self.environment_name_input.read(cx).text());
 
         div()
             .flex()
@@ -4966,7 +5594,7 @@ impl ZenApiApp {
                     .text_size(px(12.))
                     .font_weight(FontWeight::BOLD)
                     .text_color(ui_text_primary())
-                    .child("Variables"),
+                    .child(VARIABLES_PANEL_TITLE),
             )
             .child(
                 div()
@@ -4979,7 +5607,7 @@ impl ZenApiApp {
                             .text_size(px(12.))
                             .font_weight(FontWeight::BOLD)
                             .text_color(ui_text_body())
-                            .child("Environment"),
+                            .child(VARIABLES_ENV_LABEL),
                     )
                     .child(
                         div()
@@ -4997,7 +5625,7 @@ impl ZenApiApp {
                     .flex_col()
                     .min_w_0()
                     .gap_1()
-                    .child(self.environment_button("No Env".to_string(), cx))
+                    .child(self.environment_button(VARIABLES_NO_ENV_LABEL.to_string(), cx))
                     .children(environment_buttons),
             )
             .child(
@@ -5010,39 +5638,56 @@ impl ZenApiApp {
                     .child(
                         panel_button_row()
                             .child(self.panel_action_button(
-                                "Add Env",
+                                VARIABLES_ADD_ENV_LABEL,
                                 can_add_environment,
                                 ButtonTone::Neutral,
                                 |app, _event, _window, cx| app.add_environment(cx),
                                 cx,
                             ))
                             .child(self.panel_action_button(
-                                "Delete",
-                                self.active_environment.is_some(),
+                                VARIABLES_DELETE_ENV_LABEL,
+                                can_delete_environment(
+                                    self.busy,
+                                    self.active_environment.is_some(),
+                                ),
                                 ButtonTone::Warning,
                                 |app, _event, _window, cx| app.delete_active_environment(cx),
                                 cx,
                             )),
                     ),
             )
-            .child(key_value_editor("Global Variables", &self.global_variables))
+            .child(self.key_value_editor(
+                VARIABLES_GLOBAL_TITLE,
+                &self.global_variables,
+                KeyValueEditorTarget::GlobalVariables,
+                cx,
+            ))
             .when_some(self.active_environment_variables(), |panel, variables| {
-                panel.child(key_value_editor("Environment Variables", variables))
+                panel.child(self.key_value_editor(
+                    VARIABLES_ENV_TITLE,
+                    variables,
+                    KeyValueEditorTarget::ActiveEnvironmentVariables,
+                    cx,
+                ))
             })
     }
 
     fn environment_button(&self, label: String, cx: &mut Context<Self>) -> gpui::Div {
-        let environment = if label == "No Env" {
+        let environment = if label == VARIABLES_NO_ENV_LABEL {
             None
         } else {
             Some(label.clone())
         };
         let active = self.active_environment == environment;
-        full_width_toggle(label, active).on_mouse_up(
+        let enabled = can_edit_request_configuration(self.busy);
+
+        full_width_toggle_enabled(label, active, enabled).on_mouse_up(
             MouseButton::Left,
             cx.listener(move |app, _event: &MouseUpEvent, _window, cx| {
-                app.active_environment = environment.clone();
-                cx.notify();
+                if can_edit_request_configuration(app.busy) {
+                    app.active_environment = environment.clone();
+                    cx.notify();
+                }
             }),
         )
     }
@@ -5059,7 +5704,7 @@ impl ZenApiApp {
                     .text_size(px(12.))
                     .font_weight(FontWeight::BOLD)
                     .text_color(ui_text_primary())
-                    .child("Authorization"),
+                    .child(AUTH_PANEL_TITLE),
             )
             .child(
                 div()
@@ -5069,18 +5714,22 @@ impl ZenApiApp {
                     .gap_2()
                     .child(
                         panel_button_row()
-                            .child(self.auth_mode_button("None", AuthMode::None, cx))
-                            .child(self.auth_mode_button("Bearer", AuthMode::Bearer, cx))
-                            .child(self.auth_mode_button("Basic", AuthMode::Basic, cx)),
+                            .child(self.auth_mode_button(AUTH_NONE_LABEL, AuthMode::None, cx))
+                            .child(self.auth_mode_button(AUTH_BEARER_LABEL, AuthMode::Bearer, cx))
+                            .child(self.auth_mode_button(AUTH_OAUTH_LABEL, AuthMode::OAuth2, cx)),
                     )
                     .child(
                         panel_button_row()
-                            .child(self.auth_mode_button("JWT", AuthMode::Jwt, cx))
-                            .child(self.auth_mode_button("API Key", AuthMode::ApiKey, cx)),
+                            .child(self.auth_mode_button(AUTH_BASIC_LABEL, AuthMode::Basic, cx))
+                            .child(self.auth_mode_button(AUTH_JWT_LABEL, AuthMode::Jwt, cx))
+                            .child(self.auth_mode_button(AUTH_API_KEY_LABEL, AuthMode::ApiKey, cx)),
                     ),
             )
             .when(self.auth_mode == AuthMode::Bearer, |panel| {
                 panel.child(bounded_text_input(self.bearer_token.clone()))
+            })
+            .when(self.auth_mode == AuthMode::OAuth2, |panel| {
+                panel.child(bounded_text_input(self.oauth2_access_token.clone()))
             })
             .when(self.auth_mode == AuthMode::Basic, |panel| {
                 panel.child(
@@ -5132,12 +5781,12 @@ impl ZenApiApp {
                     .child(
                         panel_button_row()
                             .child(self.api_key_placement_button(
-                                "Header",
+                                AUTH_API_KEY_HEADER_LABEL,
                                 ApiKeyPlacement::Header,
                                 cx,
                             ))
                             .child(self.api_key_placement_button(
-                                "Query",
+                                AUTH_API_KEY_QUERY_LABEL,
                                 ApiKeyPlacement::Query,
                                 cx,
                             )),
@@ -5214,47 +5863,38 @@ impl ZenApiApp {
                     .text_color(ui_text_primary())
                     .child("Body"),
             )
-            .child(
-                div()
-                    .flex()
-                    .flex_col()
-                    .min_w_0()
-                    .gap_2()
-                    .child(
-                        panel_button_row()
-                            .child(self.body_mode_button("None", RequestBodyMode::None, cx))
-                            .child(self.body_mode_button(
-                                "form-data",
-                                RequestBodyMode::FormData,
-                                cx,
-                            )),
-                    )
-                    .child(
-                        panel_button_row()
-                            .child(self.body_mode_button(
-                                "x-www-form-urlencoded",
-                                RequestBodyMode::UrlEncoded,
-                                cx,
-                            ))
-                            .child(self.body_mode_button("raw", RequestBodyMode::Raw, cx)),
-                    )
-                    .child(
-                        panel_button_row()
-                            .child(self.body_mode_button("GraphQL", RequestBodyMode::GraphQL, cx))
-                            .child(self.body_mode_button("binary", RequestBodyMode::Binary, cx)),
-                    ),
-            )
+            .child(div().flex().flex_col().min_w_0().gap_2().children(
+                request_body_mode_rows().map(|row| {
+                    let [first, second, third] = row;
+                    panel_button_row()
+                        .child(self.body_mode_button(first.0, first.1, cx))
+                        .child(self.body_mode_button(second.0, second.1, cx))
+                        .child(self.body_mode_button(third.0, third.1, cx))
+                }),
+            ))
             .when(
                 self.request_body_mode == RequestBodyMode::FormData,
-                |panel| panel.child(key_value_editor("Form Data", &self.form_data_body)),
+                |panel| {
+                    panel.child(self.key_value_editor(
+                        request_body_editor_title(RequestBodyMode::FormData).unwrap_or("Form"),
+                        &self.form_data_body,
+                        KeyValueEditorTarget::FormDataBody,
+                        cx,
+                    ))
+                },
             )
             .when(
                 self.request_body_mode == RequestBodyMode::UrlEncoded,
                 |panel| {
-                    panel.child(key_value_editor(
-                        "x-www-form-urlencoded",
-                        &self.urlencoded_body,
-                    ))
+                    panel.child(
+                        self.key_value_editor(
+                            request_body_editor_title(RequestBodyMode::UrlEncoded)
+                                .unwrap_or(BODY_URL_ENCODED_TITLE),
+                            &self.urlencoded_body,
+                            KeyValueEditorTarget::UrlEncodedBody,
+                            cx,
+                        ),
+                    )
                 },
             )
             .when(self.request_body_mode == RequestBodyMode::Raw, |panel| {
@@ -5267,8 +5907,9 @@ impl ZenApiApp {
                             .child(self.raw_format_button("HTML", RawBodyFormat::Html, cx)),
                     )
                     .child(panel_button_row().child(self.panel_action_button(
-                        "Format JSON",
-                        can_format_raw_json(
+                        RAW_FORMAT_JSON_LABEL,
+                        can_format_request_raw_json(
+                            self.busy,
                             self.raw_body_format,
                             &self.request_body.read(cx).text(),
                         ),
@@ -5301,8 +5942,8 @@ impl ZenApiApp {
                                         .child("GraphQL"),
                                 )
                                 .child(self.action_button(
-                                    "Introspect",
-                                    true,
+                                    GRAPHQL_INTROSPECT_LABEL,
+                                    can_edit_request_configuration(self.busy),
                                     ButtonTone::Neutral,
                                     |app, _event, _window, cx| {
                                         app.load_graphql_introspection_query(cx)
@@ -5347,7 +5988,7 @@ impl ZenApiApp {
                     .text_size(px(12.))
                     .font_weight(FontWeight::BOLD)
                     .text_color(ui_text_primary())
-                    .child("GraphQL JSON"),
+                    .child(GRAPHQL_PAYLOAD_TITLE),
             )
             .child(
                 div()
@@ -5384,7 +6025,7 @@ impl ZenApiApp {
                     .text_size(px(12.))
                     .font_weight(FontWeight::BOLD)
                     .text_color(ui_text_primary())
-                    .child("GraphQL Schema"),
+                    .child(GRAPHQL_SCHEMA_TITLE),
             )
             .child(
                 div()
@@ -5421,7 +6062,7 @@ impl ZenApiApp {
                     .text_size(px(12.))
                     .font_weight(FontWeight::BOLD)
                     .text_color(ui_text_primary())
-                    .child("Schema Browser"),
+                    .child(GRAPHQL_SCHEMA_BROWSER_TITLE),
             )
             .child(
                 div()
@@ -5447,6 +6088,7 @@ impl ZenApiApp {
     }
 
     fn render_graphql_query_assistant(&self, cx: &mut Context<Self>) -> impl IntoElement {
+        let enabled = can_edit_request_configuration(self.busy);
         let mut rows = Vec::new();
         for template in self
             .graphql_query_templates
@@ -5491,7 +6133,7 @@ impl ZenApiApp {
                                 self.sized_action_button(
                                     "Use",
                                     GRAPHQL_QUERY_TEMPLATE_USE_BUTTON_WIDTH,
-                                    true,
+                                    enabled,
                                     ButtonTone::Neutral,
                                     move |app, _event, _window, cx| {
                                         app.apply_graphql_query_template(
@@ -5543,7 +6185,7 @@ impl ZenApiApp {
                     .text_size(px(12.))
                     .font_weight(FontWeight::BOLD)
                     .text_color(ui_text_primary())
-                    .child("Query Assistant"),
+                    .child(GRAPHQL_QUERY_ASSISTANT_TITLE),
             )
             .children(rows)
     }
@@ -5564,7 +6206,7 @@ impl ZenApiApp {
                     .text_size(px(12.))
                     .font_weight(FontWeight::BOLD)
                     .text_color(ui_text_primary())
-                    .child("Syntax Preview"),
+                    .child(RAW_PREVIEW_TITLE),
             )
             .child(
                 div()
@@ -5587,7 +6229,7 @@ impl ZenApiApp {
                     .whitespace_normal()
                     .child(
                         StyledText::new(if preview.is_empty() {
-                            "No raw body".to_string()
+                            RAW_EMPTY_PREVIEW_LABEL.to_string()
                         } else {
                             preview
                         })
@@ -5598,8 +6240,8 @@ impl ZenApiApp {
 
     fn render_codegen_panel(&self, cx: &mut Context<Self>) -> impl IntoElement {
         let (snippet, snippet_for_copy) = self.codegen_snippet_state(cx);
-        let can_copy = snippet_for_copy.is_some();
-        let copy_colors = ButtonTone::Neutral.colors(can_copy && !self.busy);
+        let can_copy = can_copy_codegen_snippet(self.busy, snippet_for_copy.is_some());
+        let copy_colors = ButtonTone::Neutral.colors(can_copy);
 
         div()
             .flex()
@@ -5645,22 +6287,20 @@ impl ZenApiApp {
                                     .text_size(px(12.))
                                     .font_weight(FontWeight::BOLD)
                                     .text_color(copy_colors.text)
-                                    .opacity(control_opacity(can_copy && !self.busy))
-                                    .when(can_copy && !self.busy, |button| button.cursor_pointer())
+                                    .opacity(control_opacity(can_copy))
+                                    .when(can_copy, |button| button.cursor_pointer())
                                     .on_mouse_up(
                                         MouseButton::Left,
                                         cx.listener(
                                             move |app, _event: &MouseUpEvent, _window, cx| {
-                                                if let Some(snippet) = &snippet_for_copy {
-                                                    if !app.busy {
-                                                        cx.write_to_clipboard(
-                                                            ClipboardItem::new_string(
-                                                                snippet.clone(),
-                                                            ),
-                                                        );
-                                                        app.codegen_menu_open = false;
-                                                        cx.notify();
-                                                    }
+                                                if let Some(snippet) =
+                                                    app.codegen_snippet_for_copy(cx)
+                                                {
+                                                    cx.write_to_clipboard(
+                                                        ClipboardItem::new_string(snippet),
+                                                    );
+                                                    app.codegen_menu_open = false;
+                                                    cx.notify();
                                                 }
                                             },
                                         ),
@@ -5693,6 +6333,8 @@ impl ZenApiApp {
     }
 
     fn codegen_language_selector(&self, cx: &mut Context<Self>) -> impl IntoElement {
+        let enabled = can_use_codegen_language_selector(self.busy);
+
         div()
             .flex()
             .flex_col()
@@ -5700,25 +6342,31 @@ impl ZenApiApp {
             .overflow_hidden()
             .gap_1()
             .child(
-                compact_toggle(snippet_language_label(self.codegen_language), true)
-                    .on_mouse_up(
-                        MouseButton::Left,
-                        cx.listener(|app, _event: &MouseUpEvent, _window, cx| {
+                compact_toggle_enabled(
+                    snippet_language_label(self.codegen_language),
+                    true,
+                    enabled,
+                )
+                .on_mouse_up(
+                    MouseButton::Left,
+                    cx.listener(move |app, _event: &MouseUpEvent, _window, cx| {
+                        if can_use_codegen_language_selector(app.busy) {
                             app.codegen_menu_open = !app.codegen_menu_open;
                             app.import_popover_open = false;
                             app.method_menu_open = false;
                             app.collection_context_menu = None;
                             cx.notify();
-                        }),
-                    )
-                    .child(
-                        div()
-                            .min_w_0()
-                            .truncate()
-                            .child(snippet_language_label(self.codegen_language)),
-                    ),
+                        }
+                    }),
+                )
+                .child(
+                    div()
+                        .min_w_0()
+                        .truncate()
+                        .child(snippet_language_label(self.codegen_language)),
+                ),
             )
-            .when(self.codegen_menu_open, |menu| {
+            .when(self.codegen_menu_open && enabled, |menu| {
                 menu.child(
                     div()
                         .flex()
@@ -5762,9 +6410,11 @@ impl ZenApiApp {
             .on_mouse_up(
                 MouseButton::Left,
                 cx.listener(move |app, _event: &MouseUpEvent, _window, cx| {
-                    app.codegen_language = language;
-                    app.codegen_menu_open = false;
-                    cx.notify();
+                    if can_use_codegen_language_selector(app.busy) {
+                        app.codegen_language = language;
+                        app.codegen_menu_open = false;
+                        cx.notify();
+                    }
                 }),
             )
             .child(snippet_language_label(language))
@@ -5781,6 +6431,19 @@ impl ZenApiApp {
         }
     }
 
+    fn codegen_snippet_for_copy(&self, cx: &mut Context<Self>) -> Option<String> {
+        if self.busy {
+            return None;
+        }
+
+        match self.current_codegen_request(cx) {
+            Ok(request) if can_copy_codegen_request(&request) => {
+                Some(generate_snippet(&request, self.codegen_language))
+            }
+            _ => None,
+        }
+    }
+
     fn body_mode_button(
         &self,
         label: &'static str,
@@ -5788,11 +6451,15 @@ impl ZenApiApp {
         cx: &mut Context<Self>,
     ) -> impl IntoElement {
         let active = self.request_body_mode == mode;
-        flexible_toggle(label, active).on_mouse_up(
+        let enabled = can_edit_request_configuration(self.busy);
+
+        flexible_toggle_enabled(label, active, enabled).on_mouse_up(
             MouseButton::Left,
             cx.listener(move |app, _event: &MouseUpEvent, _window, cx| {
-                app.request_body_mode = mode;
-                cx.notify();
+                if can_edit_request_configuration(app.busy) {
+                    app.request_body_mode = mode;
+                    cx.notify();
+                }
             }),
         )
     }
@@ -5804,11 +6471,15 @@ impl ZenApiApp {
         cx: &mut Context<Self>,
     ) -> impl IntoElement {
         let active = self.raw_body_format == format;
-        flexible_toggle(label, active).on_mouse_up(
+        let enabled = can_edit_request_configuration(self.busy);
+
+        flexible_toggle_enabled(label, active, enabled).on_mouse_up(
             MouseButton::Left,
             cx.listener(move |app, _event: &MouseUpEvent, _window, cx| {
-                app.raw_body_format = format;
-                cx.notify();
+                if can_edit_request_configuration(app.busy) {
+                    app.raw_body_format = format;
+                    cx.notify();
+                }
             }),
         )
     }
@@ -5820,11 +6491,15 @@ impl ZenApiApp {
         cx: &mut Context<Self>,
     ) -> impl IntoElement {
         let active = self.websocket_message_mode == mode;
-        flexible_toggle(label, active).on_mouse_up(
+        let enabled = can_edit_request_configuration(self.busy);
+
+        flexible_toggle_enabled(label, active, enabled).on_mouse_up(
             MouseButton::Left,
             cx.listener(move |app, _event: &MouseUpEvent, _window, cx| {
-                app.websocket_message_mode = mode;
-                cx.notify();
+                if can_edit_request_configuration(app.busy) {
+                    app.websocket_message_mode = mode;
+                    cx.notify();
+                }
             }),
         )
     }
@@ -5836,11 +6511,15 @@ impl ZenApiApp {
         cx: &mut Context<Self>,
     ) -> impl IntoElement {
         let active = self.auth_mode == mode;
-        flexible_toggle(label, active).on_mouse_up(
+        let enabled = can_edit_request_configuration(self.busy);
+
+        flexible_toggle_enabled(label, active, enabled).on_mouse_up(
             MouseButton::Left,
             cx.listener(move |app, _event: &MouseUpEvent, _window, cx| {
-                app.auth_mode = mode;
-                cx.notify();
+                if can_edit_request_configuration(app.busy) {
+                    app.auth_mode = mode;
+                    cx.notify();
+                }
             }),
         )
     }
@@ -5852,11 +6531,15 @@ impl ZenApiApp {
         cx: &mut Context<Self>,
     ) -> impl IntoElement {
         let active = self.api_key_placement == placement;
-        flexible_toggle(label, active).on_mouse_up(
+        let enabled = can_edit_request_configuration(self.busy);
+
+        flexible_toggle_enabled(label, active, enabled).on_mouse_up(
             MouseButton::Left,
             cx.listener(move |app, _event: &MouseUpEvent, _window, cx| {
-                app.api_key_placement = placement;
-                cx.notify();
+                if can_edit_request_configuration(app.busy) {
+                    app.api_key_placement = placement;
+                    cx.notify();
+                }
             }),
         )
     }
@@ -5910,7 +6593,6 @@ impl ZenApiApp {
                             .whitespace_normal()
                             .child(
                                 div()
-                                    .size_full()
                                     .min_w_0()
                                     .overflow_hidden()
                                     .child(self.response_body_viewer.clone()),
@@ -5959,16 +6641,16 @@ impl ZenApiApp {
 
     fn response_fold_button(&self, cx: &mut Context<Self>) -> impl IntoElement {
         let label = if self.response_pretty_collapsed {
-            "Expand"
+            RESPONSE_OPEN_LABEL
         } else {
-            "Collapse"
+            RESPONSE_FOLD_LABEL
         };
-        let enabled = !self.busy && response_can_collapse(&self.response_raw_body);
+        let enabled = can_toggle_response_collapse(self.busy, &self.response_raw_body);
 
         response_toolbar_button(label, RESPONSE_FOLD_BUTTON_WIDTH, enabled).on_mouse_up(
             MouseButton::Left,
             cx.listener(move |app, _event: &MouseUpEvent, _window, cx| {
-                if enabled {
+                if can_toggle_response_collapse(app.busy, &app.response_raw_body) {
                     app.response_pretty_collapsed = !app.response_pretty_collapsed;
                     reset_scroll_handle(&app.response_scroll);
                     cx.notify();
@@ -5978,24 +6660,22 @@ impl ZenApiApp {
     }
 
     fn response_copy_button(&self, cx: &mut Context<Self>) -> impl IntoElement {
-        let has_copy_text = response_copy_text(
+        let enabled = can_copy_response_view(
+            self.busy,
             self.response_view,
             self.response_pretty_collapsed,
             &self.response_body,
             &self.response_raw_body,
             &self.response_headers,
-        )
-        .is_some();
-        let enabled = !self.busy && has_copy_text;
+        );
 
-        response_toolbar_button("Copy", RESPONSE_COPY_BUTTON_WIDTH, enabled).on_mouse_up(
-            MouseButton::Left,
-            cx.listener(move |app, _event: &MouseUpEvent, _window, cx| {
-                if enabled {
+        response_toolbar_button(RESPONSE_COPY_LABEL, RESPONSE_COPY_BUTTON_WIDTH, enabled)
+            .on_mouse_up(
+                MouseButton::Left,
+                cx.listener(move |app, _event: &MouseUpEvent, _window, cx| {
                     app.copy_response_body(cx);
-                }
-            }),
-        )
+                }),
+            )
     }
 
     fn response_tab(
@@ -6107,6 +6787,25 @@ impl Render for CollectionDragPreview {
     }
 }
 
+impl Render for WorkspaceSplitDragPreview {
+    fn render(&mut self, _window: &mut Window, _cx: &mut Context<Self>) -> impl IntoElement {
+        div()
+            .relative()
+            .w(px(WORKSPACE_SPLIT_HANDLE_WIDTH))
+            .h(px(APP_WINDOW_HEIGHT * 2.))
+            .child(
+                div()
+                    .absolute()
+                    .left(px((WORKSPACE_SPLIT_HANDLE_WIDTH
+                        - WORKSPACE_SPLIT_DIVIDER_WIDTH)
+                        / 2.))
+                    .w(px(WORKSPACE_SPLIT_DIVIDER_WIDTH))
+                    .h_full()
+                    .bg(ui_border_strong()),
+            )
+    }
+}
+
 impl ZenApiApp {
     fn render_status_bar(&self) -> impl IntoElement {
         let route_status = if self.routes.is_empty() {
@@ -6206,14 +6905,14 @@ impl ButtonTone {
                 text: ui_text_body(),
             },
             Self::Primary => ButtonColors {
-                background: ui_accent(),
-                border: ui_accent_text(),
-                text: ui_surface(),
+                background: ui_surface(),
+                border: ui_accent(),
+                text: ui_accent_text(),
             },
             Self::Warning => ButtonColors {
-                background: ui_warning(),
+                background: ui_surface(),
                 border: ui_warning_strong(),
-                text: ui_surface(),
+                text: ui_warning_strong(),
             },
         }
     }
@@ -6228,9 +6927,9 @@ enum ResponseView {
 
 fn response_tabs() -> [(&'static str, ResponseView); RESPONSE_TAB_COUNT] {
     [
-        ("Pretty", ResponseView::Pretty),
-        ("Raw", ResponseView::Raw),
-        ("Headers", ResponseView::Headers),
+        (RESPONSE_PRETTY_LABEL, ResponseView::Pretty),
+        (RESPONSE_RAW_LABEL, ResponseView::Raw),
+        (RESPONSE_HEADERS_LABEL, ResponseView::Headers),
     ]
 }
 
@@ -6238,6 +6937,7 @@ fn response_tabs() -> [(&'static str, ResponseView); RESPONSE_TAB_COUNT] {
 enum AuthMode {
     None,
     Bearer,
+    OAuth2,
     Basic,
     Jwt,
     ApiKey,
@@ -6257,6 +6957,29 @@ enum RequestBodyMode {
     Raw,
     GraphQL,
     Binary,
+}
+
+fn request_body_mode_rows() -> [[(&'static str, RequestBodyMode); 3]; 2] {
+    [
+        [
+            (BODY_MODE_NONE_LABEL, RequestBodyMode::None),
+            (BODY_MODE_FORM_LABEL, RequestBodyMode::FormData),
+            (BODY_MODE_URL_ENCODED_LABEL, RequestBodyMode::UrlEncoded),
+        ],
+        [
+            (BODY_MODE_RAW_LABEL, RequestBodyMode::Raw),
+            (BODY_MODE_GRAPHQL_LABEL, RequestBodyMode::GraphQL),
+            (BODY_MODE_BINARY_LABEL, RequestBodyMode::Binary),
+        ],
+    ]
+}
+
+fn request_body_editor_title(mode: RequestBodyMode) -> Option<&'static str> {
+    match mode {
+        RequestBodyMode::FormData => Some(BODY_FORM_FIELDS_TITLE),
+        RequestBodyMode::UrlEncoded => Some(BODY_URL_ENCODED_TITLE),
+        _ => None,
+    }
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -6280,12 +7003,12 @@ enum TestAssertionKind {
 impl TestAssertionKind {
     fn label(self) -> &'static str {
         match self {
-            Self::StatusEquals => "Status =",
-            Self::StatusInRange => "Status range",
-            Self::HeaderExists => "Header exists",
-            Self::HeaderEquals => "Header =",
-            Self::BodyContains => "Body contains",
-            Self::JsonPathEquals => "JSON path =",
+            Self::StatusEquals => TEST_ASSERTION_STATUS_EQUALS_LABEL,
+            Self::StatusInRange => TEST_ASSERTION_STATUS_RANGE_LABEL,
+            Self::HeaderExists => TEST_ASSERTION_HEADER_EXISTS_LABEL,
+            Self::HeaderEquals => TEST_ASSERTION_HEADER_EQUALS_LABEL,
+            Self::BodyContains => TEST_ASSERTION_BODY_CONTAINS_LABEL,
+            Self::JsonPathEquals => TEST_ASSERTION_JSON_PATH_EQUALS_LABEL,
         }
     }
 
@@ -6451,10 +7174,10 @@ fn assertion_row_entity(
     expected: impl Into<SharedString>,
 ) -> TestAssertionRow {
     let row = TestAssertionRow {
-        name: cx.new(|cx| TextInput::new(cx, "Test name", false)),
+        name: cx.new(|cx| TextInput::new(cx, PLACEHOLDER_TEST_ASSERTION_NAME, false)),
         kind,
-        target: cx.new(|cx| TextInput::new(cx, "Target/path/header/status", true)),
-        expected: cx.new(|cx| TextInput::new(cx, "Expected/value/max", true)),
+        target: cx.new(|cx| TextInput::new(cx, PLACEHOLDER_TEST_ASSERTION_TARGET, true)),
+        expected: cx.new(|cx| TextInput::new(cx, PLACEHOLDER_TEST_ASSERTION_EXPECTED, true)),
     };
     let name = name.into();
     let target = target.into();
@@ -8129,71 +8852,227 @@ fn preview_text(text: &str) -> String {
     preview
 }
 
-fn key_value_editor(title: &'static str, rows: &[KeyValueRow]) -> impl IntoElement {
-    let rendered_rows = rows
-        .iter()
-        .map(|row| key_value_row(row.key.clone(), row.value.clone()))
-        .collect::<Vec<_>>();
+impl ZenApiApp {
+    fn key_value_editor(
+        &self,
+        title: &'static str,
+        rows: &[KeyValueRow],
+        target: KeyValueEditorTarget,
+        cx: &mut Context<Self>,
+    ) -> gpui::Div {
+        let key_column_width = key_value_editor_key_column_width(title);
+        let (key_label, value_label) = key_value_editor_column_labels(title);
+        let row_count = rows.len();
+        let rendered_rows = rows
+            .iter()
+            .enumerate()
+            .map(|(index, row)| {
+                self.key_value_row(row, target, index, row_count, key_column_width, cx)
+            })
+            .collect::<Vec<_>>();
 
-    div()
-        .flex()
-        .flex_col()
-        .min_w_0()
-        .overflow_hidden()
-        .gap_2()
-        .child(
-            div()
-                .min_w_0()
-                .truncate()
-                .text_size(px(12.))
-                .font_weight(FontWeight::BOLD)
-                .text_color(ui_text_primary())
-                .child(title),
-        )
-        .child(
-            div()
-                .flex()
-                .items_center()
-                .gap_2()
-                .px_2()
-                .min_w_0()
-                .overflow_hidden()
-                .text_size(px(11.))
-                .font_weight(FontWeight::BOLD)
-                .text_color(ui_text_body())
-                .child(
-                    div()
-                        .w(px(KEY_VALUE_KEY_COLUMN_WIDTH))
-                        .flex_shrink_0()
-                        .truncate()
-                        .child("Key"),
-                )
-                .child(div().flex_1().min_w_0().truncate().child("Value")),
-        )
-        .child(
-            div()
-                .flex()
-                .flex_col()
-                .min_w_0()
-                .gap_1()
-                .children(rendered_rows),
-        )
+        div()
+            .flex()
+            .flex_col()
+            .min_w_0()
+            .overflow_hidden()
+            .gap_2()
+            .child(
+                div()
+                    .flex()
+                    .items_center()
+                    .justify_between()
+                    .gap_2()
+                    .min_w_0()
+                    .child(
+                        div()
+                            .flex_1()
+                            .min_w_0()
+                            .truncate()
+                            .text_size(px(12.))
+                            .font_weight(FontWeight::BOLD)
+                            .text_color(ui_text_primary())
+                            .child(title),
+                    )
+                    .child(self.key_value_add_button(target, cx)),
+            )
+            .child(
+                div()
+                    .flex()
+                    .items_center()
+                    .gap_2()
+                    .px_2()
+                    .min_w_0()
+                    .overflow_hidden()
+                    .text_size(px(11.))
+                    .font_weight(FontWeight::BOLD)
+                    .text_color(ui_text_body())
+                    .child(
+                        div()
+                            .w(px(key_column_width))
+                            .flex_shrink_0()
+                            .truncate()
+                            .child(key_label),
+                    )
+                    .child(div().flex_1().min_w_0().truncate().child(value_label))
+                    .child(
+                        div()
+                            .w(px(KEY_VALUE_ROW_ACTION_BUTTON_WIDTH))
+                            .flex_shrink_0(),
+                    ),
+            )
+            .child(
+                div()
+                    .flex()
+                    .flex_col()
+                    .min_w_0()
+                    .gap_1()
+                    .children(rendered_rows),
+            )
+    }
+
+    fn key_value_add_button(
+        &self,
+        target: KeyValueEditorTarget,
+        cx: &mut Context<Self>,
+    ) -> gpui::Div {
+        let enabled = can_add_key_value_row(self.busy, target, self.active_environment.is_some());
+        let colors = ButtonTone::Neutral.colors(enabled);
+
+        div()
+            .flex()
+            .items_center()
+            .justify_center()
+            .h(px(COMPACT_CONTROL_HEIGHT))
+            .w(px(KEY_VALUE_ROW_ACTION_BUTTON_WIDTH))
+            .flex_shrink_0()
+            .min_w_0()
+            .overflow_hidden()
+            .rounded(px(5.))
+            .border_1()
+            .border_color(colors.border)
+            .bg(colors.background)
+            .text_size(px(11.))
+            .font_weight(FontWeight::BOLD)
+            .text_color(colors.text)
+            .opacity(control_opacity(enabled))
+            .when(enabled, |button| button.cursor_pointer())
+            .on_mouse_up(
+                MouseButton::Left,
+                cx.listener(move |app, _event: &MouseUpEvent, _window, cx| {
+                    app.add_key_value_row(target, cx);
+                }),
+            )
+            .child(div().min_w_0().truncate().child("+"))
+    }
+
+    fn key_value_row(
+        &self,
+        row: &KeyValueRow,
+        target: KeyValueEditorTarget,
+        index: usize,
+        row_count: usize,
+        key_column_width: f32,
+        cx: &mut Context<Self>,
+    ) -> gpui::Div {
+        div()
+            .flex()
+            .items_center()
+            .min_w_0()
+            .overflow_hidden()
+            .gap_2()
+            .child(
+                div()
+                    .w(px(key_column_width))
+                    .flex_shrink_0()
+                    .child(bounded_text_input(row.key.clone())),
+            )
+            .child(
+                div()
+                    .flex_1()
+                    .min_w_0()
+                    .child(bounded_text_input(row.value.clone())),
+            )
+            .child(self.key_value_remove_button(target, index, row_count, cx))
+    }
+
+    fn key_value_remove_button(
+        &self,
+        target: KeyValueEditorTarget,
+        index: usize,
+        row_count: usize,
+        cx: &mut Context<Self>,
+    ) -> gpui::Div {
+        let enabled = can_remove_key_value_row(
+            self.busy,
+            target,
+            self.active_environment.is_some(),
+            row_count,
+            index,
+        );
+        let colors = ButtonTone::Neutral.colors(enabled);
+
+        div()
+            .flex()
+            .items_center()
+            .justify_center()
+            .h(px(COMPACT_CONTROL_HEIGHT))
+            .w(px(KEY_VALUE_ROW_ACTION_BUTTON_WIDTH))
+            .flex_shrink_0()
+            .min_w_0()
+            .overflow_hidden()
+            .rounded(px(5.))
+            .border_1()
+            .border_color(colors.border)
+            .bg(colors.background)
+            .text_size(px(11.))
+            .font_weight(FontWeight::BOLD)
+            .text_color(colors.text)
+            .opacity(control_opacity(enabled))
+            .when(enabled, |button| button.cursor_pointer())
+            .on_mouse_up(
+                MouseButton::Left,
+                cx.listener(move |app, _event: &MouseUpEvent, _window, cx| {
+                    app.remove_key_value_row(target, index, cx);
+                }),
+            )
+            .child(div().min_w_0().truncate().child("x"))
+    }
 }
 
-fn key_value_row(key: Entity<TextInput>, value: Entity<TextInput>) -> impl IntoElement {
-    div()
-        .flex()
-        .items_center()
-        .min_w_0()
-        .overflow_hidden()
-        .gap_2()
-        .child(
-            div()
-                .w(px(KEY_VALUE_KEY_COLUMN_WIDTH))
-                .flex_shrink_0()
-                .child(bounded_text_input(key)),
-        )
-        .child(div().flex_1().min_w_0().child(bounded_text_input(value)))
+fn key_value_editor_key_column_width(title: &str) -> f32 {
+    match title {
+        BODY_FORM_FIELDS_TITLE | BODY_URL_ENCODED_TITLE => {
+            KEY_VALUE_EDITOR_COMPACT_KEY_COLUMN_WIDTH
+        }
+        _ => KEY_VALUE_EDITOR_KEY_COLUMN_WIDTH,
+    }
+}
+
+fn key_value_editor_column_labels(title: &str) -> (&'static str, &'static str) {
+    match title {
+        "Headers" | REALTIME_WEBSOCKET_HEADERS_TITLE | REALTIME_SSE_HEADERS_TITLE => {
+            ("Header", "Value")
+        }
+        PARAMS_PANEL_TITLE => ("Param", "Value"),
+        VARIABLES_GLOBAL_TITLE | VARIABLES_ENV_TITLE => ("Var", "Value"),
+        BODY_FORM_FIELDS_TITLE => ("Field", "Value"),
+        BODY_URL_ENCODED_TITLE => ("Name", "Value"),
+        _ => ("Key", "Value"),
+    }
+}
+
+fn key_value_editor_add_placeholders(target: KeyValueEditorTarget) -> (&'static str, &'static str) {
+    match target {
+        KeyValueEditorTarget::QueryParams => ("param", "value"),
+        KeyValueEditorTarget::RequestHeaders
+        | KeyValueEditorTarget::WebSocketHeaders
+        | KeyValueEditorTarget::SseHeaders => ("Header", "Value"),
+        KeyValueEditorTarget::GlobalVariables
+        | KeyValueEditorTarget::ActiveEnvironmentVariables => ("var", "value"),
+        KeyValueEditorTarget::FormDataBody => ("field", "value"),
+        KeyValueEditorTarget::UrlEncodedBody => ("name", "value"),
+    }
 }
 
 fn bounded_text_input(input: Entity<TextInput>) -> gpui::Div {
@@ -8314,9 +9193,12 @@ fn sidebar_small_button(
 fn assertion_editor_row(
     index: usize,
     row: &TestAssertionRow,
+    row_count: usize,
+    busy: bool,
     cx: &mut Context<ZenApiApp>,
 ) -> gpui::Div {
     let kind = row.kind;
+    let can_edit = can_edit_response_assertion_row(busy, row_count, index);
     div()
         .flex()
         .items_center()
@@ -8330,16 +9212,13 @@ fn assertion_editor_row(
                 .child(bounded_text_input(row.name.clone())),
         )
         .child(
-            compact_toggle(kind.label(), true)
+            compact_toggle_enabled(kind.label(), true, can_edit)
                 .w(px(TEST_ASSERTION_KIND_COLUMN_WIDTH))
                 .flex_shrink_0()
                 .on_mouse_up(
                     MouseButton::Left,
                     cx.listener(move |app, _event: &MouseUpEvent, _window, cx| {
-                        if let Some(row) = app.request_assertions.get_mut(index) {
-                            row.kind = row.kind.next();
-                            cx.notify();
-                        }
+                        app.cycle_response_assertion_kind(index, cx);
                     }),
                 )
                 .child(div().min_w_0().truncate().child(kind.label())),
@@ -8356,6 +9235,43 @@ fn assertion_editor_row(
                 .min_w_0()
                 .child(bounded_text_input(row.expected.clone())),
         )
+        .child(assertion_remove_button(index, row_count, busy, cx))
+}
+
+fn assertion_remove_button(
+    index: usize,
+    row_count: usize,
+    busy: bool,
+    cx: &mut Context<ZenApiApp>,
+) -> gpui::Div {
+    let enabled = can_remove_response_assertion_row(busy, row_count, index);
+    let colors = ButtonTone::Neutral.colors(enabled);
+
+    div()
+        .flex()
+        .items_center()
+        .justify_center()
+        .h(px(COMPACT_CONTROL_HEIGHT))
+        .w(px(KEY_VALUE_ROW_ACTION_BUTTON_WIDTH))
+        .flex_shrink_0()
+        .min_w_0()
+        .overflow_hidden()
+        .rounded(px(5.))
+        .border_1()
+        .border_color(colors.border)
+        .bg(colors.background)
+        .text_size(px(11.))
+        .font_weight(FontWeight::BOLD)
+        .text_color(colors.text)
+        .opacity(control_opacity(enabled))
+        .when(enabled, |button| button.cursor_pointer())
+        .on_mouse_up(
+            MouseButton::Left,
+            cx.listener(move |app, _event: &MouseUpEvent, _window, cx| {
+                app.remove_response_assertion_row(index, cx);
+            }),
+        )
+        .child(div().min_w_0().truncate().child("x"))
 }
 
 fn assertion_result_row(result: ResponseAssertionResult) -> gpui::Div {
@@ -8440,7 +9356,7 @@ fn pre_request_action_row(action: String) -> gpui::Div {
         )
 }
 
-fn compact_toggle(label: &str, active: bool) -> gpui::Div {
+fn compact_toggle_enabled(label: &str, active: bool, enabled: bool) -> gpui::Div {
     let width = if label.len() > 12 { px(156.) } else { px(76.) };
 
     div()
@@ -8454,16 +9370,29 @@ fn compact_toggle(label: &str, active: bool) -> gpui::Div {
         .px_2()
         .rounded(px(5.))
         .border_1()
-        .border_color(if active {
+        .border_color(if !enabled {
+            ui_disabled_border()
+        } else if active {
             ui_accent()
         } else {
             ui_border_strong()
         })
-        .bg(ui_surface())
+        .bg(if enabled {
+            ui_surface()
+        } else {
+            ui_disabled_surface()
+        })
         .text_size(px(12.))
         .font_weight(FontWeight::BOLD)
-        .text_color(if active { ui_accent() } else { ui_text_body() })
-        .cursor_pointer()
+        .text_color(if !enabled {
+            ui_disabled_text()
+        } else if active {
+            ui_accent()
+        } else {
+            ui_text_body()
+        })
+        .opacity(control_opacity(enabled))
+        .when(enabled, |toggle| toggle.cursor_pointer())
 }
 
 fn panel_status_text(label: impl Into<SharedString>, color: Hsla) -> gpui::Div {
@@ -8500,10 +9429,6 @@ fn response_toolbar_button(label: &'static str, width: f32, enabled: bool) -> gp
         .opacity(control_opacity(enabled))
         .when(enabled, |button| button.cursor_pointer())
         .child(div().min_w_0().truncate().child(label))
-}
-
-fn flexible_toggle(label: impl Into<SharedString>, active: bool) -> gpui::Div {
-    flexible_toggle_enabled(label, active, true)
 }
 
 fn flexible_toggle_enabled(
@@ -8552,7 +9477,11 @@ fn flexible_toggle_enabled(
         .child(div().min_w_0().truncate().child(label))
 }
 
-fn full_width_toggle(label: impl Into<SharedString>, active: bool) -> gpui::Div {
+fn full_width_toggle_enabled(
+    label: impl Into<SharedString>,
+    active: bool,
+    enabled: bool,
+) -> gpui::Div {
     let label = label.into();
 
     div()
@@ -8566,16 +9495,29 @@ fn full_width_toggle(label: impl Into<SharedString>, active: bool) -> gpui::Div 
         .px_2()
         .rounded(px(5.))
         .border_1()
-        .border_color(if active {
+        .border_color(if !enabled {
+            ui_disabled_border()
+        } else if active {
             ui_accent()
         } else {
             ui_border_strong()
         })
-        .bg(ui_surface())
+        .bg(if enabled {
+            ui_surface()
+        } else {
+            ui_disabled_surface()
+        })
         .text_size(px(12.))
         .font_weight(FontWeight::BOLD)
-        .text_color(if active { ui_accent() } else { ui_text_body() })
-        .cursor_pointer()
+        .text_color(if !enabled {
+            ui_disabled_text()
+        } else if active {
+            ui_accent()
+        } else {
+            ui_text_body()
+        })
+        .opacity(control_opacity(enabled))
+        .when(enabled, |toggle| toggle.cursor_pointer())
         .child(div().min_w_0().truncate().child(label))
 }
 
@@ -8585,6 +9527,10 @@ fn bearer_auth_pair(token: &str) -> Option<(String, String)> {
 }
 
 fn jwt_auth_pair(token: &str) -> Option<(String, String)> {
+    bearer_auth_pair(token)
+}
+
+fn oauth2_access_token_pair(token: &str) -> Option<(String, String)> {
     bearer_auth_pair(token)
 }
 
@@ -8609,8 +9555,8 @@ fn api_key_pair(name: &str, value: &str) -> Option<(String, String)> {
 fn snippet_language_label(language: SnippetLanguage) -> &'static str {
     match language {
         SnippetLanguage::Curl => "cURL",
-        SnippetLanguage::PythonRequests => "Python",
-        SnippetLanguage::JavaScriptFetch => "JavaScript",
+        SnippetLanguage::PythonRequests => "Py",
+        SnippetLanguage::JavaScriptFetch => "JS",
         SnippetLanguage::RustReqwest => "Rust",
         SnippetLanguage::GoNetHttp => "Go",
     }
@@ -8923,6 +9869,8 @@ fn history_row(
     method: String,
     url: String,
     status: String,
+    enabled: bool,
+    delete_enabled: bool,
     cx: &mut Context<ZenApiApp>,
 ) -> impl IntoElement + 'static + use<> {
     let method_color = method_color(&method);
@@ -8937,18 +9885,21 @@ fn history_row(
         .rounded(px(4.))
         .px_2()
         .py_1()
-        .hover(|row| row.bg(ui_hover()))
+        .opacity(control_opacity(enabled))
+        .hover(move |row| if enabled { row.bg(ui_hover()) } else { row })
         .child(
             div()
                 .flex()
                 .flex_col()
                 .flex_1()
                 .min_w_0()
-                .cursor_pointer()
+                .when(enabled, |row| row.cursor_pointer())
                 .on_mouse_up(
                     MouseButton::Left,
                     cx.listener(move |app, _event: &MouseUpEvent, _window, cx| {
-                        app.restore_history_entry(id, cx);
+                        if can_restore_request_from_sidebar(app.busy) {
+                            app.restore_history_entry(id, cx);
+                        }
                     }),
                 )
                 .child(
@@ -8990,14 +9941,22 @@ fn history_row(
                 ),
         )
         .child(
-            sidebar_small_button("Del", 42., SECTION_HEADER_HEIGHT, true, ButtonTone::Neutral)
-                .on_mouse_up(
-                    MouseButton::Left,
-                    cx.listener(move |app, _event: &MouseUpEvent, _window, cx| {
+            sidebar_small_button(
+                "Del",
+                42.,
+                SECTION_HEADER_HEIGHT,
+                delete_enabled,
+                ButtonTone::Neutral,
+            )
+            .on_mouse_up(
+                MouseButton::Left,
+                cx.listener(move |app, _event: &MouseUpEvent, _window, cx| {
+                    if can_delete_history_entry(app.busy) {
                         app.history.remove(id);
                         cx.notify();
-                    }),
-                ),
+                    }
+                }),
+            ),
         )
 }
 
@@ -9007,6 +9966,8 @@ fn append_collection_rows(
     parent_id: &str,
     depth: usize,
     expanded_nodes: &[String],
+    restore_enabled: bool,
+    mutate_enabled: bool,
     cx: &mut Context<ZenApiApp>,
 ) {
     for (index, item) in items.iter().enumerate() {
@@ -9020,14 +9981,31 @@ fn append_collection_rows(
                     depth,
                     collection_item_count(&folder.items),
                     expanded,
+                    mutate_enabled,
                     cx,
                 ));
                 if expanded {
-                    append_collection_rows(rows, &folder.items, &id, depth + 1, expanded_nodes, cx);
+                    append_collection_rows(
+                        rows,
+                        &folder.items,
+                        &id,
+                        depth + 1,
+                        expanded_nodes,
+                        restore_enabled,
+                        mutate_enabled,
+                        cx,
+                    );
                 }
             }
             CollectionItem::Request(request) => {
-                rows.push(collection_request_row(&id, request.clone(), depth, cx));
+                rows.push(collection_request_row(
+                    &id,
+                    request.clone(),
+                    depth,
+                    restore_enabled,
+                    mutate_enabled,
+                    cx,
+                ));
             }
         }
     }
@@ -9047,13 +10025,14 @@ fn collection_tree_row_height(kind: CollectionNodeKind) -> f32 {
 }
 
 fn collection_drag_over_background() -> Hsla {
-    ui_accent_surface()
+    ui_hover()
 }
 
 fn collection_root_row(
     name: String,
     item_count: usize,
     expanded: bool,
+    mutate_enabled: bool,
     cx: &mut Context<ZenApiApp>,
 ) -> gpui::AnyElement {
     let marker = if expanded { "v" } else { ">" };
@@ -9091,8 +10070,12 @@ fn collection_root_row(
                 );
             }),
         )
-        .drag_over::<DraggedCollectionNode>(|row, _dragged, _window, _cx| {
-            row.bg(collection_drag_over_background())
+        .drag_over::<DraggedCollectionNode>(move |row, _dragged, _window, _cx| {
+            if mutate_enabled {
+                row.bg(collection_drag_over_background())
+            } else {
+                row
+            }
         })
         .on_drop(
             cx.listener(|app, dragged: &DraggedCollectionNode, _window, cx| {
@@ -9132,6 +10115,7 @@ fn collection_folder_row(
     depth: usize,
     item_count: usize,
     expanded: bool,
+    mutate_enabled: bool,
     cx: &mut Context<ZenApiApp>,
 ) -> gpui::AnyElement {
     let id = id.to_string();
@@ -9180,13 +10164,19 @@ fn collection_folder_row(
                 );
             }),
         )
-        .on_drag(drag_value, |dragged, _offset, _window, cx| {
-            cx.new(|_| CollectionDragPreview {
-                label: dragged.label.clone(),
+        .when(mutate_enabled, |row| {
+            row.on_drag(drag_value, |dragged, _offset, _window, cx| {
+                cx.new(|_| CollectionDragPreview {
+                    label: dragged.label.clone(),
+                })
             })
         })
-        .drag_over::<DraggedCollectionNode>(|row, _dragged, _window, _cx| {
-            row.bg(collection_drag_over_background())
+        .drag_over::<DraggedCollectionNode>(move |row, _dragged, _window, _cx| {
+            if mutate_enabled {
+                row.bg(collection_drag_over_background())
+            } else {
+                row
+            }
         })
         .on_drop(
             cx.listener(move |app, dragged: &DraggedCollectionNode, _window, cx| {
@@ -9224,6 +10214,8 @@ fn collection_request_row(
     id: &str,
     request: CollectionRequest,
     depth: usize,
+    enabled: bool,
+    mutate_enabled: bool,
     cx: &mut Context<ZenApiApp>,
 ) -> gpui::AnyElement {
     let menu_id = id.to_string();
@@ -9251,12 +10243,15 @@ fn collection_request_row(
         .pl(px(collection_tree_indent(depth)))
         .pr_2()
         .gap_2()
-        .cursor_pointer()
-        .hover(|row| row.bg(ui_hover()))
+        .opacity(control_opacity(enabled))
+        .when(enabled, |row| row.cursor_pointer())
+        .hover(move |row| if enabled { row.bg(ui_hover()) } else { row })
         .on_mouse_up(
             MouseButton::Left,
             cx.listener(move |app, _event: &MouseUpEvent, _window, cx| {
-                app.restore_collection_request(restore_request.clone(), cx);
+                if can_restore_request_from_sidebar(app.busy) {
+                    app.restore_collection_request(restore_request.clone(), cx);
+                }
             }),
         )
         .on_mouse_down(
@@ -9273,13 +10268,19 @@ fn collection_request_row(
                 );
             }),
         )
-        .on_drag(drag_value, |dragged, _offset, _window, cx| {
-            cx.new(|_| CollectionDragPreview {
-                label: dragged.label.clone(),
+        .when(mutate_enabled, |row| {
+            row.on_drag(drag_value, |dragged, _offset, _window, cx| {
+                cx.new(|_| CollectionDragPreview {
+                    label: dragged.label.clone(),
+                })
             })
         })
-        .drag_over::<DraggedCollectionNode>(|row, _dragged, _window, _cx| {
-            row.bg(collection_drag_over_background())
+        .drag_over::<DraggedCollectionNode>(move |row, _dragged, _window, _cx| {
+            if mutate_enabled {
+                row.bg(collection_drag_over_background())
+            } else {
+                row
+            }
         })
         .on_drop(
             cx.listener(move |app, dragged: &DraggedCollectionNode, _window, cx| {
@@ -9370,6 +10371,81 @@ fn request_address_border_color(tone: RequestAddressBorderTone) -> Hsla {
         RequestAddressBorderTone::Disabled => ui_disabled_border(),
         RequestAddressBorderTone::Focused => ui_accent(),
         RequestAddressBorderTone::Default => ui_border_strong(),
+    }
+}
+
+fn workspace_split_ratios_changed(
+    current_sidebar: f32,
+    current_request: f32,
+    next_sidebar: f32,
+    next_request: f32,
+) -> bool {
+    (current_sidebar - next_sidebar).abs() >= WORKSPACE_SPLIT_RATIO_EPSILON
+        || (current_request - next_request).abs() >= WORKSPACE_SPLIT_RATIO_EPSILON
+}
+
+fn workspace_split_target_ratios(
+    split: WorkspaceSplitDrag,
+    pointer_ratio: f32,
+    current_sidebar: f32,
+    current_request: f32,
+) -> (f32, f32) {
+    match split {
+        WorkspaceSplitDrag::SidebarRequest => {
+            let max_sidebar = WORKSPACE_SIDEBAR_MAX_RATIO
+                .min(1.0 - current_request - WORKSPACE_RESPONSE_MIN_RATIO)
+                .max(WORKSPACE_SIDEBAR_MIN_RATIO);
+            (
+                pointer_ratio.clamp(WORKSPACE_SIDEBAR_MIN_RATIO, max_sidebar),
+                current_request,
+            )
+        }
+        WorkspaceSplitDrag::RequestResponse => {
+            let request_ratio = pointer_ratio - current_sidebar;
+            let max_request = WORKSPACE_REQUEST_MAX_RATIO
+                .min(1.0 - current_sidebar - WORKSPACE_RESPONSE_MIN_RATIO)
+                .max(WORKSPACE_REQUEST_MIN_RATIO);
+            (
+                current_sidebar,
+                request_ratio.clamp(WORKSPACE_REQUEST_MIN_RATIO, max_request),
+            )
+        }
+    }
+}
+
+fn workspace_split_preview(
+    split: WorkspaceSplitDrag,
+    pointer_ratio: f32,
+    current_sidebar: f32,
+    current_request: f32,
+) -> Option<WorkspaceSplitPreview> {
+    let (next_sidebar, next_request) =
+        workspace_split_target_ratios(split, pointer_ratio, current_sidebar, current_request);
+    workspace_split_ratios_changed(current_sidebar, current_request, next_sidebar, next_request)
+        .then_some(WorkspaceSplitPreview {
+            split,
+            sidebar_ratio: next_sidebar,
+            request_ratio: next_request,
+        })
+}
+
+fn workspace_split_pending_changed(
+    current: Option<WorkspaceSplitPreview>,
+    next: Option<WorkspaceSplitPreview>,
+) -> bool {
+    current != next
+}
+
+fn quantize_workspace_split_ratio(pointer_ratio: f32, workspace_width_px: f32) -> f32 {
+    if workspace_width_px <= 0.0 {
+        return pointer_ratio.clamp(0.0, 1.0);
+    }
+
+    let step_ratio = WORKSPACE_SPLIT_UPDATE_STEP_PX / workspace_width_px;
+    if step_ratio <= 0.0 {
+        pointer_ratio.clamp(0.0, 1.0)
+    } else {
+        ((pointer_ratio / step_ratio).round() * step_ratio).clamp(0.0, 1.0)
     }
 }
 
@@ -9490,6 +10566,17 @@ fn can_focus_request_url(busy: bool) -> bool {
     !busy
 }
 
+fn can_toggle_import_popover(busy: bool) -> bool {
+    !busy
+}
+
+fn can_focus_sidebar_input(busy: bool, target: SidebarFocusTarget) -> bool {
+    match target {
+        SidebarFocusTarget::RouteFilter | SidebarFocusTarget::HistoryFilter => true,
+        SidebarFocusTarget::CollectionPath => !busy,
+    }
+}
+
 fn can_send_request_shortcut(busy: bool, url: &str, pre_request_script: &str) -> bool {
     !busy && can_send_request(url, pre_request_script)
 }
@@ -9512,8 +10599,130 @@ fn pre_request_sets_url(script: &str) -> bool {
     })
 }
 
-fn can_send_websocket_message(running: bool, mode: WebSocketMessageMode, message: &str) -> bool {
-    if !running {
+fn is_websocket_url(url: &str) -> bool {
+    let url = url.trim();
+    url.starts_with("ws://") || url.starts_with("wss://")
+}
+
+fn can_connect_websocket(busy: bool, running: bool, url: &str) -> bool {
+    !busy && !running && is_websocket_url(url)
+}
+
+fn can_close_websocket(busy: bool, running: bool) -> bool {
+    !busy && running
+}
+
+fn is_sse_url(url: &str) -> bool {
+    let url = url.trim();
+    url.starts_with("http://") || url.starts_with("https://")
+}
+
+fn can_start_sse(busy: bool, running: bool, url: &str) -> bool {
+    !busy && !running && is_sse_url(url)
+}
+
+fn can_stop_sse_subscription(busy: bool, has_subscription: bool) -> bool {
+    !busy && has_subscription
+}
+
+fn can_use_realtime_log_actions(busy: bool, entry_count: usize) -> bool {
+    !busy && entry_count > 0
+}
+
+fn can_copy_headers_bulk(busy: bool, has_headers: bool) -> bool {
+    !busy && has_headers
+}
+
+fn can_use_codegen_language_selector(busy: bool) -> bool {
+    !busy
+}
+
+fn can_select_request_method(busy: bool) -> bool {
+    can_edit_request_configuration(busy)
+}
+
+fn can_edit_request_configuration(busy: bool) -> bool {
+    !busy
+}
+
+fn can_add_key_value_row(
+    busy: bool,
+    target: KeyValueEditorTarget,
+    has_active_environment: bool,
+) -> bool {
+    can_edit_request_configuration(busy)
+        && (target != KeyValueEditorTarget::ActiveEnvironmentVariables || has_active_environment)
+}
+
+fn can_remove_key_value_row(
+    busy: bool,
+    target: KeyValueEditorTarget,
+    has_active_environment: bool,
+    row_count: usize,
+    index: usize,
+) -> bool {
+    can_add_key_value_row(busy, target, has_active_environment) && index < row_count
+}
+
+fn can_restore_request_from_sidebar(busy: bool) -> bool {
+    !busy
+}
+
+fn can_clear_history(busy: bool, entry_count: usize) -> bool {
+    !busy && entry_count > 0
+}
+
+fn can_delete_history_entry(busy: bool) -> bool {
+    !busy
+}
+
+fn can_mutate_collection(busy: bool) -> bool {
+    !busy
+}
+
+fn can_open_collection_context_menu(busy: bool) -> bool {
+    can_mutate_collection(busy)
+}
+
+fn can_use_collection_context_action(busy: bool, target_allows_action: bool) -> bool {
+    can_mutate_collection(busy) && target_allows_action
+}
+
+fn can_submit_environment_add(busy: bool, name: &str) -> bool {
+    can_edit_request_configuration(busy) && can_add_environment(name)
+}
+
+fn can_delete_environment(busy: bool, has_active_environment: bool) -> bool {
+    can_edit_request_configuration(busy) && has_active_environment
+}
+
+fn can_format_request_raw_json(busy: bool, format: RawBodyFormat, body: &str) -> bool {
+    can_edit_request_configuration(busy) && can_format_raw_json(format, body)
+}
+
+fn can_edit_response_assertion_row(busy: bool, row_count: usize, index: usize) -> bool {
+    can_edit_request_configuration(busy) && index < row_count
+}
+
+fn can_remove_response_assertion_row(busy: bool, row_count: usize, index: usize) -> bool {
+    can_edit_response_assertion_row(busy, row_count, index)
+}
+
+fn can_clear_response_assertion_results(busy: bool, result_count: usize) -> bool {
+    !busy && result_count > 0
+}
+
+fn can_run_collection_runner(total: usize, runner_running: bool, busy: bool) -> bool {
+    total > 0 && !runner_running && !busy
+}
+
+fn can_send_websocket_message(
+    busy: bool,
+    running: bool,
+    mode: WebSocketMessageMode,
+    message: &str,
+) -> bool {
+    if busy || !running {
         return false;
     }
 
@@ -9533,6 +10742,33 @@ fn runner_stop_toggle_enabled(runner_running: bool, busy: bool) -> bool {
 
 fn can_copy_codegen_request(request: &CodegenRequest) -> bool {
     has_trimmed_text(&request.url)
+}
+
+fn can_copy_codegen_snippet(busy: bool, has_snippet: bool) -> bool {
+    !busy && has_snippet
+}
+
+fn set_text_input_enabled(input: &Entity<TextInput>, enabled: bool, cx: &mut Context<ZenApiApp>) {
+    input.update(cx, |input, cx| input.set_enabled(enabled, cx));
+}
+
+fn set_key_value_rows_enabled(rows: &[KeyValueRow], enabled: bool, cx: &mut Context<ZenApiApp>) {
+    for row in rows {
+        set_text_input_enabled(&row.key, enabled, cx);
+        set_text_input_enabled(&row.value, enabled, cx);
+    }
+}
+
+fn set_assertion_rows_enabled(
+    rows: &[TestAssertionRow],
+    enabled: bool,
+    cx: &mut Context<ZenApiApp>,
+) {
+    for row in rows {
+        set_text_input_enabled(&row.name, enabled, cx);
+        set_text_input_enabled(&row.target, enabled, cx);
+        set_text_input_enabled(&row.expected, enabled, cx);
+    }
 }
 
 fn text_input_has_text(input: &Entity<TextInput>, cx: &mut Context<ZenApiApp>) -> bool {
@@ -9574,6 +10810,10 @@ fn response_can_collapse(raw_body: &str) -> bool {
     collapsed_json_preview(raw_body).is_some()
 }
 
+fn can_toggle_response_collapse(busy: bool, raw_body: &str) -> bool {
+    !busy && response_can_collapse(raw_body)
+}
+
 fn response_body_for_view(
     view: ResponseView,
     pretty_collapsed: bool,
@@ -9598,6 +10838,17 @@ fn response_body_for_view(
             }
         }
     }
+}
+
+fn can_copy_response_view(
+    busy: bool,
+    view: ResponseView,
+    pretty_collapsed: bool,
+    pretty_body: &str,
+    raw_body: &str,
+    headers: &str,
+) -> bool {
+    !busy && response_copy_text(view, pretty_collapsed, pretty_body, raw_body, headers).is_some()
 }
 
 fn response_copy_text(
@@ -9735,6 +10986,15 @@ mod tests {
     }
 
     #[test]
+    fn history_mutation_actions_require_history_and_idle_state() {
+        assert!(!can_clear_history(false, 0));
+        assert!(can_clear_history(false, 1));
+        assert!(!can_clear_history(true, 1));
+        assert!(can_delete_history_entry(false));
+        assert!(!can_delete_history_entry(true));
+    }
+
+    #[test]
     fn trimmed_text_presence_ignores_whitespace() {
         assert!(!has_trimmed_text(""));
         assert!(!has_trimmed_text("   \n\t"));
@@ -9748,6 +11008,8 @@ mod tests {
         assert!(!can_submit_path_action(false, "   "));
         assert!(!can_submit_path_action(true, "api.yaml"));
         assert!(can_submit_path_action(false, " api.yaml "));
+        assert!(can_toggle_import_popover(false));
+        assert!(!can_toggle_import_popover(true));
     }
 
     #[test]
@@ -9896,6 +11158,27 @@ mod tests {
         assert!(!runner_stop_toggle_enabled(true, false));
         assert!(!runner_stop_toggle_enabled(false, true));
         assert!(!runner_stop_toggle_enabled(true, true));
+        assert!(can_run_collection_runner(1, false, false));
+        assert!(!can_run_collection_runner(0, false, false));
+        assert!(!can_run_collection_runner(1, true, false));
+        assert!(!can_run_collection_runner(1, false, true));
+    }
+
+    #[test]
+    fn clearing_test_results_requires_results_and_idle_state() {
+        assert!(!can_clear_response_assertion_results(false, 0));
+        assert!(can_clear_response_assertion_results(false, 1));
+        assert!(!can_clear_response_assertion_results(true, 1));
+    }
+
+    #[test]
+    fn response_assertion_row_actions_require_idle_state_and_valid_index() {
+        assert!(can_edit_response_assertion_row(false, 2, 1));
+        assert!(!can_edit_response_assertion_row(true, 2, 1));
+        assert!(!can_edit_response_assertion_row(false, 2, 2));
+        assert!(can_remove_response_assertion_row(false, 2, 0));
+        assert!(!can_remove_response_assertion_row(true, 2, 0));
+        assert!(!can_remove_response_assertion_row(false, 0, 0));
     }
 
     #[test]
@@ -9927,6 +11210,292 @@ mod tests {
         assert_eq!(
             request_address_border_tone(true, false, true),
             RequestAddressBorderTone::Default
+        );
+    }
+
+    #[test]
+    fn workspace_split_ratio_updates_ignore_sub_pixel_noise() {
+        assert!(!workspace_split_ratios_changed(0.28, 0.37, 0.2805, 0.37));
+        assert!(!workspace_split_ratios_changed(0.28, 0.37, 0.28, 0.3705));
+        assert!(workspace_split_ratios_changed(0.28, 0.37, 0.2812, 0.37));
+        assert!(workspace_split_ratios_changed(0.28, 0.37, 0.28, 0.3712));
+    }
+
+    #[test]
+    fn workspace_split_ratio_quantizes_drag_updates() {
+        assert_eq!(
+            quantize_workspace_split_ratio(0.501, 1000.),
+            quantize_workspace_split_ratio(0.5015, 1000.)
+        );
+        assert_ne!(
+            quantize_workspace_split_ratio(0.501, 1000.),
+            quantize_workspace_split_ratio(0.526, 1000.)
+        );
+        assert_eq!(quantize_workspace_split_ratio(-0.2, 1000.), 0.0);
+        assert_eq!(quantize_workspace_split_ratio(1.2, 1000.), 1.0);
+    }
+
+    #[test]
+    fn workspace_split_preview_tracks_only_meaningful_changes() {
+        assert_eq!(
+            workspace_split_preview(WorkspaceSplitDrag::SidebarRequest, 0.28, 0.28, 0.37),
+            None
+        );
+        assert_eq!(
+            workspace_split_preview(WorkspaceSplitDrag::SidebarRequest, 0.30, 0.28, 0.37),
+            Some(WorkspaceSplitPreview {
+                split: WorkspaceSplitDrag::SidebarRequest,
+                sidebar_ratio: 0.30,
+                request_ratio: 0.37,
+            })
+        );
+        assert_eq!(
+            workspace_split_preview(WorkspaceSplitDrag::RequestResponse, 0.75, 0.25, 0.37),
+            Some(WorkspaceSplitPreview {
+                split: WorkspaceSplitDrag::RequestResponse,
+                sidebar_ratio: 0.25,
+                request_ratio: 0.50,
+            })
+        );
+    }
+
+    #[test]
+    fn workspace_split_pending_only_changes_for_new_preview() {
+        let preview = Some(WorkspaceSplitPreview {
+            split: WorkspaceSplitDrag::SidebarRequest,
+            sidebar_ratio: 0.30,
+            request_ratio: 0.37,
+        });
+
+        assert!(!workspace_split_pending_changed(preview, preview));
+        assert!(workspace_split_pending_changed(None, preview));
+        assert!(workspace_split_pending_changed(preview, None));
+        assert!(workspace_split_pending_changed(
+            preview,
+            Some(WorkspaceSplitPreview {
+                split: WorkspaceSplitDrag::SidebarRequest,
+                sidebar_ratio: 0.33,
+                request_ratio: 0.37,
+            })
+        ));
+    }
+
+    #[test]
+    fn workspace_split_target_ratios_keep_all_panes_visible() {
+        assert_eq!(
+            workspace_split_target_ratios(WorkspaceSplitDrag::SidebarRequest, 0.9, 0.28, 0.37),
+            (0.38, 0.37)
+        );
+        assert_eq!(
+            workspace_split_target_ratios(WorkspaceSplitDrag::SidebarRequest, 0.1, 0.28, 0.37),
+            (0.20, 0.37)
+        );
+        let (sidebar, request) =
+            workspace_split_target_ratios(WorkspaceSplitDrag::RequestResponse, 0.95, 0.28, 0.37);
+        assert_eq!(sidebar, 0.28);
+        assert!((request - 0.48).abs() < 0.0001);
+        assert_eq!(
+            workspace_split_target_ratios(WorkspaceSplitDrag::RequestResponse, 0.40, 0.28, 0.37),
+            (0.28, 0.28)
+        );
+    }
+
+    #[test]
+    fn request_body_mode_labels_stay_compact() {
+        let rows = request_body_mode_rows();
+        assert_eq!(
+            rows.map(|row| row.map(|(label, _)| label)),
+            [["None", "Form", "URL Enc"], ["Raw", "GraphQL", "Binary"]]
+        );
+        assert!(
+            rows.into_iter()
+                .flatten()
+                .all(|(label, _)| label.len() <= BODY_MODE_URL_ENCODED_LABEL.len())
+        );
+    }
+
+    #[test]
+    fn request_body_field_editor_titles_stay_compact() {
+        assert_eq!(
+            request_body_editor_title(RequestBodyMode::FormData),
+            Some("Form")
+        );
+        assert_eq!(
+            request_body_editor_title(RequestBodyMode::UrlEncoded),
+            Some("URL Enc")
+        );
+        assert_eq!(request_body_editor_title(RequestBodyMode::Raw), None);
+        assert_eq!(request_body_editor_title(RequestBodyMode::GraphQL), None);
+        assert_eq!(request_body_editor_title(RequestBodyMode::Binary), None);
+        assert!(
+            request_body_editor_title(RequestBodyMode::FormData)
+                .unwrap()
+                .len()
+                <= 4
+        );
+        assert!(
+            request_body_editor_title(RequestBodyMode::UrlEncoded)
+                .unwrap()
+                .len()
+                <= 7
+        );
+    }
+
+    #[test]
+    fn key_value_editor_key_column_width_respects_dense_body_tables() {
+        assert_eq!(
+            key_value_editor_key_column_width("Headers"),
+            KEY_VALUE_EDITOR_KEY_COLUMN_WIDTH
+        );
+        assert_eq!(
+            key_value_editor_key_column_width(PARAMS_PANEL_TITLE),
+            KEY_VALUE_EDITOR_KEY_COLUMN_WIDTH
+        );
+        assert_eq!(
+            key_value_editor_key_column_width(BODY_FORM_FIELDS_TITLE),
+            KEY_VALUE_EDITOR_COMPACT_KEY_COLUMN_WIDTH
+        );
+        assert_eq!(
+            key_value_editor_key_column_width(BODY_URL_ENCODED_TITLE),
+            KEY_VALUE_EDITOR_COMPACT_KEY_COLUMN_WIDTH
+        );
+        assert!(KEY_VALUE_EDITOR_COMPACT_KEY_COLUMN_WIDTH < KEY_VALUE_EDITOR_KEY_COLUMN_WIDTH);
+        assert!(KEY_VALUE_EDITOR_KEY_COLUMN_WIDTH < KEY_VALUE_KEY_COLUMN_WIDTH);
+    }
+
+    #[test]
+    fn key_value_editor_column_labels_match_editor_context() {
+        assert_eq!(
+            key_value_editor_column_labels("Headers"),
+            ("Header", "Value")
+        );
+        assert_eq!(
+            key_value_editor_column_labels(REALTIME_WEBSOCKET_HEADERS_TITLE),
+            ("Header", "Value")
+        );
+        assert_eq!(
+            key_value_editor_column_labels(REALTIME_SSE_HEADERS_TITLE),
+            ("Header", "Value")
+        );
+        assert_eq!(
+            key_value_editor_column_labels(PARAMS_PANEL_TITLE),
+            ("Param", "Value")
+        );
+        assert_eq!(
+            key_value_editor_column_labels(VARIABLES_GLOBAL_TITLE),
+            ("Var", "Value")
+        );
+        assert_eq!(
+            key_value_editor_column_labels(VARIABLES_ENV_TITLE),
+            ("Var", "Value")
+        );
+        assert_eq!(
+            key_value_editor_column_labels(BODY_FORM_FIELDS_TITLE),
+            ("Field", "Value")
+        );
+        assert_eq!(
+            key_value_editor_column_labels(BODY_URL_ENCODED_TITLE),
+            ("Name", "Value")
+        );
+        assert_eq!(key_value_editor_column_labels("Custom"), ("Key", "Value"));
+    }
+
+    #[test]
+    fn key_value_add_row_respects_busy_and_active_environment() {
+        assert!(can_add_key_value_row(
+            false,
+            KeyValueEditorTarget::QueryParams,
+            false
+        ));
+        assert!(!can_add_key_value_row(
+            true,
+            KeyValueEditorTarget::QueryParams,
+            true
+        ));
+        assert!(!can_add_key_value_row(
+            false,
+            KeyValueEditorTarget::ActiveEnvironmentVariables,
+            false
+        ));
+        assert!(can_add_key_value_row(
+            false,
+            KeyValueEditorTarget::ActiveEnvironmentVariables,
+            true
+        ));
+    }
+
+    #[test]
+    fn key_value_remove_row_respects_busy_active_environment_and_index() {
+        assert!(can_remove_key_value_row(
+            false,
+            KeyValueEditorTarget::QueryParams,
+            false,
+            3,
+            2
+        ));
+        assert!(!can_remove_key_value_row(
+            true,
+            KeyValueEditorTarget::QueryParams,
+            true,
+            3,
+            1
+        ));
+        assert!(!can_remove_key_value_row(
+            false,
+            KeyValueEditorTarget::QueryParams,
+            false,
+            3,
+            3
+        ));
+        assert!(!can_remove_key_value_row(
+            false,
+            KeyValueEditorTarget::ActiveEnvironmentVariables,
+            false,
+            3,
+            1
+        ));
+        assert!(can_remove_key_value_row(
+            false,
+            KeyValueEditorTarget::ActiveEnvironmentVariables,
+            true,
+            3,
+            1
+        ));
+    }
+
+    #[test]
+    fn key_value_add_row_placeholders_match_editor_context() {
+        assert_eq!(
+            key_value_editor_add_placeholders(KeyValueEditorTarget::QueryParams),
+            ("param", "value")
+        );
+        assert_eq!(
+            key_value_editor_add_placeholders(KeyValueEditorTarget::RequestHeaders),
+            ("Header", "Value")
+        );
+        assert_eq!(
+            key_value_editor_add_placeholders(KeyValueEditorTarget::WebSocketHeaders),
+            ("Header", "Value")
+        );
+        assert_eq!(
+            key_value_editor_add_placeholders(KeyValueEditorTarget::SseHeaders),
+            ("Header", "Value")
+        );
+        assert_eq!(
+            key_value_editor_add_placeholders(KeyValueEditorTarget::GlobalVariables),
+            ("var", "value")
+        );
+        assert_eq!(
+            key_value_editor_add_placeholders(KeyValueEditorTarget::ActiveEnvironmentVariables),
+            ("var", "value")
+        );
+        assert_eq!(
+            key_value_editor_add_placeholders(KeyValueEditorTarget::FormDataBody),
+            ("field", "value")
+        );
+        assert_eq!(
+            key_value_editor_add_placeholders(KeyValueEditorTarget::UrlEncodedBody),
+            ("name", "value")
         );
     }
 
@@ -10029,6 +11598,9 @@ mod tests {
         assert!(!response_can_collapse("not-json"));
         assert!(!response_can_collapse("   "));
         assert!(response_can_collapse(r#"{"ok":true}"#));
+        assert!(can_toggle_response_collapse(false, r#"{"ok":true}"#));
+        assert!(!can_toggle_response_collapse(true, r#"{"ok":true}"#));
+        assert!(!can_toggle_response_collapse(false, "not-json"));
     }
 
     #[test]
@@ -10047,6 +11619,16 @@ mod tests {
         assert!(!can_format_raw_json(RawBodyFormat::Json, "   "));
         assert!(!can_format_raw_json(RawBodyFormat::Text, r#"{"ok":true}"#));
         assert!(!can_format_raw_json(RawBodyFormat::Xml, "<ok />"));
+        assert!(can_format_request_raw_json(
+            false,
+            RawBodyFormat::Json,
+            r#"{"ok":true}"#
+        ));
+        assert!(!can_format_request_raw_json(
+            true,
+            RawBodyFormat::Json,
+            r#"{"ok":true}"#
+        ));
     }
 
     #[test]
@@ -10103,6 +11685,53 @@ mod tests {
             response_copy_text(ResponseView::Pretty, false, "   ", raw, headers),
             None
         );
+        assert!(can_copy_response_view(
+            false,
+            ResponseView::Pretty,
+            false,
+            pretty,
+            raw,
+            headers
+        ));
+        assert!(!can_copy_response_view(
+            true,
+            ResponseView::Pretty,
+            false,
+            pretty,
+            raw,
+            headers
+        ));
+        assert!(!can_copy_response_view(
+            false,
+            ResponseView::Headers,
+            false,
+            pretty,
+            raw,
+            ""
+        ));
+    }
+
+    #[test]
+    fn response_toolbar_labels_stay_compact() {
+        assert_eq!(
+            response_tabs().map(|(label, _)| label),
+            [
+                RESPONSE_PRETTY_LABEL,
+                RESPONSE_RAW_LABEL,
+                RESPONSE_HEADERS_LABEL
+            ]
+        );
+
+        let labels = [
+            RESPONSE_PRETTY_LABEL,
+            RESPONSE_RAW_LABEL,
+            RESPONSE_HEADERS_LABEL,
+            RESPONSE_FOLD_LABEL,
+            RESPONSE_OPEN_LABEL,
+            RESPONSE_COPY_LABEL,
+        ];
+        assert_eq!(labels, ["Pretty", "Raw", "Hdrs", "Fold", "Open", "Copy"]);
+        assert!(labels.iter().all(|label| label.len() <= 6));
     }
 
     #[test]
@@ -10141,6 +11770,9 @@ Cookie: a=b; c=d
             format_header_bulk(&headers),
             "Accept: application/json\nX-Trace-Id: abc"
         );
+        assert!(!can_copy_headers_bulk(false, false));
+        assert!(can_copy_headers_bulk(false, true));
+        assert!(!can_copy_headers_bulk(true, true));
     }
 
     #[test]
@@ -10188,7 +11820,7 @@ Cookie: a=b; c=d
                 .expect("json assertion")
                 .expect("configured");
 
-        assert_eq!(json.name, "JSON path = ok");
+        assert_eq!(json.name, "JSON = ok");
         assert_eq!(
             json.kind,
             ResponseAssertionKind::JsonPathEquals {
@@ -10302,10 +11934,17 @@ Cookie: a=b; c=d
     }
 
     #[test]
-    fn builds_bearer_basic_and_api_key_pairs() {
+    fn builds_bearer_basic_oauth2_and_api_key_pairs() {
         assert_eq!(
             bearer_auth_pair(" token "),
             Some(("Authorization".to_string(), "Bearer token".to_string()))
+        );
+        assert_eq!(
+            oauth2_access_token_pair(" oauth-token "),
+            Some((
+                "Authorization".to_string(),
+                "Bearer oauth-token".to_string()
+            ))
         );
         assert_eq!(
             basic_auth_pair("dev", "secret"),
@@ -10326,6 +11965,7 @@ Cookie: a=b; c=d
             Some(("X-API-Key".to_string(), "key".to_string()))
         );
         assert_eq!(bearer_auth_pair(" "), None);
+        assert_eq!(oauth2_access_token_pair(" "), None);
         assert_eq!(jwt_auth_pair(" "), None);
         assert_eq!(basic_auth_pair("", "secret"), None);
         assert_eq!(api_key_pair("", "key"), None);
@@ -10379,6 +12019,12 @@ Cookie: a=b; c=d
         assert!(!can_add_environment("   \n\t"));
         assert!(can_add_environment("staging"));
         assert!(can_add_environment(" qa team  west "));
+        assert!(can_submit_environment_add(false, "staging"));
+        assert!(!can_submit_environment_add(true, "staging"));
+        assert!(!can_submit_environment_add(false, "   "));
+        assert!(can_delete_environment(false, true));
+        assert!(!can_delete_environment(false, false));
+        assert!(!can_delete_environment(true, true));
     }
 
     #[test]
@@ -10525,7 +12171,7 @@ Cookie: a=b; c=d
         })
         .to_string();
 
-        let summary = graphql_schema_summary(&response).expect("schema summary");
+        let summary = graphql_schema_summary(&response).expect("schema");
 
         assert!(summary.contains("roots: query Query, mutation Mutation, subscription -"));
         assert!(summary.contains("5 total, 2 object, 1 input, 1 enum, 1 scalar"));
@@ -10814,34 +12460,81 @@ Cookie: a=b; c=d
     fn websocket_send_requires_running_and_valid_message_mode_input() {
         assert!(!can_send_websocket_message(
             false,
+            false,
             WebSocketMessageMode::Text,
             "hello"
         ));
         assert!(can_send_websocket_message(
+            false,
             true,
             WebSocketMessageMode::Text,
             ""
         ));
         assert!(can_send_websocket_message(
+            false,
             true,
             WebSocketMessageMode::BinaryHex,
             "00 ff 7a"
         ));
         assert!(!can_send_websocket_message(
+            false,
             true,
             WebSocketMessageMode::BinaryHex,
             ""
         ));
         assert!(!can_send_websocket_message(
+            false,
             true,
             WebSocketMessageMode::BinaryHex,
             "0"
         ));
         assert!(!can_send_websocket_message(
+            false,
             true,
             WebSocketMessageMode::BinaryHex,
             "zz"
         ));
+        assert!(!can_send_websocket_message(
+            true,
+            true,
+            WebSocketMessageMode::Text,
+            "hello"
+        ));
+    }
+
+    #[test]
+    fn websocket_connect_requires_valid_scheme_and_idle_state() {
+        assert!(!can_connect_websocket(false, false, ""));
+        assert!(!can_connect_websocket(false, false, "   "));
+        assert!(!can_connect_websocket(
+            false,
+            false,
+            "http://localhost/socket"
+        ));
+        assert!(!can_connect_websocket(
+            false,
+            false,
+            "https://localhost/socket"
+        ));
+        assert!(can_connect_websocket(false, false, "ws://localhost/socket"));
+        assert!(can_connect_websocket(
+            false,
+            false,
+            " wss://localhost/socket "
+        ));
+        assert!(!can_connect_websocket(false, true, "ws://localhost/socket"));
+        assert!(!can_connect_websocket(true, false, "ws://localhost/socket"));
+        assert!(can_close_websocket(false, true));
+        assert!(!can_close_websocket(false, false));
+        assert!(!can_close_websocket(true, true));
+    }
+
+    #[test]
+    fn realtime_log_actions_require_entries() {
+        assert!(!can_use_realtime_log_actions(false, 0));
+        assert!(can_use_realtime_log_actions(false, 1));
+        assert!(can_use_realtime_log_actions(false, 24));
+        assert!(!can_use_realtime_log_actions(true, 1));
     }
 
     #[test]
@@ -10907,6 +12600,21 @@ Cookie: a=b; c=d
     }
 
     #[test]
+    fn sse_start_requires_http_scheme_and_idle_state() {
+        assert!(!can_start_sse(false, false, ""));
+        assert!(!can_start_sse(false, false, "   "));
+        assert!(!can_start_sse(false, false, "ws://localhost/events"));
+        assert!(!can_start_sse(false, false, "ftp://localhost/events"));
+        assert!(can_start_sse(false, false, "http://localhost/events"));
+        assert!(can_start_sse(false, false, " https://localhost/events "));
+        assert!(!can_start_sse(false, true, "http://localhost/events"));
+        assert!(!can_start_sse(true, false, "http://localhost/events"));
+        assert!(can_stop_sse_subscription(false, true));
+        assert!(!can_stop_sse_subscription(false, false));
+        assert!(!can_stop_sse_subscription(true, true));
+    }
+
+    #[test]
     fn resolves_variables_inside_graphql_body_json() {
         let store =
             variable_store_from_pairs(vec![("id".to_string(), "42".to_string())], None, Vec::new());
@@ -10921,7 +12629,7 @@ Cookie: a=b; c=d
         let resolved = resolve_request_body(body, &store, None).expect("graphql variables");
 
         let RequestBody::Raw { body, .. } = resolved else {
-            panic!("expected raw GraphQL JSON body");
+            panic!("expected raw GraphQL payload body");
         };
         let value = serde_json::from_str::<serde_json::Value>(&body).expect("graphql json");
 
@@ -11066,6 +12774,57 @@ Cookie: a=b; c=d
         assert!(!can_copy_codegen_request(&request));
         request.url = "https://api.example.com/users".to_string();
         assert!(can_copy_codegen_request(&request));
+        assert!(!can_copy_codegen_snippet(false, false));
+        assert!(can_copy_codegen_snippet(false, true));
+        assert!(!can_copy_codegen_snippet(true, true));
+    }
+
+    #[test]
+    fn codegen_language_selector_respects_busy_state() {
+        assert!(can_use_codegen_language_selector(false));
+        assert!(!can_use_codegen_language_selector(true));
+    }
+
+    #[test]
+    fn codegen_language_labels_stay_compact() {
+        let labels = [
+            snippet_language_label(SnippetLanguage::Curl),
+            snippet_language_label(SnippetLanguage::PythonRequests),
+            snippet_language_label(SnippetLanguage::JavaScriptFetch),
+            snippet_language_label(SnippetLanguage::RustReqwest),
+            snippet_language_label(SnippetLanguage::GoNetHttp),
+        ];
+
+        assert_eq!(labels, ["cURL", "Py", "JS", "Rust", "Go"]);
+        assert!(labels.iter().all(|label| label.len() <= 4));
+    }
+
+    #[test]
+    fn request_configuration_editing_respects_busy_state() {
+        assert!(can_edit_request_configuration(false));
+        assert!(!can_edit_request_configuration(true));
+        assert!(can_select_request_method(false));
+        assert!(!can_select_request_method(true));
+        assert!(can_use_codegen_language_selector(false));
+        assert!(!can_use_codegen_language_selector(true));
+        assert!(can_restore_request_from_sidebar(false));
+        assert!(!can_restore_request_from_sidebar(true));
+        assert!(can_mutate_collection(false));
+        assert!(!can_mutate_collection(true));
+        assert!(can_open_collection_context_menu(false));
+        assert!(!can_open_collection_context_menu(true));
+        assert!(can_use_collection_context_action(false, true));
+        assert!(!can_use_collection_context_action(false, false));
+        assert!(!can_use_collection_context_action(true, true));
+        assert!(!can_use_collection_context_action(true, false));
+    }
+
+    #[test]
+    fn render_enabled_controls_recheck_current_busy_state() {
+        assert!(can_activate_render_enabled_control(true, false));
+        assert!(!can_activate_render_enabled_control(false, false));
+        assert!(!can_activate_render_enabled_control(true, true));
+        assert!(!can_activate_render_enabled_control(false, true));
     }
 
     #[test]
@@ -11348,6 +13107,8 @@ Cookie: a=b; c=d
         assert_eq!(WORKSPACE_RESPONSE_MIN_RATIO, 0.24);
         assert_eq!(WORKSPACE_SPLIT_HANDLE_WIDTH, 8.);
         assert_eq!(WORKSPACE_SPLIT_DIVIDER_WIDTH, 1.);
+        assert_eq!(WORKSPACE_SPLIT_RATIO_EPSILON, 0.001);
+        assert_eq!(WORKSPACE_SPLIT_UPDATE_STEP_PX, 48.);
         assert_eq!(SIDEBAR_NAV_HEIGHT, 42.);
         assert_eq!(SCROLLBAR_WIDTH, 6.);
         assert_eq!(SCROLLBAR_RIGHT_OFFSET, 3.);
@@ -11403,9 +13164,11 @@ Cookie: a=b; c=d
         assert_eq!(RESPONSE_TAB_COUNT, 3);
         assert_eq!(
             response_tabs().map(|(label, _)| label),
-            ["Pretty", "Raw", "Headers"]
+            ["Pretty", "Raw", "Hdrs"]
         );
-        assert_eq!(RESPONSE_COPY_BUTTON_WIDTH, 62.);
+        assert_eq!(RESPONSE_TAB_WIDTH, 72.);
+        assert_eq!(RESPONSE_FOLD_BUTTON_WIDTH, 54.);
+        assert_eq!(RESPONSE_COPY_BUTTON_WIDTH, 54.);
         assert_eq!(STATUS_BAR_TRAILING_WIDTH, 360.);
         assert_eq!(BODY_EDITOR_HEIGHT, 118.);
         assert_eq!(GRAPHQL_VARIABLES_EDITOR_HEIGHT, 86.);
@@ -11445,27 +13208,35 @@ Cookie: a=b; c=d
         assert_eq!(SSE_EVENT_COLUMN_WIDTH, 74.);
         assert_eq!(SSE_ID_COLUMN_WIDTH, 58.);
         assert_eq!(KEY_VALUE_KEY_COLUMN_WIDTH, 150.);
-        assert_eq!(
-            TEST_ASSERTION_NAME_COLUMN_WIDTH,
-            TEST_ASSERTION_KIND_COLUMN_WIDTH
-        );
-        assert_ne!(UI_COLOR_SURFACE, UI_COLOR_SURFACE_MUTED);
+        assert_eq!(KEY_VALUE_EDITOR_KEY_COLUMN_WIDTH, 128.);
+        assert_eq!(KEY_VALUE_EDITOR_COMPACT_KEY_COLUMN_WIDTH, 112.);
+        assert_eq!(KEY_VALUE_ROW_ACTION_BUTTON_WIDTH, 28.);
+        assert_eq!(TEST_ASSERTION_NAME_COLUMN_WIDTH, 132.);
+        assert_eq!(TEST_ASSERTION_KIND_COLUMN_WIDTH, 96.);
+        assert_eq!(TESTS_CLEAR_RESULTS_BUTTON_WIDTH, 54.);
+        assert_eq!(UI_COLOR_SURFACE, UI_COLOR_SURFACE_MUTED);
         assert_ne!(UI_COLOR_APP_CHROME, UI_COLOR_SIDEBAR_PANE);
-        assert_ne!(UI_COLOR_SIDEBAR_PANE, UI_COLOR_REQUEST_PANE);
-        assert_ne!(UI_COLOR_REQUEST_PANE, UI_COLOR_RESPONSE_PANE);
-        assert_eq!(UI_COLOR_SIDEBAR_PANE, 0xf1f6ff);
-        assert_eq!(UI_COLOR_REQUEST_PANE, 0xfffbf5);
-        assert_eq!(UI_COLOR_RESPONSE_PANE, 0xf0fbf7);
-        assert_eq!(UI_COLOR_DISABLED_SURFACE, 0xf2f5f8);
-        assert_eq!(UI_COLOR_DISABLED_BORDER, 0xd7dee8);
-        assert_eq!(UI_COLOR_DISABLED_TEXT, 0x7f8a99);
-        assert_eq!(UI_COLOR_BORDER_STRONG, 0xb8c7d8);
+        assert_eq!(UI_COLOR_REQUEST_PANE, UI_COLOR_SURFACE);
+        assert_eq!(UI_COLOR_REQUEST_TAB_BAR, UI_COLOR_SURFACE_MUTED);
+        assert_eq!(UI_COLOR_RESPONSE_TAB_BAR, UI_COLOR_SURFACE_MUTED);
+        assert_eq!(UI_COLOR_SIDEBAR_PANE, UI_COLOR_RESPONSE_PANE);
+        assert_eq!(UI_COLOR_SIDEBAR_PANE, UI_COLOR_SURFACE);
+        assert_eq!(UI_COLOR_REQUEST_PANE, UI_COLOR_SURFACE);
+        assert_eq!(UI_COLOR_RESPONSE_PANE, UI_COLOR_SURFACE);
+        assert_eq!(UI_COLOR_DISABLED_SURFACE, 0xf2f2f3);
+        assert_eq!(UI_COLOR_DISABLED_BORDER, 0xd9d9df);
+        assert_eq!(UI_COLOR_DISABLED_TEXT, 0x8a8f98);
+        assert_eq!(UI_COLOR_BORDER_STRONG, 0xc7ccd3);
+        assert_eq!(UI_COLOR_HOVER, 0xf4f4f5);
         assert_eq!(UI_COLOR_TEXT_SECONDARY, 0x4b5563);
         assert_eq!(UI_COLOR_TEXT_MUTED, 0x64748b);
+        assert_eq!(UI_COLOR_TEXT_PLACEHOLDER, 0xe3e7ee);
+        assert_eq!(UI_COLOR_TEXT_BODY, 0x1f2937);
         assert_ne!(UI_COLOR_DISABLED_SURFACE, UI_COLOR_HOVER);
+        assert_ne!(UI_COLOR_TEXT_PLACEHOLDER, UI_COLOR_TEXT_MUTED);
         assert_ne!(UI_COLOR_TEXT_MUTED, UI_COLOR_DISABLED_TEXT);
         assert_ne!(UI_COLOR_BORDER, UI_COLOR_BORDER_STRONG);
-        assert_ne!(UI_COLOR_ACCENT, UI_COLOR_ACCENT_SURFACE);
+        assert_eq!(WORKSPACE_SPLIT_UPDATE_STEP_PX, 48.);
         assert_eq!(UI_COLOR_STATUS_SUCCESS, 0x059669);
         assert_eq!(UI_COLOR_STATUS_BUSY, 0xd97706);
         assert_eq!(UI_COLOR_STATUS_ERROR, 0xdc2626);
@@ -11477,6 +13248,306 @@ Cookie: a=b; c=d
     fn top_bar_labels_stay_compact() {
         assert_eq!(mock_button_label(false), "Mock");
         assert_eq!(mock_button_label(true), "Stop");
+    }
+
+    #[test]
+    fn sidebar_labels_stay_compact() {
+        let nav_labels = [
+            SIDEBAR_ROUTES_LABEL,
+            SIDEBAR_SAVED_LABEL,
+            SIDEBAR_HISTORY_LABEL,
+        ];
+        assert_eq!(nav_labels, ["Routes", "Saved", "History"]);
+        assert!(nav_labels.iter().all(|label| label.len() <= 7));
+
+        let sidebar_placeholders = [
+            PLACEHOLDER_COLLECTION_PATH,
+            PLACEHOLDER_ROUTE_FILTER,
+            PLACEHOLDER_HISTORY_FILTER,
+        ];
+        assert_eq!(sidebar_placeholders, ["JSON path", "Filter", "Filter"]);
+        assert!(sidebar_placeholders.iter().all(|label| label.len() <= 9));
+
+        let empty_labels = [
+            SIDEBAR_EMPTY_ROUTES_LABEL,
+            SIDEBAR_EMPTY_SAVED_LABEL,
+            SIDEBAR_EMPTY_HISTORY_LABEL,
+            SIDEBAR_EMPTY_MATCHES_LABEL,
+        ];
+        assert_eq!(
+            empty_labels,
+            ["No routes", "No saved", "No history", "No matches"]
+        );
+        assert!(empty_labels.iter().all(|label| label.len() <= 10));
+        assert!(
+            empty_labels
+                .iter()
+                .all(|label| !label.contains("collection")
+                    && !label.contains("imported")
+                    && !label.contains("matching"))
+        );
+
+        let collection_labels = [
+            COLLECTION_IMPORT_LABEL,
+            COLLECTION_SAVE_LABEL,
+            COLLECTION_EXPORT_LABEL,
+            COLLECTION_POSTMAN_LABEL,
+            COLLECTION_MENU_CLOSE_LABEL,
+            COLLECTION_MENU_NEW_REQUEST_LABEL,
+            COLLECTION_MENU_NEW_FOLDER_LABEL,
+            COLLECTION_MENU_COPY_LABEL,
+            COLLECTION_MENU_DELETE_LABEL,
+            COLLECTION_MENU_RENAME_LABEL,
+        ];
+        assert_eq!(
+            collection_labels,
+            [
+                "Import", "Save", "Export", "PM", "x", "+ Req", "+ Dir", "Copy", "Del", "Rename"
+            ]
+        );
+        assert!(collection_labels.iter().all(|label| label.len() <= 6));
+        assert!(
+            collection_labels
+                .iter()
+                .all(|label| !label.contains("Postman") && !label.contains("Delete"))
+        );
+    }
+
+    #[test]
+    fn request_pane_labels_and_placeholders_stay_compact() {
+        let placeholders = [
+            PLACEHOLDER_IMPORT_PATH,
+            PLACEHOLDER_COLLECTION_PATH,
+            PLACEHOLDER_COLLECTION_ITEM,
+            PLACEHOLDER_REQUEST_URL,
+            PLACEHOLDER_ENVIRONMENT_NAME,
+            PLACEHOLDER_BEARER_TOKEN,
+            PLACEHOLDER_OAUTH2_ACCESS_TOKEN,
+            PLACEHOLDER_BASIC_USERNAME,
+            PLACEHOLDER_BASIC_PASSWORD,
+            PLACEHOLDER_JWT_TOKEN,
+            PLACEHOLDER_API_KEY_NAME,
+            PLACEHOLDER_API_KEY_VALUE,
+            PLACEHOLDER_REQUEST_BODY,
+            PLACEHOLDER_GRAPHQL_QUERY,
+            PLACEHOLDER_GRAPHQL_VARIABLES,
+            PLACEHOLDER_BINARY_BODY_PATH,
+        ];
+        assert_eq!(
+            placeholders,
+            [
+                "Spec path",
+                "JSON path",
+                "Item name",
+                "URL",
+                "Env",
+                "Token",
+                "Access token",
+                "User",
+                "Pass",
+                "JWT",
+                "X-API-Key",
+                "Key value",
+                "Body",
+                "Query",
+                "Vars",
+                "File path"
+            ]
+        );
+        assert!(placeholders.iter().all(|label| label.len() <= 16));
+
+        let auth_labels = [
+            AUTH_PANEL_TITLE,
+            AUTH_NONE_LABEL,
+            AUTH_BEARER_LABEL,
+            AUTH_OAUTH_LABEL,
+            AUTH_BASIC_LABEL,
+            AUTH_JWT_LABEL,
+            AUTH_API_KEY_LABEL,
+            AUTH_API_KEY_HEADER_LABEL,
+            AUTH_API_KEY_QUERY_LABEL,
+        ];
+        assert_eq!(
+            auth_labels,
+            [
+                "Auth", "None", "Bearer", "OAuth", "Basic", "JWT", "API", "Header", "Query"
+            ]
+        );
+        assert!(auth_labels.iter().all(|label| label.len() <= 6));
+
+        let action_labels = [
+            PARAMS_PANEL_TITLE,
+            HEADER_COPY_BULK_LABEL,
+            HEADER_PASTE_BULK_LABEL,
+            HEADER_ACCEPT_JSON_LABEL,
+            HEADER_CONTENT_JSON_LABEL,
+            HEADER_BEARER_AUTH_LABEL,
+            RUNNER_STOP_ON_FAILURE_LABEL,
+            RUNNER_RUN_ALL_LABEL,
+            RUNNER_EMPTY_REQUESTS_LABEL,
+            RUNNER_EMPTY_RESULTS_LABEL,
+            RAW_FORMAT_JSON_LABEL,
+            RAW_PREVIEW_TITLE,
+            RAW_EMPTY_PREVIEW_LABEL,
+            GRAPHQL_INTROSPECT_LABEL,
+            GRAPHQL_PAYLOAD_TITLE,
+            GRAPHQL_SCHEMA_TITLE,
+            GRAPHQL_SCHEMA_BROWSER_TITLE,
+            GRAPHQL_QUERY_ASSISTANT_TITLE,
+        ];
+        assert_eq!(
+            action_labels,
+            [
+                "Params",
+                "Copy",
+                "Paste",
+                "Accept",
+                "Content",
+                "Bearer",
+                "Stop Fail",
+                "Run",
+                "No requests",
+                "No results",
+                "Format",
+                "Preview",
+                "No body",
+                "Schema",
+                "Payload",
+                "Schema",
+                "Fields",
+                "Templates"
+            ]
+        );
+        assert!(action_labels.iter().all(|label| label.len() <= 11));
+        assert!(action_labels.iter().all(|label| !label.contains("Bulk")
+            && !label.contains("JSON")
+            && !label.contains("Auth")
+            && !label.contains("Query")
+            && !label.contains("Assistant")
+            && !label.contains("Browser")
+            && !label.contains("Syntax")
+            && !label.contains("collection")));
+
+        let variables_labels = [
+            VARIABLES_PANEL_TITLE,
+            VARIABLES_ENV_LABEL,
+            VARIABLES_NO_ENV_LABEL,
+            VARIABLES_ADD_ENV_LABEL,
+            VARIABLES_DELETE_ENV_LABEL,
+            VARIABLES_GLOBAL_TITLE,
+            VARIABLES_ENV_TITLE,
+            VARIABLES_ENV_NEEDED_TITLE,
+            VARIABLES_ENV_SELECTED_TITLE,
+            VARIABLES_ENV_CREATED_TITLE,
+            VARIABLES_ENV_DELETED_TITLE,
+        ];
+        assert_eq!(
+            variables_labels,
+            [
+                "Vars",
+                "Env",
+                "No Env",
+                "+ Env",
+                "Del",
+                "Global",
+                "Env",
+                "Env needed",
+                "Env selected",
+                "Env created",
+                "Env deleted"
+            ]
+        );
+        assert!(variables_labels.iter().all(|label| label.len() <= 12));
+        assert!(
+            variables_labels
+                .iter()
+                .all(|label| !label.contains("Environment") && !label.contains("Delete"))
+        );
+
+        let realtime_placeholders = [
+            PLACEHOLDER_WEBSOCKET_URL,
+            PLACEHOLDER_WEBSOCKET_PROTOCOLS,
+            PLACEHOLDER_SSE_URL,
+        ];
+        assert_eq!(realtime_placeholders, ["WS URL", "Protocols", "SSE URL"]);
+        assert!(realtime_placeholders.iter().all(|label| label.len() <= 9));
+
+        let realtime_labels = [
+            REALTIME_WEBSOCKET_TITLE,
+            REALTIME_WEBSOCKET_CONNECT_LABEL,
+            REALTIME_WEBSOCKET_SEND_LABEL,
+            REALTIME_WEBSOCKET_CLOSE_LABEL,
+            REALTIME_WEBSOCKET_HEADERS_TITLE,
+            REALTIME_WEBSOCKET_TEXT_LABEL,
+            REALTIME_WEBSOCKET_BINARY_LABEL,
+            REALTIME_WEBSOCKET_EMPTY_LABEL,
+            REALTIME_SSE_TITLE,
+            REALTIME_SSE_FETCH_LABEL,
+            REALTIME_SSE_SUBSCRIBE_LABEL,
+            REALTIME_SSE_STOP_LABEL,
+            REALTIME_SSE_HEADERS_TITLE,
+            REALTIME_SSE_EMPTY_LABEL,
+        ];
+        assert_eq!(
+            realtime_labels,
+            [
+                "WS",
+                "Open",
+                "Send",
+                "End",
+                "WS Headers",
+                "Text",
+                "Hex",
+                "No WS messages",
+                "SSE",
+                "Once",
+                "Stream",
+                "Stop",
+                "SSE Headers",
+                "No events"
+            ]
+        );
+        assert!(realtime_labels.iter().all(|label| label.len() <= 14));
+
+        let test_headers = [
+            TEST_ASSERTION_NAME_HEADER,
+            TEST_ASSERTION_KIND_HEADER,
+            TEST_ASSERTION_TARGET_HEADER,
+            TEST_ASSERTION_EXPECTED_HEADER,
+        ];
+        assert_eq!(test_headers, ["Test", "Kind", "Target", "Expect"]);
+        assert!(test_headers.iter().all(|label| label.len() <= 6));
+
+        let test_placeholders = [
+            PLACEHOLDER_TEST_ASSERTION_NAME,
+            PLACEHOLDER_TEST_ASSERTION_TARGET,
+            PLACEHOLDER_TEST_ASSERTION_EXPECTED,
+        ];
+        assert_eq!(test_placeholders, ["Test", "Target", "Expect"]);
+        assert!(test_placeholders.iter().all(|label| label.len() <= 6));
+
+        let test_kind_labels = [
+            TestAssertionKind::StatusEquals.label(),
+            TestAssertionKind::StatusInRange.label(),
+            TestAssertionKind::HeaderExists.label(),
+            TestAssertionKind::HeaderEquals.label(),
+            TestAssertionKind::BodyContains.label(),
+            TestAssertionKind::JsonPathEquals.label(),
+        ];
+        assert_eq!(
+            test_kind_labels,
+            [
+                "Status =", "Range", "Header ?", "Header =", "Body ?", "JSON ="
+            ]
+        );
+        assert!(test_kind_labels.iter().all(|label| label.len() <= 8));
+        assert!(
+            test_kind_labels
+                .iter()
+                .all(|label| !label.contains("exists")
+                    && !label.contains("contains")
+                    && !label.contains("path"))
+        );
     }
 
     #[test]
@@ -11493,6 +13564,30 @@ Cookie: a=b; c=d
             sidebar_focus_target(SidebarSection::History),
             SidebarFocusTarget::HistoryFilter
         );
+        assert!(can_focus_sidebar_input(
+            false,
+            SidebarFocusTarget::RouteFilter
+        ));
+        assert!(can_focus_sidebar_input(
+            true,
+            SidebarFocusTarget::RouteFilter
+        ));
+        assert!(can_focus_sidebar_input(
+            false,
+            SidebarFocusTarget::HistoryFilter
+        ));
+        assert!(can_focus_sidebar_input(
+            true,
+            SidebarFocusTarget::HistoryFilter
+        ));
+        assert!(can_focus_sidebar_input(
+            false,
+            SidebarFocusTarget::CollectionPath
+        ));
+        assert!(!can_focus_sidebar_input(
+            true,
+            SidebarFocusTarget::CollectionPath
+        ));
     }
 
     #[test]

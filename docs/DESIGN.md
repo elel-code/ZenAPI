@@ -96,14 +96,20 @@ architecture.
   row instead of using a separate global status band.
 - Use the current light palette consistently without flattening the workspace
   into one gray field: app and editor surfaces `#ffffff`, app chrome
-  `#f3f6fb`, workspace gutter `#e8edf5`, sidebar pane `#f1f6ff`, request pane
-  `#fffbf5`, response pane `#f0fbf7`, muted control fills `#f6f8fb` with
-  hover `#eaf2ff`, disabled controls `#f2f5f8` with border `#d7dee8` and
-  text `#7f8a99`, split dividers and borders `#dbe3ee` / `#b8c7d8`, primary
-  text `#111827`, and secondary text `#4b5563` / `#64748b`.
-- Keep pane color as a low-saturation orientation cue. Inputs, code blocks,
-  popovers, and dense content surfaces should remain white or near-white so the
-  tint separates regions instead of becoming decoration.
+  `#f7f7f8`, workspace gutter `#f0f1f3`, sidebar/request/response panes
+  `#ffffff`, request/response tab bars `#ffffff`, muted control fills
+  `#ffffff` with hover `#f4f4f5`, disabled controls `#f2f2f3` with border
+  `#d9d9df` and text `#8a8f98`, split dividers and borders `#e2e4e8` /
+  `#c7ccd3`, primary text `#111827`, secondary text `#4b5563` / `#64748b`,
+  and placeholder text `#e3e7ee`.
+- Keep pane backgrounds neutral. Inputs, code blocks, popovers, and dense
+  content surfaces stay white or near-white; use structure, borders, tabs, and
+  small text or rule accents for orientation instead of broad colored
+  backgrounds. Selected rows should prefer a white fill plus a thin accent
+  marker over a colored row fill.
+- Primary and warning actions should use white control fills with semantic
+  borders and text. Reserve solid color for narrow rules, status text, and
+  similarly compact accents.
 - Implement recurring palette values and stable layout tokens through
   shared UI tokens/metrics in the GPUI app shell rather than inline numeric
   literals in each panel.
@@ -117,10 +123,17 @@ architecture.
   label slot, a 10 px gap, and stable horizontal insets so label and value
   baselines do not drift.
 - Request-pane input shells, fixed preview boxes, and mode toggles should use
-  white or near-white fills with primary/body text. Avoid using muted gray text
-  for section titles, table headers, common empty placeholders, or idle control
-  states; muted text is only for low-priority metadata outside the active edit
-  path.
+  white or near-white fills with primary/body text. Section titles, table
+  headers, and idle control states should not look disabled; input placeholders
+  use the lighter placeholder token so they do not compete with entered values.
+- Generic Request-pane key/value editors should use a narrower key column than
+  credential input groups, with denser columns for body field tables, so the
+  value column remains useful in narrow panes. Their column headers should use
+  domain labels such as Header, Param, Var, Field, or Name instead of a
+  generic Key label when the context is known. Table-like editors, including
+  response assertions, should use compact fixed-width symbol buttons for row
+  add/remove actions so editing stays discoverable without turning the table
+  itself into a large control cluster.
 - Compact address/search inputs should not show large inline labels. The
   request URL field, sidebar route filter, and import popover path field use
   only concise placeholders so controls read like address/search bars instead
@@ -148,9 +161,43 @@ architecture.
 - Disabled input shells must suppress editing affordances, including blue focus
   borders and Enter/accepted submission. Any neighboring action in the same
   control group should share the same disabled condition and callback guard.
+- Application-level popovers should also respect busy state in both render and
+  callback paths. For example, Import popover toggling should be disabled while
+  a request or runner operation is active.
 - The Request address bar owns this rule explicitly: when the app is busy, the
   inline URL `TextInput` is disabled at the input handler level, not merely
   dimmed by the outer shell.
+- Request configuration editors follow the same rule. Query/header/body/auth,
+  variable, realtime setup, and test assertion inputs are disabled at the input
+  handler level while busy; actions that mutate request configuration, such as
+  header presets, bulk paste, environment add/delete, JSON formatting,
+  GraphQL introspection/template loading, and test-row creation, must share
+  the same enabled condition and Rust-side guard. Test result clearing should
+  also be guarded while busy so assertion output cannot be reset mid-run.
+  Read-only request-toolbar actions that are visually disabled during busy,
+  such as Headers Copy, should use the same explicit busy-aware predicate in
+  their callback.
+  Format should likewise require idle state, JSON raw-body mode, and a
+  non-empty body before attempting to parse or rewrite the editor content.
+- Realtime actions must not rely on generic button disabling alone. WS
+  Open/Send/End, SSE Once/Stream/Stop, and realtime log Copy/Clear
+  should all use explicit busy-aware preconditions at render time and in their
+  callbacks.
+- Sidebar actions that restore or replace the active request, including
+  endpoint selection, history restore, and collection request restore, are also
+  disabled while busy. Collection mutations should use the same busy guard so
+  saved request state cannot be reordered or removed mid-operation. This guard
+  applies to collection context menu create/copy/delete/rename actions and to
+  drag preview/drop feedback, not only to the final mutation callback.
+  Collection context menus should not open while busy because every action they
+  expose mutates collection state.
+- History filters may remain editable while busy, but History Clear and per-row
+  Delete mutate local records and must share an idle-state enabled condition
+  plus a callback guard using the current app state.
+- Busy-sensitive path inputs, including Import path, Saved JSON path, and
+  Collection rename, are disabled at the input handler level while busy.
+  Route and History filters may stay editable because they only change visible
+  sidebar rows. Ctrl/Cmd+F should not focus a disabled sidebar path input.
 - Header buttons must center the actual button rectangle within the toolbar
   slot, not only center the label text inside a drifting button.
 - Top-bar inline controls must use fixed visible heights and slot centering.
@@ -165,6 +212,9 @@ architecture.
   perceived baselines.
 - Split panes and primary content regions must declare explicit stretch rules.
   Sidebar/Request and Request/Response separators are draggable resize handles.
+  Split dragging uses a neutral divider preview while the current pane widths
+  stay stable; the preview target is quantized before it is stored, and the new
+  ratio is applied when the pointer is released.
   Route lists, editor panes, response bodies, and logs use fixed headers plus
   independent scroll regions instead of letting content overflow downward.
 - Use functional accents sparingly: green for selected/ready states, blue for
@@ -253,9 +303,32 @@ architecture.
   UI, such as starting the mock server before routes are imported.
 - Still keep server-side or binding-side validation for all disabled actions,
   because state can change asynchronously.
+- Viewer toolbar actions should use the same pure precondition at render time
+  and at callback time. For example, Response Copy depends on the active view,
+  non-empty copy text, and idle state in both places.
+- Request Send should use the same busy-aware URL/pre-request URL predicate for
+  the button state, URL Enter handler, shortcut handler, and click callback.
+  The click callback must re-read current app state rather than trusting a
+  render-time `enabled` value.
+- Request method selection is a request-configuration mutation. Both the method
+  selector and each method menu item must use the same current idle-state
+  predicate before opening the menu or changing the method.
+- Runner options are local execution configuration. Toggles such as Stop on
+  fail must re-read current `runner_running` and busy state in the callback, not
+  rely on the render-time enabled value.
+- Generated-code copy should not copy a snippet captured during an earlier
+  render. The callback should rebuild the current request snippet and recheck
+  busy/request validity before writing to the clipboard.
+- Generated-code language selector and Response Fold/Open should also
+  recheck current app state in their callbacks. Fold/Open specifically
+  requires idle state and currently collapsible JSON raw response content.
 - UI disabled states are not enough for long-running operations. Import,
-  request sending, and mock start/stop callbacks must also guard against
-  re-entry in Rust using the current busy state.
+  path-driven collection actions, request sending, request configuration
+  mutations, and mock start/stop callbacks must also guard against re-entry in
+  Rust using the current busy state.
+- Shared action-button helpers must also recheck current busy state before
+  invoking their callback. A control that was rendered enabled should not fire
+  after an asynchronous operation has moved the app into busy state.
 - Importing a new specification while the mock server is running must stop the
   existing mock server and return the UI to a ready-but-stopped state. The route
   list, status text, and actual running service must describe the same spec.
@@ -279,7 +352,7 @@ architecture.
   state should both communicate that the action is unavailable.
 - Collection runner controls belong near collection/request workflow context,
   not in a global marketing-style area. The MVP runner should expose one clear
-  `Run All` action, a visible stop-on-failure toggle, current status, and dense
+  `Run` action, a visible stop-on-failure toggle, current status, and dense
   result rows.
 - Runner result rows should use the same fixed-width method/status rhythm as
   mock logs and history rows. Passing/failing state should be communicated via

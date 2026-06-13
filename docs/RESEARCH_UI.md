@@ -34,20 +34,21 @@ The visual direction is closer to a workbench than a landing page.
 | Role | Baseline |
 |------|----------|
 | App surface | `#ffffff` |
-| App chrome | `#f3f6fb` |
-| Workspace gutter | `#e8edf5` |
-| Sidebar pane | `#f1f6ff` |
-| Request pane | `#fffbf5` |
-| Response pane | `#f0fbf7` |
-| Muted control fill | `#f6f8fb`, hover `#eaf2ff` |
-| Disabled control | `#f2f5f8`, border `#d7dee8`, text `#7f8a99` |
-| Border/divider | `#dbe3ee`, `#b8c7d8` |
+| App chrome | `#f7f7f8` |
+| Workspace gutter | `#f0f1f3` |
+| Sidebar pane | `#ffffff` |
+| Request pane | `#ffffff` |
+| Response pane | `#ffffff` |
+| Muted control fill | `#ffffff`, hover `#f4f4f5` |
+| Disabled control | `#f2f2f3`, border `#d9d9df`, text `#8a8f98` |
+| Border/divider | `#e2e4e8`, `#c7ccd3` |
 | Primary text | `#111827` |
 | Secondary text | `#4b5563`, `#64748b` |
-| Primary action | Blue |
-| Success/ready | Green |
-| Busy/warning | Amber |
-| Error/failure | Red |
+| Placeholder text | `#e3e7ee` |
+| Primary action | White fill, blue border/text |
+| Success/ready | Green text/accent |
+| Busy/warning | Amber text/accent |
+| Error/failure | Red text/accent |
 
 ## Typography
 
@@ -70,6 +71,8 @@ The visual direction is closer to a workbench than a landing page.
   active state.
 - Text editors and response viewers need explicit ZenAPI chrome instead of
   exposing default toolkit editor styling.
+- Pane backgrounds should remain neutral; use borders, tabs, thin active
+  markers, and compact accents for orientation instead of broad colored fields.
 
 ## Response Viewer
 

@@ -118,7 +118,7 @@
 - [x] 3.1 实现请求方法选择器: GET/POST/PUT/PATCH/DELETE/OPTIONS/HEAD，下拉或分段控件
 - [x] 3.2 实现 URL 地址栏: 单行输入、Enter 发送、与路由选择联动
 - [x] 3.3 实现请求 Headers 编辑面板: 固定键值对表格、常用 Header 提示、剪贴板批量复制/粘贴均已支持
-- [x] 3.4 实现 Query Params 编辑面板: 键值对表格、自动拼接到 URL
+- [x] 3.4 实现 Params 编辑面板: 键值对表格、自动拼接到 URL
 - [x] 3.5 实现 Request Body 编辑面板:
   - [x] 3.5.1 支持 `none` / `form-data` / `x-www-form-urlencoded` / `raw` / `binary` 类型切换
   - [x] 3.5.2 `raw` 模式下支持 JSON/XML/Text/HTML 内容类型切换，并提供 JSON/XML/HTML 基础语法高亮预览（`syntect` 保留为未来增强选项）
@@ -127,7 +127,7 @@
   - [x] 3.6.1 Bearer Token
   - [x] 3.6.2 Basic Auth
   - [x] 3.6.3 API Key (Header/Query)
-  - [ ] 3.6.4 OAuth 2.0（远期）
+  - [~] 3.6.4 OAuth 2.0: 手动 access token 已支持；授权码/PKCE、redirect、refresh 与安全状态存储仍为远期
   - [x] 3.6.5 JWT
 - [x] 3.7 实现发送请求: 通过 `reqwest` 发送，显示加载状态，按钮禁用防重入
 - [x] 3.8 实现响应查看器:
@@ -222,7 +222,7 @@
 > **目标**: 批量执行集合请求，支持顺序/并行调度。
 
 - [x] 9.1 设计运行器调度模型: 顺序执行、请求间延迟、继续/遇错停止失败策略已实现；并行执行保留为后续增强
-- [x] 9.2 实现运行器 UI: 当前集合 Run All、遇错停止切换、执行状态与结果摘要已接入 GPUI
+- [x] 9.2 实现运行器 UI: 当前集合 Run、Stop Fail 切换、执行状态与结果摘要已接入 GPUI
 - [x] 9.3 实现 CLI 运行器: `zenapi run collection.json` 命令行入口，支持 `--delay-ms` 与 `--stop-on-failure`
 - [x] 9.4 验证: 本地 Axum 集合运行测试覆盖成功/失败汇总、继续执行与遇错停止；CLI 帮助路径已验证
 
@@ -245,8 +245,8 @@
 > **目标**: 扩展协议支持，覆盖 GraphQL、WebSocket、SSE 和 gRPC。
 
 - [~] 11.1 GraphQL 支持: GraphQL 请求体模式已接入 query/variables 编辑并生成标准 `application/json` 请求体，内置 introspection 查询填充、introspection 响应 schema 摘要、根字段浏览、类型索引、directive 列表和根 Query 模板应用已实现；完整字段选择器/查询辅助仍待实现
-- [x] 11.2 WebSocket 支持: 基于 `tokio-tungstenite` 的 `ws://`/`wss://` 持久连接、连接级 headers/subprotocols、文本消息多次发送/接收、Binary Hex 二进制发送、显式关闭控制、GPUI 消息面板、消息历史复制/清空和本地 echo/handshake 会话测试已实现
-- [x] 11.3 SSE (Server-Sent Events) 支持: 基于 `reqwest` stream 的 `text/event-stream` 事件解析、最多 N 条事件采集、Fetch/Subscribe 自定义 headers、长连接后台订阅、手动停止、Last-Event-ID 续订、自动重连/backoff、GPUI SSE 面板、事件日志复制/清空和本地 Axum SSE 流/headers/重连测试已实现
+- [x] 11.2 WebSocket 支持: 基于 `tokio-tungstenite` 的 `ws://`/`wss://` 持久连接、连接级 headers/subprotocols、Text/Hex 消息多次发送/接收、Open/End 显式连接控制、GPUI 消息面板、消息历史复制/清空和本地 echo/handshake 会话测试已实现
+- [x] 11.3 SSE (Server-Sent Events) 支持: 基于 `reqwest` stream 的 `text/event-stream` 事件解析、最多 N 条事件采集、Once/Stream 自定义 headers、长连接后台订阅、手动停止、Last-Event-ID 续订、自动重连/backoff、GPUI SSE 面板、事件日志复制/清空和本地 Axum SSE 流/headers/重连测试已实现
 - [~] 11.4 gRPC 支持评估: 已输出 `docs/GRPC.md`，明确 `tonic` + `prost-reflect` + `tonic-reflection` 路线、运行时 descriptor 加载、unary MVP 与 streaming 后续拆分；domain model、descriptor 加载和 unary 传输层仍待实现
 
 ---
@@ -271,20 +271,39 @@
 > 每个功能模块应在实现阶段当即完成 UI 对齐，不把 UI 债堆积到最后一次性修。
 
 ### 13.1 UI 系统完整性审查（参照: `docs/RESEARCH_UI.md` + `docs/RESEARCH_INTERACTION.md`）
-- [~] 13.1.1 颜色审查: 全局表面色/边框色/强调色、warning/status、HTTP 方法色和 syntax 色已收敛到共享 token，并移除 app/input 渲染路径中的裸 RGB；Sidebar/Request/Response pane 已从单一灰阶改为低饱和分区 surface，top/status chrome 与 workspace gutter 也有独立 token；全局 secondary/muted 与 strong border token 已提高对比度，避免输入和空状态读成禁用灰；截图级视觉复核仍待完成
-- [~] 13.1.2 字体排版审查: TextInput 已复用平台 UI/monospace 字体 token，正文/代码路径继续使用共享字体常量；Request pane section title、表格头、preview 标题、Request/Response tab 非激活文本、toggle 默认文本、Scripts 结果行和 Realtime 日志行已从 muted/secondary 提升到 primary/body，TextInput placeholder、Request pane idle/configured 状态与常见空状态也提高到 body 级对比度；字号层级和各面板视觉复核仍待完成
-- [~] 13.1.3 间距与尺寸审查: 窗口、应用级顶栏、左/中/右三 pane 工作台、Request pane 内组合式请求地址栏 52px/36px、Request editor 34px tab bar、Raw/GraphQL body editor 118px、GraphQL variables editor 86px、Body/GraphQL preview 86px、GraphQL schema browser 112px、可调整 sidebar/request/response split、左栏 42px 三段导航、响应 Tests meta 260px/14px、选中路由 3px、panel header、empty state、Import 弹出层 520x58、method 菜单、细窄滚动条 6px thumb/12px gutter 与 20px 内容右侧安全区尺寸已 token 化并有回归测试；截图级视觉复核仍待完成
-- [~] 13.1.4 控件样式审查: 顶栏已收敛为品牌、Import 和 Mock/Stop 应用级动作，Mock 详细状态保留在底栏；Import 路径移入紧凑弹出层；左栏已从 Endpoints/Collections/History 纵向堆叠重构为单一导航上下文，集合操作按钮改为弹性两行布局；请求栏 method、URL 和 Send 已合并为 Request pane 内的单个地址栏外壳，URL 使用 inline TextInput，只有 URL 聚焦会反馈到组合地址栏边框，method 菜单打开只影响 method 文本、箭头和菜单 chrome，busy 期间 URL 输入会随组合地址栏进入真实 disabled 状态并停止编辑/选区/IME 写入；method selector 已移除整块 hover/打开态高亮，不再染色整个 method segment 或整条地址栏，并已补回归测试固定该规则；Request pane 已从所有编辑器纵向堆叠改为 Params/Headers/Auth/Body/Scripts/Realtime/Tools 内容 tabs，tab 内 Auth/Body/Variables/Realtime/Tests/Runner 控件已改为分行和弹性按钮，mode/toggle 默认态也改为白底和 body 文本；sidebar/request 与 request/response divider 已变为可拖拽 resize handle，按钮主色/次要/危险/禁用状态由共享 UI 辅助函数统一管理，disabled controls 已改用独立 surface/border/text token 和共享 opacity，不再复用 hover 色；弹出层截图复核仍待完成
-- [~] 13.1.5 交互规范审查: Import/Method 临时菜单状态已分离，导入成功、路由选择、请求发送会关闭临时层；Escape 已统一关闭 Import、Method、Codegen 和 Collection 菜单，打开任一临时层也会关闭其它临时层避免多层叠加；Sidebar、Request pane 和 Response body 都改为固定头部/工具条 + 独立滚动内容区，并通过 GPUI ScrollHandle + ZenAPI 自绘 thumb 渲染细窄垂直滚动条；滚动容器已预留 gutter 和内容右侧安全区，thumb 支持拖动和 active state，track 支持点击跳转，滚动条 mouse down/move/up 已截断事件传播以避免激活底层行或选择响应文本；Request tab 切换会重置当前编辑区滚动位置；Request tab bar 已显式 min-width/overflow 边界并统一 tab 定义，避免窄 pane 下反向撑开布局；Response tab bar 已显式 overflow 边界并统一 Pretty/Raw/Headers tab 定义，避免窄 pane 下响应工具条向外撑开；Import popover、Endpoints filter、Collection path 和 History filter 输入容器已补 min-width 边界，避免长路径/查询撑开左栏或弹出层；Request URL/method、Import path、key/value 表格、Basic/API Key、Tests assertion、Bearer/JWT、Pre-request、Raw/GraphQL/Binary body、WebSocket/SSE URL 与消息输入已统一通过 bounded input/内部截断外壳挂载，避免长输入撑开 Request pane；Raw/GraphQL multiline 输入也已启用垂直滚动和右侧安全区，避免长 body 被固定高度裁掉；Raw/GraphQL preview、GraphQL schema summary/browser 和 Codegen snippet 固定高度内容框已改为内部垂直滚动并预留滚动条右侧安全区，避免长预览或长代码被直接裁切；左栏 route/history/collection 行、section header、空状态、filter/path/rename 输入和 Collection menu 已约束固定列、收缩行为与截断，空状态行也已收敛到 `empty_state_row` 共享外壳，Collection tree 深层缩进也已加上上限避免多层目录把内容推出左 pane；route/history/collection、Runner/WebSocket/SSE/Mock 和 Tests 结果行已收敛到 `fixed_row_cell` 固定列，Collection drag preview 也补了截断边界；固定宽动作按钮、顶栏按钮、侧栏按钮、Request Send、Codegen 语言按钮和 Tests 类型按钮已统一用内部截断容器，面板按钮行已收敛到 `panel_button_row`，`panel_action_button`、`sidebar_fluid_button`、`flexible_toggle` 和 `full_width_toggle` 共享控件也已补 overflow/min-width/label 截断边界，History Clear/Del 与 Collection menu Close 已收敛到小号固定按钮外壳，WebSocket/SSE/Runner/Raw Body 按钮行也已使用统一收缩边界；WebSocket/SSE/Runner/Pre-request 状态行已统一为右对齐可收缩截断文本，Realtime/Runner 输出已收敛为状态、事件数量、pre-request 和 Tests 摘要，避免长错误状态撑开 Realtime/Tools/Scripts 面板；GraphQL Query Assistant 行头已改为字段名 flex 截断 + 固定 Use 按钮，卡片和 preview 文本也有 min-width/overflow 边界，避免长字段名或长 query 挤出操作按钮和 Tools pane；GraphQL/Raw preview、Codegen 标题行/语言菜单/代码片段、WebSocket/SSE/Runner/Mock 日志列表和底栏 route/mock/response 状态已补 min-width、overflow 和截断边界，减少窄 pane 下的横向溢出；History、WebSocket、SSE、Runner 和 Mock 日志/结果列表已移除额外显示层截断，依赖 Sidebar/Request pane 滚动区浏览全部当前过滤结果或保留日志；Enter in URL、Ctrl/Cmd+A/C in response、Ctrl/Cmd+S 保存当前请求、Ctrl/Cmd+F 聚焦当前 sidebar 输入和 Ctrl/Cmd+L 聚焦 Request URL 已绑定到实际动作；Ctrl/Cmd+L 在 busy 期间不会抢占 disabled URL 输入焦点；Request Send 和 URL 回车会在 URL 为空且 pre-request 未设置 URL 时禁用/阻止；OpenAPI/Collection path、环境名和 Collection Rename 回车提交会随对应按钮前置条件禁用/阻止；Response Headers 对空白 headers 使用统一空状态；Response Copy 会随当前 Pretty/Raw/Headers 视图空状态禁用，避免复制空 headers 占位文案；Response Collapse/Expand 仅在当前 raw body 可解析为 JSON 时启用；History 导航与标题计数已按过滤结果显示 visible/total，空历史时 Clear 禁用；OpenAPI Open、Collection Import 和 Collection Export/Postman 会随路径/集合内容前置条件禁用并阻止无效动作；Collection Save 与 Ctrl/Cmd+S 会在 URL 为空且 pre-request 未设置 URL 时禁用/阻止；Variables Add Env 会随标准化后环境名为空禁用；WebSocket Connect 与 SSE Fetch/Subscribe 会随 URL 空状态禁用；WebSocket Send 会在未连接或 Binary Hex 输入无效时禁用；Headers Copy Bulk 会随有效 header 行空状态禁用；Raw Body Format JSON 仅在 JSON 模式且 body 非空时启用；Runner Stop on fail 在运行中或 busy 时显示禁用态并阻止切换；Codegen Copy 会在请求 URL 为空或请求构建失败时禁用，避免复制占位文案；Collection 菜单 Rename 会在根节点或空名称时禁用并阻止无效动作；更多前置条件不满足时动作禁用、过滤计数和快捷键覆盖仍需继续系统复核
+- [~] 13.1.1 颜色审查: 全局表面色/边框色/强调色、warning/status、HTTP 方法色和 syntax 色已收敛到共享 token，并移除 app/input 渲染路径中的裸 RGB；Sidebar/Request/Response pane、Request/Response tab bar 与 muted control fill 已统一为白色 surface，top/status chrome、hover 与 workspace gutter 保持纯中性灰，避免 pane 背景读成多色块；全局 secondary/muted、placeholder 与 strong border token 已拆分，占位符进一步降为 `#e3e7ee`，避免输入和空状态读成禁用灰或让占位文字压过真实值；选中路由、Collection drag-over 和 primary/warning 按钮已移除大面积彩色铺底，保留细强调线/中性 hover/语义边框文字；截图级视觉复核仍待完成
+- [~] 13.1.2 字体排版审查: TextInput 已复用平台 UI/monospace 字体 token，正文/代码路径继续使用共享字体常量；Request pane section title、表格头、preview 标题、Request/Response tab 非激活文本、toggle 默认文本、Scripts 结果行和 Realtime 日志行已从 muted/secondary 提升到 primary/body；TextInput placeholder 已切到更浅的独立 token，normal/disabled 空输入都不再加深占位内容，避免占位内容压过真实输入；Route filter、Tests assertion、Pre-request、GraphQL vars、WebSocket/SSE setup 等高频空输入 placeholder 已收敛为短字段名，减少空表单文字噪音；Request pane idle/configured 状态与常见空状态保持 body 级对比度；字号层级和各面板视觉复核仍待完成
+- [~] 13.1.3 间距与尺寸审查: 窗口、应用级顶栏、左/中/右三 pane 工作台、Request pane 内组合式请求地址栏 52px/36px、Request editor 34px tab bar、Raw/GraphQL body editor 118px、GraphQL vars editor 86px、Body/GraphQL preview 86px、GraphQL schema browser 112px、可调整 sidebar/request/response split、split 48px 预览步长、左栏 42px 三段导航、响应 Tests meta 260px/14px、Tests kind 96px、Tests Clear 54px、选中路由 3px、panel header、empty state、Import 弹出层 520x58、method 菜单、通用 key/value editor 128px key 列、Body 字段表 112px key 列、key/value 行操作按钮 28px、key/value 与 Tests 表头语义标签、细窄滚动条 6px thumb/12px gutter 与 20px 内容右侧安全区尺寸已 token 化并有回归测试；截图级视觉复核仍待完成
+- [~] 13.1.4 控件样式审查: 顶栏已收敛为品牌、Import 和 Mock/Stop 应用级动作，Mock 详细状态保留在底栏；Import 路径移入紧凑弹出层；左栏导航已收敛为 Routes/Saved/History 单一上下文，集合操作按钮改为弹性两行布局，Postman 导出入口收短为 `PM`，Collection 菜单动作已收敛为 `x`/`Del`/`+ Req`/`+ Dir`/`Copy`/`Rename`；请求栏 method、URL 和 Send 已合并为 Request pane 内的单个地址栏外壳，URL 使用 inline TextInput，只有 URL 聚焦会反馈到组合地址栏边框，method 菜单打开只影响 method 文本、箭头和菜单 chrome，busy 期间 URL 输入会随组合地址栏进入真实 disabled 状态并停止编辑/选区/IME 写入；method selector 已移除整块 hover/打开态高亮，不再染色整个 method segment 或整条地址栏，Send segment 也改为中性白底加强调文字，并已补回归测试固定该规则；Request pane 已从所有编辑器纵向堆叠改为 Params/Headers/Auth/Body/Scripts/Realtime/Tools 内容 tabs，tab 内 Auth/Body/Vars/Realtime/Tests/Runner 控件已改为分行和弹性按钮，Auth 标题、模式与 Basic/API 输入已收敛为 `Auth`、`OAuth`、`API`、`User`、`Pass` 等短文案，Codegen 语言 selector 已收敛为 `cURL`/`Py`/`JS`/`Rust`/`Go`；Body mode toggle 已从长 content-type 文案收敛为两行三列短标签，URL 表单模式与字段编辑器标题已收敛为 `URL Enc`，Form 字段编辑器标题已收敛为 `Form`，mode/toggle 默认态也改为白底和 body 文本；Params/Headers/Vars/Form/URL Enc/WebSocket/SSE key/value 表格和 Tests assertion 表格已提供统一固定宽 `+`/`x` 行操作，Vars 面板标题、GraphQL vars placeholder、Env vars 表标题、变量表列名和新增行 placeholder 已收敛为 `Vars`/`Env`/`Var`/`var`，Tests 表头与 placeholder 已收敛为 `Test`/`Kind`/`Target`/`Expect`，kind selector 已收敛为 `Status =`/`Range`/`Header ?`/`Header =`/`Body ?`/`JSON =`，Tests 新增入口已从大按钮行收敛到 header `+`，结果清理只在有结果时显示为紧凑 `Clear`；sidebar/request 与 request/response divider 已变为可拖拽 resize handle，拖动时显示中性 divider preview，释放后一次性提交 pane 比例，预览目标按 48px 步长量化后才更新；按钮主色/次要/危险/禁用状态由共享 UI 辅助函数统一管理，primary/warning 按钮使用白底、语义边框和语义文字，disabled controls 已改用独立 surface/border/text token 和共享 opacity，不再复用 hover 色；弹出层截图复核仍待完成
+- [~] 13.1.5 交互规范审查: Import/Method/Codegen/Collection 临时层、Escape 关闭、busy 关闭与入口 guard 已统一；Sidebar、Request pane 和 Response body 已改为固定头部/工具条 + 独立滚动内容区，并通过 GPUI ScrollHandle + ZenAPI 自绘细窄滚动条提供 track/thumb 交互；Request/Response tab bar、Import popover、Routes/Saved/History filter、Saved JSON path、URL/method、key/value 表格、Auth、Tests、Pre-request、Body、Realtime setup、Preview/Schema/Codegen 和底栏状态均已补 min-width/overflow/truncate 或内部滚动边界，避免长内容撑开 pane；左栏 section title 已统一为 `Routes`/`Saved`/`History`，filter placeholder 统一为 `Filter`，空状态收敛为 `No routes`/`No saved`/`No history`/`No matches`；Runner 空状态收敛为 `No requests`/`No results`；split resize 使用中性预览并在释放后提交量化比例；URL/Send、Open/Import/Export/Save、History Clear/Del、Vars、WS/SSE、Headers Copy、Response Copy/Fold/Open、Codegen Copy/Language、Runner Run/Stop Fail 和 Collection menu action 均复用当前状态前置条件；更多前置条件不满足时动作禁用、过滤计数和快捷键覆盖仍需继续系统复核
+  - [x] Busy 期间 Route 选择、History 恢复和 Collection request 恢复已禁用并阻止入口，避免左栏替换正在运行的 Request 配置；Collection `+ Req`/`+ Dir`/Copy/Del/Rename/drag move 也会在 busy 期间阻止集合结构变更，拖拽预览与 drop-over 反馈同样禁用。
+  - [x] Busy 期间 Import path、Saved JSON path 和 Collection rename 输入会进入真实 disabled 状态；Route/History filter 保持可编辑，Ctrl/Cmd+F 会跳过 disabled 的 Saved JSON path 目标。
+  - [x] Busy 期间 GraphQL Templates 的 Use 操作和 Tests Clear 已禁用并补 Rust-side guard，避免运行中改写 GraphQL 输入或清空测试输出。
+  - [x] Collection Import/Export/Save 函数入口已补 busy guard；Response Copy 按钮和入口已共用同一 active-view/非空内容/idle 前置条件。
   - [x] Ctrl/Cmd+Enter 已绑定为从当前 Request editor 上下文发送请求，并复用 Send 按钮的 busy、URL 和 pre-request URL 前置条件。
+  - [x] History Clear 与单行 Del 已改为 idle-state 前置条件，按钮禁用态和回调入口都会复查当前 busy 状态；History filter 保持可编辑。
+  - [x] WS Open/Send/End、SSE Once/Stream/Stop 以及 Realtime Copy/Clear 已改为 busy-aware 前置条件，渲染态和函数入口复用同一 idle-state 规则。
+  - [x] 顶栏 Import popover toggle 与 Headers Copy 已补 busy-aware 前置条件，避免只依赖通用按钮 helper 的渲染时 enabled。
+  - [x] Codegen Copy 已改为点击时重新构建当前请求 snippet 并复查 busy/URL/build 前置条件，避免复制渲染时捕获的过期代码片段。
+  - [x] Raw Body Format 入口已复用渲染态前置条件，只在 idle、JSON raw 模式且 body 非空时执行格式化。
+  - [x] Codegen language selector 与 Response Fold/Open 已补 callback 当前状态复查，避免 busy 或响应内容变化后仍执行渲染时捕获的 enabled 动作。
+  - [x] Request Send 按钮点击、URL 回车和发送快捷键已统一复用当前 app 状态的 busy/URL/pre-request URL 前置条件；Response Copy 点击也改为直接走入口 guard，不再依赖渲染时捕获的 enabled。
+  - [x] `action_button`、`top_bar_action_button`、`sidebar_action_button`、`sidebar_fluid_button` 和 `panel_action_button` 共享 helper 已在点击时复查当前 busy 状态，避免 render 时 enabled 但异步进入 busy 后仍执行回调。
+  - [x] Request method selector 和 method menu item 已统一复用当前 idle-state 前置条件，避免 busy 状态下通过残留菜单项改写请求方法。
+  - [x] Runner Stop Fail toggle 已在点击时复查当前 runner/busy 状态，不再依赖渲染时捕获的 enabled。
+  - [x] Collection context menu 入口已复用集合 mutation busy guard，busy 期间右键菜单不会打开，避免只依赖菜单内按钮禁用。
+  - [x] Params/Headers/Vars/Form/URL Enc/WebSocket/SSE key/value 编辑器已提供统一 `+`/`x` 行增删入口，并在 busy、无 active env 或 index 越界时禁用且回调入口复查当前状态。
+  - [x] Tests assertion 表头已提供 `+` 新增入口，行内已提供 `x` 删除入口，kind selector 和行操作回调都会复查 busy 与 index，避免运行中改写测试配置。
+  - [x] Headers 面板已移除内联说明句，bulk/preset 用法保留在文档中，Request pane 内不再额外显示教程文字。
+  - [x] Text/Hex mode 已移除内联输入提示句，消息输入 placeholder 收敛为 `Message`，Realtime log 动作使用短标签 `Copy`/`Clear`。
 
 ### 13.2 功能完整性审查（参照: `docs/RESEARCH_FEATURES.md`）
-- [~] 13.2.1 请求构建器完备度审查: Headers 已支持 key/value 编辑、bulk copy/paste、解析常见 `-H`/`--header` 格式，以及 Accept JSON / Content-Type JSON / Bearer Auth 常用预设且会按 header 名 upsert；Body 已覆盖 none/form-data/urlencoded/raw/GraphQL/binary，Raw JSON 增加局部 Format JSON 操作和结构预览，Raw/GraphQL/schema preview 已改为固定高度边界和内部垂直滚动，避免长文本预览挤乱 Request pane 或被裁掉；Raw body、GraphQL query 和 GraphQL variables 已接入 multiline 输入基础能力，支持粘贴保留换行、CRLF 规范化、Enter/Shift+Enter 插入换行、body 级空状态 placeholder 和内部滚动；Auth 已覆盖 None/Bearer/Basic/JWT/API Key header/query；OAuth2、Body 编辑器截图级复核仍待完成
-- [~] 13.2.2 响应查看器完备度审查: Pretty/Raw/Headers 各模式已作为局部 tabs 保持一等入口；响应文本使用只读可选择 viewer，Ctrl/Cmd+A 与 Ctrl/Cmd+C 已绑定，viewer 根节点也已补 min-width/overflow/wrap 边界避免长行撑开 pane；普通响应 header meta 已收敛为 Tests 摘要，无 Tests 时保持空白，减少右侧 header 文字噪音；Response tab 行已增加局部 Copy 操作用于复制当前 Pretty/Raw/Headers 视图内容，且不污染全局顶栏；Copy 会拒绝空当前视图和空 Headers 占位文案，Headers 视图对空白 headers 也显示统一空状态；Collapse/Expand 会拒绝非 JSON 内容；长响应内容的交互复核和截图级复核仍待完成
-- [~] 13.2.3 核心交互流畅度审查: 请求发送中 Response body 已显示明确的 pending method + URL 占位，不再保留旧响应正文；请求成功、请求错误和后台 worker 取消路径都会恢复 Busy 状态并写入 Response/History；路由选择、普通响应、错误响应、Pretty/Raw/Headers 切换和 Pretty collapse/expand 现在都会将 Response body 滚动位置复位到顶部，避免长响应残留旧滚动偏移；路由选择→请求发送→响应展示的截图级交互复核仍待完成
+- [~] 13.2.1 请求构建器完备度审查: Headers 已支持 key/value 编辑、显式行增删、bulk copy/paste、解析常见 `-H`/`--header` 格式，以及短标签 `Accept` / `Content` / `Bearer` 常用预设且会按 header 名 upsert；Params、Vars、Form、URL Enc、WS Headers 和 SSE Headers 也已复用同一行增删入口；Body 已覆盖 none/form-data/urlencoded/raw/GraphQL/binary，Raw JSON 增加局部 Format 操作和 `Preview` 结构预览，GraphQL `Payload`/`Schema`/`Fields`/`Templates` 已改为短标题、固定高度边界和内部垂直滚动，避免长文本预览挤乱 Request pane 或被裁掉；Raw body、GraphQL query 和 GraphQL vars 已接入 multiline 输入基础能力，支持粘贴保留换行、CRLF 规范化、Enter/Shift+Enter 插入换行、body 级空状态 placeholder 和内部滚动；Auth 已覆盖 None/Bearer/OAuth 手动 access token/Basic/JWT/API header/query；OAuth 授权码/PKCE、redirect、refresh、Body 编辑器截图级复核仍待完成
+- [~] 13.2.2 响应查看器完备度审查: `Pretty`/`Raw`/`Hdrs` 各模式已作为局部 tabs 保持一等入口，Response tab 和 Fold/Open/Copy 固定按钮宽度已收紧以减少右 pane 工具条文字挤压；响应文本使用只读可选择 viewer，Ctrl/Cmd+A 与 Ctrl/Cmd+C 已绑定，viewer 根节点也已补 min-width/overflow/wrap 边界避免长行撑开 pane，且 Response body 内层不再强制 `size_full` 高度，让长响应文本自然高度参与外层滚动；普通响应 header meta 已收敛为 Tests 摘要，无 Tests 时保持空白，减少右侧 header 文字噪音；Response tab 行已增加局部 Copy 操作用于复制当前 Pretty/Raw/Hdrs 视图内容，且不污染全局顶栏；Copy 会拒绝空当前视图和空 Hdrs 占位文案，Hdrs 视图对空白 headers 也显示统一空状态；Fold/Open 会拒绝非 JSON 内容；长响应内容的交互复核和截图级复核仍待完成
+- [~] 13.2.3 核心交互流畅度审查: 请求发送中 Response body 已显示明确的 pending method + URL 占位，不再保留旧响应正文；请求成功、请求错误和后台 worker 取消路径都会恢复 Busy 状态并写入 Response/History；路由选择、普通响应、错误响应、Pretty/Raw/Hdrs 切换和 Pretty Fold/Open 现在都会将 Response body 滚动位置复位到顶部，避免长响应残留旧滚动偏移；路由选择→请求发送→响应展示的截图级交互复核仍待完成
 ### 13.3 稳定性与错误处理
 - [~] 13.3.1 复杂规格文件导入交互审查: 多路由、多分组场景下过滤、选中、滚动和空状态保持可用；Collection tree 深层目录缩进已加上上限并有 metric 回归测试，避免多层导入内容把左 pane 可读区域挤空；OpenAPI 多路由截图级复核仍待完成
-- [~] 13.3.2 长响应内容交互审查: 复杂 JSON/长文本响应的选择、复制、折叠和滚动行为保持稳定；只读响应 viewer 已补自身 min-width/overflow/wrap 边界，避免长行内容反向撑开右 pane；截图级复核仍待完成
+- [~] 13.3.2 长响应内容交互审查: 复杂 JSON/长文本响应的选择、复制、折叠和滚动行为保持稳定；只读响应 viewer 已补自身 min-width/overflow/wrap 边界，并移除 Response body 内层强制 full-size 高度，避免长行内容反向撑开右 pane或长文本被固定高度裁掉；截图级复核仍待完成
 - [~] 13.3.3 错误处理完善: OpenAPI 导入、Collection 导入/导出、请求构建、请求发送、测试配置、WebSocket、SSE、Collection Runner 和 Mock 服务失败已输出包含操作上下文、路径/URL/端口、底层错误与 next-step hint 的 Response pane 文案；Collection/Mock/realtime 状态行也会同步失败状态；仍需截图级复核和少量边缘状态审查
 
 ### 13.4 文档体系

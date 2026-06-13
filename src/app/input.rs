@@ -15,7 +15,7 @@ use super::{
     PLATFORM_MONOSPACE_FONT, PLATFORM_UI_FONT, SCROLLBAR_CONTENT_RIGHT_PADDING,
     SCROLLBAR_GUTTER_WIDTH, TEXT_INPUT_HEIGHT, TEXT_INPUT_LINE_HEIGHT, TEXT_INPUT_RADIUS,
     UI_COLOR_ACCENT_SELECTION_RGBA, ui_accent, ui_border_strong, ui_disabled_border,
-    ui_disabled_surface, ui_disabled_text, ui_surface, ui_text_body, ui_text_primary,
+    ui_disabled_surface, ui_disabled_text, ui_surface, ui_text_placeholder, ui_text_primary,
 };
 
 actions!(
@@ -1094,15 +1094,11 @@ fn text_input_accept_inserts_newline(multiline: bool) -> bool {
 }
 
 fn text_input_placeholder_color() -> gpui::Hsla {
-    ui_text_body()
+    ui_text_placeholder()
 }
 
-fn text_input_placeholder_color_for_enabled(enabled: bool) -> gpui::Hsla {
-    if enabled {
-        text_input_placeholder_color()
-    } else {
-        ui_disabled_text()
-    }
+fn text_input_placeholder_color_for_enabled(_enabled: bool) -> gpui::Hsla {
+    text_input_placeholder_color()
 }
 
 fn multiline_display_text_and_highlights(
@@ -1208,7 +1204,19 @@ mod tests {
     }
 
     #[test]
-    fn multiline_placeholder_uses_body_highlight_only_when_empty() {
+    fn placeholder_color_stays_light_for_enabled_and_disabled_inputs() {
+        assert_eq!(
+            text_input_placeholder_color_for_enabled(true),
+            text_input_placeholder_color()
+        );
+        assert_eq!(
+            text_input_placeholder_color_for_enabled(false),
+            text_input_placeholder_color()
+        );
+    }
+
+    #[test]
+    fn multiline_placeholder_uses_placeholder_highlight_only_when_empty() {
         let placeholder = SharedString::from("JSON body");
         let (display, highlights) =
             multiline_display_text_and_highlights(&SharedString::from(""), &placeholder, true);
@@ -1225,12 +1233,12 @@ mod tests {
     }
 
     #[test]
-    fn multiline_placeholder_uses_disabled_text_color_when_disabled() {
+    fn multiline_placeholder_stays_light_when_disabled() {
         let placeholder = SharedString::from("JSON body");
         let (_display, highlights) =
             multiline_display_text_and_highlights(&SharedString::from(""), &placeholder, false);
 
         assert_eq!(highlights.len(), 1);
-        assert_eq!(highlights[0].1.color, Some(ui_disabled_text()));
+        assert_eq!(highlights[0].1.color, Some(text_input_placeholder_color()));
     }
 }
