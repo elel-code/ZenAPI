@@ -247,7 +247,7 @@
 > **目标**: 扩展协议支持，覆盖 GraphQL、WebSocket、SSE 和 gRPC。
 
 - [~] 11.1 GraphQL 支持: GraphQL 请求体模式已接入 query/variables 编辑并生成标准 `application/json` 请求体，内置 introspection 查询填充、introspection 响应 schema 摘要、根字段浏览、类型索引、directive 列表和根 Query 模板应用已实现；完整字段选择器/查询辅助仍待实现
-- [~] 11.2 WebSocket 支持: 基于 `tokio-tungstenite` 的 `ws://`/`wss://` 持久连接、文本消息多次发送/接收、Binary Hex 二进制发送、显式关闭控制、GPUI 消息面板和本地 echo 会话测试已实现；连接级 header/protocol 配置和更完整的消息历史操作仍待实现
+- [~] 11.2 WebSocket 支持: 基于 `tokio-tungstenite` 的 `ws://`/`wss://` 持久连接、连接级 headers/subprotocols、文本消息多次发送/接收、Binary Hex 二进制发送、显式关闭控制、GPUI 消息面板和本地 echo/handshake 会话测试已实现；更完整的消息历史操作仍待实现
 - [~] 11.3 SSE (Server-Sent Events) 支持: 基于 `reqwest` stream 的 `text/event-stream` 事件解析、最多 N 条事件采集、长连接后台订阅、手动停止、Last-Event-ID 续订、GPUI SSE 面板、事件日志和本地 Axum SSE 流测试已实现；自动重连/backoff、订阅级 headers 和更完整的历史操作仍待实现
 - [~] 11.4 gRPC 支持评估: 已输出 `docs/GRPC.md`，明确 `tonic` + `prost-reflect` + `tonic-reflection` 路线、运行时 descriptor 加载、unary MVP 与 streaming 后续拆分；domain model、descriptor 加载和 unary 传输层仍待实现
 

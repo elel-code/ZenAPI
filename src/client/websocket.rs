@@ -397,6 +397,10 @@ mod tests {
     use super::*;
     use std::sync::{Arc, Mutex};
     use tokio::net::TcpListener;
+    use tokio_tungstenite::tungstenite::handshake::server::{
+        Request as ServerRequest, Response as ServerResponse,
+    };
+    use tokio_tungstenite::tungstenite::http::HeaderValue;
     use tokio_tungstenite::{accept_async, accept_hdr_async};
 
     async fn next_session_event(
@@ -604,27 +608,33 @@ mod tests {
         let server = tokio::spawn(async move {
             let (stream, _) = listener.accept().await.expect("accept");
             let seen_for_callback = seen_for_server.clone();
-            let mut socket = accept_hdr_async(stream, move |request, response| {
-                *seen_for_callback.lock().expect("seen lock") = (
-                    request
-                        .headers()
-                        .get("x-token")
-                        .and_then(|value| value.to_str().ok())
-                        .map(str::to_string),
-                    request
-                        .headers()
-                        .get(SEC_WEBSOCKET_PROTOCOL)
-                        .and_then(|value| value.to_str().ok())
-                        .map(str::to_string),
-                );
-                Ok(response)
-            })
+            let mut socket = accept_hdr_async(
+                stream,
+                move |request: &ServerRequest, mut response: ServerResponse| {
+                    *seen_for_callback.lock().expect("seen lock") = (
+                        request
+                            .headers()
+                            .get("x-token")
+                            .and_then(|value| value.to_str().ok())
+                            .map(str::to_string),
+                        request
+                            .headers()
+                            .get(SEC_WEBSOCKET_PROTOCOL)
+                            .and_then(|value| value.to_str().ok())
+                            .map(str::to_string),
+                    );
+                    response
+                        .headers_mut()
+                        .insert(SEC_WEBSOCKET_PROTOCOL, HeaderValue::from_static("chat"));
+                    Ok(response)
+                },
+            )
             .await
             .expect("websocket handshake");
             let _ = socket.close(None).await;
         });
 
-        let (command_tx, command_rx) = mpsc::unbounded_channel();
+        let (_command_tx, command_rx) = mpsc::unbounded_channel();
         let (event_tx, mut event_rx) = mpsc::unbounded_channel();
         let session = tokio::spawn(run_websocket_session_with_options(
             format!("ws://{addr}"),
@@ -642,8 +652,10 @@ mod tests {
                 url: format!("ws://{addr}"),
             }
         );
-        command_tx.send(WebSocketSessionCommand::Close)?;
-        let _ = next_session_event(&mut event_rx).await;
+        assert_eq!(
+            next_session_event(&mut event_rx).await,
+            WebSocketSessionEvent::Closed("server closed".to_string())
+        );
 
         session.await?;
         server.await?;

@@ -1841,6 +1841,45 @@ impl ZenApiApp {
         cx.notify();
     }
 
+    fn copy_websocket_log(&mut self, cx: &mut Context<Self>) {
+        if self.websocket_messages.is_empty() {
+            self.set_response(
+                "No WebSocket log",
+                "",
+                ResponseTone::Neutral,
+                "There are no WebSocket messages to copy.",
+            );
+            cx.notify();
+            return;
+        }
+
+        let log = format_websocket_log(&self.websocket_messages);
+        cx.write_to_clipboard(ClipboardItem::new_string(log));
+        self.set_response(
+            "WebSocket log copied",
+            self.websocket_messages.len().to_string(),
+            ResponseTone::Success,
+            "WebSocket messages were copied as text.",
+        );
+        cx.notify();
+    }
+
+    fn clear_websocket_log(&mut self, cx: &mut Context<Self>) {
+        self.websocket_messages.clear();
+        self.websocket_status = if self.websocket_running {
+            "connected".to_string()
+        } else {
+            "idle".to_string()
+        };
+        self.set_response(
+            "WebSocket log cleared",
+            "",
+            ResponseTone::Neutral,
+            "WebSocket message history was cleared.",
+        );
+        cx.notify();
+    }
+
     fn paste_headers_bulk(&mut self, cx: &mut Context<Self>) {
         let Some(text) = cx.read_from_clipboard().and_then(|item| item.text()) else {
             self.set_response(
@@ -2892,6 +2931,26 @@ impl ZenApiApp {
                     ),
             )
             .child(self.websocket_message.clone())
+            .child(
+                div()
+                    .flex()
+                    .items_center()
+                    .gap_2()
+                    .child(self.action_button(
+                        "Copy Log",
+                        !self.websocket_messages.is_empty(),
+                        ButtonTone::Neutral,
+                        |app, _event, _window, cx| app.copy_websocket_log(cx),
+                        cx,
+                    ))
+                    .child(self.action_button(
+                        "Clear Log",
+                        !self.websocket_messages.is_empty(),
+                        ButtonTone::Warning,
+                        |app, _event, _window, cx| app.clear_websocket_log(cx),
+                        cx,
+                    )),
+            )
             .child(
                 div()
                     .flex()

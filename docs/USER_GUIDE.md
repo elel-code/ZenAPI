@@ -157,10 +157,11 @@ Form-data file fields use an `@path` prefix.
 
 The WebSocket panel opens a persistent `ws://` or `wss://` session. Use
 `Connect` to establish the session, `Send` to send messages repeatedly, and
-`Close` to end the connection. The message editor supports Text and Binary Hex
-modes; Binary Hex accepts byte input such as `00 ff 7a`. Sent and received
-messages are recorded in the panel, and the latest event is mirrored in the
-response viewer.
+`Close` to end the connection. WebSocket headers and comma-separated
+subprotocols are sent during the handshake. The message editor supports Text and
+Binary Hex modes; Binary Hex accepts byte input such as `00 ff 7a`. Sent and
+received messages are recorded in the panel, and the latest event is mirrored in
+the response viewer.
 
 ## SSE
 
@@ -282,11 +283,10 @@ zenapi run collection.json --delay-ms 100
 - GraphQL body editing, introspection query fill, schema summary, lightweight
   schema browsing, and root Query templates are available; full field selection
   assistance is still future work. WebSocket persistent text and Binary Hex
-  sessions are available, but connection headers/subprotocols are future work.
-  SSE event previews are available with background subscription and
-  `Last-Event-ID` resume; reconnect strategy is future work. gRPC has an
-  implementation plan in `docs/GRPC.md`, but transport/UI support is future
-  work.
+  sessions are available with connection headers/subprotocols. SSE event
+  previews are available with background subscription and `Last-Event-ID`
+  resume; reconnect strategy is future work. gRPC has an implementation plan in
+  `docs/GRPC.md`, but transport/UI support is future work.
 - Plugin APIs are future work.
 - Live benchmark and visual comparison against reference clients still need
   current-version review.
