@@ -20,6 +20,13 @@ pub struct PreRequestActionRecord {
     pub target: String,
 }
 
+pub fn pre_request_action_labels(actions: &[PreRequestActionRecord]) -> Vec<String> {
+    actions
+        .iter()
+        .map(|action| format!("{} {}", action.action, action.target))
+        .collect()
+}
+
 pub fn execute_pre_request_actions(
     script: &str,
     mut request: CodegenRequest,
@@ -50,6 +57,16 @@ pub fn execute_pre_request_actions(
                 target = key.clone();
                 upsert_pair(&mut request.query_params, key, value);
             }
+            "unset_header" | "remove_header" | "delete_header" => {
+                let key = require_argument(argument, name)?;
+                target = key.clone();
+                remove_pair_case_insensitive(&mut request.headers, &key);
+            }
+            "unset_query" | "remove_query" | "delete_query" => {
+                let key = require_argument(argument, name)?;
+                target = key.clone();
+                remove_pair(&mut request.query_params, &key);
+            }
             "body" | "set_body" => {
                 set_raw_body(&mut request.body, require_argument(argument, name)?);
                 target = "body".to_string();
@@ -70,6 +87,23 @@ pub fn execute_pre_request_actions(
                 let (key, value) = parse_assignment(argument, name)?;
                 target = key.clone();
                 upsert_environment_variable(&mut variables, environment, key, value);
+            }
+            "unset_var" | "remove_var" | "delete_var" => {
+                let key = require_argument(argument, name)?;
+                target = key.clone();
+                remove_variable(&mut variables, active_environment, &key);
+            }
+            "unset_global" | "remove_global" | "delete_global" => {
+                let key = require_argument(argument, name)?;
+                target = key.clone();
+                remove_global_variable(&mut variables, &key);
+            }
+            "unset_env" | "remove_env" | "delete_env" => {
+                let environment = active_environment
+                    .ok_or_else(|| anyhow!("{name} requires an active environment"))?;
+                let key = require_argument(argument, name)?;
+                target = key.clone();
+                remove_environment_variable(&mut variables, environment, &key);
             }
             _ => return Err(anyhow!("unknown pre-request action: {name}")),
         }
@@ -155,6 +189,14 @@ fn upsert_pair_case_insensitive(pairs: &mut Vec<(String, String)>, key: String, 
     }
 }
 
+fn remove_pair(pairs: &mut Vec<(String, String)>, key: &str) {
+    pairs.retain(|(name, _)| name != key);
+}
+
+fn remove_pair_case_insensitive(pairs: &mut Vec<(String, String)>, key: &str) {
+    pairs.retain(|(name, _)| !name.eq_ignore_ascii_case(key));
+}
+
 fn upsert_variable(
     variables: &mut VariableStore,
     active_environment: Option<&str>,
@@ -168,6 +210,14 @@ fn upsert_variable(
     }
 }
 
+fn remove_variable(variables: &mut VariableStore, active_environment: Option<&str>, key: &str) {
+    if let Some(environment) = active_environment {
+        remove_environment_variable(variables, environment, key);
+    } else {
+        remove_global_variable(variables, key);
+    }
+}
+
 fn upsert_global_variable(variables: &mut VariableStore, key: String, value: String) {
     variables.upsert(Variable {
         name: key,
@@ -175,6 +225,10 @@ fn upsert_global_variable(variables: &mut VariableStore, key: String, value: Str
         current_value: value,
         scope: VariableScope::Global,
     });
+}
+
+fn remove_global_variable(variables: &mut VariableStore, key: &str) {
+    variables.remove(key, &VariableScope::Global);
 }
 
 fn upsert_environment_variable(
@@ -191,6 +245,15 @@ fn upsert_environment_variable(
             name: environment.to_string(),
         },
     });
+}
+
+fn remove_environment_variable(variables: &mut VariableStore, environment: &str, key: &str) {
+    variables.remove(
+        key,
+        &VariableScope::Environment {
+            name: environment.to_string(),
+        },
+    );
 }
 
 fn set_raw_body(body: &mut RequestBody, value: String) {
@@ -294,6 +357,15 @@ mod tests {
 
         assert_eq!(execution.actions_applied, 4);
         assert_eq!(
+            pre_request_action_labels(&execution.actions),
+            vec![
+                "set_var token".to_string(),
+                "set_header Authorization".to_string(),
+                "set_query debug".to_string(),
+                "set_method method".to_string(),
+            ]
+        );
+        assert_eq!(
             execution.actions,
             vec![
                 PreRequestActionRecord {
@@ -336,6 +408,95 @@ mod tests {
                 .expect_err("assignment error");
 
         assert!(error.to_string().contains("name=value"));
+    }
+
+    #[test]
+    fn removes_headers_and_query_params_from_pre_request_actions() {
+        let request = CodegenRequest {
+            method: "GET".to_string(),
+            url: "https://api.example.com/users".to_string(),
+            headers: vec![
+                ("Accept".to_string(), "application/json".to_string()),
+                ("Authorization".to_string(), "Bearer old".to_string()),
+            ],
+            query_params: vec![
+                ("debug".to_string(), "true".to_string()),
+                ("page".to_string(), "1".to_string()),
+            ],
+            body: RequestBody::None,
+        };
+
+        let execution = execute_pre_request_actions(
+            "unset_header authorization; unset_query debug",
+            request,
+            VariableStore::new(),
+            None,
+        )
+        .expect("execute");
+
+        assert_eq!(
+            execution.request.headers,
+            vec![("Accept".to_string(), "application/json".to_string())]
+        );
+        assert_eq!(
+            execution.request.query_params,
+            vec![("page".to_string(), "1".to_string())]
+        );
+        assert_eq!(
+            pre_request_action_labels(&execution.actions),
+            vec![
+                "unset_header authorization".to_string(),
+                "unset_query debug".to_string(),
+            ]
+        );
+    }
+
+    #[test]
+    fn removes_variable_overrides_from_pre_request_actions() {
+        let mut variables = VariableStore::new();
+        variables.upsert(Variable::global("token", "global-token"));
+        variables.upsert(Variable::environment("dev", "token", "dev-token"));
+
+        let execution =
+            execute_pre_request_actions("unset_var token", request(), variables, Some("dev"))
+                .expect("execute");
+        let resolved = resolve_codegen_request_templates(
+            CodegenRequest {
+                method: "GET".to_string(),
+                url: "{{token}}".to_string(),
+                headers: Vec::new(),
+                query_params: Vec::new(),
+                body: RequestBody::None,
+            },
+            &execution.variables,
+            Some("dev"),
+        )
+        .expect("fallback to global");
+
+        assert_eq!(resolved.url, "global-token");
+        assert_eq!(
+            pre_request_action_labels(&execution.actions),
+            vec!["unset_var token".to_string()]
+        );
+
+        let execution = execute_pre_request_actions(
+            "unset_global token",
+            CodegenRequest {
+                method: "GET".to_string(),
+                url: "{{token}}".to_string(),
+                headers: Vec::new(),
+                query_params: Vec::new(),
+                body: RequestBody::None,
+            },
+            execution.variables,
+            Some("dev"),
+        )
+        .expect("execute");
+        let error =
+            resolve_codegen_request_templates(execution.request, &execution.variables, Some("dev"))
+                .expect_err("token removed");
+
+        assert!(error.to_string().contains("unknown variable: token"));
     }
 
     #[test]

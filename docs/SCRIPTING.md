@@ -105,10 +105,20 @@ Supported actions:
 | `set_url VALUE` | Replace request URL |
 | `set_header NAME=VALUE` | Upsert a request header, case-insensitively by name |
 | `set_query NAME=VALUE` | Upsert a query parameter |
+| `unset_header NAME` | Remove matching request headers, case-insensitively by name |
+| `unset_query NAME` | Remove matching query parameters by exact name |
 | `set_body VALUE` | Replace the raw request body, promoting empty/non-raw bodies to text |
 | `set_var NAME=VALUE` | Set active-environment variable when one is active, otherwise global |
 | `set_global NAME=VALUE` | Set a request-local global variable override |
 | `set_env NAME=VALUE` | Set a request-local active-environment variable override |
+| `unset_var NAME` | Remove the active-environment variable when one is active, otherwise global |
+| `unset_global NAME` | Remove a request-local global variable |
+| `unset_env NAME` | Remove a request-local active-environment variable |
+
+`remove_header` / `delete_header` and `remove_query` / `delete_query` are
+accepted aliases for unset actions. `remove_var` / `delete_var`,
+`remove_global` / `delete_global`, and `remove_env` / `delete_env` are also
+accepted.
 
 Actions can be separated by semicolons or new lines in collection JSON. The GPUI
 editor currently uses a compact single-line input. Saved collection requests use
@@ -121,6 +131,10 @@ Execution behavior:
 
 - Single request sending, code generation preview, the GPUI collection runner,
   and the CLI runner all execute the same Rust action evaluator.
+- Action logs record the action name and target field, not the configured
+  value, so bearer tokens and other secrets are not echoed into summaries.
+- GPUI runner summaries and CLI output include pre-request action counts or
+  action target lines for saved collection requests.
 - Variable mutations are request-local for build/runner execution and do not
   persist back into stored environment/global variable rows.
 - Invalid actions fail request construction before transport.

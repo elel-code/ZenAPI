@@ -235,10 +235,10 @@
 > **目标**: 支持 Pre-request Scripts 和 Tests 脚本，实现请求前置处理和响应断言。
 
 - [x] 10.1 评估 Rust 嵌入脚本引擎方案: 已输出 `docs/SCRIPTING.md`，建议先定义宿主 API/结果模型，优先 Rhai，小心评估 `deno_core` 体积成本
-- [~] 10.2 实现 Pre-request Script 编辑器和执行: 已实现原生 script-lite action line，支持 method/url/header/query/body/变量覆盖，单次发送、代码生成、GPUI Runner 与 CLI Runner 共用执行路径；保存集合时保留 raw 请求字段和 action line，执行时再应用；完整脚本引擎、多行编辑器和执行日志待实现
+- [~] 10.2 实现 Pre-request Script 编辑器和执行: 已实现原生 script-lite action line，支持 method/url/header/query/body/变量覆盖，并支持删除 header/query/变量覆盖；单次发送、代码生成、GPUI Runner 与 CLI Runner 共用执行路径；保存集合时保留 raw 请求字段和 action line，执行时再应用；完整脚本引擎、多行编辑器和执行日志待实现
 - [~] 10.3 实现 Tests 脚本编辑器和断言 API: 已实现原生 Tests 编辑器与 Rust 响应断言模型（状态码、Header、Body、JSON Path、耗时、大小），支持保存/恢复到集合请求；`pm.test` / `pm.expect` 脚本兼容层待实现
-- [~] 10.4 实现测试结果展示面板: 单次请求 Tests 面板、Runner 结果行与响应摘要均已展示断言通过/失败详情；Pre-request 面板已显示最近 action 执行数量或构建错误；GPUI Runner 摘要与 CLI 输出已记录 pre-request action 名称/目标；完整脚本引擎运行日志待实现
-- [~] 10.5 验证: 响应断言编辑器字段解析、断言成功/失败、预期 500、JSON Path 失败、runner 汇总和 pre-request script-lite 执行均有自动化测试覆盖；完整脚本引擎执行验证待实现
+- [~] 10.4 实现测试结果展示面板: 单次请求 Tests 面板、Runner 结果行与响应摘要均已展示断言通过/失败详情；Pre-request 面板已显示最近 action 执行数量、构建错误和 action 名称/目标明细；GPUI Runner 摘要与 CLI 输出已记录 pre-request action 名称/目标；完整脚本引擎运行日志待实现
+- [~] 10.5 验证: 响应断言编辑器字段解析、断言成功/失败、预期 500、JSON Path 失败、runner 汇总、pre-request script-lite 执行与 pre-request 构建失败路径均有自动化测试覆盖；完整脚本引擎执行验证待实现
 
 ---
 
@@ -246,10 +246,10 @@
 
 > **目标**: 扩展协议支持，覆盖 GraphQL、WebSocket、SSE 和 gRPC。
 
-- [ ] 11.1 GraphQL 支持: 内省查询、Schema 浏览、查询编辑器
-- [ ] 11.2 WebSocket 支持: 连接管理、消息发送/接收面板
-- [ ] 11.3 SSE (Server-Sent Events) 支持
-- [ ] 11.4 gRPC 支持评估: 依赖 protobuf 编译，标记为探索性任务
+- [~] 11.1 GraphQL 支持: GraphQL 请求体模式已接入 query/variables 编辑并生成标准 `application/json` 请求体，内置 introspection 查询填充、introspection 响应 schema 摘要、根字段浏览、类型索引、directive 列表和根 Query 模板应用已实现；完整字段选择器/查询辅助仍待实现
+- [~] 11.2 WebSocket 支持: 基于 `tokio-tungstenite` 的 `ws://`/`wss://` 持久连接、文本消息多次发送/接收、Binary Hex 二进制发送、显式关闭控制、GPUI 消息面板和本地 echo 会话测试已实现；连接级 header/protocol 配置和更完整的消息历史操作仍待实现
+- [~] 11.3 SSE (Server-Sent Events) 支持: 基于 `reqwest` stream 的 `text/event-stream` 事件解析、最多 N 条事件采集、长连接后台订阅、手动停止、Last-Event-ID 续订、GPUI SSE 面板、事件日志和本地 Axum SSE 流测试已实现；自动重连/backoff、订阅级 headers 和更完整的历史操作仍待实现
+- [~] 11.4 gRPC 支持评估: 已输出 `docs/GRPC.md`，明确 `tonic` + `prost-reflect` + `tonic-reflection` 路线、运行时 descriptor 加载、unary MVP 与 streaming 后续拆分；domain model、descriptor 加载和 unary 传输层仍待实现
 
 ---
 
@@ -320,6 +320,7 @@
 | `docs/BENCHMARK.md` | 调研总结 | 0.5 |
 | `docs/BRU_FORMAT.md` | Bru-style 集合存储探索记录 | 6.3 |
 | `docs/SCRIPTING.md` | 脚本与测试引擎评估 | 10.1 |
+| `docs/GRPC.md` | gRPC 支持评估与实现拆分 | 11.4 |
 | `docs/USER_GUIDE.md` | 用户使用指南 | 13.4 |
 | `docs/DEV_GUIDE.md` | 开发者文档 | 13.4 |
 

@@ -9,7 +9,9 @@ use crate::{
     client::{RequestBody, send_request_with_body},
     codegen::CodegenRequest,
     collections::{ApiCollection, CollectionBody, CollectionItem, CollectionRequest, NameValue},
-    pre_request::{execute_pre_request_actions, resolve_codegen_request_templates},
+    pre_request::{
+        execute_pre_request_actions, pre_request_action_labels, resolve_codegen_request_templates,
+    },
     variables::VariableStore,
 };
 
@@ -178,11 +180,7 @@ pub fn resolve_collection_request(
         headers: resolved.headers,
         query_params: resolved.query_params,
         body: resolved.body,
-        pre_request_actions: execution
-            .actions
-            .iter()
-            .map(|action| format!("{} {}", action.action, action.target))
-            .collect(),
+        pre_request_actions: pre_request_action_labels(&execution.actions),
     })
 }
 
@@ -441,7 +439,15 @@ mod tests {
             "http://localhost:8080",
         ));
         let mut request = request("Scripted", "GET", "{{baseUrl}}/users".to_string());
-        request.pre_request_script = "set_var token=script-token; set_method POST; set_header Authorization=Bearer {{token}}; set_query debug=true".to_string();
+        request.headers = vec![NameValue {
+            name: "X-Debug".to_string(),
+            value: "remove-me".to_string(),
+        }];
+        request.query_params = vec![NameValue {
+            name: "stale".to_string(),
+            value: "1".to_string(),
+        }];
+        request.pre_request_script = "set_var token=script-token; set_method POST; unset_header x-debug; set_header Authorization=Bearer {{token}}; unset_query stale; set_query debug=true".to_string();
 
         let (method, url, headers, query_params, body) =
             collection_request_to_client_request(&request, &variables, Some("dev"))
@@ -469,9 +475,47 @@ mod tests {
             vec![
                 "set_var token".to_string(),
                 "set_method method".to_string(),
+                "unset_header x-debug".to_string(),
                 "set_header Authorization".to_string(),
+                "unset_query stale".to_string(),
                 "set_query debug".to_string(),
             ]
+        );
+    }
+
+    #[tokio::test]
+    async fn pre_request_errors_fail_collection_request_before_transport() {
+        let mut request = request(
+            "Invalid script",
+            "GET",
+            "http://127.0.0.1:9/should-not-send".to_string(),
+        );
+        request.pre_request_script = "set_header MissingAssignment".to_string();
+        let collection = ApiCollection {
+            name: "Scripts".to_string(),
+            description: String::new(),
+            items: vec![CollectionItem::Request(request)],
+        };
+
+        let summary = run_collection(
+            &collection,
+            &VariableStore::new(),
+            None,
+            RunnerOptions::default(),
+        )
+        .await;
+
+        assert_eq!(summary.total, 1);
+        assert_eq!(summary.passed, 0);
+        assert_eq!(summary.failed, 1);
+        assert_eq!(summary.results[0].status, None);
+        assert!(summary.results[0].pre_request_actions.is_empty());
+        assert!(
+            summary.results[0]
+                .error
+                .as_deref()
+                .unwrap_or_default()
+                .contains("pre-request failed")
         );
     }
 

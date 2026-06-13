@@ -73,10 +73,20 @@ Supported actions:
 - `set_url VALUE`
 - `set_header NAME=VALUE`
 - `set_query NAME=VALUE`
+- `unset_header NAME`
+- `unset_query NAME`
 - `set_body VALUE`
 - `set_var NAME=VALUE`
 - `set_global NAME=VALUE`
 - `set_env NAME=VALUE`
+- `unset_var NAME`
+- `unset_global NAME`
+- `unset_env NAME`
+
+`remove_header`/`delete_header` and `remove_query`/`delete_query` are accepted
+as aliases for unset actions. `remove_var`/`delete_var`,
+`remove_global`/`delete_global`, and `remove_env`/`delete_env` are also
+accepted.
 
 Pre-request actions run before `{{variable}}` replacement. They apply when a
 single request is sent, when generated code is previewed, and when the
@@ -86,7 +96,8 @@ requests preserve the original editor fields plus the action line in
 expanded during save.
 
 The Pre-request panel status shows the most recent action count or request
-build error.
+build error. The panel, collection runner summaries, and CLI output include
+pre-request action names and target fields, but not action values.
 
 ## Tests
 
@@ -132,11 +143,33 @@ Supported body modes:
 - `form-data`
 - `x-www-form-urlencoded`
 - `raw`
+- `graphql`
 - `binary`
 
 Raw mode supports JSON, XML, Text, and HTML content types, with a lightweight
-syntax preview for structured text. Form-data file fields use an `@path`
-prefix.
+syntax preview for structured text. GraphQL mode builds an `application/json`
+body with `query` and `variables`, can fill a standard introspection query,
+shows schema summary/browser panels when an introspection response is returned,
+and offers root Query templates that can be applied back into the editor.
+Form-data file fields use an `@path` prefix.
+
+## WebSocket
+
+The WebSocket panel opens a persistent `ws://` or `wss://` session. Use
+`Connect` to establish the session, `Send` to send messages repeatedly, and
+`Close` to end the connection. The message editor supports Text and Binary Hex
+modes; Binary Hex accepts byte input such as `00 ff 7a`. Sent and received
+messages are recorded in the panel, and the latest event is mirrored in the
+response viewer.
+
+## SSE
+
+The SSE panel works with `http://` or `https://` `text/event-stream` endpoints.
+Use `Fetch Events` for a bounded preview, `Subscribe` for a background stream,
+and `Stop` to cancel the active subscription. Event names, ids, and data are
+recorded in the panel and mirrored in the response viewer. When an event id is
+seen, the next subscription resumes with `Last-Event-ID`. Automatic reconnect
+backoff is future work.
 
 ## Authorization
 
@@ -246,7 +279,14 @@ zenapi run collection.json --delay-ms 100
 - Pre-request script-lite and native response assertions are available in
   collection JSON, but a full script engine and `pm.*` compatibility are not
   implemented yet.
-- GraphQL, WebSocket, SSE, and gRPC are future protocol work.
+- GraphQL body editing, introspection query fill, schema summary, lightweight
+  schema browsing, and root Query templates are available; full field selection
+  assistance is still future work. WebSocket persistent text and Binary Hex
+  sessions are available, but connection headers/subprotocols are future work.
+  SSE event previews are available with background subscription and
+  `Last-Event-ID` resume; reconnect strategy is future work. gRPC has an
+  implementation plan in `docs/GRPC.md`, but transport/UI support is future
+  work.
 - Plugin APIs are future work.
 - Live benchmark and visual comparison against reference clients still need
   current-version review.

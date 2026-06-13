@@ -37,6 +37,12 @@ impl VariableStore {
         }
     }
 
+    pub fn remove(&mut self, name: &str, scope: &VariableScope) {
+        let name = name.trim();
+        self.variables
+            .retain(|variable| !(variable.name == name && &variable.scope == scope));
+    }
+
     pub fn resolve(&self, name: &str, active_environment: Option<&str>) -> Option<&str> {
         let name = name.trim();
         if name.is_empty() {
@@ -180,6 +186,26 @@ mod tests {
         let error = replace_variables("{{missing}}", &store, None).expect_err("missing variable");
 
         assert_eq!(error.to_string(), "unknown variable: missing");
+    }
+
+    #[test]
+    fn removes_variables_by_name_and_scope() {
+        let mut store = VariableStore::new();
+        store.upsert(Variable::global("token", "global"));
+        store.upsert(Variable::environment("dev", "token", "dev"));
+
+        store.remove(
+            "token",
+            &VariableScope::Environment {
+                name: "dev".to_string(),
+            },
+        );
+
+        assert_eq!(store.resolve("token", Some("dev")), Some("global"));
+
+        store.remove("token", &VariableScope::Global);
+
+        assert_eq!(store.resolve("token", Some("dev")), None);
     }
 
     #[test]

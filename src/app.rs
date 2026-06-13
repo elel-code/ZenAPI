@@ -14,6 +14,7 @@ use gpui::{
 use tokio::{
     runtime::Runtime,
     sync::{mpsc, oneshot},
+    task::JoinHandle,
 };
 use zenapi::{
     assertions::{
@@ -32,7 +33,9 @@ use zenapi::{
     history::{HistoryRequest, HistoryResponse, RequestHistory},
     mock_server::{MockRequestLog, MockServer},
     openapi::{ApiRoute, ApiSpec, load_openapi_file},
-    pre_request::{execute_pre_request_actions, resolve_codegen_request_templates},
+    pre_request::{
+        execute_pre_request_actions, pre_request_action_labels, resolve_codegen_request_templates,
+    },
     variables::{Variable, VariableStore},
 };
 
@@ -69,6 +72,13 @@ const COLLECTION_TREE_INDENT_BASE: f32 = 8.;
 const COLLECTION_TREE_INDENT_STEP: f32 = 14.;
 const COLLECTION_TREE_MARKER_WIDTH: f32 = 14.;
 const HTTP_METHOD_LABEL_WIDTH: f32 = 58.;
+const GRAPHQL_SCHEMA_FIELD_LIMIT: usize = 12;
+const GRAPHQL_SCHEMA_TYPE_LIMIT: usize = 18;
+const GRAPHQL_QUERY_TEMPLATE_LIMIT: usize = 5;
+const WEBSOCKET_LOG_LIMIT: usize = 24;
+const SSE_EVENT_FETCH_LIMIT: usize = 6;
+const SSE_LOG_LIMIT: usize = 24;
+const GRAPHQL_INTROSPECTION_QUERY: &str = "query IntrospectionQuery { __schema { queryType { name } mutationType { name } subscriptionType { name } types { kind name description fields(includeDeprecated: true) { name description args { name description type { kind name ofType { kind name ofType { kind name } } } defaultValue } type { kind name ofType { kind name ofType { kind name } } } isDeprecated deprecationReason } inputFields { name description type { kind name ofType { kind name ofType { kind name } } } defaultValue } interfaces { kind name ofType { kind name } } enumValues(includeDeprecated: true) { name description isDeprecated deprecationReason } possibleTypes { kind name ofType { kind name } } } directives { name description locations args { name description type { kind name ofType { kind name ofType { kind name } } } defaultValue } } } }";
 
 pub fn run() -> Result<()> {
     let runtime = Arc::new(Runtime::new()?);
@@ -119,9 +129,30 @@ struct ZenApiApp {
     api_key_placement: ApiKeyPlacement,
     pre_request_script: Entity<TextInput>,
     pre_request_status: String,
+    last_pre_request_actions: Vec<String>,
     request_body_mode: RequestBodyMode,
     raw_body_format: RawBodyFormat,
     request_body: Entity<TextInput>,
+    graphql_query: Entity<TextInput>,
+    graphql_variables: Entity<TextInput>,
+    graphql_schema_summary: String,
+    graphql_schema_browser: String,
+    graphql_query_templates: Vec<GraphqlQueryTemplate>,
+    websocket_url: Entity<TextInput>,
+    websocket_protocols: Entity<TextInput>,
+    websocket_headers: Vec<KeyValueRow>,
+    websocket_message: Entity<TextInput>,
+    websocket_message_mode: WebSocketMessageMode,
+    websocket_status: String,
+    websocket_running: bool,
+    websocket_command_tx: Option<mpsc::UnboundedSender<client::WebSocketSessionCommand>>,
+    websocket_messages: Vec<WebSocketLogEntry>,
+    sse_url: Entity<TextInput>,
+    sse_status: String,
+    sse_running: bool,
+    sse_subscription: Option<JoinHandle<()>>,
+    sse_last_event_id: Option<String>,
+    sse_events: Vec<SseLogEntry>,
     form_data_body: Vec<KeyValueRow>,
     urlencoded_body: Vec<KeyValueRow>,
     binary_body_path: Entity<TextInput>,
@@ -204,6 +235,47 @@ struct CollectionDragPreview {
 struct RequestBuild {
     request: CodegenRequest,
     pre_request_actions: usize,
+    pre_request_action_labels: Vec<String>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct GraphqlQueryTemplate {
+    field_name: String,
+    operation: String,
+    variables: String,
+}
+
+struct GraphqlOperationArg {
+    name: String,
+    type_ref: String,
+    default_value: Option<String>,
+    placeholder: serde_json::Value,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct WebSocketLogEntry {
+    direction: WebSocketDirection,
+    kind: String,
+    data: String,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum WebSocketDirection {
+    Sent,
+    Received,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum WebSocketMessageMode {
+    Text,
+    BinaryHex,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct SseLogEntry {
+    event: String,
+    data: String,
+    id: Option<String>,
 }
 
 fn ui_surface() -> Hsla {
@@ -322,6 +394,13 @@ impl ZenApiApp {
         let api_key_value = cx.new(|cx| TextInput::new(cx, "API key value", true));
         let pre_request_script = cx.new(|cx| TextInput::new(cx, "Pre-request action line", true));
         let request_body = cx.new(|cx| TextInput::new(cx, "JSON body", true));
+        let graphql_query = cx.new(|cx| TextInput::new(cx, "GraphQL query", true));
+        let graphql_variables = cx.new(|cx| TextInput::new(cx, "GraphQL variables JSON", true));
+        let websocket_url = cx.new(|cx| TextInput::new(cx, "ws://localhost:8080/socket", true));
+        let websocket_protocols = cx.new(|cx| TextInput::new(cx, "Subprotocols: chat, json", true));
+        let websocket_headers = key_value_rows(cx, &[("X-Token", "token"), ("", "")]);
+        let websocket_message = cx.new(|cx| TextInput::new(cx, "WebSocket message", true));
+        let sse_url = cx.new(|cx| TextInput::new(cx, "http://localhost:8080/events", true));
         let response_body_viewer = cx.new(|cx| ReadOnlyTextView::new(cx, INITIAL_RESPONSE_BODY));
         let form_data_body = key_value_rows(
             cx,
@@ -414,9 +493,30 @@ impl ZenApiApp {
             api_key_placement: ApiKeyPlacement::Header,
             pre_request_script,
             pre_request_status: "idle".to_string(),
+            last_pre_request_actions: Vec::new(),
             request_body_mode: RequestBodyMode::None,
             raw_body_format: RawBodyFormat::Json,
             request_body,
+            graphql_query,
+            graphql_variables,
+            graphql_schema_summary: String::new(),
+            graphql_schema_browser: String::new(),
+            graphql_query_templates: Vec::new(),
+            websocket_url,
+            websocket_protocols,
+            websocket_headers,
+            websocket_message,
+            websocket_message_mode: WebSocketMessageMode::Text,
+            websocket_status: "idle".to_string(),
+            websocket_running: false,
+            websocket_command_tx: None,
+            websocket_messages: Vec::new(),
+            sse_url,
+            sse_status: "idle".to_string(),
+            sse_running: false,
+            sse_subscription: None,
+            sse_last_event_id: None,
+            sse_events: Vec::new(),
             form_data_body,
             urlencoded_body,
             binary_body_path,
@@ -596,6 +696,7 @@ impl ZenApiApp {
         match self.current_request_build(cx) {
             Ok(build) if build.request.url.is_empty() => {
                 self.pre_request_status = pre_request_status_label(build.pre_request_actions);
+                self.last_pre_request_actions = build.pre_request_action_labels;
                 self.set_response(
                     "Save needs URL",
                     "",
@@ -607,9 +708,11 @@ impl ZenApiApp {
             }
             Ok(build) => {
                 self.pre_request_status = pre_request_status_label(build.pre_request_actions);
+                self.last_pre_request_actions = build.pre_request_action_labels;
             }
             Err(error) => {
                 self.pre_request_status = pre_request_error_label(&error.to_string());
+                self.last_pre_request_actions.clear();
                 self.set_response("Save failed", "", ResponseTone::Error, error.to_string());
                 cx.notify();
                 return;
@@ -781,6 +884,7 @@ impl ZenApiApp {
             input.set_text(request.pre_request_script, cx)
         });
         self.pre_request_status = "idle".to_string();
+        self.last_pre_request_actions.clear();
         self.request_assertions = assertion_rows_from_assertions(cx, &request.tests);
         self.last_assertion_results.clear();
         self.set_response(
@@ -800,10 +904,18 @@ impl ZenApiApp {
                     .update(cx, |input, cx| input.set_text("", cx));
             }
             CollectionBody::Raw { content_type, body } => {
-                self.request_body_mode = RequestBodyMode::Raw;
-                self.raw_body_format = raw_format_from_content_type(&content_type);
-                self.request_body
-                    .update(cx, |input, cx| input.set_text(body, cx));
+                if let Some((query, variables)) = graphql_fields_from_body(&content_type, &body) {
+                    self.request_body_mode = RequestBodyMode::GraphQL;
+                    self.graphql_query
+                        .update(cx, |input, cx| input.set_text(query, cx));
+                    self.graphql_variables
+                        .update(cx, |input, cx| input.set_text(variables, cx));
+                } else {
+                    self.request_body_mode = RequestBodyMode::Raw;
+                    self.raw_body_format = raw_format_from_content_type(&content_type);
+                    self.request_body
+                        .update(cx, |input, cx| input.set_text(body, cx));
+                }
             }
             CollectionBody::FormData { fields } => {
                 self.request_body_mode = RequestBodyMode::FormData;
@@ -828,6 +940,30 @@ impl ZenApiApp {
 
     fn clear_response_assertion_results(&mut self, cx: &mut Context<Self>) {
         self.last_assertion_results.clear();
+        cx.notify();
+    }
+
+    fn load_graphql_introspection_query(&mut self, cx: &mut Context<Self>) {
+        self.request_body_mode = RequestBodyMode::GraphQL;
+        self.graphql_query.update(cx, |input, cx| {
+            input.set_text(GRAPHQL_INTROSPECTION_QUERY, cx)
+        });
+        self.graphql_variables
+            .update(cx, |input, cx| input.set_text("{}", cx));
+        cx.notify();
+    }
+
+    fn apply_graphql_query_template(
+        &mut self,
+        operation: String,
+        variables: String,
+        cx: &mut Context<Self>,
+    ) {
+        self.request_body_mode = RequestBodyMode::GraphQL;
+        self.graphql_query
+            .update(cx, |input, cx| input.set_text(operation, cx));
+        self.graphql_variables
+            .update(cx, |input, cx| input.set_text(variables, cx));
         cx.notify();
     }
 
@@ -857,6 +993,7 @@ impl ZenApiApp {
         self.pre_request_script
             .update(cx, |input, cx| input.set_text("", cx));
         self.pre_request_status = "idle".to_string();
+        self.last_pre_request_actions.clear();
         self.request_assertions = assertion_rows_from_assertions(cx, &[]);
         self.last_assertion_results.clear();
         self.set_response(
@@ -877,6 +1014,7 @@ impl ZenApiApp {
             Ok(build) => build,
             Err(error) => {
                 self.pre_request_status = pre_request_error_label(&error.to_string());
+                self.last_pre_request_actions.clear();
                 self.set_response(
                     "Request build failed",
                     "",
@@ -888,6 +1026,7 @@ impl ZenApiApp {
             }
         };
         self.pre_request_status = pre_request_status_label(build.pre_request_actions);
+        self.last_pre_request_actions = build.pre_request_action_labels;
         let request = build.request;
         if request.url.is_empty() {
             self.set_response(
@@ -990,6 +1129,359 @@ impl ZenApiApp {
             }
         })
         .detach();
+    }
+
+    fn connect_websocket(&mut self, cx: &mut Context<Self>) {
+        if self.websocket_running {
+            return;
+        }
+
+        let url = self.websocket_url.read(cx).text();
+        if url.trim().is_empty() {
+            self.websocket_status = "URL required".to_string();
+            self.set_response(
+                "WebSocket needs a URL",
+                "",
+                ResponseTone::Error,
+                "Enter a ws:// or wss:// URL before sending a WebSocket message.",
+            );
+            cx.notify();
+            return;
+        }
+
+        let options = client::WebSocketSessionOptions {
+            headers: read_key_value_rows(&self.websocket_headers, cx),
+            protocols: websocket_protocol_list(&self.websocket_protocols.read(cx).text()),
+        };
+        let runtime = self.runtime.clone();
+        let (command_tx, command_rx) = mpsc::unbounded_channel();
+        let (event_tx, event_rx) = mpsc::unbounded_channel();
+        self.websocket_running = true;
+        self.websocket_command_tx = Some(command_tx);
+        self.websocket_status = "connecting".to_string();
+        self.set_response(
+            "WebSocket active",
+            "",
+            ResponseTone::Busy,
+            self.response_body.clone(),
+        );
+        cx.notify();
+
+        runtime.spawn(async move {
+            client::run_websocket_session_with_options(url, options, command_rx, event_tx).await;
+        });
+
+        cx.spawn(async move |app, cx| {
+            let mut event_rx = event_rx;
+            while let Some(event) = event_rx.recv().await {
+                app.update(cx, |app, cx| {
+                    app.handle_websocket_event(event);
+                    cx.notify();
+                })
+                .ok();
+            }
+            app.update(cx, |app, cx| {
+                if app.websocket_running {
+                    app.websocket_running = false;
+                    app.websocket_command_tx = None;
+                    app.websocket_status = "closed".to_string();
+                    cx.notify();
+                }
+            })
+            .ok();
+        })
+        .detach();
+    }
+
+    fn send_websocket_message(&mut self, cx: &mut Context<Self>) {
+        let message = self.websocket_message.read(cx).text();
+        let Some(command_tx) = self.websocket_command_tx.as_ref() else {
+            self.websocket_status = "not connected".to_string();
+            self.set_response(
+                "WebSocket not connected",
+                "",
+                ResponseTone::Error,
+                "Connect before sending a WebSocket message.",
+            );
+            cx.notify();
+            return;
+        };
+
+        let command = match self.websocket_message_mode {
+            WebSocketMessageMode::Text => client::WebSocketSessionCommand::SendText(message),
+            WebSocketMessageMode::BinaryHex => match websocket_hex_bytes(&message) {
+                Ok(bytes) => client::WebSocketSessionCommand::SendBinary(bytes),
+                Err(error) => {
+                    self.websocket_status = "invalid binary".to_string();
+                    self.set_response("WebSocket binary invalid", "", ResponseTone::Error, error);
+                    cx.notify();
+                    return;
+                }
+            },
+        };
+
+        if command_tx.send(command).is_err() {
+            self.websocket_running = false;
+            self.websocket_command_tx = None;
+            self.websocket_status = "closed".to_string();
+        } else {
+            self.websocket_status = "sending".to_string();
+        }
+        cx.notify();
+    }
+
+    fn close_websocket(&mut self, cx: &mut Context<Self>) {
+        if let Some(command_tx) = self.websocket_command_tx.as_ref() {
+            let _ = command_tx.send(client::WebSocketSessionCommand::Close);
+            self.websocket_status = "closing".to_string();
+        } else {
+            self.websocket_running = false;
+            self.websocket_status = "closed".to_string();
+        }
+        cx.notify();
+    }
+
+    fn handle_websocket_event(&mut self, event: client::WebSocketSessionEvent) {
+        match event {
+            client::WebSocketSessionEvent::Connected { url } => {
+                self.websocket_running = true;
+                self.websocket_status = "connected".to_string();
+                self.set_response(
+                    "WebSocket connected",
+                    "",
+                    ResponseTone::Success,
+                    format!("connected: {url}"),
+                );
+            }
+            client::WebSocketSessionEvent::Sent(message) => {
+                self.push_websocket_log(WebSocketLogEntry {
+                    direction: WebSocketDirection::Sent,
+                    kind: websocket_message_kind_label(&message.kind).to_string(),
+                    data: message.data,
+                });
+                self.websocket_status = "sent".to_string();
+            }
+            client::WebSocketSessionEvent::Received(message) => {
+                let kind = websocket_message_kind_label(&message.kind).to_string();
+                let data = message.data;
+                self.push_websocket_log(WebSocketLogEntry {
+                    direction: WebSocketDirection::Received,
+                    kind: kind.clone(),
+                    data: data.clone(),
+                });
+                self.websocket_status = format!("received {kind}");
+                self.set_response("WebSocket message", kind, ResponseTone::Success, data);
+            }
+            client::WebSocketSessionEvent::Closed(reason) => {
+                self.websocket_running = false;
+                self.websocket_command_tx = None;
+                self.websocket_status = format!("closed: {}", preview_text(&reason));
+                self.set_response("WebSocket closed", "", ResponseTone::Neutral, reason);
+            }
+            client::WebSocketSessionEvent::Error(error) => {
+                self.websocket_running = false;
+                self.websocket_command_tx = None;
+                self.websocket_status = format!("error: {}", preview_text(&error));
+                self.set_response("WebSocket failed", "", ResponseTone::Error, error);
+            }
+        }
+    }
+
+    fn push_websocket_log(&mut self, entry: WebSocketLogEntry) {
+        self.websocket_messages.push(entry);
+        let overflow = self
+            .websocket_messages
+            .len()
+            .saturating_sub(WEBSOCKET_LOG_LIMIT);
+        if overflow > 0 {
+            self.websocket_messages.drain(0..overflow);
+        }
+    }
+
+    fn fetch_sse_events(&mut self, cx: &mut Context<Self>) {
+        if self.sse_running {
+            return;
+        }
+
+        let url = self.sse_url.read(cx).text();
+        if url.trim().is_empty() {
+            self.sse_status = "URL required".to_string();
+            self.set_response(
+                "SSE needs a URL",
+                "",
+                ResponseTone::Error,
+                "Enter an http:// or https:// SSE URL before fetching events.",
+            );
+            cx.notify();
+            return;
+        }
+
+        let runtime = self.runtime.clone();
+        let (tx, rx) = oneshot::channel();
+        self.sse_running = true;
+        self.sse_status = "connecting".to_string();
+        self.set_response(
+            "SSE active",
+            "",
+            ResponseTone::Busy,
+            self.response_body.clone(),
+        );
+        cx.notify();
+
+        runtime.spawn(async move {
+            let _ = tx.send(client::collect_sse_events(&url, SSE_EVENT_FETCH_LIMIT).await);
+        });
+
+        cx.spawn(async move |app, cx| {
+            if let Ok(result) = rx.await {
+                app.update(cx, |app, cx| {
+                    match result {
+                        Ok(exchange) => {
+                            let entries = sse_log_entries(&exchange);
+                            for entry in entries {
+                                app.push_sse_log(entry);
+                            }
+                            let meta = format!(
+                                "{} events | {}ms",
+                                exchange.events.len(),
+                                exchange.elapsed_ms
+                            );
+                            app.sse_status = meta.clone();
+                            app.set_response(
+                                "SSE OK",
+                                meta,
+                                ResponseTone::Success,
+                                sse_exchange_text(&exchange),
+                            );
+                        }
+                        Err(error) => {
+                            let error = error.to_string();
+                            app.sse_status = format!("error: {}", preview_text(&error));
+                            app.set_response("SSE failed", "", ResponseTone::Error, error);
+                        }
+                    }
+                    app.sse_running = false;
+                    cx.notify();
+                })
+                .ok();
+            }
+        })
+        .detach();
+    }
+
+    fn subscribe_sse_events(&mut self, cx: &mut Context<Self>) {
+        if self.sse_running {
+            return;
+        }
+
+        let url = self.sse_url.read(cx).text();
+        if url.trim().is_empty() {
+            self.sse_status = "URL required".to_string();
+            self.set_response(
+                "SSE needs a URL",
+                "",
+                ResponseTone::Error,
+                "Enter an http:// or https:// SSE URL before subscribing.",
+            );
+            cx.notify();
+            return;
+        }
+
+        let runtime = self.runtime.clone();
+        let last_event_id = self.sse_last_event_id.clone();
+        let (event_tx, event_rx) = mpsc::unbounded_channel();
+        let handle = runtime.spawn(client::run_sse_subscription(url, last_event_id, event_tx));
+        self.sse_subscription = Some(handle);
+        self.sse_running = true;
+        self.sse_status = "subscribing".to_string();
+        self.set_response(
+            "SSE subscribing",
+            "",
+            ResponseTone::Busy,
+            self.response_body.clone(),
+        );
+        cx.notify();
+
+        cx.spawn(async move |app, cx| {
+            let mut event_rx = event_rx;
+            while let Some(event) = event_rx.recv().await {
+                app.update(cx, |app, cx| {
+                    app.handle_sse_stream_event(event);
+                    cx.notify();
+                })
+                .ok();
+            }
+            app.update(cx, |app, cx| {
+                if app.sse_subscription.is_some() {
+                    app.sse_subscription = None;
+                    app.sse_running = false;
+                    app.sse_status = "closed".to_string();
+                    cx.notify();
+                }
+            })
+            .ok();
+        })
+        .detach();
+    }
+
+    fn stop_sse_subscription(&mut self, cx: &mut Context<Self>) {
+        if let Some(handle) = self.sse_subscription.take() {
+            handle.abort();
+            self.sse_running = false;
+            self.sse_status = "stopped".to_string();
+            self.set_response(
+                "SSE stopped",
+                "",
+                ResponseTone::Neutral,
+                "SSE subscription was stopped.",
+            );
+        }
+        cx.notify();
+    }
+
+    fn handle_sse_stream_event(&mut self, event: client::SseStreamEvent) {
+        match event {
+            client::SseStreamEvent::Connected { url } => {
+                self.sse_running = true;
+                self.sse_status = "subscribed".to_string();
+                self.set_response(
+                    "SSE subscribed",
+                    "",
+                    ResponseTone::Success,
+                    format!("subscribed: {url}"),
+                );
+            }
+            client::SseStreamEvent::Event(event) => {
+                let label = sse_event_label(&event).to_string();
+                let data = event.data.clone();
+                self.push_sse_log(sse_log_entry(&event));
+                self.sse_status = format!("event {label}");
+                self.set_response("SSE event", label, ResponseTone::Success, data);
+            }
+            client::SseStreamEvent::Closed(reason) => {
+                self.sse_subscription = None;
+                self.sse_running = false;
+                self.sse_status = format!("closed: {}", preview_text(&reason));
+                self.set_response("SSE closed", "", ResponseTone::Neutral, reason);
+            }
+            client::SseStreamEvent::Error(error) => {
+                self.sse_subscription = None;
+                self.sse_running = false;
+                self.sse_status = format!("error: {}", preview_text(&error));
+                self.set_response("SSE failed", "", ResponseTone::Error, error);
+            }
+        }
+    }
+
+    fn push_sse_log(&mut self, entry: SseLogEntry) {
+        if let Some(id) = &entry.id {
+            self.sse_last_event_id = Some(id.clone());
+        }
+        self.sse_events.push(entry);
+        let overflow = self.sse_events.len().saturating_sub(SSE_LOG_LIMIT);
+        if overflow > 0 {
+            self.sse_events.drain(0..overflow);
+        }
     }
 
     fn run_collection_runner(&mut self, cx: &mut Context<Self>) {
@@ -1203,6 +1695,9 @@ impl ZenApiApp {
         self.response_headers.clear();
         self.response_view = ResponseView::Pretty;
         self.response_pretty_collapsed = false;
+        self.graphql_schema_summary.clear();
+        self.graphql_schema_browser.clear();
+        self.graphql_query_templates.clear();
     }
 
     fn set_http_response(
@@ -1219,6 +1714,12 @@ impl ZenApiApp {
         self.response_tone = tone;
         self.response_body = pretty_body.into();
         self.response_raw_body = raw_body.into();
+        self.graphql_schema_summary =
+            graphql_schema_summary(&self.response_raw_body).unwrap_or_default();
+        self.graphql_schema_browser =
+            graphql_schema_browser(&self.response_raw_body).unwrap_or_default();
+        self.graphql_query_templates =
+            graphql_query_templates(&self.response_raw_body).unwrap_or_default();
         self.response_headers = headers.into();
         self.response_pretty_collapsed = false;
     }
@@ -1468,6 +1969,7 @@ impl ZenApiApp {
         Ok(RequestBuild {
             request,
             pre_request_actions: execution.actions_applied,
+            pre_request_action_labels: pre_request_action_labels(&execution.actions),
         })
     }
 
@@ -1509,6 +2011,13 @@ impl ZenApiApp {
             RequestBodyMode::Raw => RequestBody::Raw {
                 content_type: Some(self.raw_body_format.content_type().to_string()),
                 body: self.request_body.read(cx).text(),
+            },
+            RequestBodyMode::GraphQL => RequestBody::Raw {
+                content_type: Some("application/json".to_string()),
+                body: graphql_body(
+                    &self.graphql_query.read(cx).text(),
+                    &self.graphql_variables.read(cx).text(),
+                ),
             },
             RequestBodyMode::Binary => RequestBody::BinaryFile {
                 path: self.binary_body_path.read(cx).text(),
@@ -2275,10 +2784,225 @@ impl ZenApiApp {
                     .child(self.render_auth_panel(cx))
                     .child(self.render_pre_request_panel())
                     .child(self.render_body_panel(cx))
+                    .child(self.render_websocket_panel(cx))
+                    .child(self.render_sse_panel(cx))
                     .child(self.render_tests_panel(cx))
                     .child(self.render_codegen_panel(cx))
                     .child(self.render_collection_runner(cx))
                     .child(self.render_mock_log()),
+            )
+    }
+
+    fn render_websocket_panel(&self, cx: &mut Context<Self>) -> impl IntoElement {
+        let rows = self
+            .websocket_messages
+            .iter()
+            .rev()
+            .take(8)
+            .cloned()
+            .map(websocket_log_row)
+            .collect::<Vec<_>>();
+        let input_hint = match self.websocket_message_mode {
+            WebSocketMessageMode::Text => "message text",
+            WebSocketMessageMode::BinaryHex => "hex bytes, e.g. 00 ff 7a",
+        };
+
+        div()
+            .flex()
+            .flex_col()
+            .gap_2()
+            .child(
+                div()
+                    .flex()
+                    .items_center()
+                    .justify_between()
+                    .child(
+                        div()
+                            .text_size(px(12.))
+                            .font_weight(FontWeight::BOLD)
+                            .text_color(ui_text_secondary())
+                            .child("WebSocket"),
+                    )
+                    .child(
+                        div()
+                            .font_family(PLATFORM_MONOSPACE_FONT)
+                            .text_size(px(12.))
+                            .text_color(if self.websocket_running {
+                                ResponseTone::Busy.color()
+                            } else {
+                                ui_text_secondary()
+                            })
+                            .child(self.websocket_status.clone()),
+                    ),
+            )
+            .child(
+                div()
+                    .flex()
+                    .items_center()
+                    .gap_2()
+                    .child(div().flex_1().child(self.websocket_url.clone()))
+                    .child(self.action_button(
+                        "Connect",
+                        !self.websocket_running,
+                        ButtonTone::Primary,
+                        |app, _event, _window, cx| app.connect_websocket(cx),
+                        cx,
+                    ))
+                    .child(self.action_button(
+                        "Send",
+                        self.websocket_running,
+                        ButtonTone::Neutral,
+                        |app, _event, _window, cx| app.send_websocket_message(cx),
+                        cx,
+                    ))
+                    .child(self.action_button(
+                        "Close",
+                        self.websocket_running,
+                        ButtonTone::Warning,
+                        |app, _event, _window, cx| app.close_websocket(cx),
+                        cx,
+                    )),
+            )
+            .child(self.websocket_protocols.clone())
+            .child(key_value_editor(
+                "WebSocket Headers",
+                &self.websocket_headers,
+            ))
+            .child(
+                div()
+                    .flex()
+                    .items_center()
+                    .gap_2()
+                    .child(self.websocket_message_mode_button(
+                        "Text",
+                        WebSocketMessageMode::Text,
+                        cx,
+                    ))
+                    .child(self.websocket_message_mode_button(
+                        "Binary Hex",
+                        WebSocketMessageMode::BinaryHex,
+                        cx,
+                    ))
+                    .child(
+                        div()
+                            .truncate()
+                            .text_size(px(12.))
+                            .text_color(ui_text_secondary())
+                            .child(input_hint),
+                    ),
+            )
+            .child(self.websocket_message.clone())
+            .child(
+                div()
+                    .flex()
+                    .flex_col()
+                    .rounded(px(4.))
+                    .border_1()
+                    .border_color(ui_border())
+                    .bg(ui_surface())
+                    .children(rows)
+                    .when(self.websocket_messages.is_empty(), |list| {
+                        list.child(
+                            div()
+                                .h(px(34.))
+                                .flex()
+                                .items_center()
+                                .px_2()
+                                .text_color(ui_text_muted())
+                                .text_size(px(13.))
+                                .child("No WebSocket messages"),
+                        )
+                    }),
+            )
+    }
+
+    fn render_sse_panel(&self, cx: &mut Context<Self>) -> impl IntoElement {
+        let rows = self
+            .sse_events
+            .iter()
+            .rev()
+            .take(8)
+            .cloned()
+            .map(sse_log_row)
+            .collect::<Vec<_>>();
+
+        div()
+            .flex()
+            .flex_col()
+            .gap_2()
+            .child(
+                div()
+                    .flex()
+                    .items_center()
+                    .justify_between()
+                    .child(
+                        div()
+                            .text_size(px(12.))
+                            .font_weight(FontWeight::BOLD)
+                            .text_color(ui_text_secondary())
+                            .child("SSE"),
+                    )
+                    .child(
+                        div()
+                            .font_family(PLATFORM_MONOSPACE_FONT)
+                            .text_size(px(12.))
+                            .text_color(if self.sse_running {
+                                ResponseTone::Busy.color()
+                            } else {
+                                ui_text_secondary()
+                            })
+                            .child(self.sse_status.clone()),
+                    ),
+            )
+            .child(
+                div()
+                    .flex()
+                    .items_center()
+                    .gap_2()
+                    .child(div().flex_1().child(self.sse_url.clone()))
+                    .child(self.action_button(
+                        "Fetch Events",
+                        !self.sse_running,
+                        ButtonTone::Primary,
+                        |app, _event, _window, cx| app.fetch_sse_events(cx),
+                        cx,
+                    ))
+                    .child(self.action_button(
+                        "Subscribe",
+                        !self.sse_running,
+                        ButtonTone::Neutral,
+                        |app, _event, _window, cx| app.subscribe_sse_events(cx),
+                        cx,
+                    ))
+                    .child(self.action_button(
+                        "Stop",
+                        self.sse_subscription.is_some(),
+                        ButtonTone::Warning,
+                        |app, _event, _window, cx| app.stop_sse_subscription(cx),
+                        cx,
+                    )),
+            )
+            .child(
+                div()
+                    .flex()
+                    .flex_col()
+                    .rounded(px(4.))
+                    .border_1()
+                    .border_color(ui_border())
+                    .bg(ui_surface())
+                    .children(rows)
+                    .when(self.sse_events.is_empty(), |list| {
+                        list.child(
+                            div()
+                                .h(px(34.))
+                                .flex()
+                                .items_center()
+                                .px_2()
+                                .text_color(ui_text_muted())
+                                .text_size(px(13.))
+                                .child("No SSE events"),
+                        )
+                    }),
             )
     }
 
@@ -2709,6 +3433,13 @@ impl ZenApiApp {
     }
 
     fn render_pre_request_panel(&self) -> impl IntoElement {
+        let action_rows = self
+            .last_pre_request_actions
+            .iter()
+            .cloned()
+            .map(pre_request_action_row)
+            .collect::<Vec<_>>();
+
         div()
             .flex()
             .flex_col()
@@ -2738,6 +3469,18 @@ impl ZenApiApp {
                     ),
             )
             .child(self.pre_request_script.clone())
+            .when(!self.last_pre_request_actions.is_empty(), |panel| {
+                panel.child(
+                    div()
+                        .flex()
+                        .flex_col()
+                        .rounded(px(4.))
+                        .border_1()
+                        .border_color(ui_border())
+                        .bg(ui_surface())
+                        .children(action_rows),
+                )
+            })
     }
 
     fn render_body_panel(&self, cx: &mut Context<Self>) -> impl IntoElement {
@@ -2765,6 +3508,7 @@ impl ZenApiApp {
                         cx,
                     ))
                     .child(self.body_mode_button("raw", RequestBodyMode::Raw, cx))
+                    .child(self.body_mode_button("GraphQL", RequestBodyMode::GraphQL, cx))
                     .child(self.body_mode_button("binary", RequestBodyMode::Binary, cx)),
             )
             .when(
@@ -2795,9 +3539,228 @@ impl ZenApiApp {
                     .child(self.request_body.clone())
                     .child(self.render_raw_body_preview(cx))
             })
+            .when(
+                self.request_body_mode == RequestBodyMode::GraphQL,
+                |panel| {
+                    panel
+                        .child(
+                            div()
+                                .flex()
+                                .items_center()
+                                .justify_between()
+                                .child(
+                                    div()
+                                        .text_size(px(12.))
+                                        .font_weight(FontWeight::BOLD)
+                                        .text_color(ui_text_secondary())
+                                        .child("GraphQL"),
+                                )
+                                .child(self.action_button(
+                                    "Introspect",
+                                    true,
+                                    ButtonTone::Neutral,
+                                    |app, _event, _window, cx| {
+                                        app.load_graphql_introspection_query(cx)
+                                    },
+                                    cx,
+                                )),
+                        )
+                        .child(self.graphql_query.clone())
+                        .child(self.graphql_variables.clone())
+                        .child(self.render_graphql_preview(cx))
+                        .when(!self.graphql_schema_summary.is_empty(), |panel| {
+                            panel.child(self.render_graphql_schema_summary())
+                        })
+                        .when(!self.graphql_schema_browser.is_empty(), |panel| {
+                            panel.child(self.render_graphql_schema_browser())
+                        })
+                        .when(!self.graphql_query_templates.is_empty(), |panel| {
+                            panel.child(self.render_graphql_query_assistant(cx))
+                        })
+                },
+            )
             .when(self.request_body_mode == RequestBodyMode::Binary, |panel| {
                 panel.child(self.binary_body_path.clone())
             })
+    }
+
+    fn render_graphql_preview(&self, cx: &mut Context<Self>) -> impl IntoElement {
+        let preview = preview_text(&graphql_body(
+            &self.graphql_query.read(cx).text(),
+            &self.graphql_variables.read(cx).text(),
+        ));
+        let highlights = syntax_highlights_for_gpui(&preview, RawBodyFormat::Json);
+
+        div()
+            .flex()
+            .flex_col()
+            .gap_1()
+            .child(
+                div()
+                    .text_size(px(12.))
+                    .font_weight(FontWeight::BOLD)
+                    .text_color(ui_text_secondary())
+                    .child("GraphQL JSON"),
+            )
+            .child(
+                div()
+                    .min_h(px(72.))
+                    .rounded(px(4.))
+                    .border_1()
+                    .border_color(ui_border())
+                    .bg(ui_surface_muted())
+                    .p_2()
+                    .font_family(PLATFORM_MONOSPACE_FONT)
+                    .line_height(px(18.))
+                    .text_size(px(12.))
+                    .text_color(ui_text_body())
+                    .whitespace_normal()
+                    .child(StyledText::new(preview).with_highlights(highlights)),
+            )
+    }
+
+    fn render_graphql_schema_summary(&self) -> impl IntoElement {
+        div()
+            .flex()
+            .flex_col()
+            .gap_1()
+            .child(
+                div()
+                    .text_size(px(12.))
+                    .font_weight(FontWeight::BOLD)
+                    .text_color(ui_text_secondary())
+                    .child("GraphQL Schema"),
+            )
+            .child(
+                div()
+                    .min_h(px(72.))
+                    .rounded(px(4.))
+                    .border_1()
+                    .border_color(ui_border())
+                    .bg(ui_surface())
+                    .p_2()
+                    .font_family(PLATFORM_MONOSPACE_FONT)
+                    .line_height(px(18.))
+                    .text_size(px(12.))
+                    .text_color(ui_text_body())
+                    .whitespace_normal()
+                    .child(self.graphql_schema_summary.clone()),
+            )
+    }
+
+    fn render_graphql_schema_browser(&self) -> impl IntoElement {
+        div()
+            .flex()
+            .flex_col()
+            .gap_1()
+            .child(
+                div()
+                    .text_size(px(12.))
+                    .font_weight(FontWeight::BOLD)
+                    .text_color(ui_text_secondary())
+                    .child("Schema Browser"),
+            )
+            .child(
+                div()
+                    .min_h(px(112.))
+                    .rounded(px(4.))
+                    .border_1()
+                    .border_color(ui_border())
+                    .bg(ui_surface_muted())
+                    .p_2()
+                    .font_family(PLATFORM_MONOSPACE_FONT)
+                    .line_height(px(18.))
+                    .text_size(px(12.))
+                    .text_color(ui_text_body())
+                    .whitespace_normal()
+                    .child(self.graphql_schema_browser.clone()),
+            )
+    }
+
+    fn render_graphql_query_assistant(&self, cx: &mut Context<Self>) -> impl IntoElement {
+        let mut rows = Vec::new();
+        for template in self
+            .graphql_query_templates
+            .iter()
+            .take(GRAPHQL_QUERY_TEMPLATE_LIMIT)
+        {
+            let operation = template.operation.clone();
+            let variables = template.variables.clone();
+            let operation_preview = preview_text(&template.operation);
+            let variables_preview = preview_text(&template.variables);
+            let has_variables = template.variables.trim() != "{}";
+
+            rows.push(
+                div()
+                    .flex()
+                    .flex_col()
+                    .gap_1()
+                    .rounded(px(4.))
+                    .border_1()
+                    .border_color(ui_border())
+                    .bg(ui_surface())
+                    .p_2()
+                    .child(
+                        div()
+                            .flex()
+                            .items_center()
+                            .justify_between()
+                            .child(
+                                div()
+                                    .font_family(PLATFORM_MONOSPACE_FONT)
+                                    .text_size(px(12.))
+                                    .text_color(ui_text_primary())
+                                    .child(template.field_name.clone()),
+                            )
+                            .child(self.action_button(
+                                "Use",
+                                true,
+                                ButtonTone::Neutral,
+                                move |app, _event, _window, cx| {
+                                    app.apply_graphql_query_template(
+                                        operation.clone(),
+                                        variables.clone(),
+                                        cx,
+                                    )
+                                },
+                                cx,
+                            )),
+                    )
+                    .child(
+                        div()
+                            .font_family(PLATFORM_MONOSPACE_FONT)
+                            .line_height(px(18.))
+                            .text_size(px(12.))
+                            .text_color(ui_text_body())
+                            .whitespace_normal()
+                            .child(operation_preview),
+                    )
+                    .when(has_variables, |row| {
+                        row.child(
+                            div()
+                                .font_family(PLATFORM_MONOSPACE_FONT)
+                                .line_height(px(18.))
+                                .text_size(px(12.))
+                                .text_color(ui_text_secondary())
+                                .whitespace_normal()
+                                .child(format!("variables {variables_preview}")),
+                        )
+                    }),
+            );
+        }
+
+        div()
+            .flex()
+            .flex_col()
+            .gap_1()
+            .child(
+                div()
+                    .text_size(px(12.))
+                    .font_weight(FontWeight::BOLD)
+                    .text_color(ui_text_secondary())
+                    .child("Query Assistant"),
+            )
+            .children(rows)
     }
 
     fn render_raw_body_preview(&self, cx: &mut Context<Self>) -> impl IntoElement {
@@ -3020,6 +3983,24 @@ impl ZenApiApp {
                 MouseButton::Left,
                 cx.listener(move |app, _event: &MouseUpEvent, _window, cx| {
                     app.raw_body_format = format;
+                    cx.notify();
+                }),
+            )
+            .child(label)
+    }
+
+    fn websocket_message_mode_button(
+        &self,
+        label: &'static str,
+        mode: WebSocketMessageMode,
+        cx: &mut Context<Self>,
+    ) -> impl IntoElement {
+        let active = self.websocket_message_mode == mode;
+        compact_toggle(label, active)
+            .on_mouse_up(
+                MouseButton::Left,
+                cx.listener(move |app, _event: &MouseUpEvent, _window, cx| {
+                    app.websocket_message_mode = mode;
                     cx.notify();
                 }),
             )
@@ -3378,6 +4359,7 @@ enum RequestBodyMode {
     FormData,
     UrlEncoded,
     Raw,
+    GraphQL,
     Binary,
 }
 
@@ -4495,6 +5477,655 @@ fn preview_pairs(pairs: &[(String, String)]) -> String {
     )
 }
 
+#[cfg(test)]
+fn websocket_log_entries(exchange: &client::WebSocketExchange) -> Vec<WebSocketLogEntry> {
+    let mut entries = vec![WebSocketLogEntry {
+        direction: WebSocketDirection::Sent,
+        kind: "text".to_string(),
+        data: exchange.sent.clone(),
+    }];
+
+    entries.extend(exchange.received.iter().map(|message| WebSocketLogEntry {
+        direction: WebSocketDirection::Received,
+        kind: websocket_message_kind_label(&message.kind).to_string(),
+        data: message.data.clone(),
+    }));
+
+    entries
+}
+
+#[cfg(test)]
+fn websocket_exchange_text(exchange: &client::WebSocketExchange) -> String {
+    let mut lines = vec![
+        format!("url: {}", exchange.url),
+        format!("elapsed: {}ms", exchange.elapsed_ms),
+        format!("sent text: {}", exchange.sent),
+    ];
+
+    for message in &exchange.received {
+        lines.push(format!(
+            "received {}: {}",
+            websocket_message_kind_label(&message.kind),
+            message.data
+        ));
+    }
+
+    lines.join("\n")
+}
+
+fn websocket_message_kind_label(kind: &client::WebSocketMessageKind) -> &'static str {
+    match kind {
+        client::WebSocketMessageKind::Text => "text",
+        client::WebSocketMessageKind::Binary => "binary",
+        client::WebSocketMessageKind::Ping => "ping",
+        client::WebSocketMessageKind::Pong => "pong",
+        client::WebSocketMessageKind::Close => "close",
+    }
+}
+
+fn websocket_hex_bytes(input: &str) -> std::result::Result<Vec<u8>, String> {
+    let digits = input
+        .chars()
+        .filter(|ch| !ch.is_whitespace() && *ch != '_' && *ch != '-')
+        .collect::<String>();
+    if digits.is_empty() {
+        return Err("Enter binary data as hexadecimal bytes.".to_string());
+    }
+    if digits.len() % 2 != 0 {
+        return Err("Hex binary input must have an even number of digits.".to_string());
+    }
+
+    let mut bytes = Vec::with_capacity(digits.len() / 2);
+    for index in (0..digits.len()).step_by(2) {
+        let byte = u8::from_str_radix(&digits[index..index + 2], 16)
+            .map_err(|_| format!("Invalid hex byte at offset {index}."))?;
+        bytes.push(byte);
+    }
+
+    Ok(bytes)
+}
+
+fn websocket_protocol_list(input: &str) -> Vec<String> {
+    input
+        .split(',')
+        .map(str::trim)
+        .filter(|protocol| !protocol.is_empty())
+        .map(str::to_string)
+        .collect()
+}
+
+fn sse_log_entries(exchange: &client::SseExchange) -> Vec<SseLogEntry> {
+    exchange.events.iter().map(sse_log_entry).collect()
+}
+
+fn sse_log_entry(event: &client::SseEvent) -> SseLogEntry {
+    SseLogEntry {
+        event: sse_event_label(event).to_string(),
+        data: event.data.clone(),
+        id: event.id.clone(),
+    }
+}
+
+fn sse_exchange_text(exchange: &client::SseExchange) -> String {
+    let mut lines = vec![
+        format!("url: {}", exchange.url),
+        format!("elapsed: {}ms", exchange.elapsed_ms),
+        format!("events: {}", exchange.events.len()),
+    ];
+
+    for event in &exchange.events {
+        let mut line = format!("{}: {}", sse_event_label(event), event.data);
+        if let Some(id) = &event.id {
+            line.push_str(&format!(" [id {id}]"));
+        }
+        if let Some(retry) = event.retry {
+            line.push_str(&format!(" [retry {retry}]"));
+        }
+        lines.push(line);
+    }
+
+    lines.join("\n")
+}
+
+fn sse_event_label(event: &client::SseEvent) -> &str {
+    event.event.as_deref().unwrap_or("message")
+}
+
+fn graphql_body(query: &str, variables: &str) -> String {
+    let variables = graphql_variables_value(variables);
+    pretty_json(&serde_json::json!({
+        "query": query,
+        "variables": variables,
+    }))
+}
+
+fn graphql_variables_value(input: &str) -> serde_json::Value {
+    let input = input.trim();
+    if input.is_empty() {
+        return serde_json::json!({});
+    }
+
+    match serde_json::from_str::<serde_json::Value>(input) {
+        Ok(value @ serde_json::Value::Object(_)) => value,
+        _ => serde_json::json!({}),
+    }
+}
+
+fn graphql_fields_from_body(content_type: &str, body: &str) -> Option<(String, String)> {
+    if !content_type.to_ascii_lowercase().contains("json") {
+        return None;
+    }
+
+    let value = serde_json::from_str::<serde_json::Value>(body).ok()?;
+    let object = value.as_object()?;
+    let query = object.get("query")?.as_str()?.to_string();
+    let variables = object
+        .get("variables")
+        .and_then(|variables| serde_json::to_string_pretty(variables).ok())
+        .unwrap_or_else(|| "{}".to_string());
+    Some((query, variables))
+}
+
+fn graphql_schema_summary(body: &str) -> Option<String> {
+    let value = serde_json::from_str::<serde_json::Value>(body).ok()?;
+    let schema = value.get("data")?.get("__schema")?;
+    let types = schema.get("types")?.as_array()?;
+    let directives = schema
+        .get("directives")
+        .and_then(serde_json::Value::as_array)
+        .map_or(0, Vec::len);
+    let query_type = schema
+        .get("queryType")
+        .and_then(|value| value.get("name"))
+        .and_then(serde_json::Value::as_str)
+        .unwrap_or("-");
+    let mutation_type = schema
+        .get("mutationType")
+        .and_then(|value| value.get("name"))
+        .and_then(serde_json::Value::as_str)
+        .unwrap_or("-");
+    let subscription_type = schema
+        .get("subscriptionType")
+        .and_then(|value| value.get("name"))
+        .and_then(serde_json::Value::as_str)
+        .unwrap_or("-");
+
+    let object_count = graphql_type_kind_count(types, "OBJECT");
+    let input_count = graphql_type_kind_count(types, "INPUT_OBJECT");
+    let enum_count = graphql_type_kind_count(types, "ENUM");
+    let scalar_count = graphql_type_kind_count(types, "SCALAR");
+    let query_fields = graphql_type_field_count(types, query_type);
+    let mutation_fields = graphql_type_field_count(types, mutation_type);
+    let subscription_fields = graphql_type_field_count(types, subscription_type);
+
+    Some(
+        [
+            format!("roots: query {query_type}, mutation {mutation_type}, subscription {subscription_type}"),
+            format!(
+                "types: {} total, {object_count} object, {input_count} input, {enum_count} enum, {scalar_count} scalar",
+                types.len()
+            ),
+            format!("fields: query {query_fields}, mutation {mutation_fields}, subscription {subscription_fields}"),
+            format!("directives: {directives}"),
+        ]
+        .join("\n"),
+    )
+}
+
+fn graphql_schema_browser(body: &str) -> Option<String> {
+    let value = serde_json::from_str::<serde_json::Value>(body).ok()?;
+    let schema = value.get("data")?.get("__schema")?;
+    let types = schema.get("types")?.as_array()?;
+
+    let mut sections = Vec::new();
+    for (label, key) in [
+        ("query fields", "queryType"),
+        ("mutation fields", "mutationType"),
+        ("subscription fields", "subscriptionType"),
+    ] {
+        if let Some(type_name) = graphql_schema_root_type_name(schema, key) {
+            if let Some(section) = graphql_root_fields_section(types, label, type_name) {
+                sections.push(section);
+            }
+        }
+    }
+
+    if let Some(section) = graphql_type_index_section(types) {
+        sections.push(section);
+    }
+    if let Some(section) = graphql_directives_section(schema) {
+        sections.push(section);
+    }
+
+    (!sections.is_empty()).then(|| sections.join("\n\n"))
+}
+
+fn graphql_query_templates(body: &str) -> Option<Vec<GraphqlQueryTemplate>> {
+    let value = serde_json::from_str::<serde_json::Value>(body).ok()?;
+    let schema = value.get("data")?.get("__schema")?;
+    let types = schema.get("types")?.as_array()?;
+    let query_type = graphql_schema_root_type_name(schema, "queryType")?;
+    let fields = graphql_type_by_name(types, query_type)?
+        .get("fields")?
+        .as_array()?;
+    let templates = fields
+        .iter()
+        .filter_map(graphql_query_template_from_field)
+        .take(GRAPHQL_QUERY_TEMPLATE_LIMIT)
+        .collect::<Vec<_>>();
+
+    (!templates.is_empty()).then_some(templates)
+}
+
+fn graphql_query_template_from_field(field: &serde_json::Value) -> Option<GraphqlQueryTemplate> {
+    let field_name = field.get("name")?.as_str()?.to_string();
+    let args = graphql_operation_args(field);
+    let operation_name = format!("{}Query", graphql_pascal_case(&field_name));
+    let variable_definitions = graphql_operation_variable_definitions(&args);
+    let field_arguments = graphql_operation_field_arguments(&args);
+    let selection = if field.get("type").is_some_and(graphql_type_ref_is_leaf) {
+        String::new()
+    } else {
+        " {\n    __typename\n  }".to_string()
+    };
+    let operation = format!(
+        "query {operation_name}{variable_definitions} {{\n  {field_name}{field_arguments}{selection}\n}}"
+    );
+
+    Some(GraphqlQueryTemplate {
+        field_name,
+        operation,
+        variables: graphql_operation_variables(&args),
+    })
+}
+
+fn graphql_operation_args(field: &serde_json::Value) -> Vec<GraphqlOperationArg> {
+    field
+        .get("args")
+        .and_then(serde_json::Value::as_array)
+        .map(|args| {
+            args.iter()
+                .filter_map(graphql_operation_arg)
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_default()
+}
+
+fn graphql_operation_arg(arg: &serde_json::Value) -> Option<GraphqlOperationArg> {
+    let name = arg.get("name")?.as_str()?.to_string();
+    let type_ref_value = arg.get("type");
+    let type_ref = type_ref_value
+        .map(graphql_type_ref)
+        .unwrap_or_else(|| "?".to_string());
+    let default_value = arg
+        .get("defaultValue")
+        .and_then(serde_json::Value::as_str)
+        .filter(|value| !value.is_empty())
+        .map(str::to_string);
+    let placeholder = type_ref_value
+        .map(|value| graphql_variable_placeholder(&name, value))
+        .unwrap_or_else(|| serde_json::json!(format!("<{name}>")));
+
+    Some(GraphqlOperationArg {
+        name,
+        type_ref,
+        default_value,
+        placeholder,
+    })
+}
+
+fn graphql_operation_variable_definitions(args: &[GraphqlOperationArg]) -> String {
+    if args.is_empty() {
+        return String::new();
+    }
+
+    format!(
+        "({})",
+        args.iter()
+            .map(|arg| {
+                let default_value = arg
+                    .default_value
+                    .as_ref()
+                    .map(|value| format!(" = {value}"))
+                    .unwrap_or_default();
+                format!("${}: {}{}", arg.name, arg.type_ref, default_value)
+            })
+            .collect::<Vec<_>>()
+            .join(", ")
+    )
+}
+
+fn graphql_operation_field_arguments(args: &[GraphqlOperationArg]) -> String {
+    if args.is_empty() {
+        return String::new();
+    }
+
+    format!(
+        "({})",
+        args.iter()
+            .map(|arg| format!("{}: ${}", arg.name, arg.name))
+            .collect::<Vec<_>>()
+            .join(", ")
+    )
+}
+
+fn graphql_operation_variables(args: &[GraphqlOperationArg]) -> String {
+    let variables = args
+        .iter()
+        .map(|arg| (arg.name.clone(), arg.placeholder.clone()))
+        .collect::<serde_json::Map<_, _>>();
+    pretty_json(&serde_json::Value::Object(variables))
+}
+
+fn graphql_variable_placeholder(name: &str, type_ref: &serde_json::Value) -> serde_json::Value {
+    match graphql_type_ref_base_name(type_ref) {
+        Some("Int") => serde_json::json!(0),
+        Some("Float") => serde_json::json!(0.0),
+        Some("Boolean") => serde_json::json!(false),
+        _ => serde_json::json!(format!("<{name}>")),
+    }
+}
+
+fn graphql_type_ref_is_leaf(type_ref: &serde_json::Value) -> bool {
+    matches!(
+        graphql_type_ref_base_kind(type_ref),
+        Some("SCALAR" | "ENUM")
+    )
+}
+
+fn graphql_type_ref_base_kind(type_ref: &serde_json::Value) -> Option<&str> {
+    let kind = type_ref
+        .get("kind")
+        .and_then(serde_json::Value::as_str)
+        .filter(|kind| !kind.is_empty())?;
+
+    match kind {
+        "NON_NULL" | "LIST" => type_ref
+            .get("ofType")
+            .filter(|value| !value.is_null())
+            .and_then(graphql_type_ref_base_kind),
+        _ => Some(kind),
+    }
+}
+
+fn graphql_type_ref_base_name(type_ref: &serde_json::Value) -> Option<&str> {
+    let kind = type_ref
+        .get("kind")
+        .and_then(serde_json::Value::as_str)
+        .filter(|kind| !kind.is_empty())?;
+
+    match kind {
+        "NON_NULL" | "LIST" => type_ref
+            .get("ofType")
+            .filter(|value| !value.is_null())
+            .and_then(graphql_type_ref_base_name),
+        _ => type_ref.get("name").and_then(serde_json::Value::as_str),
+    }
+}
+
+fn graphql_pascal_case(input: &str) -> String {
+    let mut output = String::new();
+    let mut uppercase_next = true;
+
+    for ch in input.chars() {
+        if !ch.is_ascii_alphanumeric() {
+            uppercase_next = true;
+            continue;
+        }
+
+        if uppercase_next {
+            output.push(ch.to_ascii_uppercase());
+        } else {
+            output.push(ch);
+        }
+        uppercase_next = false;
+    }
+
+    if output.is_empty() {
+        "Operation".to_string()
+    } else {
+        output
+    }
+}
+
+fn graphql_schema_root_type_name<'a>(schema: &'a serde_json::Value, key: &str) -> Option<&'a str> {
+    schema
+        .get(key)?
+        .get("name")?
+        .as_str()
+        .filter(|name| !name.is_empty())
+}
+
+fn graphql_root_fields_section(
+    types: &[serde_json::Value],
+    label: &str,
+    type_name: &str,
+) -> Option<String> {
+    let fields = graphql_type_by_name(types, type_name)?
+        .get("fields")?
+        .as_array()?;
+    let signatures = fields
+        .iter()
+        .filter_map(graphql_field_signature)
+        .collect::<Vec<_>>();
+
+    let mut lines = vec![format!("{label} ({type_name})")];
+    if signatures.is_empty() {
+        lines.push("  -".to_string());
+    } else {
+        lines.extend(
+            signatures
+                .iter()
+                .take(GRAPHQL_SCHEMA_FIELD_LIMIT)
+                .map(|signature| format!("  {signature}")),
+        );
+        if signatures.len() > GRAPHQL_SCHEMA_FIELD_LIMIT {
+            lines.push(format!(
+                "  ... {} more",
+                signatures.len() - GRAPHQL_SCHEMA_FIELD_LIMIT
+            ));
+        }
+    }
+
+    Some(lines.join("\n"))
+}
+
+fn graphql_field_signature(field: &serde_json::Value) -> Option<String> {
+    let name = field.get("name")?.as_str()?;
+    let args = field
+        .get("args")
+        .and_then(serde_json::Value::as_array)
+        .map(|args| {
+            args.iter()
+                .filter_map(graphql_arg_signature)
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_default();
+    let return_type = field
+        .get("type")
+        .map(graphql_type_ref)
+        .unwrap_or_else(|| "?".to_string());
+    let call = if args.is_empty() {
+        name.to_string()
+    } else {
+        format!("{name}({}):", args.join(", "))
+    };
+    let deprecated = field
+        .get("isDeprecated")
+        .and_then(serde_json::Value::as_bool)
+        .unwrap_or(false)
+        .then_some(" @deprecated")
+        .unwrap_or_default();
+
+    if args.is_empty() {
+        Some(format!("{call}: {return_type}{deprecated}"))
+    } else {
+        Some(format!("{call} {return_type}{deprecated}"))
+    }
+}
+
+fn graphql_arg_signature(arg: &serde_json::Value) -> Option<String> {
+    let name = arg.get("name")?.as_str()?;
+    let arg_type = arg
+        .get("type")
+        .map(graphql_type_ref)
+        .unwrap_or_else(|| "?".to_string());
+    let default_value = arg
+        .get("defaultValue")
+        .and_then(serde_json::Value::as_str)
+        .filter(|value| !value.is_empty())
+        .map(|value| format!(" = {value}"))
+        .unwrap_or_default();
+
+    Some(format!("{name}: {arg_type}{default_value}"))
+}
+
+fn graphql_type_ref(type_ref: &serde_json::Value) -> String {
+    let kind = type_ref
+        .get("kind")
+        .and_then(serde_json::Value::as_str)
+        .unwrap_or_default();
+    let name = type_ref
+        .get("name")
+        .and_then(serde_json::Value::as_str)
+        .filter(|name| !name.is_empty());
+
+    match kind {
+        "NON_NULL" => {
+            let inner = type_ref
+                .get("ofType")
+                .filter(|value| !value.is_null())
+                .map(graphql_type_ref)
+                .unwrap_or_else(|| "?".to_string());
+            format!("{inner}!")
+        }
+        "LIST" => {
+            let inner = type_ref
+                .get("ofType")
+                .filter(|value| !value.is_null())
+                .map(graphql_type_ref)
+                .unwrap_or_else(|| "?".to_string());
+            format!("[{inner}]")
+        }
+        _ => name.map(str::to_string).unwrap_or_else(|| {
+            (!kind.is_empty())
+                .then(|| kind.to_string())
+                .unwrap_or("?".to_string())
+        }),
+    }
+}
+
+fn graphql_type_index_section(types: &[serde_json::Value]) -> Option<String> {
+    let mut lines = vec!["type index".to_string()];
+    for (label, kind) in [
+        ("objects", "OBJECT"),
+        ("inputs", "INPUT_OBJECT"),
+        ("enums", "ENUM"),
+        ("scalars", "SCALAR"),
+    ] {
+        let names = graphql_type_names_by_kind(types, kind);
+        if !names.is_empty() {
+            lines.push(format!(
+                "  {label}: {}",
+                graphql_limited_list(&names, GRAPHQL_SCHEMA_TYPE_LIMIT)
+            ));
+        }
+    }
+
+    (lines.len() > 1).then(|| lines.join("\n"))
+}
+
+fn graphql_type_names_by_kind(types: &[serde_json::Value], kind: &str) -> Vec<String> {
+    let mut names = types
+        .iter()
+        .filter(|value| {
+            value
+                .get("kind")
+                .and_then(serde_json::Value::as_str)
+                .is_some_and(|value| value == kind)
+        })
+        .filter_map(|value| value.get("name").and_then(serde_json::Value::as_str))
+        .filter(|name| !name.starts_with("__"))
+        .map(str::to_string)
+        .collect::<Vec<_>>();
+    names.sort_unstable();
+    names
+}
+
+fn graphql_directives_section(schema: &serde_json::Value) -> Option<String> {
+    let mut names = schema
+        .get("directives")?
+        .as_array()?
+        .iter()
+        .filter_map(|value| value.get("name").and_then(serde_json::Value::as_str))
+        .map(|name| format!("@{name}"))
+        .collect::<Vec<_>>();
+    names.sort_unstable();
+
+    (!names.is_empty()).then(|| {
+        format!(
+            "directives\n  {}",
+            graphql_limited_list(&names, GRAPHQL_SCHEMA_TYPE_LIMIT)
+        )
+    })
+}
+
+fn graphql_limited_list(names: &[String], limit: usize) -> String {
+    let rendered = names
+        .iter()
+        .take(limit)
+        .cloned()
+        .collect::<Vec<_>>()
+        .join(", ");
+    if names.len() > limit {
+        format!("{rendered} (+{} more)", names.len() - limit)
+    } else {
+        rendered
+    }
+}
+
+fn graphql_type_by_name<'a>(
+    types: &'a [serde_json::Value],
+    name: &str,
+) -> Option<&'a serde_json::Value> {
+    types.iter().find(|value| {
+        value
+            .get("name")
+            .and_then(serde_json::Value::as_str)
+            .is_some_and(|value| value == name)
+    })
+}
+
+fn graphql_type_kind_count(types: &[serde_json::Value], kind: &str) -> usize {
+    types
+        .iter()
+        .filter(|value| {
+            value
+                .get("kind")
+                .and_then(serde_json::Value::as_str)
+                .is_some_and(|value| value == kind)
+        })
+        .count()
+}
+
+fn graphql_type_field_count(types: &[serde_json::Value], name: &str) -> usize {
+    if name == "-" {
+        return 0;
+    }
+
+    types
+        .iter()
+        .find(|value| {
+            value
+                .get("name")
+                .and_then(serde_json::Value::as_str)
+                .is_some_and(|value| value == name)
+        })
+        .and_then(|value| value.get("fields"))
+        .and_then(serde_json::Value::as_array)
+        .map_or(0, Vec::len)
+}
+
 fn preview_text(text: &str) -> String {
     const MAX_PREVIEW_CHARS: usize = 240;
 
@@ -4620,6 +6251,34 @@ fn assertion_result_row(result: ResponseAssertionResult) -> gpui::Div {
                 .truncate()
                 .text_color(ui_text_secondary())
                 .child(result.error.unwrap_or_else(|| "ok".to_string())),
+        )
+}
+
+fn pre_request_action_row(action: String) -> gpui::Div {
+    div()
+        .flex()
+        .items_center()
+        .h(px(30.))
+        .px_2()
+        .gap_2()
+        .border_b_1()
+        .border_color(ui_hover())
+        .text_size(px(12.))
+        .child(
+            div()
+                .w(px(48.))
+                .font_family(PLATFORM_MONOSPACE_FONT)
+                .font_weight(FontWeight::BOLD)
+                .text_color(ResponseTone::Success.color())
+                .child("PASS"),
+        )
+        .child(
+            div()
+                .flex_1()
+                .truncate()
+                .font_family(PLATFORM_MONOSPACE_FONT)
+                .text_color(ui_text_secondary())
+                .child(action),
         )
 }
 
@@ -4895,6 +6554,77 @@ fn mock_log_row(method: String, path: String, status: u16) -> impl IntoElement {
                 .truncate()
                 .text_color(ui_text_body())
                 .child(path),
+        )
+}
+
+fn websocket_log_row(entry: WebSocketLogEntry) -> impl IntoElement {
+    let (direction, direction_color) = match entry.direction {
+        WebSocketDirection::Sent => ("sent", ui_accent_text()),
+        WebSocketDirection::Received => ("recv", ResponseTone::Success.color()),
+    };
+
+    div()
+        .flex()
+        .items_center()
+        .h(px(30.))
+        .px_2()
+        .gap_2()
+        .border_b_1()
+        .border_color(ui_hover())
+        .font_family(PLATFORM_MONOSPACE_FONT)
+        .text_size(px(12.))
+        .child(
+            div()
+                .w(px(52.))
+                .font_weight(FontWeight::BOLD)
+                .text_color(direction_color)
+                .child(direction),
+        )
+        .child(
+            div()
+                .w(px(52.))
+                .text_color(ui_text_secondary())
+                .child(entry.kind),
+        )
+        .child(
+            div()
+                .flex_1()
+                .truncate()
+                .text_color(ui_text_body())
+                .child(entry.data),
+        )
+}
+
+fn sse_log_row(entry: SseLogEntry) -> impl IntoElement {
+    div()
+        .flex()
+        .items_center()
+        .h(px(30.))
+        .px_2()
+        .gap_2()
+        .border_b_1()
+        .border_color(ui_hover())
+        .font_family(PLATFORM_MONOSPACE_FONT)
+        .text_size(px(12.))
+        .child(
+            div()
+                .w(px(74.))
+                .font_weight(FontWeight::BOLD)
+                .text_color(ui_accent_text())
+                .child(entry.event),
+        )
+        .child(
+            div()
+                .w(px(58.))
+                .text_color(ui_text_secondary())
+                .child(entry.id.unwrap_or_else(|| "-".to_string())),
+        )
+        .child(
+            div()
+                .flex_1()
+                .truncate()
+                .text_color(ui_text_body())
+                .child(entry.data),
         )
 }
 
@@ -5679,6 +7409,34 @@ Cookie: a=b; c=d
     }
 
     #[test]
+    fn pre_request_action_labels_do_not_include_values() {
+        let execution = execute_pre_request_actions(
+            "set_var token=secret; set_header Authorization=Bearer {{token}}",
+            CodegenRequest {
+                method: "GET".to_string(),
+                url: "https://api.example.com".to_string(),
+                headers: Vec::new(),
+                query_params: Vec::new(),
+                body: RequestBody::None,
+            },
+            VariableStore::new(),
+            None,
+        )
+        .expect("pre-request execution");
+
+        let labels = pre_request_action_labels(&execution.actions);
+
+        assert_eq!(
+            labels,
+            vec![
+                "set_var token".to_string(),
+                "set_header Authorization".to_string(),
+            ]
+        );
+        assert!(!labels.join("\n").contains("secret"));
+    }
+
+    #[test]
     fn builds_bearer_basic_and_api_key_pairs() {
         assert_eq!(
             bearer_auth_pair(" token "),
@@ -5827,6 +7585,432 @@ Cookie: a=b; c=d
                 content_type: Some("application/octet-stream".to_string()),
             }
         );
+    }
+
+    #[test]
+    fn builds_graphql_body_and_extracts_saved_graphql_fields() {
+        let body = graphql_body(
+            "query User($id: ID!) { user(id: $id) { name } }",
+            r#"{"id":"42"}"#,
+        );
+        let value = serde_json::from_str::<serde_json::Value>(&body).expect("graphql json");
+
+        assert_eq!(
+            value["query"],
+            "query User($id: ID!) { user(id: $id) { name } }"
+        );
+        assert_eq!(value["variables"]["id"], "42");
+
+        let (query, variables) =
+            graphql_fields_from_body("application/json", &body).expect("graphql fields");
+        assert_eq!(query, "query User($id: ID!) { user(id: $id) { name } }");
+        assert!(variables.contains("\"id\": \"42\""));
+
+        let empty_variables = graphql_body("{ viewer { login } }", "not-json");
+        let value = serde_json::from_str::<serde_json::Value>(&empty_variables).expect("json");
+        assert_eq!(value["variables"], serde_json::json!({}));
+    }
+
+    #[test]
+    fn graphql_introspection_query_builds_schema_request_body() {
+        let body = graphql_body(GRAPHQL_INTROSPECTION_QUERY, "{}");
+        let value = serde_json::from_str::<serde_json::Value>(&body).expect("introspection json");
+        let query = value["query"].as_str().expect("query");
+
+        assert!(query.contains("__schema"));
+        assert!(query.contains("queryType"));
+        assert!(query.contains("directives"));
+        assert_eq!(value["variables"], serde_json::json!({}));
+    }
+
+    #[test]
+    fn summarizes_graphql_introspection_response() {
+        let response = serde_json::json!({
+            "data": {
+                "__schema": {
+                    "queryType": { "name": "Query" },
+                    "mutationType": { "name": "Mutation" },
+                    "subscriptionType": null,
+                    "types": [
+                        { "kind": "OBJECT", "name": "Query", "fields": [
+                            { "name": "viewer" },
+                            { "name": "node" }
+                        ] },
+                        { "kind": "OBJECT", "name": "Mutation", "fields": [
+                            { "name": "createUser" }
+                        ] },
+                        { "kind": "SCALAR", "name": "String" },
+                        { "kind": "ENUM", "name": "Role" },
+                        { "kind": "INPUT_OBJECT", "name": "UserInput" }
+                    ],
+                    "directives": [
+                        { "name": "include" },
+                        { "name": "skip" }
+                    ]
+                }
+            }
+        })
+        .to_string();
+
+        let summary = graphql_schema_summary(&response).expect("schema summary");
+
+        assert!(summary.contains("roots: query Query, mutation Mutation, subscription -"));
+        assert!(summary.contains("5 total, 2 object, 1 input, 1 enum, 1 scalar"));
+        assert!(summary.contains("fields: query 2, mutation 1, subscription 0"));
+        assert!(summary.contains("directives: 2"));
+        assert_eq!(graphql_schema_summary(r#"{"data":{"ok":true}}"#), None);
+    }
+
+    #[test]
+    fn browses_graphql_introspection_response() {
+        let response = serde_json::json!({
+            "data": {
+                "__schema": {
+                    "queryType": { "name": "Query" },
+                    "mutationType": { "name": "Mutation" },
+                    "subscriptionType": null,
+                    "types": [
+                        { "kind": "OBJECT", "name": "Query", "fields": [
+                            {
+                                "name": "viewer",
+                                "args": [],
+                                "type": {
+                                    "kind": "NON_NULL",
+                                    "name": null,
+                                    "ofType": { "kind": "OBJECT", "name": "User" }
+                                }
+                            },
+                            {
+                                "name": "search",
+                                "args": [
+                                    {
+                                        "name": "term",
+                                        "type": {
+                                            "kind": "NON_NULL",
+                                            "name": null,
+                                            "ofType": { "kind": "SCALAR", "name": "String" }
+                                        }
+                                    },
+                                    {
+                                        "name": "limit",
+                                        "type": { "kind": "SCALAR", "name": "Int" },
+                                        "defaultValue": "10"
+                                    }
+                                ],
+                                "type": {
+                                    "kind": "LIST",
+                                    "name": null,
+                                    "ofType": { "kind": "OBJECT", "name": "User" }
+                                }
+                            },
+                            {
+                                "name": "legacy",
+                                "args": [],
+                                "type": { "kind": "SCALAR", "name": "String" },
+                                "isDeprecated": true
+                            }
+                        ] },
+                        { "kind": "OBJECT", "name": "Mutation", "fields": [
+                            {
+                                "name": "createUser",
+                                "args": [],
+                                "type": { "kind": "OBJECT", "name": "User" }
+                            }
+                        ] },
+                        { "kind": "OBJECT", "name": "User", "fields": [] },
+                        { "kind": "OBJECT", "name": "__Schema", "fields": [] },
+                        { "kind": "SCALAR", "name": "String" },
+                        { "kind": "SCALAR", "name": "Int" },
+                        { "kind": "ENUM", "name": "Role" },
+                        { "kind": "INPUT_OBJECT", "name": "UserInput" }
+                    ],
+                    "directives": [
+                        { "name": "skip" },
+                        { "name": "include" }
+                    ]
+                }
+            }
+        })
+        .to_string();
+
+        let browser = graphql_schema_browser(&response).expect("schema browser");
+
+        assert!(browser.contains("query fields (Query)"));
+        assert!(browser.contains("viewer: User!"));
+        assert!(browser.contains("search(term: String!, limit: Int = 10): [User]"));
+        assert!(browser.contains("legacy: String @deprecated"));
+        assert!(browser.contains("mutation fields (Mutation)"));
+        assert!(browser.contains("createUser: User"));
+        assert!(browser.contains("objects: Mutation, Query, User"));
+        assert!(browser.contains("inputs: UserInput"));
+        assert!(browser.contains("enums: Role"));
+        assert!(browser.contains("scalars: Int, String"));
+        assert!(browser.contains("directives\n  @include, @skip"));
+        assert!(!browser.contains("__Schema"));
+        assert_eq!(graphql_schema_browser(r#"{"data":{"ok":true}}"#), None);
+    }
+
+    #[test]
+    fn generates_graphql_query_templates_from_introspection_response() {
+        let response = serde_json::json!({
+            "data": {
+                "__schema": {
+                    "queryType": { "name": "Query" },
+                    "mutationType": null,
+                    "subscriptionType": null,
+                    "types": [
+                        { "kind": "OBJECT", "name": "Query", "fields": [
+                            {
+                                "name": "viewer",
+                                "args": [
+                                    {
+                                        "name": "id",
+                                        "type": {
+                                            "kind": "NON_NULL",
+                                            "name": null,
+                                            "ofType": { "kind": "SCALAR", "name": "ID" }
+                                        }
+                                    }
+                                ],
+                                "type": { "kind": "OBJECT", "name": "User" }
+                            },
+                            {
+                                "name": "search",
+                                "args": [
+                                    {
+                                        "name": "term",
+                                        "type": {
+                                            "kind": "NON_NULL",
+                                            "name": null,
+                                            "ofType": { "kind": "SCALAR", "name": "String" }
+                                        }
+                                    },
+                                    {
+                                        "name": "limit",
+                                        "type": { "kind": "SCALAR", "name": "Int" },
+                                        "defaultValue": "10"
+                                    },
+                                    {
+                                        "name": "active",
+                                        "type": { "kind": "SCALAR", "name": "Boolean" }
+                                    }
+                                ],
+                                "type": {
+                                    "kind": "LIST",
+                                    "name": null,
+                                    "ofType": { "kind": "OBJECT", "name": "User" }
+                                }
+                            },
+                            {
+                                "name": "version",
+                                "args": [],
+                                "type": { "kind": "SCALAR", "name": "String" }
+                            }
+                        ] },
+                        { "kind": "OBJECT", "name": "User", "fields": [] },
+                        { "kind": "SCALAR", "name": "ID" },
+                        { "kind": "SCALAR", "name": "String" },
+                        { "kind": "SCALAR", "name": "Int" },
+                        { "kind": "SCALAR", "name": "Boolean" }
+                    ],
+                    "directives": []
+                }
+            }
+        })
+        .to_string();
+
+        let templates = graphql_query_templates(&response).expect("query templates");
+
+        assert_eq!(templates.len(), 3);
+        assert_eq!(templates[0].field_name, "viewer");
+        assert!(
+            templates[0]
+                .operation
+                .contains("query ViewerQuery($id: ID!)")
+        );
+        assert!(templates[0].operation.contains("viewer(id: $id) {"));
+        assert!(templates[0].operation.contains("__typename"));
+
+        let viewer_variables =
+            serde_json::from_str::<serde_json::Value>(&templates[0].variables).expect("variables");
+        assert_eq!(viewer_variables["id"], "<id>");
+
+        assert_eq!(templates[1].field_name, "search");
+        assert!(
+            templates[1]
+                .operation
+                .contains("$term: String!, $limit: Int = 10, $active: Boolean")
+        );
+        assert!(
+            templates[1]
+                .operation
+                .contains("search(term: $term, limit: $limit, active: $active)")
+        );
+        let search_variables =
+            serde_json::from_str::<serde_json::Value>(&templates[1].variables).expect("variables");
+        assert_eq!(search_variables["term"], "<term>");
+        assert_eq!(search_variables["limit"], 0);
+        assert_eq!(search_variables["active"], false);
+
+        assert_eq!(templates[2].field_name, "version");
+        assert!(templates[2].operation.contains("query VersionQuery"));
+        assert!(templates[2].operation.contains("version"));
+        assert!(!templates[2].operation.contains("__typename"));
+        assert_eq!(templates[2].variables, "{}");
+        assert_eq!(graphql_query_templates(r#"{"data":{"ok":true}}"#), None);
+    }
+
+    #[test]
+    fn builds_websocket_log_entries_and_response_text() {
+        let exchange = client::WebSocketExchange {
+            url: "ws://localhost/socket".to_string(),
+            sent: "hello".to_string(),
+            received: vec![
+                client::WebSocketMessage {
+                    kind: client::WebSocketMessageKind::Text,
+                    data: "echo:hello".to_string(),
+                },
+                client::WebSocketMessage {
+                    kind: client::WebSocketMessageKind::Pong,
+                    data: "0 bytes".to_string(),
+                },
+            ],
+            elapsed_ms: 12,
+        };
+
+        let entries = websocket_log_entries(&exchange);
+        assert_eq!(
+            entries,
+            vec![
+                WebSocketLogEntry {
+                    direction: WebSocketDirection::Sent,
+                    kind: "text".to_string(),
+                    data: "hello".to_string(),
+                },
+                WebSocketLogEntry {
+                    direction: WebSocketDirection::Received,
+                    kind: "text".to_string(),
+                    data: "echo:hello".to_string(),
+                },
+                WebSocketLogEntry {
+                    direction: WebSocketDirection::Received,
+                    kind: "pong".to_string(),
+                    data: "0 bytes".to_string(),
+                },
+            ]
+        );
+
+        let text = websocket_exchange_text(&exchange);
+        assert!(text.contains("url: ws://localhost/socket"));
+        assert!(text.contains("elapsed: 12ms"));
+        assert!(text.contains("sent text: hello"));
+        assert!(text.contains("received text: echo:hello"));
+        assert!(text.contains("received pong: 0 bytes"));
+    }
+
+    #[test]
+    fn parses_websocket_binary_hex_input() {
+        assert_eq!(
+            websocket_hex_bytes("00 ff 7A").expect("hex"),
+            vec![0, 255, 122]
+        );
+        assert_eq!(
+            websocket_hex_bytes("00-01_ff").expect("hex"),
+            vec![0, 1, 255]
+        );
+
+        assert!(
+            websocket_hex_bytes("")
+                .expect_err("empty")
+                .contains("hexadecimal")
+        );
+        assert!(websocket_hex_bytes("0").expect_err("odd").contains("even"));
+        assert!(
+            websocket_hex_bytes("zz")
+                .expect_err("invalid")
+                .contains("offset 0")
+        );
+    }
+
+    #[test]
+    fn parses_websocket_subprotocol_list() {
+        assert_eq!(
+            websocket_protocol_list("chat, superchat, , json.v2 "),
+            vec![
+                "chat".to_string(),
+                "superchat".to_string(),
+                "json.v2".to_string()
+            ]
+        );
+        assert!(websocket_protocol_list(" , ").is_empty());
+    }
+
+    #[test]
+    fn builds_sse_log_entries_and_response_text() {
+        let exchange = client::SseExchange {
+            url: "http://localhost/events".to_string(),
+            events: vec![
+                client::SseEvent {
+                    event: Some("ready".to_string()),
+                    data: "connected".to_string(),
+                    id: Some("1".to_string()),
+                    retry: Some(3000),
+                },
+                client::SseEvent {
+                    event: None,
+                    data: "plain".to_string(),
+                    id: None,
+                    retry: None,
+                },
+            ],
+            elapsed_ms: 9,
+        };
+
+        assert_eq!(
+            sse_log_entries(&exchange),
+            vec![
+                SseLogEntry {
+                    event: "ready".to_string(),
+                    data: "connected".to_string(),
+                    id: Some("1".to_string()),
+                },
+                SseLogEntry {
+                    event: "message".to_string(),
+                    data: "plain".to_string(),
+                    id: None,
+                },
+            ]
+        );
+
+        let text = sse_exchange_text(&exchange);
+        assert!(text.contains("url: http://localhost/events"));
+        assert!(text.contains("elapsed: 9ms"));
+        assert!(text.contains("events: 2"));
+        assert!(text.contains("ready: connected [id 1] [retry 3000]"));
+        assert!(text.contains("message: plain"));
+    }
+
+    #[test]
+    fn resolves_variables_inside_graphql_body_json() {
+        let store =
+            variable_store_from_pairs(vec![("id".to_string(), "42".to_string())], None, Vec::new());
+        let body = RequestBody::Raw {
+            content_type: Some("application/json".to_string()),
+            body: graphql_body(
+                "query User { user(id: \"{{id}}\") { name } }",
+                r#"{"id":"{{id}}"}"#,
+            ),
+        };
+
+        let resolved = resolve_request_body(body, &store, None).expect("graphql variables");
+
+        let RequestBody::Raw { body, .. } = resolved else {
+            panic!("expected raw GraphQL JSON body");
+        };
+        let value = serde_json::from_str::<serde_json::Value>(&body).expect("graphql json");
+
+        assert_eq!(value["query"], "query User { user(id: \"42\") { name } }");
+        assert_eq!(value["variables"]["id"], "42");
     }
 
     #[test]
