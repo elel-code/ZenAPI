@@ -81,34 +81,38 @@ const MOCK_STATUS_IMPORT_ROUTES_FIRST: &str = "No routes";
 const MOCK_STATUS_STARTING: &str = "Mock start";
 const MOCK_STATUS_STOPPING: &str = "Mock stop";
 const MOCK_STATUS_FAILED: &str = "Mock fail";
-const REQUEST_URL_REQUIRED_TITLE: &str = "Request needs URL";
-const SAVE_URL_REQUIRED_TITLE: &str = "Save needs URL";
+const REQUEST_URL_REQUIRED_TITLE: &str = "No URL";
+const SAVE_URL_REQUIRED_TITLE: &str = "No URL";
 const URL_REQUIRED_BODY: &str = "URL is empty.";
 const PATH_REQUIRED_BODY: &str = "Path is empty.";
-const STATUS_ACTIVE_BODY: &str = "Active.";
-const STATUS_READY_BODY: &str = "Ready.";
-const STATUS_DELETED_BODY: &str = "Deleted.";
-const STATUS_COPIED_BODY: &str = "Copied.";
-const STATUS_CLEARED_BODY: &str = "Cleared.";
-const STATUS_RUNNING_BODY: &str = "Running.";
-const STATUS_STOPPED_BODY: &str = "Stopped.";
-const STATUS_FORMATTED_BODY: &str = "Formatted.";
-const STATUS_SAVED_BODY: &str = "Saved.";
-const STATUS_RESTORED_BODY: &str = "Restored.";
-const STATUS_APPLIED_BODY: &str = "Applied.";
 const RESPONSE_TITLE_IMPORTED: &str = "Imported";
 const RESPONSE_TITLE_EXPORTED: &str = "Exported";
 const RESPONSE_TITLE_SAVED: &str = "Saved";
+const RESPONSE_TITLE_RESTORED: &str = "Restored";
+const RESPONSE_TITLE_SELECTED: &str = "Selected";
+const RESPONSE_TITLE_IMPORT_FAIL: &str = "Import fail";
+const RESPONSE_TITLE_EXPORT_FAIL: &str = "Export fail";
+const RESPONSE_TITLE_SAVE_FAIL: &str = "Save fail";
+const RESPONSE_TITLE_BUILD_FAIL: &str = "Build fail";
+const RESPONSE_TITLE_BAD_TESTS: &str = "Bad tests";
+const RESPONSE_TITLE_REQUEST_FAIL: &str = "Request fail";
+const RESPONSE_TITLE_RUNNER_FAIL: &str = "Runner fail";
+const RESPONSE_TITLE_RUN_PASSED: &str = "Run passed";
+const RESPONSE_TITLE_RUN_STOPPED: &str = "Run stopped";
+const RESPONSE_TITLE_RUN_FAILED: &str = "Run fail";
+const RESPONSE_TITLE_FORMAT_FAIL: &str = "Format fail";
+const RESPONSE_BODY_REQUEST: &str = "Request.";
+const RESPONSE_BODY_RUNNER: &str = "Runner.";
 const NO_HEADERS_BODY: &str = "No headers.";
 const NO_MESSAGES_BODY: &str = "No messages.";
 const NO_EVENTS_BODY: &str = "No events.";
-const IMPORT_PATH_REQUIRED_TITLE: &str = "Import needs path";
-const COLLECTION_PATH_REQUIRED_TITLE: &str = "Collection needs path";
-const EXPORT_PATH_REQUIRED_TITLE: &str = "Export needs path";
-const COLLECTION_EXPORT_EMPTY_TITLE: &str = "Export empty";
+const IMPORT_PATH_REQUIRED_TITLE: &str = "No path";
+const COLLECTION_PATH_REQUIRED_TITLE: &str = "No path";
+const EXPORT_PATH_REQUIRED_TITLE: &str = "No path";
+const COLLECTION_EXPORT_EMPTY_TITLE: &str = "No export";
 const SAVED_REQUESTS_EMPTY_BODY: &str = "No saved requests.";
-const RUNNER_EMPTY_TITLE: &str = "Runner empty";
-const MOCK_ROUTES_REQUIRED_TITLE: &str = "Mock needs routes";
+const RUNNER_EMPTY_TITLE: &str = "No requests";
+const MOCK_ROUTES_REQUIRED_TITLE: &str = "No routes";
 const MOCK_ROUTES_REQUIRED_BODY: &str = "No routes loaded.";
 const UI_COLOR_SURFACE: u32 = 0xffffff;
 const UI_COLOR_SURFACE_MUTED: u32 = UI_COLOR_SURFACE;
@@ -166,6 +170,12 @@ const PLACEHOLDER_REQUEST_BODY: &str = "Body";
 const PLACEHOLDER_GRAPHQL_QUERY: &str = "Query";
 const PLACEHOLDER_GRAPHQL_VARIABLES: &str = "Vars";
 const PLACEHOLDER_BINARY_BODY_PATH: &str = "File path";
+const APP_BRAND_LABEL: &str = "ZenAPI";
+const TOP_BAR_IMPORT_LABEL: &str = "Import";
+const IMPORT_OPEN_LABEL: &str = "Open";
+const MOCK_START_LABEL: &str = "Mock";
+const MOCK_STOP_LABEL: &str = "Stop";
+const REQUEST_SEND_LABEL: &str = "Send";
 const AUTH_PANEL_TITLE: &str = "Auth";
 const AUTH_NONE_LABEL: &str = "None";
 const AUTH_BEARER_LABEL: &str = "Bearer";
@@ -175,29 +185,47 @@ const AUTH_JWT_LABEL: &str = "JWT";
 const AUTH_API_KEY_LABEL: &str = "API";
 const AUTH_API_KEY_HEADER_LABEL: &str = "Header";
 const AUTH_API_KEY_QUERY_LABEL: &str = "Query";
+const HEADERS_PANEL_TITLE: &str = "Hdrs";
 const HEADER_COPY_BULK_LABEL: &str = "Copy";
 const HEADER_PASTE_BULK_LABEL: &str = "Paste";
 const HEADER_ACCEPT_JSON_LABEL: &str = "Accept";
 const HEADER_CONTENT_JSON_LABEL: &str = "Content";
 const HEADER_BEARER_AUTH_LABEL: &str = "Bearer";
-const HEADER_BULK_CLIPBOARD_EMPTY_TITLE: &str = "Clipboard empty";
-const HEADER_BULK_CLIPBOARD_EMPTY_BODY: &str = "No clipboard text.";
-const HEADER_BULK_PARSE_EMPTY_TITLE: &str = "No headers parsed";
-const HEADER_BULK_PARSE_EMPTY_BODY: &str = "No header lines.";
+const HEADER_BULK_CLIPBOARD_EMPTY_TITLE: &str = "No paste";
+const HEADER_BULK_CLIPBOARD_EMPTY_BODY: &str = "Clipboard empty.";
+const HEADER_BULK_PARSE_EMPTY_TITLE: &str = "No paste";
+const HEADER_BULK_PARSE_EMPTY_BODY: &str = "No headers.";
+const HEADER_COPY_EMPTY_TITLE: &str = "No copy";
+const HEADER_COPIED_TITLE: &str = "Copied";
+const HEADER_APPLIED_TITLE: &str = "Applied";
+const HEADER_BULK_HEADERS_BODY: &str = "Headers.";
+const HEADER_PRESET_BODY: &str = "Header.";
 const PARAMS_PANEL_TITLE: &str = "Params";
+const PRE_REQUEST_PANEL_TITLE: &str = "Pre";
+const RUNNER_PANEL_TITLE: &str = "Runner";
 const RUNNER_STOP_ON_FAILURE_LABEL: &str = "Stop Fail";
 const RUNNER_RUN_ALL_LABEL: &str = "Run";
+const RUNNER_ACTIVE_TITLE: &str = "Running";
 const RUNNER_EMPTY_REQUESTS_LABEL: &str = "No requests";
 const RUNNER_EMPTY_RESULTS_LABEL: &str = "No results";
 const RAW_FORMAT_JSON_LABEL: &str = "Format";
+const RAW_FORMAT_JSON_MODE_LABEL: &str = "JSON";
+const RAW_FORMAT_XML_MODE_LABEL: &str = "XML";
+const RAW_FORMAT_TEXT_MODE_LABEL: &str = "Text";
+const RAW_FORMAT_HTML_MODE_LABEL: &str = "HTML";
+const RAW_FORMATTED_TITLE: &str = "Formatted";
+const RAW_FORMATTED_BODY: &str = "Body.";
 const RAW_PREVIEW_TITLE: &str = "Preview";
 const RAW_EMPTY_PREVIEW_LABEL: &str = "No body";
 const RAW_JSON_EMPTY_FORMAT_BODY: &str = "JSON body is empty.";
+const GRAPHQL_PANEL_TITLE: &str = "GraphQL";
 const GRAPHQL_INTROSPECT_LABEL: &str = "Schema";
 const GRAPHQL_PAYLOAD_TITLE: &str = "Payload";
 const GRAPHQL_SCHEMA_TITLE: &str = "Schema";
 const GRAPHQL_SCHEMA_BROWSER_TITLE: &str = "Fields";
 const GRAPHQL_QUERY_ASSISTANT_TITLE: &str = "Templates";
+const CODEGEN_PANEL_TITLE: &str = "Code";
+const CODEGEN_COPY_LABEL: &str = "Copy";
 const BODY_MODE_NONE_LABEL: &str = "None";
 const BODY_MODE_FORM_LABEL: &str = "Form";
 const BODY_MODE_URL_ENCODED_LABEL: &str = "URL Enc";
@@ -232,20 +260,28 @@ const VARIABLES_GLOBAL_TITLE: &str = "Global";
 const VARIABLES_ENV_TITLE: &str = "Env";
 const VARIABLES_ENV_NEEDED_TITLE: &str = "Env needed";
 const VARIABLES_ENV_NAME_REQUIRED_BODY: &str = "Env name is empty.";
-const VARIABLES_ENV_SELECTED_TITLE: &str = "Env active";
-const VARIABLES_ENV_CREATED_TITLE: &str = "Env created";
-const VARIABLES_ENV_DELETED_TITLE: &str = "Env deleted";
+const VARIABLES_ENV_SELECTED_TITLE: &str = "Active";
+const VARIABLES_ENV_CREATED_TITLE: &str = "Created";
+const VARIABLES_ENV_DELETED_TITLE: &str = "Removed";
+const VARIABLES_ENV_RESPONSE_BODY: &str = "Env.";
 const PLACEHOLDER_WEBSOCKET_URL: &str = "WS URL";
 const PLACEHOLDER_WEBSOCKET_PROTOCOLS: &str = "Protocols";
 const PLACEHOLDER_SSE_URL: &str = "SSE URL";
 const REALTIME_WEBSOCKET_TITLE: &str = "WS";
-const WEBSOCKET_URL_REQUIRED_TITLE: &str = "WS needs URL";
-const WEBSOCKET_URL_INVALID_TITLE: &str = "WS URL invalid";
+const WEBSOCKET_ACTIVE_TITLE: &str = "WS active";
+const WEBSOCKET_CONNECTED_TITLE: &str = "WS open";
+const WEBSOCKET_MESSAGE_TITLE: &str = "WS msg";
+const WEBSOCKET_CLOSED_TITLE: &str = "WS closed";
+const WEBSOCKET_BINARY_INVALID_TITLE: &str = "WS invalid";
+const WEBSOCKET_SEND_FAILED_TITLE: &str = "WS send fail";
+const WEBSOCKET_FAILED_TITLE: &str = "WS failed";
+const WEBSOCKET_URL_REQUIRED_TITLE: &str = "WS no URL";
+const WEBSOCKET_URL_INVALID_TITLE: &str = "Bad WS URL";
 const WEBSOCKET_URL_INVALID_BODY: &str = "Expected WS(S).";
 const REALTIME_WEBSOCKET_CONNECT_LABEL: &str = "Open";
 const REALTIME_WEBSOCKET_SEND_LABEL: &str = "Send";
 const REALTIME_WEBSOCKET_CLOSE_LABEL: &str = "End";
-const REALTIME_WEBSOCKET_HEADERS_TITLE: &str = "WS Headers";
+const REALTIME_WEBSOCKET_HEADERS_TITLE: &str = "WS Hdrs";
 const REALTIME_WEBSOCKET_TEXT_LABEL: &str = "Text";
 const REALTIME_WEBSOCKET_BINARY_LABEL: &str = "Hex";
 const REALTIME_WEBSOCKET_EMPTY_LABEL: &str = "No messages";
@@ -254,15 +290,32 @@ const WEBSOCKET_NOT_OPEN_BODY: &str = "No active session.";
 const WEBSOCKET_BINARY_EMPTY_BODY: &str = "Hex body is empty.";
 const WEBSOCKET_BINARY_ODD_DIGITS_BODY: &str = "Odd hex length.";
 const REALTIME_SSE_TITLE: &str = "SSE";
-const SSE_URL_REQUIRED_TITLE: &str = "SSE needs URL";
-const SSE_URL_INVALID_TITLE: &str = "SSE URL invalid";
+const SSE_URL_REQUIRED_TITLE: &str = "SSE no URL";
+const SSE_URL_INVALID_TITLE: &str = "Bad SSE URL";
 const SSE_URL_INVALID_BODY: &str = "Expected HTTP(S).";
+const SSE_ACTIVE_TITLE: &str = "SSE active";
+const SSE_OK_TITLE: &str = "SSE OK";
+const SSE_SUBSCRIBING_TITLE: &str = "SSE sub";
+const SSE_STOPPED_TITLE: &str = "Stopped";
+const SSE_STOPPED_BODY: &str = "SSE.";
+const SSE_SUBSCRIBED_TITLE: &str = "SSE open";
+const SSE_EVENT_TITLE: &str = "SSE event";
+const SSE_RETRY_TITLE: &str = "SSE retry";
+const SSE_CLOSED_TITLE: &str = "SSE closed";
+const SSE_FAILED_TITLE: &str = "SSE failed";
+const REALTIME_STATUS_NO_URL: &str = "No URL";
+const REALTIME_STATUS_BAD_URL: &str = "Bad URL";
 const REALTIME_SSE_FETCH_LABEL: &str = "Once";
 const REALTIME_SSE_SUBSCRIBE_LABEL: &str = "Stream";
 const REALTIME_SSE_STOP_LABEL: &str = "Stop";
-const REALTIME_SSE_HEADERS_TITLE: &str = "SSE Headers";
+const REALTIME_SSE_HEADERS_TITLE: &str = "SSE Hdrs";
 const REALTIME_SSE_EMPTY_LABEL: &str = "No events";
 const MOCK_LOG_EMPTY_LABEL: &str = "No logs";
+const REALTIME_LOG_EMPTY_TITLE: &str = "No log";
+const REALTIME_LOG_COPIED_TITLE: &str = "Copied";
+const REALTIME_LOG_CLEARED_TITLE: &str = "Cleared";
+const REALTIME_LOG_BODY: &str = "Log.";
+const MOCK_LOG_TITLE: &str = "Log";
 const TESTS_PANEL_TITLE: &str = "Tests";
 const TEST_ASSERTION_NAME_HEADER: &str = "Test";
 const TEST_ASSERTION_KIND_HEADER: &str = "Kind";
@@ -288,10 +341,10 @@ const APP_WINDOW_WIDTH: f32 = 1180.;
 const APP_WINDOW_HEIGHT: f32 = 760.;
 const SIDEBAR_WIDTH: f32 = 320.;
 const WORKSPACE_SIDEBAR_DEFAULT_RATIO: f32 = SIDEBAR_WIDTH / APP_WINDOW_WIDTH;
-const WORKSPACE_SIDEBAR_MIN_RATIO: f32 = 0.20;
+const WORKSPACE_SIDEBAR_MIN_RATIO: f32 = 0.24;
 const WORKSPACE_SIDEBAR_MAX_RATIO: f32 = 0.38;
 const WORKSPACE_REQUEST_DEFAULT_RATIO: f32 = 0.37;
-const WORKSPACE_REQUEST_MIN_RATIO: f32 = 0.28;
+const WORKSPACE_REQUEST_MIN_RATIO: f32 = 0.32;
 const WORKSPACE_REQUEST_MAX_RATIO: f32 = 0.56;
 const WORKSPACE_RESPONSE_MIN_RATIO: f32 = 0.24;
 const WORKSPACE_SPLIT_HANDLE_WIDTH: f32 = 8.;
@@ -307,7 +360,7 @@ const SCROLLBAR_GUTTER_WIDTH: f32 = SCROLLBAR_WIDTH + SCROLLBAR_RIGHT_OFFSET * 2
 const SCROLLBAR_CONTENT_RIGHT_PADDING: f32 = SCROLLBAR_GUTTER_WIDTH + 8.;
 const SCROLLBAR_MIN_THUMB_HEIGHT: f32 = 28.;
 const TOP_BAR_HEIGHT: f32 = 40.;
-const TOP_BAR_BRAND_WIDTH: f32 = 132.;
+const TOP_BAR_BRAND_WIDTH: f32 = 72.;
 const TOP_BAR_ACTION_WIDTH: f32 = 76.;
 const TOP_BAR_MOCK_ACTION_WIDTH: f32 = 68.;
 const DISABLED_CONTROL_OPACITY: f32 = 0.78;
@@ -352,16 +405,16 @@ const RESPONSE_COPY_BUTTON_WIDTH: f32 = 54.;
 const CODEGEN_COPY_BUTTON_WIDTH: f32 = 72.;
 const CODEGEN_MENU_WIDTH: f32 = 156.;
 const CODEGEN_SNIPPET_HEIGHT: f32 = 180.;
-const CODEGEN_SNIPPET_LINE_HEIGHT: f32 = 22.;
+const CODEGEN_SNIPPET_LINE_HEIGHT: f32 = 26.;
 const STATUS_BAR_TRAILING_MAX_WIDTH: f32 = 220.;
 const BODY_EDITOR_HEIGHT: f32 = 118.;
 const GRAPHQL_VARIABLES_EDITOR_HEIGHT: f32 = 86.;
 const BODY_PREVIEW_HEIGHT: f32 = 86.;
-const BODY_PREVIEW_LINE_HEIGHT: f32 = 22.;
-const RESPONSE_BODY_LINE_HEIGHT: f32 = 22.;
+const BODY_PREVIEW_LINE_HEIGHT: f32 = 26.;
+const RESPONSE_BODY_LINE_HEIGHT: f32 = 26.;
 const GRAPHQL_QUERY_TEMPLATE_USE_BUTTON_WIDTH: f32 = 54.;
 const GRAPHQL_SCHEMA_BROWSER_HEIGHT: f32 = 112.;
-const RESULT_ROW_HEIGHT: f32 = 32.;
+const RESULT_ROW_HEIGHT: f32 = 34.;
 const COLLECTION_DRAG_PREVIEW_HEIGHT: f32 = 28.;
 const COLLECTION_DRAG_PREVIEW_MAX_WIDTH: f32 = 220.;
 const PANEL_HEADER_HEIGHT: f32 = 40.;
@@ -370,34 +423,34 @@ const PANEL_HEADER_RIGHT_PADDING: f32 = 14.;
 const PANEL_HEADER_UNDERLINE_WIDTH: f32 = 80.;
 const PANEL_HEADER_UNDERLINE_HEIGHT: f32 = 2.;
 const PANEL_HEADER_UNDERLINE_LEFT_OFFSET: f32 = 12.;
-const EMPTY_STATE_ROW_HEIGHT: f32 = 34.;
+const EMPTY_STATE_ROW_HEIGHT: f32 = 36.;
 const APP_BASE_TEXT_SIZE: f32 = 14.;
 const TOP_BAR_BRAND_TEXT_SIZE: f32 = 16.;
 const TOP_BAR_ACTION_TEXT_SIZE: f32 = 14.;
-const ACTION_BUTTON_TEXT_SIZE: f32 = 15.;
-const COMPACT_CONTROL_TEXT_SIZE: f32 = 14.;
-const COMPACT_SYMBOL_TEXT_SIZE: f32 = 12.;
-const METHOD_CHEVRON_TEXT_SIZE: f32 = 11.;
-const PANE_HEADER_TITLE_TEXT_SIZE: f32 = 18.;
-const SIDEBAR_NAV_TEXT_SIZE: f32 = 15.;
-const SIDEBAR_ACTION_TEXT_SIZE: f32 = 14.;
-const SIDEBAR_PRIMARY_ROW_TEXT_SIZE: f32 = 15.;
-const SIDEBAR_METHOD_TEXT_SIZE: f32 = 14.;
-const SIDEBAR_COMPACT_METHOD_TEXT_SIZE: f32 = 12.;
-const ROW_META_TEXT_SIZE: f32 = 13.;
-const REQUEST_PRIMARY_CONTROL_TEXT_SIZE: f32 = 16.;
+const ACTION_BUTTON_TEXT_SIZE: f32 = 16.;
+const COMPACT_CONTROL_TEXT_SIZE: f32 = 15.;
+const COMPACT_SYMBOL_TEXT_SIZE: f32 = 13.;
+const METHOD_CHEVRON_TEXT_SIZE: f32 = 12.;
+const PANE_HEADER_TITLE_TEXT_SIZE: f32 = 19.;
+const SIDEBAR_NAV_TEXT_SIZE: f32 = 16.;
+const SIDEBAR_ACTION_TEXT_SIZE: f32 = 15.;
+const SIDEBAR_PRIMARY_ROW_TEXT_SIZE: f32 = 17.;
+const SIDEBAR_METHOD_TEXT_SIZE: f32 = 16.;
+const SIDEBAR_COMPACT_METHOD_TEXT_SIZE: f32 = 14.;
+const ROW_META_TEXT_SIZE: f32 = 15.;
+const REQUEST_PRIMARY_CONTROL_TEXT_SIZE: f32 = 18.;
 const REQUEST_EDITOR_TAB_TEXT_SIZE: f32 = 16.;
-const PANEL_TITLE_TEXT_SIZE: f32 = 17.;
-const PANEL_CONTENT_TEXT_SIZE: f32 = 16.;
-const PANEL_META_TEXT_SIZE: f32 = 14.;
-const TABLE_HEADER_TEXT_SIZE: f32 = 14.;
-const TEXT_INPUT_TEXT_SIZE: f32 = 16.;
-const RESPONSE_BODY_TEXT_SIZE: f32 = 16.;
+const PANEL_TITLE_TEXT_SIZE: f32 = 18.;
+const PANEL_CONTENT_TEXT_SIZE: f32 = 18.;
+const PANEL_META_TEXT_SIZE: f32 = 15.;
+const TABLE_HEADER_TEXT_SIZE: f32 = 16.;
+const TEXT_INPUT_TEXT_SIZE: f32 = 18.;
+const RESPONSE_BODY_TEXT_SIZE: f32 = 18.;
 const UI_RADIUS_TIGHT: f32 = 4.;
 const UI_RADIUS_CONTROL: f32 = 5.;
 const UI_RADIUS_INPUT: f32 = 6.;
-const TEXT_INPUT_HEIGHT: f32 = 38.;
-const TEXT_INPUT_LINE_HEIGHT: f32 = 22.;
+const TEXT_INPUT_HEIGHT: f32 = 40.;
+const TEXT_INPUT_LINE_HEIGHT: f32 = 24.;
 const TEXT_INPUT_RADIUS: f32 = UI_RADIUS_INPUT;
 const TEXT_INPUT_BORDER_WIDTH: f32 = 2.;
 const KEY_VALUE_KEY_COLUMN_WIDTH: f32 = 150.;
@@ -407,14 +460,14 @@ const KEY_VALUE_ROW_ACTION_BUTTON_WIDTH: f32 = 28.;
 const TEST_ASSERTION_NAME_COLUMN_WIDTH: f32 = 132.;
 const TEST_ASSERTION_KIND_COLUMN_WIDTH: f32 = 96.;
 const TESTS_CLEAR_RESULTS_BUTTON_WIDTH: f32 = 54.;
-const COLLECTION_TREE_ROOT_ROW_HEIGHT: f32 = 30.;
-const COLLECTION_TREE_FOLDER_ROW_HEIGHT: f32 = 30.;
-const COLLECTION_TREE_REQUEST_ROW_HEIGHT: f32 = 36.;
+const COLLECTION_TREE_ROOT_ROW_HEIGHT: f32 = 32.;
+const COLLECTION_TREE_FOLDER_ROW_HEIGHT: f32 = 32.;
+const COLLECTION_TREE_REQUEST_ROW_HEIGHT: f32 = 40.;
 const COLLECTION_TREE_INDENT_BASE: f32 = 8.;
 const COLLECTION_TREE_INDENT_STEP: f32 = 14.;
 const COLLECTION_TREE_INDENT_MAX: f32 = 78.;
 const COLLECTION_TREE_MARKER_WIDTH: f32 = 14.;
-const HTTP_METHOD_LABEL_WIDTH: f32 = 58.;
+const HTTP_METHOD_LABEL_WIDTH: f32 = 64.;
 const SIDEBAR_SECONDARY_ROW_INDENT: f32 = HTTP_METHOD_LABEL_WIDTH + 8.;
 const RUNNER_METHOD_COLUMN_WIDTH: f32 = 70.;
 const RUNNER_STATUS_COLUMN_WIDTH: f32 = 42.;
@@ -670,11 +723,11 @@ enum RequestPaneTab {
 fn request_editor_tabs() -> [(&'static str, RequestPaneTab); REQUEST_EDITOR_TAB_COUNT] {
     [
         ("Params", RequestPaneTab::Params),
-        ("Headers", RequestPaneTab::Headers),
+        ("Hdrs", RequestPaneTab::Headers),
         ("Auth", RequestPaneTab::Auth),
         ("Body", RequestPaneTab::Body),
-        ("Scripts", RequestPaneTab::Scripts),
-        ("Realtime", RequestPaneTab::Realtime),
+        ("Script", RequestPaneTab::Scripts),
+        ("Live", RequestPaneTab::Realtime),
         ("Tools", RequestPaneTab::Tools),
     ]
 }
@@ -1244,7 +1297,7 @@ impl ZenApiApp {
             }
             Err(error) => {
                 self.set_response(
-                    "Import failed",
+                    RESPONSE_TITLE_IMPORT_FAIL,
                     "",
                     ResponseTone::Error,
                     file_operation_error("OpenAPI import failed.", path, &error.to_string()),
@@ -1288,7 +1341,7 @@ impl ZenApiApp {
             Err(error) => {
                 self.collection_status = "Import failed".to_string();
                 self.set_response(
-                    "Collection failed",
+                    RESPONSE_TITLE_IMPORT_FAIL,
                     "",
                     ResponseTone::Error,
                     file_operation_error("Collection import failed.", path, &error.to_string()),
@@ -1351,7 +1404,7 @@ impl ZenApiApp {
             Err(error) => {
                 self.collection_status = "Export failed".to_string();
                 self.set_response(
-                    "Export failed",
+                    RESPONSE_TITLE_EXPORT_FAIL,
                     "",
                     ResponseTone::Error,
                     file_operation_error("Collection export failed.", path, &error.to_string()),
@@ -1389,7 +1442,7 @@ impl ZenApiApp {
                 self.pre_request_status = pre_request_error_label(&error);
                 self.last_pre_request_actions.clear();
                 self.set_response(
-                    "Save failed",
+                    RESPONSE_TITLE_SAVE_FAIL,
                     "",
                     ResponseTone::Error,
                     editor_error("Save build failed.", &error),
@@ -1402,7 +1455,7 @@ impl ZenApiApp {
             Ok(tests) => tests,
             Err(error) => {
                 self.set_response(
-                    "Save failed",
+                    RESPONSE_TITLE_SAVE_FAIL,
                     "",
                     ResponseTone::Error,
                     editor_error("Tests save failed.", &error.to_string()),
@@ -1425,7 +1478,7 @@ impl ZenApiApp {
             RESPONSE_TITLE_SAVED,
             self.collection.name.clone(),
             ResponseTone::Success,
-            STATUS_SAVED_BODY,
+            RESPONSE_BODY_REQUEST,
         );
         cx.notify();
     }
@@ -1872,10 +1925,10 @@ impl ZenApiApp {
         self.request_assertions = assertion_rows_from_assertions(cx, &request.tests);
         self.last_assertion_results.clear();
         self.set_response(
-            "Collection request",
-            "",
+            RESPONSE_TITLE_RESTORED,
+            request.name,
             ResponseTone::Neutral,
-            STATUS_RESTORED_BODY,
+            RESPONSE_BODY_REQUEST,
         );
         cx.notify();
     }
@@ -2022,7 +2075,7 @@ impl ZenApiApp {
         self.request_assertions = assertion_rows_from_assertions(cx, &[]);
         self.last_assertion_results.clear();
         self.set_response(
-            "Route selected",
+            RESPONSE_TITLE_SELECTED,
             route.summary,
             ResponseTone::Neutral,
             pretty_json(&route.mock_body),
@@ -2043,7 +2096,7 @@ impl ZenApiApp {
                 self.pre_request_status = pre_request_error_label(&error);
                 self.last_pre_request_actions.clear();
                 self.set_response(
-                    "Request build failed",
+                    RESPONSE_TITLE_BUILD_FAIL,
                     "",
                     ResponseTone::Error,
                     editor_error("Request build failed.", &error),
@@ -2069,7 +2122,7 @@ impl ZenApiApp {
             Ok(assertions) => assertions,
             Err(error) => {
                 self.set_response(
-                    "Tests invalid",
+                    RESPONSE_TITLE_BAD_TESTS,
                     "",
                     ResponseTone::Error,
                     editor_error("Tests invalid.", &error.to_string()),
@@ -2151,7 +2204,12 @@ impl ZenApiApp {
                             },
                         );
                         app.last_assertion_results.clear();
-                        app.set_response("Request failed", "", ResponseTone::Error, body);
+                        app.set_response(
+                            RESPONSE_TITLE_REQUEST_FAIL,
+                            "",
+                            ResponseTone::Error,
+                            body,
+                        );
                     }
                     Err(_) => {
                         let error = request_worker_stopped_message();
@@ -2164,7 +2222,12 @@ impl ZenApiApp {
                             },
                         );
                         app.last_assertion_results.clear();
-                        app.set_response("Request failed", "", ResponseTone::Error, error);
+                        app.set_response(
+                            RESPONSE_TITLE_REQUEST_FAIL,
+                            "",
+                            ResponseTone::Error,
+                            error,
+                        );
                     }
                 }
                 app.set_busy(false, cx);
@@ -2183,9 +2246,9 @@ impl ZenApiApp {
             }
             let (title, body) = websocket_url_validation_response(&url);
             self.websocket_status = if has_trimmed_text(&url) {
-                "invalid URL".to_string()
+                REALTIME_STATUS_BAD_URL.to_string()
             } else {
-                "URL required".to_string()
+                REALTIME_STATUS_NO_URL.to_string()
             };
             self.set_response(title, "", ResponseTone::Error, body);
             cx.notify();
@@ -2204,7 +2267,7 @@ impl ZenApiApp {
         self.websocket_session_url = url.trim().to_string();
         self.websocket_status = "connecting".to_string();
         self.set_response(
-            "WebSocket active",
+            WEBSOCKET_ACTIVE_TITLE,
             "",
             ResponseTone::Busy,
             self.response_body.clone(),
@@ -2262,7 +2325,12 @@ impl ZenApiApp {
                 Err(error) => {
                     let body = editor_error("WS binary invalid.", &error);
                     self.websocket_status = "invalid binary".to_string();
-                    self.set_response("WebSocket binary invalid", "", ResponseTone::Error, body);
+                    self.set_response(
+                        WEBSOCKET_BINARY_INVALID_TITLE,
+                        "",
+                        ResponseTone::Error,
+                        body,
+                    );
                     cx.notify();
                     return;
                 }
@@ -2274,7 +2342,7 @@ impl ZenApiApp {
             self.websocket_command_tx = None;
             self.websocket_status = "closed".to_string();
             self.set_response(
-                "WebSocket send failed",
+                WEBSOCKET_SEND_FAILED_TITLE,
                 "",
                 ResponseTone::Error,
                 realtime_operation_error(
@@ -2311,7 +2379,7 @@ impl ZenApiApp {
                 self.websocket_running = true;
                 self.websocket_session_url = url.clone();
                 self.websocket_status = "connected".to_string();
-                self.set_response("WebSocket connected", "", ResponseTone::Success, url);
+                self.set_response(WEBSOCKET_CONNECTED_TITLE, "", ResponseTone::Success, url);
             }
             client::WebSocketSessionEvent::Sent(message) => {
                 self.push_websocket_log(WebSocketLogEntry {
@@ -2330,20 +2398,20 @@ impl ZenApiApp {
                     data: data.clone(),
                 });
                 self.websocket_status = format!("received {kind}");
-                self.set_response("WebSocket message", kind, ResponseTone::Success, data);
+                self.set_response(WEBSOCKET_MESSAGE_TITLE, kind, ResponseTone::Success, data);
             }
             client::WebSocketSessionEvent::Closed(reason) => {
                 self.websocket_running = false;
                 self.websocket_command_tx = None;
                 self.websocket_status = format!("closed: {}", preview_text(&reason));
-                self.set_response("WebSocket closed", "", ResponseTone::Neutral, reason);
+                self.set_response(WEBSOCKET_CLOSED_TITLE, "", ResponseTone::Neutral, reason);
             }
             client::WebSocketSessionEvent::Error(error) => {
                 self.websocket_running = false;
                 self.websocket_command_tx = None;
                 self.websocket_status = format!("error: {}", preview_text(&error));
                 self.set_response(
-                    "WebSocket failed",
+                    WEBSOCKET_FAILED_TITLE,
                     "",
                     ResponseTone::Error,
                     realtime_operation_error(
@@ -2376,9 +2444,9 @@ impl ZenApiApp {
             }
             let (title, body) = sse_url_validation_response(&url);
             self.sse_status = if has_trimmed_text(&url) {
-                "invalid URL".to_string()
+                REALTIME_STATUS_BAD_URL.to_string()
             } else {
-                "URL required".to_string()
+                REALTIME_STATUS_NO_URL.to_string()
             };
             self.set_response(title, "", ResponseTone::Error, body);
             cx.notify();
@@ -2393,7 +2461,7 @@ impl ZenApiApp {
         self.sse_session_url = url_for_error.clone();
         self.sse_status = "connecting".to_string();
         self.set_response(
-            "SSE active",
+            SSE_ACTIVE_TITLE,
             "",
             ResponseTone::Busy,
             self.response_body.clone(),
@@ -2418,7 +2486,7 @@ impl ZenApiApp {
                             let meta = sse_event_count_label(exchange.events.len());
                             app.sse_status = meta.clone();
                             app.set_response(
-                                "SSE OK",
+                                SSE_OK_TITLE,
                                 meta,
                                 ResponseTone::Success,
                                 sse_exchange_text(&exchange),
@@ -2433,7 +2501,7 @@ impl ZenApiApp {
                                 &error,
                             );
                             app.sse_status = format!("error: {}", preview_text(&error));
-                            app.set_response("SSE failed", "", ResponseTone::Error, body);
+                            app.set_response(SSE_FAILED_TITLE, "", ResponseTone::Error, body);
                         }
                     }
                     app.sse_running = false;
@@ -2453,9 +2521,9 @@ impl ZenApiApp {
             }
             let (title, body) = sse_url_validation_response(&url);
             self.sse_status = if has_trimmed_text(&url) {
-                "invalid URL".to_string()
+                REALTIME_STATUS_BAD_URL.to_string()
             } else {
-                "URL required".to_string()
+                REALTIME_STATUS_NO_URL.to_string()
             };
             self.set_response(title, "", ResponseTone::Error, body);
             cx.notify();
@@ -2479,7 +2547,7 @@ impl ZenApiApp {
         self.sse_running = true;
         self.sse_status = "subscribing".to_string();
         self.set_response(
-            "SSE subscribing",
+            SSE_SUBSCRIBING_TITLE,
             "",
             ResponseTone::Busy,
             self.response_body.clone(),
@@ -2518,10 +2586,10 @@ impl ZenApiApp {
             self.sse_running = false;
             self.sse_status = "stopped".to_string();
             self.set_response(
-                "SSE stopped",
+                SSE_STOPPED_TITLE,
                 "",
                 ResponseTone::Neutral,
-                STATUS_STOPPED_BODY,
+                SSE_STOPPED_BODY,
             );
         }
         cx.notify();
@@ -2533,14 +2601,14 @@ impl ZenApiApp {
                 self.sse_running = true;
                 self.sse_session_url = url.clone();
                 self.sse_status = "subscribed".to_string();
-                self.set_response("SSE subscribed", "", ResponseTone::Success, url);
+                self.set_response(SSE_SUBSCRIBED_TITLE, "", ResponseTone::Success, url);
             }
             client::SseStreamEvent::Event(event) => {
                 let label = sse_event_label(&event).to_string();
                 let data = event.data.clone();
                 self.push_sse_log(sse_log_entry(&event));
                 self.sse_status = format!("event {label}");
-                self.set_response("SSE event", label, ResponseTone::Success, data);
+                self.set_response(SSE_EVENT_TITLE, label, ResponseTone::Success, data);
             }
             client::SseStreamEvent::Reconnecting {
                 attempt,
@@ -2550,7 +2618,7 @@ impl ZenApiApp {
                 self.sse_running = true;
                 self.sse_status = sse_reconnect_status(attempt, delay_ms);
                 self.set_response(
-                    "SSE retry",
+                    SSE_RETRY_TITLE,
                     self.sse_status.clone(),
                     ResponseTone::Busy,
                     realtime_operation_error(
@@ -2565,14 +2633,14 @@ impl ZenApiApp {
                 self.sse_subscription = None;
                 self.sse_running = false;
                 self.sse_status = format!("closed: {}", preview_text(&reason));
-                self.set_response("SSE closed", "", ResponseTone::Neutral, reason);
+                self.set_response(SSE_CLOSED_TITLE, "", ResponseTone::Neutral, reason);
             }
             client::SseStreamEvent::Error(error) => {
                 self.sse_subscription = None;
                 self.sse_running = false;
                 self.sse_status = format!("error: {}", preview_text(&error));
                 self.set_response(
-                    "SSE failed",
+                    SSE_FAILED_TITLE,
                     "",
                     ResponseTone::Error,
                     realtime_operation_error(
@@ -2633,7 +2701,12 @@ impl ZenApiApp {
         self.runner_running = true;
         self.runner_results.clear();
         self.runner_status = format!("Run {total}");
-        self.set_response("Runner active", "", ResponseTone::Busy, STATUS_RUNNING_BODY);
+        self.set_response(
+            RUNNER_ACTIVE_TITLE,
+            "",
+            ResponseTone::Busy,
+            RESPONSE_BODY_RUNNER,
+        );
         cx.notify();
 
         runtime.spawn(async move {
@@ -2654,10 +2727,10 @@ impl ZenApiApp {
                 Err(_) => {
                     app.runner_running = false;
                     app.set_busy(false, cx);
-                    app.runner_status = "Runner failed".to_string();
+                    app.runner_status = RESPONSE_TITLE_RUN_FAILED.to_string();
                     app.runner_results.clear();
                     app.set_response(
-                        "Runner failed",
+                        RESPONSE_TITLE_RUNNER_FAIL,
                         "",
                         ResponseTone::Error,
                         runner_worker_stopped_message(),
@@ -2681,11 +2754,11 @@ impl ZenApiApp {
             ResponseTone::Error
         };
         let status = if summary.failed == 0 {
-            "Collection passed"
+            RESPONSE_TITLE_RUN_PASSED
         } else if summary.stopped_early {
-            "Collection stopped"
+            RESPONSE_TITLE_RUN_STOPPED
         } else {
-            "Collection failed"
+            RESPONSE_TITLE_RUN_FAILED
         };
         let body = if summary.failed == 0 {
             runner_summary_text(&summary)
@@ -2903,7 +2976,7 @@ impl ZenApiApp {
                 VARIABLES_ENV_SELECTED_TITLE,
                 name,
                 ResponseTone::Neutral,
-                STATUS_ACTIVE_BODY,
+                VARIABLES_ENV_RESPONSE_BODY,
             );
             cx.notify();
             return;
@@ -2921,7 +2994,7 @@ impl ZenApiApp {
             VARIABLES_ENV_CREATED_TITLE,
             name,
             ResponseTone::Success,
-            STATUS_READY_BODY,
+            VARIABLES_ENV_RESPONSE_BODY,
         );
         cx.notify();
     }
@@ -2946,7 +3019,7 @@ impl ZenApiApp {
                 VARIABLES_ENV_DELETED_TITLE,
                 active_environment,
                 ResponseTone::Success,
-                STATUS_DELETED_BODY,
+                VARIABLES_ENV_RESPONSE_BODY,
             );
             cx.notify();
         }
@@ -2958,17 +3031,22 @@ impl ZenApiApp {
             if self.busy {
                 return;
             }
-            self.set_response("No headers", "", ResponseTone::Neutral, NO_HEADERS_BODY);
+            self.set_response(
+                HEADER_COPY_EMPTY_TITLE,
+                "",
+                ResponseTone::Neutral,
+                NO_HEADERS_BODY,
+            );
             cx.notify();
             return;
         }
 
         cx.write_to_clipboard(ClipboardItem::new_string(format_header_bulk(&headers)));
         self.set_response(
-            "Headers copied",
+            HEADER_COPIED_TITLE,
             headers.len().to_string(),
             ResponseTone::Success,
-            STATUS_COPIED_BODY,
+            HEADER_BULK_HEADERS_BODY,
         );
         cx.notify();
     }
@@ -2980,7 +3058,7 @@ impl ZenApiApp {
 
         if !can_use_realtime_log_actions(self.busy, self.websocket_messages.len()) {
             self.set_response(
-                "No WebSocket log",
+                REALTIME_LOG_EMPTY_TITLE,
                 "",
                 ResponseTone::Neutral,
                 NO_MESSAGES_BODY,
@@ -2992,10 +3070,10 @@ impl ZenApiApp {
         let log = format_websocket_log(&self.websocket_messages);
         cx.write_to_clipboard(ClipboardItem::new_string(log));
         self.set_response(
-            "WebSocket log copied",
+            REALTIME_LOG_COPIED_TITLE,
             self.websocket_messages.len().to_string(),
             ResponseTone::Success,
-            STATUS_COPIED_BODY,
+            REALTIME_LOG_BODY,
         );
         cx.notify();
     }
@@ -3007,7 +3085,7 @@ impl ZenApiApp {
 
         if !can_use_realtime_log_actions(self.busy, self.websocket_messages.len()) {
             self.set_response(
-                "No WebSocket log",
+                REALTIME_LOG_EMPTY_TITLE,
                 "",
                 ResponseTone::Neutral,
                 NO_MESSAGES_BODY,
@@ -3023,10 +3101,10 @@ impl ZenApiApp {
             "idle".to_string()
         };
         self.set_response(
-            "WebSocket log cleared",
+            REALTIME_LOG_CLEARED_TITLE,
             "",
             ResponseTone::Neutral,
-            STATUS_CLEARED_BODY,
+            REALTIME_LOG_BODY,
         );
         cx.notify();
     }
@@ -3037,7 +3115,12 @@ impl ZenApiApp {
         }
 
         if !can_use_realtime_log_actions(self.busy, self.sse_events.len()) {
-            self.set_response("No SSE log", "", ResponseTone::Neutral, NO_EVENTS_BODY);
+            self.set_response(
+                REALTIME_LOG_EMPTY_TITLE,
+                "",
+                ResponseTone::Neutral,
+                NO_EVENTS_BODY,
+            );
             cx.notify();
             return;
         }
@@ -3045,10 +3128,10 @@ impl ZenApiApp {
         let log = format_sse_log(&self.sse_events);
         cx.write_to_clipboard(ClipboardItem::new_string(log));
         self.set_response(
-            "SSE log copied",
+            REALTIME_LOG_COPIED_TITLE,
             self.sse_events.len().to_string(),
             ResponseTone::Success,
-            STATUS_COPIED_BODY,
+            REALTIME_LOG_BODY,
         );
         cx.notify();
     }
@@ -3082,7 +3165,12 @@ impl ZenApiApp {
         }
 
         if !can_use_realtime_log_actions(self.busy, self.sse_events.len()) {
-            self.set_response("No SSE log", "", ResponseTone::Neutral, NO_EVENTS_BODY);
+            self.set_response(
+                REALTIME_LOG_EMPTY_TITLE,
+                "",
+                ResponseTone::Neutral,
+                NO_EVENTS_BODY,
+            );
             cx.notify();
             return;
         }
@@ -3095,10 +3183,10 @@ impl ZenApiApp {
             "idle".to_string()
         };
         self.set_response(
-            "SSE log cleared",
+            REALTIME_LOG_CLEARED_TITLE,
             "",
             ResponseTone::Neutral,
-            STATUS_CLEARED_BODY,
+            REALTIME_LOG_BODY,
         );
         cx.notify();
     }
@@ -3132,10 +3220,10 @@ impl ZenApiApp {
 
         set_key_value_pairs(&mut self.request_headers, headers.clone(), cx);
         self.set_response(
-            "Headers pasted",
+            HEADER_APPLIED_TITLE,
             headers.len().to_string(),
             ResponseTone::Success,
-            STATUS_APPLIED_BODY,
+            HEADER_BULK_HEADERS_BODY,
         );
         cx.notify();
     }
@@ -3154,10 +3242,10 @@ impl ZenApiApp {
         let headers = upsert_header_pair(&headers, name, value);
         set_key_value_pairs(&mut self.request_headers, headers, cx);
         self.set_response(
-            "Header preset applied",
+            HEADER_APPLIED_TITLE,
             name,
             ResponseTone::Success,
-            format!("{name}: {value}"),
+            HEADER_PRESET_BODY,
         );
         cx.notify();
     }
@@ -3173,15 +3261,15 @@ impl ZenApiApp {
                 self.request_body
                     .update(cx, |input, cx| input.set_text(formatted, cx));
                 self.set_response(
-                    "Body formatted",
+                    RAW_FORMATTED_TITLE,
                     "JSON",
                     ResponseTone::Success,
-                    STATUS_FORMATTED_BODY,
+                    RAW_FORMATTED_BODY,
                 );
             }
             Err(error) => {
                 self.set_response(
-                    "Body format failed",
+                    RESPONSE_TITLE_FORMAT_FAIL,
                     "JSON",
                     ResponseTone::Error,
                     error.to_string(),
@@ -4029,7 +4117,7 @@ impl ZenApiApp {
                     }
                 }),
             )
-            .child(div().min_w_0().truncate().child("Send"))
+            .child(div().min_w_0().truncate().child(REQUEST_SEND_LABEL))
     }
 
     fn render_top_bar(&self, cx: &mut Context<Self>) -> impl IntoElement {
@@ -4052,11 +4140,11 @@ impl ZenApiApp {
                     .font_weight(FontWeight::BOLD)
                     .text_size(px(TOP_BAR_BRAND_TEXT_SIZE))
                     .text_color(ui_text_primary())
-                    .child("ZenAPI"),
+                    .child(APP_BRAND_LABEL),
             )
             .child(div().flex_1())
             .child(self.top_bar_action_button(
-                "Import",
+                TOP_BAR_IMPORT_LABEL,
                 TOP_BAR_ACTION_WIDTH,
                 can_toggle_import_popover(self.busy),
                 ButtonTone::Neutral,
@@ -4110,7 +4198,7 @@ impl ZenApiApp {
                             .child(bounded_text_input(self.import_path.clone())),
                     )
                     .child(self.action_button(
-                        "Open",
+                        IMPORT_OPEN_LABEL,
                         can_open,
                         ButtonTone::Primary,
                         |app, _event, _window, cx| app.import_openapi(cx),
@@ -5148,7 +5236,7 @@ impl ZenApiApp {
                             .child(REALTIME_WEBSOCKET_TITLE),
                     )
                     .when_some(
-                        panel_header_status_label(&self.websocket_status),
+                        realtime_header_status_label(&self.websocket_status),
                         |header, status| {
                             header.child(panel_status_text(
                                 status,
@@ -5286,7 +5374,7 @@ impl ZenApiApp {
                             .child(REALTIME_SSE_TITLE),
                     )
                     .when_some(
-                        panel_header_status_label(&self.sse_status),
+                        realtime_header_status_label(&self.sse_status),
                         |header, status| {
                             header.child(panel_status_text(
                                 status,
@@ -5586,7 +5674,7 @@ impl ZenApiApp {
                             .text_size(px(PANEL_TITLE_TEXT_SIZE))
                             .font_weight(FontWeight::BOLD)
                             .text_color(ui_text_primary())
-                            .child("Runner"),
+                            .child(RUNNER_PANEL_TITLE),
                     )
                     .when_some(
                         runner_header_status_label(&self.runner_status),
@@ -5672,7 +5760,7 @@ impl ZenApiApp {
                     .text_size(px(PANEL_TITLE_TEXT_SIZE))
                     .font_weight(FontWeight::BOLD)
                     .text_color(ui_text_primary())
-                    .child("Mock Log"),
+                    .child(MOCK_LOG_TITLE),
             )
             .child(
                 div()
@@ -5707,7 +5795,7 @@ impl ZenApiApp {
             .overflow_hidden()
             .gap_2()
             .child(self.key_value_editor(
-                "Headers",
+                HEADERS_PANEL_TITLE,
                 &self.request_headers,
                 KeyValueEditorTarget::RequestHeaders,
                 cx,
@@ -6016,7 +6104,7 @@ impl ZenApiApp {
                             .text_size(px(PANEL_TITLE_TEXT_SIZE))
                             .font_weight(FontWeight::BOLD)
                             .text_color(ui_text_primary())
-                            .child("Pre-request"),
+                            .child(PRE_REQUEST_PANEL_TITLE),
                     )
                     .when_some(
                         panel_header_status_label(&self.pre_request_status),
@@ -6056,13 +6144,6 @@ impl ZenApiApp {
             .min_w_0()
             .overflow_hidden()
             .gap_2()
-            .child(
-                div()
-                    .text_size(px(PANEL_TITLE_TEXT_SIZE))
-                    .font_weight(FontWeight::BOLD)
-                    .text_color(ui_text_primary())
-                    .child("Body"),
-            )
             .child(div().flex().flex_col().min_w_0().gap_2().children(
                 request_body_mode_rows().map(|row| {
                     let [first, second, third] = row;
@@ -6101,10 +6182,26 @@ impl ZenApiApp {
                 panel
                     .child(
                         panel_button_row()
-                            .child(self.raw_format_button("JSON", RawBodyFormat::Json, cx))
-                            .child(self.raw_format_button("XML", RawBodyFormat::Xml, cx))
-                            .child(self.raw_format_button("Text", RawBodyFormat::Text, cx))
-                            .child(self.raw_format_button("HTML", RawBodyFormat::Html, cx)),
+                            .child(self.raw_format_button(
+                                RAW_FORMAT_JSON_MODE_LABEL,
+                                RawBodyFormat::Json,
+                                cx,
+                            ))
+                            .child(self.raw_format_button(
+                                RAW_FORMAT_XML_MODE_LABEL,
+                                RawBodyFormat::Xml,
+                                cx,
+                            ))
+                            .child(self.raw_format_button(
+                                RAW_FORMAT_TEXT_MODE_LABEL,
+                                RawBodyFormat::Text,
+                                cx,
+                            ))
+                            .child(self.raw_format_button(
+                                RAW_FORMAT_HTML_MODE_LABEL,
+                                RawBodyFormat::Html,
+                                cx,
+                            )),
                     )
                     .child(panel_button_row().child(self.panel_action_button(
                         RAW_FORMAT_JSON_LABEL,
@@ -6139,7 +6236,7 @@ impl ZenApiApp {
                                         .text_size(px(PANEL_TITLE_TEXT_SIZE))
                                         .font_weight(FontWeight::BOLD)
                                         .text_color(ui_text_primary())
-                                        .child("GraphQL"),
+                                        .child(GRAPHQL_PANEL_TITLE),
                                 )
                                 .child(self.action_button(
                                     GRAPHQL_INTROSPECT_LABEL,
@@ -6464,7 +6561,7 @@ impl ZenApiApp {
                             .text_size(px(PANEL_TITLE_TEXT_SIZE))
                             .font_weight(FontWeight::BOLD)
                             .text_color(ui_text_primary())
-                            .child("Code"),
+                            .child(CODEGEN_PANEL_TITLE),
                     )
                     .child(
                         div()
@@ -6505,7 +6602,7 @@ impl ZenApiApp {
                                             },
                                         ),
                                     )
-                                    .child("Copy"),
+                                    .child(CODEGEN_COPY_LABEL),
                             ),
                     ),
             )
@@ -8468,7 +8565,7 @@ fn format_sse_log(entries: &[SseLogEntry]) -> String {
 }
 
 fn sse_reconnect_status(attempt: usize, delay_ms: u64) -> String {
-    format!("retry {attempt} {delay_ms}ms")
+    format!("r{attempt} {delay_ms}ms")
 }
 
 fn sse_exchange_text(exchange: &client::SseExchange) -> String {
@@ -9252,7 +9349,7 @@ fn key_value_editor_key_column_width(title: &str) -> f32 {
 
 fn key_value_editor_column_labels(title: &str) -> (&'static str, &'static str) {
     match title {
-        "Headers" | REALTIME_WEBSOCKET_HEADERS_TITLE | REALTIME_SSE_HEADERS_TITLE => {
+        HEADERS_PANEL_TITLE | REALTIME_WEBSOCKET_HEADERS_TITLE | REALTIME_SSE_HEADERS_TITLE => {
             ("Header", "Value")
         }
         PARAMS_PANEL_TITLE => ("Param", "Value"),
@@ -10708,7 +10805,11 @@ fn import_success_body(spec_label: &str) -> String {
 }
 
 fn mock_button_label(server_running: bool) -> &'static str {
-    if server_running { "Stop" } else { "Mock" }
+    if server_running {
+        MOCK_STOP_LABEL
+    } else {
+        MOCK_START_LABEL
+    }
 }
 
 fn sidebar_focus_target(section: SidebarSection) -> SidebarFocusTarget {
@@ -10776,13 +10877,7 @@ fn filtered_count_label(total: usize, visible: usize) -> String {
 }
 
 fn route_status_label(total: usize, visible: usize) -> String {
-    if total == 0 {
-        "No routes".to_string()
-    } else if visible >= total {
-        route_count_label(total)
-    } else {
-        format!("{}/{} routes", visible, total)
-    }
+    filtered_count_label(total, visible)
 }
 
 fn route_count_label(count: usize) -> String {
@@ -10855,6 +10950,48 @@ fn panel_header_status_label(status: &str) -> Option<String> {
     } else {
         Some(status.to_string())
     }
+}
+
+fn realtime_header_status_label(status: &str) -> Option<String> {
+    let status = status.trim();
+    if status.is_empty() || status == "idle" {
+        return None;
+    }
+
+    let label = match status {
+        REALTIME_STATUS_NO_URL | REALTIME_STATUS_BAD_URL => status.to_string(),
+        "connecting" => "Conn".to_string(),
+        "connected" | "subscribed" => "Open".to_string(),
+        "subscribing" => "Sub".to_string(),
+        "closing" => "End".to_string(),
+        "closed" => "Closed".to_string(),
+        "stopped" => "Stopped".to_string(),
+        "not connected" => "No conn".to_string(),
+        "invalid binary" => "Bad hex".to_string(),
+        "sending" | "sent" => "TX".to_string(),
+        other if other.starts_with("received ") => {
+            format!("RX {}", other.trim_start_matches("received ").trim())
+        }
+        other if other.starts_with("event ") => {
+            format!("Evt {}", other.trim_start_matches("event ").trim())
+        }
+        "1 event" => "1 ev".to_string(),
+        other if other.ends_with(" events") => {
+            format!("{} ev", other.trim_end_matches(" events").trim())
+        }
+        other if other.starts_with("closed:") => "Closed".to_string(),
+        other if other.starts_with("error:") => {
+            let error = other.trim_start_matches("error:").trim();
+            if error.is_empty() {
+                "Err".to_string()
+            } else {
+                format!("Err {error}")
+            }
+        }
+        other => other.to_string(),
+    };
+
+    Some(label)
 }
 
 fn runner_header_status_label(status: &str) -> Option<String> {
@@ -11384,11 +11521,12 @@ mod tests {
         assert_eq!(route_count_label(0), "0 routes");
         assert_eq!(route_count_label(1), "1 route");
         assert_eq!(route_count_label(4), "4 routes");
-        assert_eq!(route_status_label(0, 0), "No routes");
-        assert_eq!(route_status_label(1, 1), "1 route");
-        assert_eq!(route_status_label(4, 4), "4 routes");
-        assert_eq!(route_status_label(4, 2), "2/4 routes");
-        assert_eq!(route_status_label(4, 8), "4 routes");
+        assert_eq!(route_status_label(0, 0), "0");
+        assert_eq!(route_status_label(1, 1), "1");
+        assert_eq!(route_status_label(4, 4), "4");
+        assert_eq!(route_status_label(4, 2), "2/4");
+        assert_eq!(route_status_label(4, 8), "4");
+        assert!(!route_status_label(4, 2).contains("routes"));
         assert_eq!(import_success_body(" petstore.yaml "), "petstore.yaml");
         assert_eq!(import_success_body(""), "Spec loaded");
         assert!(!import_success_body("petstore.yaml").contains("Ready"));
@@ -11490,6 +11628,52 @@ mod tests {
             panel_header_status_label("error: failed").as_deref(),
             Some("Err failed")
         );
+        assert_eq!(realtime_header_status_label(""), None);
+        assert_eq!(realtime_header_status_label(" idle "), None);
+        assert_eq!(
+            realtime_header_status_label(REALTIME_STATUS_NO_URL).as_deref(),
+            Some("No URL")
+        );
+        assert_eq!(
+            realtime_header_status_label(REALTIME_STATUS_BAD_URL).as_deref(),
+            Some("Bad URL")
+        );
+        assert_eq!(
+            realtime_header_status_label("connecting").as_deref(),
+            Some("Conn")
+        );
+        assert_eq!(
+            realtime_header_status_label("connected").as_deref(),
+            Some("Open")
+        );
+        assert_eq!(
+            realtime_header_status_label("subscribing").as_deref(),
+            Some("Sub")
+        );
+        assert_eq!(
+            realtime_header_status_label("received text").as_deref(),
+            Some("RX text")
+        );
+        assert_eq!(
+            realtime_header_status_label("event update").as_deref(),
+            Some("Evt update")
+        );
+        assert_eq!(
+            realtime_header_status_label("1 event").as_deref(),
+            Some("1 ev")
+        );
+        assert_eq!(
+            realtime_header_status_label("2 events").as_deref(),
+            Some("2 ev")
+        );
+        assert_eq!(
+            realtime_header_status_label("closed: normal").as_deref(),
+            Some("Closed")
+        );
+        assert_eq!(
+            realtime_header_status_label("error: socket reset").as_deref(),
+            Some("Err socket reset")
+        );
 
         assert_eq!(runner_header_status_label("Runner idle"), None);
         assert_eq!(
@@ -11564,9 +11748,9 @@ mod tests {
     #[test]
     fn path_submit_requires_text_and_idle_state() {
         assert_eq!(PATH_REQUIRED_BODY, "Path is empty.");
-        assert_eq!(IMPORT_PATH_REQUIRED_TITLE, "Import needs path");
-        assert_eq!(COLLECTION_PATH_REQUIRED_TITLE, "Collection needs path");
-        assert_eq!(EXPORT_PATH_REQUIRED_TITLE, "Export needs path");
+        assert_eq!(IMPORT_PATH_REQUIRED_TITLE, "No path");
+        assert_eq!(COLLECTION_PATH_REQUIRED_TITLE, "No path");
+        assert_eq!(EXPORT_PATH_REQUIRED_TITLE, "No path");
         assert!(
             [
                 PATH_REQUIRED_BODY,
@@ -11575,7 +11759,9 @@ mod tests {
                 EXPORT_PATH_REQUIRED_TITLE
             ]
             .iter()
-            .all(|label| !label.contains("Enter ") && !label.contains(" before "))
+            .all(|label| !label.contains("Enter ")
+                && !label.contains(" before ")
+                && !label.contains("needs"))
         );
         assert!(!can_submit_path_action(false, ""));
         assert!(!can_submit_path_action(false, "   "));
@@ -11687,8 +11873,8 @@ mod tests {
 
     #[test]
     fn request_send_requires_url_or_pre_request_url_action() {
-        assert_eq!(REQUEST_URL_REQUIRED_TITLE, "Request needs URL");
-        assert_eq!(SAVE_URL_REQUIRED_TITLE, "Save needs URL");
+        assert_eq!(REQUEST_URL_REQUIRED_TITLE, "No URL");
+        assert_eq!(SAVE_URL_REQUIRED_TITLE, "No URL");
         assert_eq!(URL_REQUIRED_BODY, "URL is empty.");
         assert!(
             [
@@ -11697,7 +11883,9 @@ mod tests {
                 URL_REQUIRED_BODY
             ]
             .iter()
-            .all(|label| !label.contains("Enter ") && !label.contains("select"))
+            .all(|label| !label.contains("Enter ")
+                && !label.contains("select")
+                && !label.contains("needs"))
         );
         assert!(!can_send_request("", ""));
         assert!(!can_send_request(
@@ -11873,7 +12061,7 @@ mod tests {
         );
         assert_eq!(
             workspace_split_target_ratios(WorkspaceSplitDrag::SidebarRequest, 0.1, 0.28, 0.37),
-            (0.20, 0.37)
+            (0.24, 0.37)
         );
         let (sidebar, request) =
             workspace_split_target_ratios(WorkspaceSplitDrag::RequestResponse, 0.95, 0.28, 0.37);
@@ -11881,7 +12069,7 @@ mod tests {
         assert!((request - 0.48).abs() < 0.0001);
         assert_eq!(
             workspace_split_target_ratios(WorkspaceSplitDrag::RequestResponse, 0.40, 0.28, 0.37),
-            (0.28, 0.28)
+            (0.28, 0.32)
         );
     }
 
@@ -11929,7 +12117,7 @@ mod tests {
     #[test]
     fn key_value_editor_key_column_width_respects_dense_body_tables() {
         assert_eq!(
-            key_value_editor_key_column_width("Headers"),
+            key_value_editor_key_column_width(HEADERS_PANEL_TITLE),
             KEY_VALUE_EDITOR_KEY_COLUMN_WIDTH
         );
         assert_eq!(
@@ -11951,7 +12139,7 @@ mod tests {
     #[test]
     fn key_value_editor_column_labels_match_editor_context() {
         assert_eq!(
-            key_value_editor_column_labels("Headers"),
+            key_value_editor_column_labels(HEADERS_PANEL_TITLE),
             ("Header", "Value")
         );
         assert_eq!(
@@ -12218,6 +12406,15 @@ mod tests {
 
     #[test]
     fn raw_json_format_action_requires_json_mode_and_body() {
+        assert_eq!(RAW_FORMATTED_TITLE, "Formatted");
+        assert_eq!(RAW_FORMATTED_BODY, "Body.");
+        assert!(
+            [RAW_FORMATTED_TITLE, RAW_FORMATTED_BODY]
+                .iter()
+                .all(|label| label.len() <= 9
+                    && !label.contains("Body formatted")
+                    && !label.contains("Formatted."))
+        );
         assert!(can_format_raw_json(RawBodyFormat::Json, r#"{"ok":true}"#));
         assert!(!can_format_raw_json(RawBodyFormat::Json, "   "));
         assert!(!can_format_raw_json(RawBodyFormat::Text, r#"{"ok":true}"#));
@@ -12382,22 +12579,55 @@ Cookie: a=b; c=d
         assert!(!can_copy_headers_bulk(false, false));
         assert!(can_copy_headers_bulk(false, true));
         assert!(!can_copy_headers_bulk(true, true));
-        assert_eq!(HEADER_BULK_CLIPBOARD_EMPTY_BODY, "No clipboard text.");
-        assert_eq!(HEADER_BULK_PARSE_EMPTY_BODY, "No header lines.");
+        assert_eq!(HEADER_COPY_EMPTY_TITLE, "No copy");
+        assert_eq!(HEADER_COPIED_TITLE, "Copied");
+        assert_eq!(HEADER_APPLIED_TITLE, "Applied");
+        assert_eq!(HEADER_BULK_HEADERS_BODY, "Headers.");
         assert!(
             [
+                HEADER_COPY_EMPTY_TITLE,
+                HEADER_COPIED_TITLE,
+                HEADER_APPLIED_TITLE,
+                HEADER_BULK_HEADERS_BODY
+            ]
+            .iter()
+            .all(|label| label.len() <= 8
+                && !label.contains("Headers copied")
+                && !label.contains("Headers pasted")
+                && !label.contains("copied."))
+        );
+        assert_eq!(HEADER_BULK_CLIPBOARD_EMPTY_TITLE, "No paste");
+        assert_eq!(HEADER_BULK_CLIPBOARD_EMPTY_BODY, "Clipboard empty.");
+        assert_eq!(HEADER_BULK_PARSE_EMPTY_TITLE, "No paste");
+        assert_eq!(HEADER_BULK_PARSE_EMPTY_BODY, "No headers.");
+        assert!(
+            [
+                HEADER_BULK_CLIPBOARD_EMPTY_TITLE,
                 HEADER_BULK_CLIPBOARD_EMPTY_BODY,
+                HEADER_BULK_PARSE_EMPTY_TITLE,
                 HEADER_BULK_PARSE_EMPTY_BODY
             ]
             .iter()
-            .all(|label| label.len() <= 18
+            .all(|label| label.len() <= 16
                 && !label.contains("Use ")
-                && !label.contains("for example"))
+                && !label.contains("for example")
+                && !label.contains("headers parsed")
+                && !label.contains("clipboard text"))
         );
     }
 
     #[test]
     fn header_presets_upsert_without_duplicate_names() {
+        assert_eq!(HEADER_APPLIED_TITLE, "Applied");
+        assert_eq!(HEADER_PRESET_BODY, "Header.");
+        assert!(
+            [HEADER_APPLIED_TITLE, HEADER_PRESET_BODY]
+                .iter()
+                .all(|label| label.len() <= 8
+                    && !label.contains("Header preset applied")
+                    && !label.contains(": "))
+        );
+
         let headers = vec![
             ("accept".to_string(), "text/plain".to_string()),
             ("X-Trace-Id".to_string(), "abc".to_string()),
@@ -12551,27 +12781,74 @@ Cookie: a=b; c=d
             RESPONSE_TITLE_IMPORTED,
             RESPONSE_TITLE_EXPORTED,
             RESPONSE_TITLE_SAVED,
+            RESPONSE_TITLE_RESTORED,
         ];
-        assert_eq!(success_titles, ["Imported", "Exported", "Saved"]);
+        assert_eq!(
+            success_titles,
+            ["Imported", "Exported", "Saved", "Restored"]
+        );
         assert!(success_titles.iter().all(|title| title.len() <= 8));
         assert!(success_titles.iter().all(|title| {
             !title.contains("Collection")
                 && !title.contains("Request")
                 && !title.contains("current")
         }));
+        assert_eq!(RESPONSE_BODY_REQUEST, "Request.");
+        assert!(
+            [RESPONSE_TITLE_RESTORED, RESPONSE_BODY_REQUEST]
+                .iter()
+                .all(|label| !label.contains("Collection request") && !label.contains("Restored."))
+        );
+        assert_eq!(RUNNER_ACTIVE_TITLE, "Running");
+        assert_eq!(RESPONSE_BODY_RUNNER, "Runner.");
+        assert!(
+            [RUNNER_ACTIVE_TITLE, RESPONSE_BODY_RUNNER]
+                .iter()
+                .all(|label| !label.contains("Runner active") && !label.contains("Running."))
+        );
+        let failure_titles = [
+            RESPONSE_TITLE_SELECTED,
+            RESPONSE_TITLE_IMPORT_FAIL,
+            RESPONSE_TITLE_EXPORT_FAIL,
+            RESPONSE_TITLE_SAVE_FAIL,
+            RESPONSE_TITLE_BUILD_FAIL,
+            RESPONSE_TITLE_BAD_TESTS,
+            RESPONSE_TITLE_REQUEST_FAIL,
+            RESPONSE_TITLE_RUNNER_FAIL,
+            RESPONSE_TITLE_RUN_PASSED,
+            RESPONSE_TITLE_RUN_STOPPED,
+            RESPONSE_TITLE_RUN_FAILED,
+            RESPONSE_TITLE_FORMAT_FAIL,
+        ];
+        assert_eq!(
+            failure_titles,
+            [
+                "Selected",
+                "Import fail",
+                "Export fail",
+                "Save fail",
+                "Build fail",
+                "Bad tests",
+                "Request fail",
+                "Runner fail",
+                "Run passed",
+                "Run stopped",
+                "Run fail",
+                "Format fail"
+            ]
+        );
+        assert!(failure_titles.iter().all(|title| title.len() <= 12
+            && !title.contains(" failed")
+            && !title.contains(" invalid")
+            && !title.contains("Collection")
+            && !title.contains("Route selected")
+            && !title.contains("Body format")));
 
         let bodies = [
-            STATUS_ACTIVE_BODY,
-            STATUS_READY_BODY,
-            STATUS_DELETED_BODY,
-            STATUS_COPIED_BODY,
-            STATUS_CLEARED_BODY,
-            STATUS_RUNNING_BODY,
-            STATUS_STOPPED_BODY,
-            STATUS_FORMATTED_BODY,
-            STATUS_SAVED_BODY,
-            STATUS_RESTORED_BODY,
-            STATUS_APPLIED_BODY,
+            VARIABLES_ENV_RESPONSE_BODY,
+            RESPONSE_BODY_REQUEST,
+            RESPONSE_BODY_RUNNER,
+            SSE_STOPPED_BODY,
             NO_HEADERS_BODY,
             NO_MESSAGES_BODY,
             NO_EVENTS_BODY,
@@ -12580,23 +12857,29 @@ Cookie: a=b; c=d
         assert_eq!(
             bodies,
             [
-                "Active.",
-                "Ready.",
-                "Deleted.",
-                "Copied.",
-                "Cleared.",
-                "Running.",
-                "Stopped.",
-                "Formatted.",
-                "Saved.",
-                "Restored.",
-                "Applied.",
+                "Env.",
+                "Request.",
+                "Runner.",
+                "SSE.",
                 "No headers.",
                 "No messages.",
                 "No events."
             ]
         );
         assert!(bodies.iter().all(|body| body.len() <= 12));
+        assert!(
+            [
+                VARIABLES_ENV_SELECTED_TITLE,
+                VARIABLES_ENV_CREATED_TITLE,
+                VARIABLES_ENV_DELETED_TITLE,
+                VARIABLES_ENV_RESPONSE_BODY
+            ]
+            .iter()
+            .all(|label| !label.contains("Env active")
+                && !label.contains("Env created")
+                && !label.contains("Env deleted")
+                && !label.contains("Active."))
+        );
         assert!(bodies.iter().all(|body| {
             !body.contains(" was ")
                 && !body.contains(" were ")
@@ -13183,6 +13466,32 @@ Cookie: a=b; c=d
 
     #[test]
     fn websocket_send_requires_running_and_valid_message_mode_input() {
+        let websocket_response_titles = [
+            WEBSOCKET_ACTIVE_TITLE,
+            WEBSOCKET_CONNECTED_TITLE,
+            WEBSOCKET_MESSAGE_TITLE,
+            WEBSOCKET_CLOSED_TITLE,
+            WEBSOCKET_BINARY_INVALID_TITLE,
+            WEBSOCKET_SEND_FAILED_TITLE,
+            WEBSOCKET_FAILED_TITLE,
+        ];
+        assert_eq!(
+            websocket_response_titles,
+            [
+                "WS active",
+                "WS open",
+                "WS msg",
+                "WS closed",
+                "WS invalid",
+                "WS send fail",
+                "WS failed"
+            ]
+        );
+        assert!(
+            websocket_response_titles
+                .iter()
+                .all(|title| title.len() <= 12 && !title.contains("WebSocket"))
+        );
         assert_eq!(WEBSOCKET_NOT_OPEN_TITLE, "WS not open");
         assert_eq!(WEBSOCKET_NOT_OPEN_BODY, "No active session.");
         assert!(
@@ -13243,9 +13552,11 @@ Cookie: a=b; c=d
 
     #[test]
     fn websocket_connect_requires_valid_scheme_and_idle_state() {
-        assert_eq!(WEBSOCKET_URL_REQUIRED_TITLE, "WS needs URL");
-        assert_eq!(WEBSOCKET_URL_INVALID_TITLE, "WS URL invalid");
+        assert_eq!(WEBSOCKET_URL_REQUIRED_TITLE, "WS no URL");
+        assert_eq!(WEBSOCKET_URL_INVALID_TITLE, "Bad WS URL");
         assert_eq!(WEBSOCKET_URL_INVALID_BODY, "Expected WS(S).");
+        assert_eq!(REALTIME_STATUS_NO_URL, "No URL");
+        assert_eq!(REALTIME_STATUS_BAD_URL, "Bad URL");
         assert_eq!(
             websocket_url_validation_response(""),
             (WEBSOCKET_URL_REQUIRED_TITLE, URL_REQUIRED_BODY)
@@ -13266,7 +13577,9 @@ Cookie: a=b; c=d
                 && !label.contains("Enter ")
                 && !label.contains(" before ")
                 && !label.contains("for example")
-                && !label.contains("WebSocket"))
+                && !label.contains("WebSocket")
+                && !label.contains("needs")
+                && !label.contains("invalid"))
         );
         assert!(!can_connect_websocket(false, false, ""));
         assert!(!can_connect_websocket(false, false, "   "));
@@ -13299,6 +13612,27 @@ Cookie: a=b; c=d
         assert!(can_use_realtime_log_actions(false, 1));
         assert!(can_use_realtime_log_actions(false, 24));
         assert!(!can_use_realtime_log_actions(true, 1));
+        assert_eq!(REALTIME_LOG_EMPTY_TITLE, "No log");
+        assert_eq!(REALTIME_LOG_COPIED_TITLE, "Copied");
+        assert_eq!(REALTIME_LOG_CLEARED_TITLE, "Cleared");
+        assert_eq!(REALTIME_LOG_BODY, "Log.");
+        assert!(
+            [
+                REALTIME_LOG_EMPTY_TITLE,
+                REALTIME_LOG_COPIED_TITLE,
+                REALTIME_LOG_CLEARED_TITLE,
+                REALTIME_LOG_BODY
+            ]
+            .iter()
+            .all(|label| label.len() <= 7
+                && !label.contains("WebSocket")
+                && !label.contains("SSE")
+                && !label.contains("messages")
+                && !label.contains("events")
+                && !label.contains("Log copied")
+                && !label.contains("Log cleared")
+                && !label.contains("Copied."))
+        );
     }
 
     #[test]
@@ -13364,16 +13698,49 @@ Cookie: a=b; c=d
             format_sse_log(&sse_log_entries(&exchange)),
             "ready #1 connected\nmessage plain"
         );
-        assert_eq!(sse_reconnect_status(3, 2500), "retry 3 2500ms");
+        assert_eq!(sse_reconnect_status(3, 2500), "r3 2500ms");
         assert!(!sse_reconnect_status(3, 2500).contains(" in "));
         assert!(!sse_reconnect_status(3, 2500).contains("reconnect"));
+        assert!(!sse_reconnect_status(3, 2500).contains("retry "));
     }
 
     #[test]
     fn sse_start_requires_http_scheme_and_idle_state() {
-        assert_eq!(SSE_URL_REQUIRED_TITLE, "SSE needs URL");
-        assert_eq!(SSE_URL_INVALID_TITLE, "SSE URL invalid");
+        let sse_response_titles = [
+            SSE_ACTIVE_TITLE,
+            SSE_OK_TITLE,
+            SSE_SUBSCRIBING_TITLE,
+            SSE_STOPPED_TITLE,
+            SSE_SUBSCRIBED_TITLE,
+            SSE_EVENT_TITLE,
+            SSE_RETRY_TITLE,
+            SSE_CLOSED_TITLE,
+            SSE_FAILED_TITLE,
+        ];
+        assert_eq!(
+            sse_response_titles,
+            [
+                "SSE active",
+                "SSE OK",
+                "SSE sub",
+                "Stopped",
+                "SSE open",
+                "SSE event",
+                "SSE retry",
+                "SSE closed",
+                "SSE failed"
+            ]
+        );
+        assert!(sse_response_titles.iter().all(|title| title.len() <= 10
+            && !title.contains("subscribing")
+            && !title.contains("subscribed")));
+        assert_eq!(SSE_STOPPED_BODY, "SSE.");
+        assert!(!SSE_STOPPED_BODY.contains("Stopped."));
+        assert_eq!(SSE_URL_REQUIRED_TITLE, "SSE no URL");
+        assert_eq!(SSE_URL_INVALID_TITLE, "Bad SSE URL");
         assert_eq!(SSE_URL_INVALID_BODY, "Expected HTTP(S).");
+        assert_eq!(REALTIME_STATUS_NO_URL, "No URL");
+        assert_eq!(REALTIME_STATUS_BAD_URL, "Bad URL");
         assert_eq!(
             sse_url_validation_response(""),
             (SSE_URL_REQUIRED_TITLE, URL_REQUIRED_BODY)
@@ -13395,7 +13762,9 @@ Cookie: a=b; c=d
                 && !label.contains(" before ")
                 && !label.contains("for example")
                 && !label.contains("http://")
-                && !label.contains("https://"))
+                && !label.contains("https://")
+                && !label.contains("needs")
+                && !label.contains("invalid"))
         );
         assert!(!can_start_sse(false, false, ""));
         assert!(!can_start_sse(false, false, "   "));
@@ -13732,10 +14101,10 @@ Cookie: a=b; c=d
 
     #[test]
     fn collection_export_requires_at_least_one_request() {
-        assert_eq!(COLLECTION_EXPORT_EMPTY_TITLE, "Export empty");
+        assert_eq!(COLLECTION_EXPORT_EMPTY_TITLE, "No export");
         assert_eq!(SAVED_REQUESTS_EMPTY_BODY, "No saved requests.");
-        assert_eq!(RUNNER_EMPTY_TITLE, "Runner empty");
-        assert_eq!(MOCK_ROUTES_REQUIRED_TITLE, "Mock needs routes");
+        assert_eq!(RUNNER_EMPTY_TITLE, "No requests");
+        assert_eq!(MOCK_ROUTES_REQUIRED_TITLE, "No routes");
         assert_eq!(MOCK_ROUTES_REQUIRED_BODY, "No routes loaded.");
         assert!(
             [
@@ -13748,7 +14117,9 @@ Cookie: a=b; c=d
             .iter()
             .all(|label| !label.contains("Enter ")
                 && !label.contains(" before ")
-                && !label.contains("Import "))
+                && !label.contains("Import ")
+                && !label.contains("needs")
+                && !label.contains("empty"))
         );
         let empty = ApiCollection::new("Empty");
         assert!(!can_export_collection(&empty));
@@ -13916,10 +14287,10 @@ Cookie: a=b; c=d
             WORKSPACE_SIDEBAR_DEFAULT_RATIO,
             SIDEBAR_WIDTH / APP_WINDOW_WIDTH
         );
-        assert_eq!(WORKSPACE_SIDEBAR_MIN_RATIO, 0.20);
+        assert_eq!(WORKSPACE_SIDEBAR_MIN_RATIO, 0.24);
         assert_eq!(WORKSPACE_SIDEBAR_MAX_RATIO, 0.38);
         assert_eq!(WORKSPACE_REQUEST_DEFAULT_RATIO, 0.37);
-        assert_eq!(WORKSPACE_REQUEST_MIN_RATIO, 0.28);
+        assert_eq!(WORKSPACE_REQUEST_MIN_RATIO, 0.32);
         assert_eq!(WORKSPACE_REQUEST_MAX_RATIO, 0.56);
         assert_eq!(WORKSPACE_RESPONSE_MIN_RATIO, 0.24);
         assert_eq!(WORKSPACE_SPLIT_HANDLE_WIDTH, 8.);
@@ -13941,9 +14312,7 @@ Cookie: a=b; c=d
         assert_eq!(REQUEST_EDITOR_TAB_COUNT, 7);
         assert_eq!(
             request_editor_tabs().map(|(label, _)| label),
-            [
-                "Params", "Headers", "Auth", "Body", "Scripts", "Realtime", "Tools"
-            ]
+            ["Params", "Hdrs", "Auth", "Body", "Script", "Live", "Tools"]
         );
         assert_eq!(
             request_tab_shortcuts().map(|(shortcut, _)| shortcut),
@@ -13972,7 +14341,7 @@ Cookie: a=b; c=d
                 < 1.
         );
         assert_eq!(TOP_BAR_HEIGHT, 40.);
-        assert_eq!(TOP_BAR_BRAND_WIDTH, 132.);
+        assert_eq!(TOP_BAR_BRAND_WIDTH, 72.);
         assert_eq!(TOP_BAR_ACTION_WIDTH, 76.);
         assert_eq!(TOP_BAR_MOCK_ACTION_WIDTH, 68.);
         assert_eq!(TOP_BAR_ACTION_HEIGHT, 30.);
@@ -13993,8 +14362,8 @@ Cookie: a=b; c=d
         assert_eq!(METHOD_MENU_WIDTH, REQUEST_METHOD_SEGMENT_WIDTH);
         assert_eq!(METHOD_MENU_ITEM_HEIGHT, 30.);
         assert_eq!(REQUEST_SEND_WIDTH, 86.);
-        assert_eq!(TEXT_INPUT_HEIGHT, 38.);
-        assert_eq!(TEXT_INPUT_LINE_HEIGHT, 22.);
+        assert_eq!(TEXT_INPUT_HEIGHT, 40.);
+        assert_eq!(TEXT_INPUT_LINE_HEIGHT, 24.);
         assert_eq!(UI_RADIUS_TIGHT, 4.);
         assert_eq!(UI_RADIUS_CONTROL, 5.);
         assert_eq!(UI_RADIUS_INPUT, 6.);
@@ -14042,14 +14411,14 @@ Cookie: a=b; c=d
         assert_eq!(BODY_EDITOR_HEIGHT, 118.);
         assert_eq!(GRAPHQL_VARIABLES_EDITOR_HEIGHT, 86.);
         assert_eq!(BODY_PREVIEW_HEIGHT, 86.);
-        assert_eq!(BODY_PREVIEW_LINE_HEIGHT, 22.);
+        assert_eq!(BODY_PREVIEW_LINE_HEIGHT, 26.);
         assert_eq!(GRAPHQL_QUERY_TEMPLATE_LIMIT, 5);
         assert_eq!(GRAPHQL_QUERY_TEMPLATE_USE_BUTTON_WIDTH, 54.);
         assert_eq!(GRAPHQL_SCHEMA_BROWSER_HEIGHT, 112.);
         assert_eq!(CODEGEN_SNIPPET_HEIGHT, 180.);
-        assert_eq!(CODEGEN_SNIPPET_LINE_HEIGHT, 22.);
-        assert_eq!(RESPONSE_BODY_LINE_HEIGHT, 22.);
-        assert_eq!(RESULT_ROW_HEIGHT, 32.);
+        assert_eq!(CODEGEN_SNIPPET_LINE_HEIGHT, 26.);
+        assert_eq!(RESPONSE_BODY_LINE_HEIGHT, 26.);
+        assert_eq!(RESULT_ROW_HEIGHT, 34.);
         assert_eq!(COLLECTION_DRAG_PREVIEW_HEIGHT, 28.);
         assert_eq!(COLLECTION_DRAG_PREVIEW_MAX_WIDTH, 220.);
         assert_eq!(PANEL_HEADER_HEIGHT, 40.);
@@ -14058,34 +14427,38 @@ Cookie: a=b; c=d
         assert_eq!(PANEL_HEADER_RIGHT_PADDING, 14.);
         assert_eq!(PANEL_HEADER_UNDERLINE_HEIGHT, 2.);
         assert_eq!(PANEL_HEADER_UNDERLINE_LEFT_OFFSET, 12.);
+        assert_eq!(EMPTY_STATE_ROW_HEIGHT, 36.);
         assert_eq!(APP_BASE_TEXT_SIZE, 14.);
         assert_eq!(TOP_BAR_BRAND_TEXT_SIZE, 16.);
         assert_eq!(TOP_BAR_ACTION_TEXT_SIZE, 14.);
-        assert_eq!(ACTION_BUTTON_TEXT_SIZE, 15.);
-        assert_eq!(COMPACT_CONTROL_TEXT_SIZE, 14.);
-        assert_eq!(COMPACT_SYMBOL_TEXT_SIZE, 12.);
-        assert_eq!(METHOD_CHEVRON_TEXT_SIZE, 11.);
-        assert_eq!(PANE_HEADER_TITLE_TEXT_SIZE, 18.);
-        assert_eq!(SIDEBAR_NAV_TEXT_SIZE, 15.);
-        assert_eq!(SIDEBAR_ACTION_TEXT_SIZE, 14.);
-        assert_eq!(SIDEBAR_PRIMARY_ROW_TEXT_SIZE, 15.);
-        assert_eq!(SIDEBAR_METHOD_TEXT_SIZE, 14.);
-        assert_eq!(SIDEBAR_COMPACT_METHOD_TEXT_SIZE, 12.);
-        assert_eq!(ROW_META_TEXT_SIZE, 13.);
-        assert_eq!(REQUEST_PRIMARY_CONTROL_TEXT_SIZE, 16.);
+        assert_eq!(ACTION_BUTTON_TEXT_SIZE, 16.);
+        assert_eq!(COMPACT_CONTROL_TEXT_SIZE, 15.);
+        assert_eq!(COMPACT_SYMBOL_TEXT_SIZE, 13.);
+        assert_eq!(METHOD_CHEVRON_TEXT_SIZE, 12.);
+        assert_eq!(PANE_HEADER_TITLE_TEXT_SIZE, 19.);
+        assert_eq!(SIDEBAR_NAV_TEXT_SIZE, 16.);
+        assert_eq!(SIDEBAR_ACTION_TEXT_SIZE, 15.);
+        assert_eq!(SIDEBAR_PRIMARY_ROW_TEXT_SIZE, 17.);
+        assert_eq!(SIDEBAR_METHOD_TEXT_SIZE, 16.);
+        assert_eq!(SIDEBAR_COMPACT_METHOD_TEXT_SIZE, 14.);
+        assert_eq!(ROW_META_TEXT_SIZE, 15.);
+        assert_eq!(REQUEST_PRIMARY_CONTROL_TEXT_SIZE, 18.);
         assert_eq!(REQUEST_EDITOR_TAB_TEXT_SIZE, 16.);
-        assert_eq!(PANEL_TITLE_TEXT_SIZE, 17.);
-        assert_eq!(PANEL_CONTENT_TEXT_SIZE, 16.);
-        assert_eq!(PANEL_META_TEXT_SIZE, 14.);
-        assert_eq!(TABLE_HEADER_TEXT_SIZE, 14.);
-        assert_eq!(TEXT_INPUT_TEXT_SIZE, 16.);
-        assert_eq!(RESPONSE_BODY_TEXT_SIZE, 16.);
+        assert_eq!(PANEL_TITLE_TEXT_SIZE, 18.);
+        assert_eq!(PANEL_CONTENT_TEXT_SIZE, 18.);
+        assert_eq!(PANEL_META_TEXT_SIZE, 15.);
+        assert_eq!(TABLE_HEADER_TEXT_SIZE, 16.);
+        assert_eq!(TEXT_INPUT_TEXT_SIZE, 18.);
+        assert_eq!(RESPONSE_BODY_TEXT_SIZE, 18.);
         assert_eq!(collection_tree_indent(0), 8.);
         assert_eq!(collection_tree_indent(1), 22.);
         assert_eq!(collection_tree_indent(2), 36.);
         assert_eq!(COLLECTION_TREE_INDENT_MAX, 78.);
         assert_eq!(collection_tree_indent(5), COLLECTION_TREE_INDENT_MAX);
         assert_eq!(collection_tree_indent(24), COLLECTION_TREE_INDENT_MAX);
+        assert_eq!(COLLECTION_TREE_ROOT_ROW_HEIGHT, 32.);
+        assert_eq!(COLLECTION_TREE_FOLDER_ROW_HEIGHT, 32.);
+        assert_eq!(COLLECTION_TREE_REQUEST_ROW_HEIGHT, 40.);
         assert_eq!(
             collection_tree_row_height(CollectionNodeKind::Root),
             collection_tree_row_height(CollectionNodeKind::Folder)
@@ -14095,7 +14468,7 @@ Cookie: a=b; c=d
                 > collection_tree_row_height(CollectionNodeKind::Folder)
         );
         assert_eq!(COLLECTION_TREE_MARKER_WIDTH, 14.);
-        assert_eq!(HTTP_METHOD_LABEL_WIDTH, 58.);
+        assert_eq!(HTTP_METHOD_LABEL_WIDTH, 64.);
         assert_eq!(SIDEBAR_SECONDARY_ROW_INDENT, HTTP_METHOD_LABEL_WIDTH + 8.);
         assert_eq!(RUNNER_METHOD_COLUMN_WIDTH, 70.);
         assert_eq!(RUNNER_STATUS_COLUMN_WIDTH, 42.);
@@ -14148,8 +14521,17 @@ Cookie: a=b; c=d
 
     #[test]
     fn top_bar_labels_stay_compact() {
-        assert_eq!(mock_button_label(false), "Mock");
-        assert_eq!(mock_button_label(true), "Stop");
+        let labels = [
+            APP_BRAND_LABEL,
+            TOP_BAR_IMPORT_LABEL,
+            IMPORT_OPEN_LABEL,
+            MOCK_START_LABEL,
+            MOCK_STOP_LABEL,
+        ];
+        assert_eq!(labels, ["ZenAPI", "Import", "Open", "Mock", "Stop"]);
+        assert!(labels.iter().all(|label| label.len() <= 6));
+        assert_eq!(mock_button_label(false), MOCK_START_LABEL);
+        assert_eq!(mock_button_label(true), MOCK_STOP_LABEL);
     }
 
     #[test]
@@ -14317,12 +14699,16 @@ Cookie: a=b; c=d
         assert!(auth_labels.iter().all(|label| label.len() <= 6));
 
         let action_labels = [
+            REQUEST_SEND_LABEL,
             PARAMS_PANEL_TITLE,
+            HEADERS_PANEL_TITLE,
             HEADER_COPY_BULK_LABEL,
             HEADER_PASTE_BULK_LABEL,
             HEADER_ACCEPT_JSON_LABEL,
             HEADER_CONTENT_JSON_LABEL,
             HEADER_BEARER_AUTH_LABEL,
+            PRE_REQUEST_PANEL_TITLE,
+            RUNNER_PANEL_TITLE,
             RUNNER_STOP_ON_FAILURE_LABEL,
             RUNNER_RUN_ALL_LABEL,
             RUNNER_EMPTY_REQUESTS_LABEL,
@@ -14330,21 +14716,28 @@ Cookie: a=b; c=d
             RAW_FORMAT_JSON_LABEL,
             RAW_PREVIEW_TITLE,
             RAW_EMPTY_PREVIEW_LABEL,
+            GRAPHQL_PANEL_TITLE,
             GRAPHQL_INTROSPECT_LABEL,
             GRAPHQL_PAYLOAD_TITLE,
             GRAPHQL_SCHEMA_TITLE,
             GRAPHQL_SCHEMA_BROWSER_TITLE,
             GRAPHQL_QUERY_ASSISTANT_TITLE,
+            CODEGEN_PANEL_TITLE,
+            CODEGEN_COPY_LABEL,
         ];
         assert_eq!(
             action_labels,
             [
+                "Send",
                 "Params",
+                "Hdrs",
                 "Copy",
                 "Paste",
                 "Accept",
                 "Content",
                 "Bearer",
+                "Pre",
+                "Runner",
                 "Stop Fail",
                 "Run",
                 "No requests",
@@ -14352,11 +14745,14 @@ Cookie: a=b; c=d
                 "Format",
                 "Preview",
                 "No body",
+                "GraphQL",
                 "Schema",
                 "Payload",
                 "Schema",
                 "Fields",
-                "Templates"
+                "Templates",
+                "Code",
+                "Copy"
             ]
         );
         assert!(action_labels.iter().all(|label| label.len() <= 11));
@@ -14366,8 +14762,19 @@ Cookie: a=b; c=d
             && !label.contains("Query")
             && !label.contains("Assistant")
             && !label.contains("Browser")
+            && !label.contains("Headers")
+            && !label.contains("Pre-request")
             && !label.contains("Syntax")
             && !label.contains("collection")));
+
+        let raw_format_labels = [
+            RAW_FORMAT_JSON_MODE_LABEL,
+            RAW_FORMAT_XML_MODE_LABEL,
+            RAW_FORMAT_TEXT_MODE_LABEL,
+            RAW_FORMAT_HTML_MODE_LABEL,
+        ];
+        assert_eq!(raw_format_labels, ["JSON", "XML", "Text", "HTML"]);
+        assert!(raw_format_labels.iter().all(|label| label.len() <= 4));
 
         let variables_labels = [
             VARIABLES_PANEL_TITLE,
@@ -14393,9 +14800,9 @@ Cookie: a=b; c=d
                 "Global",
                 "Env",
                 "Env needed",
-                "Env active",
-                "Env created",
-                "Env deleted"
+                "Active",
+                "Created",
+                "Removed"
             ]
         );
         assert!(variables_labels.iter().all(|label| label.len() <= 12));
@@ -14428,6 +14835,7 @@ Cookie: a=b; c=d
             REALTIME_SSE_STOP_LABEL,
             REALTIME_SSE_HEADERS_TITLE,
             REALTIME_SSE_EMPTY_LABEL,
+            MOCK_LOG_TITLE,
             MOCK_LOG_EMPTY_LABEL,
         ];
         assert_eq!(
@@ -14437,7 +14845,7 @@ Cookie: a=b; c=d
                 "Open",
                 "Send",
                 "End",
-                "WS Headers",
+                "WS Hdrs",
                 "Text",
                 "Hex",
                 "No messages",
@@ -14445,13 +14853,15 @@ Cookie: a=b; c=d
                 "Once",
                 "Stream",
                 "Stop",
-                "SSE Headers",
+                "SSE Hdrs",
                 "No events",
+                "Log",
                 "No logs"
             ]
         );
         assert!(realtime_labels.iter().all(|label| label.len() <= 11));
         assert!(realtime_labels.iter().all(|label| !label.contains("mock")
+            && !label.contains("Mock Log")
             && !label.contains("WebSocket")
             && !label.contains("WS messages")));
 

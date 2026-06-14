@@ -61,17 +61,52 @@ architecture.
   what to click next or repeated region names already present in the UI chrome.
 - Validation failures shown in the Response pane should stay short and factual;
   examples and procedural usage notes belong in docs, not in dense app chrome.
+  Empty URL/path/route validation should use compact titles such as `No URL`,
+  `No path`, and `No routes`, with the body carrying the specific fact such as
+  `URL is empty.` or `Path is empty.`. Scheme mismatches should use short
+  titles such as `Bad WS URL` and `Bad SSE URL`; Realtime panel metadata should
+  stay at `No URL` or `Bad URL`.
+  Error response titles should be compact state labels such as `Build fail`,
+  `Bad tests`, `Request fail`, `Save fail`, and `Format fail`; keep the full
+  operation context in the response body.
 - Operation success messages should not repeat the same fact in title, metadata,
   and body. For example, OpenAPI import success uses the imported spec name in
   the title, route count in metadata, and the source filename in the body. Dense
   collection/save success titles should be short actions such as `Imported`,
   `Exported`, or `Saved`, with object names or paths moved into metadata/body.
+  Env active/create/delete feedback should use `Active`, `Created`, or
+  `Removed` as the title, the environment name as metadata, and `Env.` in the
+  body instead of repeating `Env active` plus `Active.`.
+  Request save/restore feedback follows the same rule: use `Saved` or
+  `Restored` as the title, collection/request name as metadata, and `Request.`
+  in the body instead of repeating `Saved.` or `Restored.`.
+  Runner start and SSE stop feedback should avoid duplicated state words too:
+  use `Running` with `Runner.` and `Stopped` with `SSE.` instead of `Runner
+  active` plus `Running.` or `SSE stop` plus `Stopped.`.
+  Header bulk copy/paste uses the same pattern: `Copied` or `Applied` as the
+  title, count in metadata, and `Headers.` in the body instead of `Headers
+  copied` plus `Copied.` or `Headers pasted` plus `Applied.`. Header presets use
+  `Applied`, the header name as metadata, and `Header.` in the body; do not echo
+  header values into dense Response feedback. Raw JSON formatting uses
+  `Formatted`, `JSON` metadata, and `Body.` instead of `Body formatted` plus
+  `Formatted.`.
 - Pending Response body placeholders should follow the same pattern: use a
   short state label such as `Pending`, followed by the method and URL when that
   context is useful.
-- Log panes should use generic compact empty states such as `No messages`,
-  `No events`, or `No logs`; avoid repeating protocol or feature names already
-  present in the panel title.
+- Log panes should use generic compact titles and empty states such as `Log`,
+  `No messages`, `No events`, or `No logs`; avoid repeating protocol or feature
+  names already present in the active tab, tool context, or panel title. Log
+  copy/clear/empty feedback shown in the
+  Response pane should use neutral titles such as `No log`, `Copied`, and
+  `Cleared`, with `Log.` in the body for successful copy/clear operations; the
+  panel context and body can carry protocol-specific detail when needed.
+  Realtime Response titles should use protocol abbreviations such
+  as `WS active`, `WS msg`, `WS failed`, `SSE sub`, and `SSE open` instead of
+  full protocol names or longer state verbs.
+  Realtime panel header metadata should be even shorter than Response titles:
+  use `Conn`, `Open`, `TX`, `RX text`, `Evt update`, `1 ev`, `Closed`,
+  `No URL`, and `Bad URL` style labels rather than raw worker strings such as
+  `connecting`, `received text`, or `closed: ...`.
 - Sidebar empty states should preserve list density. Use a muted fixed row
   placeholder instead of a taller card-like block, with explicit text
   coordinates matching route-row rhythm.
@@ -95,6 +130,12 @@ architecture.
 - Below the global top bar, the app uses three same-level panes: Sidebar,
   Request, and Response. The request method, URL, and Send action belong only
   to the Request pane. The top bar stays reserved for app-level chrome.
+- The Sidebar pane should not be resizable below a useful navigation width.
+  Keep its minimum workspace ratio at 0.24 so route method labels, route names,
+  filters, and collection controls remain legible.
+- The middle Request pane should not be resizable below a useful editing width.
+  Keep its minimum workspace ratio at 0.32 so the request address bar and seven
+  request editor tabs remain legible at the app's minimum window size.
 - Region lines must have a single owner. The app shell owns the top-bar bottom
   rule, and the two workspace resize handles own the Sidebar/Request and
   Request/Response splits. Pane headers and toolbars own their bottom rules;
@@ -133,6 +174,10 @@ architecture.
   status bars, generated-code previews, Response text, result rows, history
   rows, log rows, composite-control dividers, and drag previews should also use
   named layout tokens.
+- Collection tree and log/result rows should leave enough vertical room for the
+  current typography tokens. Folder/root rows are 32 px, collection request rows
+  are 40 px, generic empty rows are 36 px, and result/log rows are 34 px so text
+  does not clip when the platform font renders taller than expected.
 - Sidebar secondary lines should align from the method column width plus the
   row gap, not from a hard-coded left margin. Compact toggle widths should use
   the shared short/long width rule so labels do not resize neighboring controls
@@ -154,13 +199,16 @@ architecture.
   use the placeholder token so they remain visible without competing with
   entered values.
 - Preserve a readable typography ladder without globally scaling the app: pane
-  header titles use 18 px; panel titles use 17 px; primary editable text,
-  Request editor tabs, Request method/Send controls, Response body text, panel
-  preview bodies, generated snippets, test results, and realtime/runner/mock log
-  rows use 16 px. General action buttons and sidebar navigation/primary rows use
-  15 px, top-bar actions, sidebar action buttons, method labels, compact
-  controls, panel meta, and table headers use 14 px; row metadata can stay at
-  13 px, and compact method/status cells can stay at 12 px.
+  header titles use 19 px; panel titles, primary editable text, Request
+  method/Send controls, Response body text, panel preview bodies, generated
+  snippets, test results, and realtime/runner/mock log rows use 18 px. Request
+  editor tabs, sidebar navigation, sidebar primary rows, and sidebar method
+  labels use 16 px. General action buttons and table headers use 16 px; panel
+  meta, sidebar action buttons, compact controls, and row metadata use 15 px.
+  Top-bar actions stay at 14 px so the app-level bar remains quiet, while
+  compact method/status cells use 14 px. Body
+  preview, generated snippet, and Response body line heights should track the
+  larger reading size at 26 px.
   GPUI app-shell text sizes should be expressed through named typography
   tokens rather than inline numeric literals.
 - Generic Request-pane key/value editors should use a narrower key column than
@@ -266,9 +314,9 @@ architecture.
 - HTTP method text colors must come from one shared token/helper. The sidebar
   list, method picker, and request method selector should never duplicate
   separate GET/POST/etc. color maps.
-- HTTP method labels need stable widths and explicit overflow handling. Common
-  methods such as DELETE and OPTIONS must not compress adjacent route text or
-  change row height.
+- HTTP method labels need stable widths and explicit overflow handling. Sidebar
+  route rows reserve a 64 px method column so common methods such as DELETE and
+  OPTIONS do not compress adjacent route text or change row height.
 - Sidebar route methods should be text-only fixed-width markers, not filled
   badges. The row selection and hover state already provide enough surface
   feedback.
@@ -304,9 +352,10 @@ architecture.
 - The top bar is a global console, not a form. Keep it fixed height, align the
   brand slot and right-side actions with stable widths, use a single bottom
   divider, avoid internal structural split lines, and avoid explanatory status
-  sentences. Keep file path entry inside the import popover instead of making it
-  persistent chrome.
-- The request address bar belongs inside the Request pane as one 38 px method /
+  sentences. Keep the brand slot compact at 72 px so app identity does not steal
+  horizontal room from work surfaces. Keep file path entry inside the import
+  popover instead of making it persistent chrome.
+- The request address bar belongs inside the Request pane as one 40 px method /
   URL / Send shell in a 54 px request row. Do not let it span Sidebar or
   Response.
 - Response panel header title should stay `Response`. Non-empty Response status
@@ -318,15 +367,28 @@ architecture.
 - Pane tab rows use fixed-height slots with a 1 px bottom divider. Title,
   action, and status text should use explicit insets, fixed action widths, and
   elision instead of letting content resize the pane.
+- Request editor tabs should use concise labels that survive the minimum middle
+  pane width: `Params`, `Hdrs`, `Auth`, `Body`, `Script`, `Live`, and `Tools`.
+  Keep the semantic panel titles inside each tab when extra context is needed.
+  The headers editor title also stays `Hdrs`; its table column keeps the full
+  `Header` label where that semantic precision is needed.
+  The `Body` tab should not repeat a `Body` title above its mode selector; the
+  active tab already supplies that context. Keep short subpanel titles such as
+  `GraphQL`, `Code`, and `Runner` only where a tab contains multiple distinct
+  tools or previews.
+  Inside `Script`, use the compact `Pre` panel title because the tab already
+  provides script context.
 - Top-bar status labels must use fixed-height, non-stretching slots and explicit
   text height so the label rectangle and its contents are both vertically
   centered against neighboring buttons.
 - The bottom status bar should suppress idle filler labels. Do not render
   default `Ready`, stopped/ready/no-route mock text, or idle Response text; only
   show busy, running mock, error, or operation-specific status when it carries
-  current information. The right-side status slot should only be reserved while
-  it has content, and it should be content-sized with a compact max width so
-  narrow windows leave more room for route and mock context.
+  current information. Route status in this bar uses pure counts such as `4` or
+  `2/4`, not repeated `routes` suffixes. The right-side status slot should only
+  be reserved while it has content, and it should be content-sized with a
+  compact max width so narrow windows leave more room for route and mock
+  context.
 - Dense panel headers should follow the same rule: hide default `idle`,
   `Runner idle`, `No requests`, `No results`, and zero-count test summaries
   instead of reserving header space for filler text.
