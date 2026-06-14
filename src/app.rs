@@ -224,6 +224,8 @@ const GRAPHQL_PAYLOAD_TITLE: &str = "Payload";
 const GRAPHQL_SCHEMA_TITLE: &str = "Schema";
 const GRAPHQL_SCHEMA_BROWSER_TITLE: &str = "Fields";
 const GRAPHQL_QUERY_ASSISTANT_TITLE: &str = "Templates";
+const GRAPHQL_QUERY_TEMPLATE_USE_LABEL: &str = "Use";
+const GRAPHQL_QUERY_TEMPLATE_VARS_LABEL: &str = "Vars";
 const CODEGEN_PANEL_TITLE: &str = "Code";
 const CODEGEN_COPY_LABEL: &str = "Copy";
 const BODY_MODE_NONE_LABEL: &str = "None";
@@ -346,7 +348,7 @@ const WORKSPACE_SIDEBAR_MAX_RATIO: f32 = 0.38;
 const WORKSPACE_REQUEST_DEFAULT_RATIO: f32 = 0.37;
 const WORKSPACE_REQUEST_MIN_RATIO: f32 = 0.32;
 const WORKSPACE_REQUEST_MAX_RATIO: f32 = 0.56;
-const WORKSPACE_RESPONSE_MIN_RATIO: f32 = 0.24;
+const WORKSPACE_RESPONSE_MIN_RATIO: f32 = 0.26;
 const WORKSPACE_SPLIT_HANDLE_WIDTH: f32 = 8.;
 const WORKSPACE_SPLIT_DIVIDER_WIDTH: f32 = 1.;
 const WORKSPACE_SPLIT_RATIO_EPSILON: f32 = 0.001;
@@ -389,9 +391,9 @@ const METHOD_MENU_LEFT_OFFSET: f32 = 12.;
 const REQUEST_SEND_WIDTH: f32 = 86.;
 const ACTION_BUTTON_WIDTH: f32 = 112.;
 const ACTION_BUTTON_HEIGHT: f32 = 34.;
-const SIDEBAR_BUTTON_HEIGHT: f32 = 28.;
-const SIDEBAR_SECTION_BUTTON_HEIGHT: f32 = 28.;
-const COMPACT_CONTROL_HEIGHT: f32 = 28.;
+const SIDEBAR_BUTTON_HEIGHT: f32 = 30.;
+const SIDEBAR_SECTION_BUTTON_HEIGHT: f32 = 30.;
+const COMPACT_CONTROL_HEIGHT: f32 = 30.;
 const COMPACT_TOGGLE_SHORT_WIDTH: f32 = 76.;
 const COMPACT_TOGGLE_LONG_WIDTH: f32 = 156.;
 const COMPACT_TOGGLE_LONG_LABEL_THRESHOLD: usize = 12;
@@ -426,23 +428,23 @@ const PANEL_HEADER_UNDERLINE_LEFT_OFFSET: f32 = 12.;
 const EMPTY_STATE_ROW_HEIGHT: f32 = 36.;
 const APP_BASE_TEXT_SIZE: f32 = 14.;
 const TOP_BAR_BRAND_TEXT_SIZE: f32 = 16.;
-const TOP_BAR_ACTION_TEXT_SIZE: f32 = 14.;
+const TOP_BAR_ACTION_TEXT_SIZE: f32 = 15.;
 const ACTION_BUTTON_TEXT_SIZE: f32 = 16.;
-const COMPACT_CONTROL_TEXT_SIZE: f32 = 15.;
-const COMPACT_SYMBOL_TEXT_SIZE: f32 = 13.;
-const METHOD_CHEVRON_TEXT_SIZE: f32 = 12.;
+const COMPACT_CONTROL_TEXT_SIZE: f32 = 16.;
+const COMPACT_SYMBOL_TEXT_SIZE: f32 = 14.;
+const METHOD_CHEVRON_TEXT_SIZE: f32 = 13.;
 const PANE_HEADER_TITLE_TEXT_SIZE: f32 = 19.;
 const SIDEBAR_NAV_TEXT_SIZE: f32 = 16.;
-const SIDEBAR_ACTION_TEXT_SIZE: f32 = 15.;
+const SIDEBAR_ACTION_TEXT_SIZE: f32 = 16.;
 const SIDEBAR_PRIMARY_ROW_TEXT_SIZE: f32 = 17.;
 const SIDEBAR_METHOD_TEXT_SIZE: f32 = 16.;
-const SIDEBAR_COMPACT_METHOD_TEXT_SIZE: f32 = 14.;
-const ROW_META_TEXT_SIZE: f32 = 15.;
+const SIDEBAR_COMPACT_METHOD_TEXT_SIZE: f32 = 15.;
+const ROW_META_TEXT_SIZE: f32 = 16.;
 const REQUEST_PRIMARY_CONTROL_TEXT_SIZE: f32 = 18.;
 const REQUEST_EDITOR_TAB_TEXT_SIZE: f32 = 16.;
 const PANEL_TITLE_TEXT_SIZE: f32 = 18.;
 const PANEL_CONTENT_TEXT_SIZE: f32 = 18.;
-const PANEL_META_TEXT_SIZE: f32 = 15.;
+const PANEL_META_TEXT_SIZE: f32 = 16.;
 const TABLE_HEADER_TEXT_SIZE: f32 = 16.;
 const TEXT_INPUT_TEXT_SIZE: f32 = 18.;
 const RESPONSE_BODY_TEXT_SIZE: f32 = 18.;
@@ -450,24 +452,24 @@ const UI_RADIUS_TIGHT: f32 = 4.;
 const UI_RADIUS_CONTROL: f32 = 5.;
 const UI_RADIUS_INPUT: f32 = 6.;
 const TEXT_INPUT_HEIGHT: f32 = 40.;
-const TEXT_INPUT_LINE_HEIGHT: f32 = 24.;
+const TEXT_INPUT_LINE_HEIGHT: f32 = 26.;
 const TEXT_INPUT_RADIUS: f32 = UI_RADIUS_INPUT;
 const TEXT_INPUT_BORDER_WIDTH: f32 = 2.;
 const KEY_VALUE_KEY_COLUMN_WIDTH: f32 = 150.;
 const KEY_VALUE_EDITOR_KEY_COLUMN_WIDTH: f32 = 128.;
 const KEY_VALUE_EDITOR_COMPACT_KEY_COLUMN_WIDTH: f32 = 112.;
-const KEY_VALUE_ROW_ACTION_BUTTON_WIDTH: f32 = 28.;
+const KEY_VALUE_ROW_ACTION_BUTTON_WIDTH: f32 = 30.;
 const TEST_ASSERTION_NAME_COLUMN_WIDTH: f32 = 132.;
 const TEST_ASSERTION_KIND_COLUMN_WIDTH: f32 = 96.;
 const TESTS_CLEAR_RESULTS_BUTTON_WIDTH: f32 = 54.;
 const COLLECTION_TREE_ROOT_ROW_HEIGHT: f32 = 32.;
 const COLLECTION_TREE_FOLDER_ROW_HEIGHT: f32 = 32.;
-const COLLECTION_TREE_REQUEST_ROW_HEIGHT: f32 = 40.;
+const COLLECTION_TREE_REQUEST_ROW_HEIGHT: f32 = 42.;
 const COLLECTION_TREE_INDENT_BASE: f32 = 8.;
 const COLLECTION_TREE_INDENT_STEP: f32 = 14.;
 const COLLECTION_TREE_INDENT_MAX: f32 = 78.;
 const COLLECTION_TREE_MARKER_WIDTH: f32 = 14.;
-const HTTP_METHOD_LABEL_WIDTH: f32 = 64.;
+const HTTP_METHOD_LABEL_WIDTH: f32 = 68.;
 const SIDEBAR_SECONDARY_ROW_INDENT: f32 = HTTP_METHOD_LABEL_WIDTH + 8.;
 const RUNNER_METHOD_COLUMN_WIDTH: f32 = 70.;
 const RUNNER_STATUS_COLUMN_WIDTH: f32 = 42.;
@@ -6428,7 +6430,7 @@ impl ZenApiApp {
                             )
                             .child(
                                 self.sized_action_button(
-                                    "Use",
+                                    GRAPHQL_QUERY_TEMPLATE_USE_LABEL,
                                     GRAPHQL_QUERY_TEMPLATE_USE_BUTTON_WIDTH,
                                     enabled,
                                     ButtonTone::Neutral,
@@ -6465,7 +6467,7 @@ impl ZenApiApp {
                                 .text_size(px(PANEL_CONTENT_TEXT_SIZE))
                                 .text_color(ui_text_body())
                                 .whitespace_normal()
-                                .child(format!("variables {variables_preview}")),
+                                .child(graphql_template_vars_preview(&variables_preview)),
                         )
                     }),
             );
@@ -8727,6 +8729,10 @@ fn graphql_query_templates(body: &str) -> Option<Vec<GraphqlQueryTemplate>> {
     (!templates.is_empty()).then_some(templates)
 }
 
+fn graphql_template_vars_preview(variables_preview: &str) -> String {
+    format!("{GRAPHQL_QUERY_TEMPLATE_VARS_LABEL} {variables_preview}")
+}
+
 fn graphql_query_template_from_field(field: &serde_json::Value) -> Option<GraphqlQueryTemplate> {
     let field_name = field.get("name")?.as_str()?.to_string();
     let args = graphql_operation_args(field);
@@ -10898,9 +10904,9 @@ fn status_bar_mock_label(server_running: bool, server_status: &str) -> Option<St
         if status.is_empty() {
             Some("Mock".to_string())
         } else if let Ok(addr) = status.parse::<SocketAddr>() {
-            Some(format!("Mock :{}", addr.port()))
+            Some(format!(":{}", addr.port()))
         } else {
-            Some(format!("Mock {status}"))
+            Some(status.to_string())
         }
     } else if is_idle_mock_status(status) {
         None
@@ -11579,16 +11585,25 @@ mod tests {
         assert_eq!(status_bar_mock_label(true, "").as_deref(), Some("Mock"));
         assert_eq!(
             status_bar_mock_label(true, "127.0.0.1:8080").as_deref(),
-            Some("Mock :8080")
+            Some(":8080")
         );
         assert_eq!(
             status_bar_mock_label(true, "[::1]:8081").as_deref(),
-            Some("Mock :8081")
+            Some(":8081")
+        );
+        assert_eq!(
+            status_bar_mock_label(true, MOCK_STATUS_STARTING).as_deref(),
+            Some(MOCK_STATUS_STARTING)
         );
         assert!(
             !status_bar_mock_label(true, "127.0.0.1:8080")
                 .unwrap()
-                .contains("127.0.0.1")
+                .contains("Mock")
+        );
+        assert!(
+            !status_bar_mock_label(true, MOCK_STATUS_STARTING)
+                .unwrap()
+                .contains("Mock Mock")
         );
         assert_eq!(response_status_label(""), None);
         assert_eq!(response_status_label(" Idle "), None);
@@ -12027,7 +12042,7 @@ mod tests {
             Some(WorkspaceSplitPreview {
                 split: WorkspaceSplitDrag::RequestResponse,
                 sidebar_ratio: 0.25,
-                request_ratio: 0.50,
+                request_ratio: 0.49,
             })
         );
     }
@@ -12057,7 +12072,7 @@ mod tests {
     fn workspace_split_target_ratios_keep_all_panes_visible() {
         assert_eq!(
             workspace_split_target_ratios(WorkspaceSplitDrag::SidebarRequest, 0.9, 0.28, 0.37),
-            (0.38, 0.37)
+            (0.37, 0.37)
         );
         assert_eq!(
             workspace_split_target_ratios(WorkspaceSplitDrag::SidebarRequest, 0.1, 0.28, 0.37),
@@ -12066,7 +12081,7 @@ mod tests {
         let (sidebar, request) =
             workspace_split_target_ratios(WorkspaceSplitDrag::RequestResponse, 0.95, 0.28, 0.37);
         assert_eq!(sidebar, 0.28);
-        assert!((request - 0.48).abs() < 0.0001);
+        assert!((request - 0.46).abs() < 0.0001);
         assert_eq!(
             workspace_split_target_ratios(WorkspaceSplitDrag::RequestResponse, 0.40, 0.28, 0.37),
             (0.28, 0.32)
@@ -13374,6 +13389,13 @@ Cookie: a=b; c=d
         assert_eq!(search_variables["term"], "<term>");
         assert_eq!(search_variables["limit"], 0);
         assert_eq!(search_variables["active"], false);
+        assert_eq!(
+            graphql_template_vars_preview(r#"{"term":"<term>"}"#),
+            r#"Vars {"term":"<term>"}"#
+        );
+        let variables_preview = graphql_template_vars_preview(&preview_text(&templates[1].variables));
+        assert!(variables_preview.starts_with("Vars "));
+        assert!(!variables_preview.to_lowercase().contains("variables"));
 
         assert_eq!(templates[2].field_name, "version");
         assert!(templates[2].operation.contains("query VersionQuery"));
@@ -14292,7 +14314,7 @@ Cookie: a=b; c=d
         assert_eq!(WORKSPACE_REQUEST_DEFAULT_RATIO, 0.37);
         assert_eq!(WORKSPACE_REQUEST_MIN_RATIO, 0.32);
         assert_eq!(WORKSPACE_REQUEST_MAX_RATIO, 0.56);
-        assert_eq!(WORKSPACE_RESPONSE_MIN_RATIO, 0.24);
+        assert_eq!(WORKSPACE_RESPONSE_MIN_RATIO, 0.26);
         assert_eq!(WORKSPACE_SPLIT_HANDLE_WIDTH, 8.);
         assert_eq!(WORKSPACE_SPLIT_DIVIDER_WIDTH, 1.);
         assert_eq!(WORKSPACE_SPLIT_RATIO_EPSILON, 0.001);
@@ -14363,7 +14385,7 @@ Cookie: a=b; c=d
         assert_eq!(METHOD_MENU_ITEM_HEIGHT, 30.);
         assert_eq!(REQUEST_SEND_WIDTH, 86.);
         assert_eq!(TEXT_INPUT_HEIGHT, 40.);
-        assert_eq!(TEXT_INPUT_LINE_HEIGHT, 24.);
+        assert_eq!(TEXT_INPUT_LINE_HEIGHT, 26.);
         assert_eq!(UI_RADIUS_TIGHT, 4.);
         assert_eq!(UI_RADIUS_CONTROL, 5.);
         assert_eq!(UI_RADIUS_INPUT, 6.);
@@ -14397,9 +14419,9 @@ Cookie: a=b; c=d
         assert_eq!(RESPONSE_COPY_BUTTON_WIDTH, 54.);
         assert_eq!(STATUS_BAR_TRAILING_MAX_WIDTH, 220.);
         assert!(STATUS_BAR_TRAILING_MAX_WIDTH < 360.);
-        assert_eq!(SIDEBAR_BUTTON_HEIGHT, 28.);
-        assert_eq!(SIDEBAR_SECTION_BUTTON_HEIGHT, 28.);
-        assert_eq!(COMPACT_CONTROL_HEIGHT, 28.);
+        assert_eq!(SIDEBAR_BUTTON_HEIGHT, 30.);
+        assert_eq!(SIDEBAR_SECTION_BUTTON_HEIGHT, 30.);
+        assert_eq!(COMPACT_CONTROL_HEIGHT, 30.);
         assert_eq!(COMPACT_TOGGLE_SHORT_WIDTH, 76.);
         assert_eq!(COMPACT_TOGGLE_LONG_WIDTH, 156.);
         assert_eq!(COMPACT_TOGGLE_LONG_LABEL_THRESHOLD, 12);
@@ -14430,23 +14452,23 @@ Cookie: a=b; c=d
         assert_eq!(EMPTY_STATE_ROW_HEIGHT, 36.);
         assert_eq!(APP_BASE_TEXT_SIZE, 14.);
         assert_eq!(TOP_BAR_BRAND_TEXT_SIZE, 16.);
-        assert_eq!(TOP_BAR_ACTION_TEXT_SIZE, 14.);
+        assert_eq!(TOP_BAR_ACTION_TEXT_SIZE, 15.);
         assert_eq!(ACTION_BUTTON_TEXT_SIZE, 16.);
-        assert_eq!(COMPACT_CONTROL_TEXT_SIZE, 15.);
-        assert_eq!(COMPACT_SYMBOL_TEXT_SIZE, 13.);
-        assert_eq!(METHOD_CHEVRON_TEXT_SIZE, 12.);
+        assert_eq!(COMPACT_CONTROL_TEXT_SIZE, 16.);
+        assert_eq!(COMPACT_SYMBOL_TEXT_SIZE, 14.);
+        assert_eq!(METHOD_CHEVRON_TEXT_SIZE, 13.);
         assert_eq!(PANE_HEADER_TITLE_TEXT_SIZE, 19.);
         assert_eq!(SIDEBAR_NAV_TEXT_SIZE, 16.);
-        assert_eq!(SIDEBAR_ACTION_TEXT_SIZE, 15.);
+        assert_eq!(SIDEBAR_ACTION_TEXT_SIZE, 16.);
         assert_eq!(SIDEBAR_PRIMARY_ROW_TEXT_SIZE, 17.);
         assert_eq!(SIDEBAR_METHOD_TEXT_SIZE, 16.);
-        assert_eq!(SIDEBAR_COMPACT_METHOD_TEXT_SIZE, 14.);
-        assert_eq!(ROW_META_TEXT_SIZE, 15.);
+        assert_eq!(SIDEBAR_COMPACT_METHOD_TEXT_SIZE, 15.);
+        assert_eq!(ROW_META_TEXT_SIZE, 16.);
         assert_eq!(REQUEST_PRIMARY_CONTROL_TEXT_SIZE, 18.);
         assert_eq!(REQUEST_EDITOR_TAB_TEXT_SIZE, 16.);
         assert_eq!(PANEL_TITLE_TEXT_SIZE, 18.);
         assert_eq!(PANEL_CONTENT_TEXT_SIZE, 18.);
-        assert_eq!(PANEL_META_TEXT_SIZE, 15.);
+        assert_eq!(PANEL_META_TEXT_SIZE, 16.);
         assert_eq!(TABLE_HEADER_TEXT_SIZE, 16.);
         assert_eq!(TEXT_INPUT_TEXT_SIZE, 18.);
         assert_eq!(RESPONSE_BODY_TEXT_SIZE, 18.);
@@ -14458,7 +14480,7 @@ Cookie: a=b; c=d
         assert_eq!(collection_tree_indent(24), COLLECTION_TREE_INDENT_MAX);
         assert_eq!(COLLECTION_TREE_ROOT_ROW_HEIGHT, 32.);
         assert_eq!(COLLECTION_TREE_FOLDER_ROW_HEIGHT, 32.);
-        assert_eq!(COLLECTION_TREE_REQUEST_ROW_HEIGHT, 40.);
+        assert_eq!(COLLECTION_TREE_REQUEST_ROW_HEIGHT, 42.);
         assert_eq!(
             collection_tree_row_height(CollectionNodeKind::Root),
             collection_tree_row_height(CollectionNodeKind::Folder)
@@ -14468,7 +14490,7 @@ Cookie: a=b; c=d
                 > collection_tree_row_height(CollectionNodeKind::Folder)
         );
         assert_eq!(COLLECTION_TREE_MARKER_WIDTH, 14.);
-        assert_eq!(HTTP_METHOD_LABEL_WIDTH, 64.);
+        assert_eq!(HTTP_METHOD_LABEL_WIDTH, 68.);
         assert_eq!(SIDEBAR_SECONDARY_ROW_INDENT, HTTP_METHOD_LABEL_WIDTH + 8.);
         assert_eq!(RUNNER_METHOD_COLUMN_WIDTH, 70.);
         assert_eq!(RUNNER_STATUS_COLUMN_WIDTH, 42.);
@@ -14483,7 +14505,7 @@ Cookie: a=b; c=d
         assert_eq!(KEY_VALUE_KEY_COLUMN_WIDTH, 150.);
         assert_eq!(KEY_VALUE_EDITOR_KEY_COLUMN_WIDTH, 128.);
         assert_eq!(KEY_VALUE_EDITOR_COMPACT_KEY_COLUMN_WIDTH, 112.);
-        assert_eq!(KEY_VALUE_ROW_ACTION_BUTTON_WIDTH, 28.);
+        assert_eq!(KEY_VALUE_ROW_ACTION_BUTTON_WIDTH, 30.);
         assert_eq!(TEST_ASSERTION_NAME_COLUMN_WIDTH, 132.);
         assert_eq!(TEST_ASSERTION_KIND_COLUMN_WIDTH, 96.);
         assert_eq!(TESTS_CLEAR_RESULTS_BUTTON_WIDTH, 54.);
@@ -14722,6 +14744,8 @@ Cookie: a=b; c=d
             GRAPHQL_SCHEMA_TITLE,
             GRAPHQL_SCHEMA_BROWSER_TITLE,
             GRAPHQL_QUERY_ASSISTANT_TITLE,
+            GRAPHQL_QUERY_TEMPLATE_USE_LABEL,
+            GRAPHQL_QUERY_TEMPLATE_VARS_LABEL,
             CODEGEN_PANEL_TITLE,
             CODEGEN_COPY_LABEL,
         ];
@@ -14751,6 +14775,8 @@ Cookie: a=b; c=d
                 "Schema",
                 "Fields",
                 "Templates",
+                "Use",
+                "Vars",
                 "Code",
                 "Copy"
             ]

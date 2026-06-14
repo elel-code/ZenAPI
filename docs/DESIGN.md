@@ -136,6 +136,9 @@ architecture.
 - The middle Request pane should not be resizable below a useful editing width.
   Keep its minimum workspace ratio at 0.32 so the request address bar and seven
   request editor tabs remain legible at the app's minimum window size.
+- The Response pane should keep enough room for the `Pretty`/`Raw`/`Hdrs` tabs
+  plus local `Fold`/`Open` and `Copy` actions. Keep its minimum workspace ratio
+  at 0.26 so the viewer toolbar remains scannable when the workspace is narrow.
 - Region lines must have a single owner. The app shell owns the top-bar bottom
   rule, and the two workspace resize handles own the Sidebar/Request and
   Request/Response splits. Pane headers and toolbars own their bottom rules;
@@ -176,7 +179,7 @@ architecture.
   named layout tokens.
 - Collection tree and log/result rows should leave enough vertical room for the
   current typography tokens. Folder/root rows are 32 px, collection request rows
-  are 40 px, generic empty rows are 36 px, and result/log rows are 34 px so text
+  are 42 px, generic empty rows are 36 px, and result/log rows are 34 px so text
   does not clip when the platform font renders taller than expected.
 - Sidebar secondary lines should align from the method column width plus the
   row gap, not from a hard-coded left margin. Compact toggle widths should use
@@ -203,12 +206,12 @@ architecture.
   method/Send controls, Response body text, panel preview bodies, generated
   snippets, test results, and realtime/runner/mock log rows use 18 px. Request
   editor tabs, sidebar navigation, sidebar primary rows, and sidebar method
-  labels use 16 px. General action buttons and table headers use 16 px; panel
-  meta, sidebar action buttons, compact controls, and row metadata use 15 px.
-  Top-bar actions stay at 14 px so the app-level bar remains quiet, while
-  compact method/status cells use 14 px. Body
-  preview, generated snippet, and Response body line heights should track the
-  larger reading size at 26 px.
+  labels use 16 px. General action buttons, table headers, panel meta, sidebar
+  action buttons, compact controls, and row metadata use 16 px. Top-bar actions
+  use 15 px so the app-level bar remains quieter than the Request controls,
+  while compact method/status cells use 15 px. TextInput, body preview,
+  generated snippet, and Response body line heights should track the larger
+  reading size at 26 px.
   GPUI app-shell text sizes should be expressed through named typography
   tokens rather than inline numeric literals.
 - Generic Request-pane key/value editors should use a narrower key column than
@@ -315,7 +318,7 @@ architecture.
   list, method picker, and request method selector should never duplicate
   separate GET/POST/etc. color maps.
 - HTTP method labels need stable widths and explicit overflow handling. Sidebar
-  route rows reserve a 64 px method column so common methods such as DELETE and
+  route rows reserve a 68 px method column so common methods such as DELETE and
   OPTIONS do not compress adjacent route text or change row height.
 - Sidebar route methods should be text-only fixed-width markers, not filled
   badges. The row selection and hover state already provide enough surface
