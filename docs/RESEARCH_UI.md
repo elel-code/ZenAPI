@@ -41,10 +41,10 @@ The visual direction is closer to a workbench than a landing page.
 | Response pane | `#ffffff` |
 | Muted control fill | `#ffffff`, hover `#f4f4f5` |
 | Disabled control | `#f2f2f3`, border `#d9d9df`, text `#8a8f98` |
-| Border/divider | `#e2e4e8`, `#c7ccd3` |
+| Border/divider | `#e2e4e8`, `#aeb7c2` |
 | Primary text | `#111827` |
 | Secondary text | `#4b5563`, `#64748b` |
-| Placeholder text | `#e3e7ee` |
+| Placeholder text | `#b8c0cc` |
 | Primary action | White fill, blue border/text |
 | Success/ready | Green text/accent |
 | Busy/warning | Amber text/accent |

@@ -56,6 +56,22 @@ architecture.
   Leave absent summaries absent while preserving stable row height and alignment.
 - Empty states should be one concise status line in dense panes. Avoid stacking
   helper explanations when surrounding controls already express the next action.
+- Default Response and tool preview empty states should be status labels such as
+  `No response`, `No URL`, or `No headers`, not instructions that tell the user
+  what to click next or repeated region names already present in the UI chrome.
+- Validation failures shown in the Response pane should stay short and factual;
+  examples and procedural usage notes belong in docs, not in dense app chrome.
+- Operation success messages should not repeat the same fact in title, metadata,
+  and body. For example, OpenAPI import success uses the imported spec name in
+  the title, route count in metadata, and the source filename in the body. Dense
+  collection/save success titles should be short actions such as `Imported`,
+  `Exported`, or `Saved`, with object names or paths moved into metadata/body.
+- Pending Response body placeholders should follow the same pattern: use a
+  short state label such as `Pending`, followed by the method and URL when that
+  context is useful.
+- Log panes should use generic compact empty states such as `No messages`,
+  `No events`, or `No logs`; avoid repeating protocol or feature names already
+  present in the panel title.
 - Sidebar empty states should preserve list density. Use a muted fixed row
   placeholder instead of a taller card-like block, with explicit text
   coordinates matching route-row rhythm.
@@ -91,7 +107,7 @@ architecture.
   editor surface or carries nearby status metadata. Do not add inactive tabs
   unless their content and behavior exist.
 - Request and Response should preserve a compact Postman-like rhythm. The
-  Request pane owns its 52 px method/URL/Send row, while the Response pane keeps
+  Request pane owns its 54 px method/URL/Send row, while the Response pane keeps
   status metadata fixed in its header and view/copy actions in the local tab
   row instead of using a separate global status band.
 - Use the current light palette consistently without flattening the workspace
@@ -100,8 +116,8 @@ architecture.
   `#ffffff`, request/response tab bars `#ffffff`, muted control fills
   `#ffffff` with hover `#f4f4f5`, disabled controls `#f2f2f3` with border
   `#d9d9df` and text `#8a8f98`, split dividers and borders `#e2e4e8` /
-  `#c7ccd3`, primary text `#111827`, secondary text `#4b5563` / `#64748b`,
-  and placeholder text `#e3e7ee`.
+  `#aeb7c2`, primary text `#111827`, body/detail text `#1f2937`,
+  secondary text `#4b5563` / `#64748b`, and placeholder text `#b8c0cc`.
 - Keep pane backgrounds neutral. Inputs, code blocks, popovers, and dense
   content surfaces stay white or near-white; use structure, borders, tabs, and
   small text or rule accents for orientation instead of broad colored
@@ -113,8 +129,18 @@ architecture.
 - Implement recurring palette values and stable layout tokens through
   shared UI tokens/metrics in the GPUI app shell rather than inline numeric
   literals in each panel.
+- Fixed heights and line heights for menu items, sidebar section buttons,
+  status bars, generated-code previews, Response text, result rows, history
+  rows, log rows, composite-control dividers, and drag previews should also use
+  named layout tokens.
+- Sidebar secondary lines should align from the method column width plus the
+  row gap, not from a hard-coded left margin. Compact toggle widths should use
+  the shared short/long width rule so labels do not resize neighboring controls
+  unpredictably.
 - Keep controls compact: most buttons should stay at 34-40 px height with a
-  maximum 8 px radius.
+  maximum 8 px radius. Repeated corner radii should come from the shared radius
+  tokens: tight list rows use 4 px, regular controls use 5 px, and input shells
+  use 6 px.
 - Fixed-height controls and list rows must explicitly center their contents
   vertically. Give text and pill contents stable heights instead of relying on
   layout defaults.
@@ -125,7 +151,18 @@ architecture.
 - Request-pane input shells, fixed preview boxes, and mode toggles should use
   white or near-white fills with primary/body text. Section titles, table
   headers, and idle control states should not look disabled; input placeholders
-  use the lighter placeholder token so they do not compete with entered values.
+  use the placeholder token so they remain visible without competing with
+  entered values.
+- Preserve a readable typography ladder without globally scaling the app: pane
+  header titles use 18 px; panel titles use 17 px; primary editable text,
+  Request editor tabs, Request method/Send controls, Response body text, panel
+  preview bodies, generated snippets, test results, and realtime/runner/mock log
+  rows use 16 px. General action buttons and sidebar navigation/primary rows use
+  15 px, top-bar actions, sidebar action buttons, method labels, compact
+  controls, panel meta, and table headers use 14 px; row metadata can stay at
+  13 px, and compact method/status cells can stay at 12 px.
+  GPUI app-shell text sizes should be expressed through named typography
+  tokens rather than inline numeric literals.
 - Generic Request-pane key/value editors should use a narrower key column than
   credential input groups, with denser columns for body field tables, so the
   value column remains useful in narrow panes. Their column headers should use
@@ -238,8 +275,11 @@ architecture.
 - Selected sidebar routes should use a restrained 3 px primary-color left
   marker plus row background, not another pill or decorative badge.
 - Route list rows must keep the API path on a stable baseline whether a summary
-  exists or not. The optional summary belongs in a fixed secondary line and
-  must not cause the path text to jump vertically between rows.
+  exists or not. The optional summary belongs in a fixed detail line and must
+  not cause the path text to jump vertically between rows. Sidebar detail lines
+  that carry real content, such as route summaries, history status, and saved
+  request URLs, use body contrast; counters, markers, and chrome status can stay
+  secondary or muted.
 - Response status color must come from explicit state/tone, not from broad text
   assumptions. Use neutral gray for idle, filtering, and route-selection states;
   amber for in-progress work; green for successful import or 2xx/3xx responses;
@@ -266,20 +306,38 @@ architecture.
   divider, avoid internal structural split lines, and avoid explanatory status
   sentences. Keep file path entry inside the import popover instead of making it
   persistent chrome.
-- The request address bar belongs inside the Request pane as one 36 px method /
-  URL / Send shell in a 52 px request row. Do not let it span Sidebar or
+- The request address bar belongs inside the Request pane as one 38 px method /
+  URL / Send shell in a 54 px request row. Do not let it span Sidebar or
   Response.
-- Response status metadata is a 260 px right-aligned text slot inside the 40 px
-  Response panel header, with a 14 px right inset and explicit truncation.
+- Response panel header title should stay `Response`. Non-empty Response status
+  metadata is right-aligned inside the 40 px header with a 180 px max width, 14
+  px right inset, and explicit truncation. Empty or whitespace-only metadata
+  should not reserve a right-side slot, so Request headers and idle Response
+  headers keep their title space. Hide default `Idle`; combine meaningful status
+  and tests metadata as compact right-side text.
 - Pane tab rows use fixed-height slots with a 1 px bottom divider. Title,
   action, and status text should use explicit insets, fixed action widths, and
   elision instead of letting content resize the pane.
 - Top-bar status labels must use fixed-height, non-stretching slots and explicit
   text height so the label rectangle and its contents are both vertically
   centered against neighboring buttons.
+- The bottom status bar should suppress idle filler labels. Do not render
+  default `Ready`, stopped/ready/no-route mock text, or idle Response text; only
+  show busy, running mock, error, or operation-specific status when it carries
+  current information. The right-side status slot should only be reserved while
+  it has content, and it should be content-sized with a compact max width so
+  narrow windows leave more room for route and mock context.
+- Dense panel headers should follow the same rule: hide default `idle`,
+  `Runner idle`, `No requests`, `No results`, and zero-count test summaries
+  instead of reserving header space for filler text.
+- Sidebar section headers should not carry long file or collection status
+  sentences. Hide default saved-collection status and compress known collection
+  outcomes to short labels such as `Imported`, `Exported`, `+ Req`, and `Busy`.
 - Mock controls should communicate state through enabled/disabled state, button
-  text, concise short labels such as a port number, and accent color. Do not add
-  long helper text to explain why a disabled action is unavailable.
+  text, concise short labels such as a port number, and accent color. Running
+  mock addresses in the status bar should be compressed to the port, and
+  transient start/stop/fail status should use short labels. Do not add long
+  helper text to explain why a disabled action is unavailable.
 - Primary command labels should stay stable during transient work when a nearby
   status region already communicates progress. Prefer disabled/busy styling
   plus response status over changing button text length.

@@ -8,6 +8,8 @@ use gpui::{
     fill, point, prelude::*, px, rgba, size,
 };
 
+use super::UI_COLOR_ACCENT_SELECTION_RGBA;
+
 actions!(zenapi_read_only_text, [SelectAll, Copy]);
 
 pub(super) struct ReadOnlyTextView {
@@ -402,7 +404,7 @@ fn push_selection_quad(
 
     quads.push(fill(
         Bounds::new(start, size(end.x - start.x, line_height)),
-        rgba(0x332563eb),
+        rgba(UI_COLOR_ACCENT_SELECTION_RGBA),
     ));
 }
 

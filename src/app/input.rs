@@ -13,9 +13,10 @@ use gpui::{div, relative};
 
 use super::{
     PLATFORM_MONOSPACE_FONT, PLATFORM_UI_FONT, SCROLLBAR_CONTENT_RIGHT_PADDING,
-    SCROLLBAR_GUTTER_WIDTH, TEXT_INPUT_HEIGHT, TEXT_INPUT_LINE_HEIGHT, TEXT_INPUT_RADIUS,
-    UI_COLOR_ACCENT_SELECTION_RGBA, ui_accent, ui_border_strong, ui_disabled_border,
-    ui_disabled_surface, ui_disabled_text, ui_surface, ui_text_placeholder, ui_text_primary,
+    SCROLLBAR_GUTTER_WIDTH, TEXT_INPUT_BORDER_WIDTH, TEXT_INPUT_HEIGHT, TEXT_INPUT_LINE_HEIGHT,
+    TEXT_INPUT_RADIUS, TEXT_INPUT_TEXT_SIZE, UI_COLOR_ACCENT_SELECTION_RGBA, ui_accent,
+    ui_border_strong, ui_disabled_border, ui_disabled_surface, ui_disabled_text, ui_surface,
+    ui_text_placeholder, ui_text_primary,
 };
 
 actions!(
@@ -990,7 +991,7 @@ impl Render for TextInput {
             .h(px(self.multiline_height.unwrap_or(TEXT_INPUT_HEIGHT)))
             .w_full()
             .line_height(px(TEXT_INPUT_LINE_HEIGHT))
-            .text_size(px(13.))
+            .text_size(px(TEXT_INPUT_TEXT_SIZE))
             .font_family(family)
             .text_color(text_color);
 
@@ -1024,7 +1025,7 @@ impl Render for TextInput {
                 .pl_3()
                 .pr(px(SCROLLBAR_CONTENT_RIGHT_PADDING))
                 .rounded(px(TEXT_INPUT_RADIUS))
-                .border_1()
+                .border(px(TEXT_INPUT_BORDER_WIDTH))
                 .border_color(border_color)
                 .bg(if self.enabled {
                     ui_surface()
@@ -1034,7 +1035,7 @@ impl Render for TextInput {
             (TextInputChrome::Shell, false) => input
                 .px_3()
                 .rounded(px(TEXT_INPUT_RADIUS))
-                .border_1()
+                .border(px(TEXT_INPUT_BORDER_WIDTH))
                 .border_color(border_color)
                 .bg(if self.enabled {
                     ui_surface()

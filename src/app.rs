@@ -1,7 +1,7 @@
 mod input;
 mod read_only_text;
 
-use std::{ops::Range, path::Path, sync::Arc};
+use std::{net::SocketAddr, ops::Range, path::Path, sync::Arc};
 
 use anyhow::{Result, anyhow};
 use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64_STANDARD};
@@ -52,6 +52,16 @@ actions!(
         SaveCurrentRequest,
         FocusActiveSidebarInput,
         FocusRequestUrl,
+        SelectRequestTabParams,
+        SelectRequestTabHeaders,
+        SelectRequestTabAuth,
+        SelectRequestTabBody,
+        SelectRequestTabScripts,
+        SelectRequestTabRealtime,
+        SelectRequestTabTools,
+        SelectResponseTabPretty,
+        SelectResponseTabRaw,
+        SelectResponseTabHeaders,
         CloseTransientUi
     ]
 );
@@ -61,7 +71,45 @@ use zenapi::variables::replace_variables;
 
 const PLATFORM_UI_FONT: &str = ".SystemUIFont";
 const PLATFORM_MONOSPACE_FONT: &str = "monospace";
-const INITIAL_RESPONSE_BODY: &str = "Import an OpenAPI or Swagger document to begin.";
+const INITIAL_RESPONSE_BODY: &str = "No response";
+const CODEGEN_EMPTY_SNIPPET_LABEL: &str = "No URL";
+const PENDING_RESPONSE_BODY_LABEL: &str = "Pending";
+const MOCK_STATUS_STOPPED: &str = "Mock stopped";
+const MOCK_STATUS_READY: &str = "Mock ready";
+const MOCK_STATUS_NO_ROUTES: &str = "No mock routes";
+const MOCK_STATUS_IMPORT_ROUTES_FIRST: &str = "No routes";
+const MOCK_STATUS_STARTING: &str = "Mock start";
+const MOCK_STATUS_STOPPING: &str = "Mock stop";
+const MOCK_STATUS_FAILED: &str = "Mock fail";
+const REQUEST_URL_REQUIRED_TITLE: &str = "Request needs URL";
+const SAVE_URL_REQUIRED_TITLE: &str = "Save needs URL";
+const URL_REQUIRED_BODY: &str = "URL is empty.";
+const PATH_REQUIRED_BODY: &str = "Path is empty.";
+const STATUS_ACTIVE_BODY: &str = "Active.";
+const STATUS_READY_BODY: &str = "Ready.";
+const STATUS_DELETED_BODY: &str = "Deleted.";
+const STATUS_COPIED_BODY: &str = "Copied.";
+const STATUS_CLEARED_BODY: &str = "Cleared.";
+const STATUS_RUNNING_BODY: &str = "Running.";
+const STATUS_STOPPED_BODY: &str = "Stopped.";
+const STATUS_FORMATTED_BODY: &str = "Formatted.";
+const STATUS_SAVED_BODY: &str = "Saved.";
+const STATUS_RESTORED_BODY: &str = "Restored.";
+const STATUS_APPLIED_BODY: &str = "Applied.";
+const RESPONSE_TITLE_IMPORTED: &str = "Imported";
+const RESPONSE_TITLE_EXPORTED: &str = "Exported";
+const RESPONSE_TITLE_SAVED: &str = "Saved";
+const NO_HEADERS_BODY: &str = "No headers.";
+const NO_MESSAGES_BODY: &str = "No messages.";
+const NO_EVENTS_BODY: &str = "No events.";
+const IMPORT_PATH_REQUIRED_TITLE: &str = "Import needs path";
+const COLLECTION_PATH_REQUIRED_TITLE: &str = "Collection needs path";
+const EXPORT_PATH_REQUIRED_TITLE: &str = "Export needs path";
+const COLLECTION_EXPORT_EMPTY_TITLE: &str = "Export empty";
+const SAVED_REQUESTS_EMPTY_BODY: &str = "No saved requests.";
+const RUNNER_EMPTY_TITLE: &str = "Runner empty";
+const MOCK_ROUTES_REQUIRED_TITLE: &str = "Mock needs routes";
+const MOCK_ROUTES_REQUIRED_BODY: &str = "No routes loaded.";
 const UI_COLOR_SURFACE: u32 = 0xffffff;
 const UI_COLOR_SURFACE_MUTED: u32 = UI_COLOR_SURFACE;
 const UI_COLOR_APP_CHROME: u32 = 0xf7f7f8;
@@ -76,12 +124,13 @@ const UI_COLOR_DISABLED_SURFACE: u32 = 0xf2f2f3;
 const UI_COLOR_DISABLED_BORDER: u32 = 0xd9d9df;
 const UI_COLOR_DISABLED_TEXT: u32 = 0x8a8f98;
 const UI_COLOR_BORDER: u32 = 0xe2e4e8;
-const UI_COLOR_BORDER_STRONG: u32 = 0xc7ccd3;
+const UI_COLOR_BORDER_STRONG: u32 = 0xaeb7c2;
 const UI_COLOR_TEXT_PRIMARY: u32 = 0x111827;
 const UI_COLOR_TEXT_SECONDARY: u32 = 0x4b5563;
 const UI_COLOR_TEXT_MUTED: u32 = 0x64748b;
-const UI_COLOR_TEXT_PLACEHOLDER: u32 = 0xe3e7ee;
+const UI_COLOR_TEXT_PLACEHOLDER: u32 = 0xb8c0cc;
 const UI_COLOR_TEXT_BODY: u32 = 0x1f2937;
+const UI_COLOR_SIDEBAR_DETAIL_TEXT: u32 = UI_COLOR_TEXT_BODY;
 const UI_COLOR_ACCENT: u32 = 0x2563eb;
 const UI_COLOR_ACCENT_TEXT: u32 = 0x1d4ed8;
 const UI_COLOR_ACCENT_SELECTION_RGBA: u32 = 0x332563eb;
@@ -131,6 +180,10 @@ const HEADER_PASTE_BULK_LABEL: &str = "Paste";
 const HEADER_ACCEPT_JSON_LABEL: &str = "Accept";
 const HEADER_CONTENT_JSON_LABEL: &str = "Content";
 const HEADER_BEARER_AUTH_LABEL: &str = "Bearer";
+const HEADER_BULK_CLIPBOARD_EMPTY_TITLE: &str = "Clipboard empty";
+const HEADER_BULK_CLIPBOARD_EMPTY_BODY: &str = "No clipboard text.";
+const HEADER_BULK_PARSE_EMPTY_TITLE: &str = "No headers parsed";
+const HEADER_BULK_PARSE_EMPTY_BODY: &str = "No header lines.";
 const PARAMS_PANEL_TITLE: &str = "Params";
 const RUNNER_STOP_ON_FAILURE_LABEL: &str = "Stop Fail";
 const RUNNER_RUN_ALL_LABEL: &str = "Run";
@@ -139,6 +192,7 @@ const RUNNER_EMPTY_RESULTS_LABEL: &str = "No results";
 const RAW_FORMAT_JSON_LABEL: &str = "Format";
 const RAW_PREVIEW_TITLE: &str = "Preview";
 const RAW_EMPTY_PREVIEW_LABEL: &str = "No body";
+const RAW_JSON_EMPTY_FORMAT_BODY: &str = "JSON body is empty.";
 const GRAPHQL_INTROSPECT_LABEL: &str = "Schema";
 const GRAPHQL_PAYLOAD_TITLE: &str = "Payload";
 const GRAPHQL_SCHEMA_TITLE: &str = "Schema";
@@ -177,26 +231,38 @@ const VARIABLES_DELETE_ENV_LABEL: &str = "Del";
 const VARIABLES_GLOBAL_TITLE: &str = "Global";
 const VARIABLES_ENV_TITLE: &str = "Env";
 const VARIABLES_ENV_NEEDED_TITLE: &str = "Env needed";
-const VARIABLES_ENV_SELECTED_TITLE: &str = "Env selected";
+const VARIABLES_ENV_NAME_REQUIRED_BODY: &str = "Env name is empty.";
+const VARIABLES_ENV_SELECTED_TITLE: &str = "Env active";
 const VARIABLES_ENV_CREATED_TITLE: &str = "Env created";
 const VARIABLES_ENV_DELETED_TITLE: &str = "Env deleted";
 const PLACEHOLDER_WEBSOCKET_URL: &str = "WS URL";
 const PLACEHOLDER_WEBSOCKET_PROTOCOLS: &str = "Protocols";
 const PLACEHOLDER_SSE_URL: &str = "SSE URL";
 const REALTIME_WEBSOCKET_TITLE: &str = "WS";
+const WEBSOCKET_URL_REQUIRED_TITLE: &str = "WS needs URL";
+const WEBSOCKET_URL_INVALID_TITLE: &str = "WS URL invalid";
+const WEBSOCKET_URL_INVALID_BODY: &str = "Expected WS(S).";
 const REALTIME_WEBSOCKET_CONNECT_LABEL: &str = "Open";
 const REALTIME_WEBSOCKET_SEND_LABEL: &str = "Send";
 const REALTIME_WEBSOCKET_CLOSE_LABEL: &str = "End";
 const REALTIME_WEBSOCKET_HEADERS_TITLE: &str = "WS Headers";
 const REALTIME_WEBSOCKET_TEXT_LABEL: &str = "Text";
 const REALTIME_WEBSOCKET_BINARY_LABEL: &str = "Hex";
-const REALTIME_WEBSOCKET_EMPTY_LABEL: &str = "No WS messages";
+const REALTIME_WEBSOCKET_EMPTY_LABEL: &str = "No messages";
+const WEBSOCKET_NOT_OPEN_TITLE: &str = "WS not open";
+const WEBSOCKET_NOT_OPEN_BODY: &str = "No active session.";
+const WEBSOCKET_BINARY_EMPTY_BODY: &str = "Hex body is empty.";
+const WEBSOCKET_BINARY_ODD_DIGITS_BODY: &str = "Odd hex length.";
 const REALTIME_SSE_TITLE: &str = "SSE";
+const SSE_URL_REQUIRED_TITLE: &str = "SSE needs URL";
+const SSE_URL_INVALID_TITLE: &str = "SSE URL invalid";
+const SSE_URL_INVALID_BODY: &str = "Expected HTTP(S).";
 const REALTIME_SSE_FETCH_LABEL: &str = "Once";
 const REALTIME_SSE_SUBSCRIBE_LABEL: &str = "Stream";
 const REALTIME_SSE_STOP_LABEL: &str = "Stop";
 const REALTIME_SSE_HEADERS_TITLE: &str = "SSE Headers";
 const REALTIME_SSE_EMPTY_LABEL: &str = "No events";
+const MOCK_LOG_EMPTY_LABEL: &str = "No logs";
 const TESTS_PANEL_TITLE: &str = "Tests";
 const TEST_ASSERTION_NAME_HEADER: &str = "Test";
 const TEST_ASSERTION_KIND_HEADER: &str = "Kind";
@@ -217,6 +283,7 @@ const RESPONSE_HEADERS_LABEL: &str = "Hdrs";
 const RESPONSE_FOLD_LABEL: &str = "Fold";
 const RESPONSE_OPEN_LABEL: &str = "Open";
 const RESPONSE_COPY_LABEL: &str = "Copy";
+const RESPONSE_HEADERS_EMPTY_LABEL: &str = "No headers";
 const APP_WINDOW_WIDTH: f32 = 1180.;
 const APP_WINDOW_HEIGHT: f32 = 760.;
 const SIDEBAR_WIDTH: f32 = 320.;
@@ -232,6 +299,8 @@ const WORKSPACE_SPLIT_DIVIDER_WIDTH: f32 = 1.;
 const WORKSPACE_SPLIT_RATIO_EPSILON: f32 = 0.001;
 const WORKSPACE_SPLIT_UPDATE_STEP_PX: f32 = 48.;
 const SIDEBAR_NAV_HEIGHT: f32 = 42.;
+const LAYOUT_ZERO: f32 = 0.;
+const SCROLLBAR_HIDDEN_SIZE: f32 = LAYOUT_ZERO;
 const SCROLLBAR_WIDTH: f32 = 6.;
 const SCROLLBAR_RIGHT_OFFSET: f32 = 3.;
 const SCROLLBAR_GUTTER_WIDTH: f32 = SCROLLBAR_WIDTH + SCROLLBAR_RIGHT_OFFSET * 2.;
@@ -249,22 +318,32 @@ const IMPORT_POPOVER_TOP_OFFSET: f32 = TOP_BAR_HEIGHT + 6.;
 const IMPORT_POPOVER_RIGHT_OFFSET: f32 = TOP_BAR_MOCK_ACTION_WIDTH + 20.;
 const SECTION_HEADER_HEIGHT: f32 = 24.;
 const ROUTE_ROW_HEIGHT: f32 = 48.;
+const HISTORY_ROW_HEIGHT: f32 = 46.;
 const ROUTE_SELECTED_MARKER_WIDTH: f32 = 3.;
-const REQUEST_BAR_HEIGHT: f32 = 52.;
+const REQUEST_BAR_HEIGHT: f32 = 54.;
 const REQUEST_BAR_CONTROL_Y_OFFSET: f32 = 8.;
 const REQUEST_METHOD_SEGMENT_WIDTH: f32 = 100.;
+const REQUEST_ADDRESS_DIVIDER_HEIGHT: f32 = 22.;
+const REQUEST_ADDRESS_DIVIDER_WIDTH: f32 = 1.;
 const REQUEST_ADDRESS_RADIUS: f32 = TEXT_INPUT_RADIUS;
 const REQUEST_EDITOR_TAB_BAR_HEIGHT: f32 = 34.;
 const REQUEST_EDITOR_TAB_COUNT: usize = 7;
 const METHOD_MENU_WIDTH: f32 = REQUEST_METHOD_SEGMENT_WIDTH;
+const METHOD_MENU_ITEM_HEIGHT: f32 = 30.;
 const METHOD_MENU_TOP_OFFSET: f32 =
     PANEL_HEADER_HEIGHT + REQUEST_BAR_CONTROL_Y_OFFSET + TEXT_INPUT_HEIGHT + 4.;
 const METHOD_MENU_LEFT_OFFSET: f32 = 12.;
 const REQUEST_SEND_WIDTH: f32 = 86.;
 const ACTION_BUTTON_WIDTH: f32 = 112.;
 const ACTION_BUTTON_HEIGHT: f32 = 34.;
-const SIDEBAR_BUTTON_HEIGHT: f32 = 26.;
-const COMPACT_CONTROL_HEIGHT: f32 = 26.;
+const SIDEBAR_BUTTON_HEIGHT: f32 = 28.;
+const SIDEBAR_SECTION_BUTTON_HEIGHT: f32 = 28.;
+const COMPACT_CONTROL_HEIGHT: f32 = 28.;
+const COMPACT_TOGGLE_SHORT_WIDTH: f32 = 76.;
+const COMPACT_TOGGLE_LONG_WIDTH: f32 = 156.;
+const COMPACT_TOGGLE_LONG_LABEL_THRESHOLD: usize = 12;
+const TOP_BAR_ACTION_HEIGHT: f32 = 30.;
+const STATUS_BAR_HEIGHT: f32 = 32.;
 const RESPONSE_TAB_BAR_HEIGHT: f32 = 36.;
 const RESPONSE_TAB_WIDTH: f32 = 72.;
 const RESPONSE_TAB_COUNT: usize = 3;
@@ -272,22 +351,55 @@ const RESPONSE_FOLD_BUTTON_WIDTH: f32 = 54.;
 const RESPONSE_COPY_BUTTON_WIDTH: f32 = 54.;
 const CODEGEN_COPY_BUTTON_WIDTH: f32 = 72.;
 const CODEGEN_MENU_WIDTH: f32 = 156.;
-const STATUS_BAR_TRAILING_WIDTH: f32 = 360.;
+const CODEGEN_SNIPPET_HEIGHT: f32 = 180.;
+const CODEGEN_SNIPPET_LINE_HEIGHT: f32 = 22.;
+const STATUS_BAR_TRAILING_MAX_WIDTH: f32 = 220.;
 const BODY_EDITOR_HEIGHT: f32 = 118.;
 const GRAPHQL_VARIABLES_EDITOR_HEIGHT: f32 = 86.;
 const BODY_PREVIEW_HEIGHT: f32 = 86.;
-const BODY_PREVIEW_LINE_HEIGHT: f32 = 18.;
+const BODY_PREVIEW_LINE_HEIGHT: f32 = 22.;
+const RESPONSE_BODY_LINE_HEIGHT: f32 = 22.;
 const GRAPHQL_QUERY_TEMPLATE_USE_BUTTON_WIDTH: f32 = 54.;
 const GRAPHQL_SCHEMA_BROWSER_HEIGHT: f32 = 112.;
+const RESULT_ROW_HEIGHT: f32 = 32.;
+const COLLECTION_DRAG_PREVIEW_HEIGHT: f32 = 28.;
+const COLLECTION_DRAG_PREVIEW_MAX_WIDTH: f32 = 220.;
 const PANEL_HEADER_HEIGHT: f32 = 40.;
-const PANEL_HEADER_META_WIDTH: f32 = 260.;
+const PANEL_HEADER_META_MAX_WIDTH: f32 = 180.;
 const PANEL_HEADER_RIGHT_PADDING: f32 = 14.;
 const PANEL_HEADER_UNDERLINE_WIDTH: f32 = 80.;
 const PANEL_HEADER_UNDERLINE_HEIGHT: f32 = 2.;
+const PANEL_HEADER_UNDERLINE_LEFT_OFFSET: f32 = 12.;
 const EMPTY_STATE_ROW_HEIGHT: f32 = 34.;
-const TEXT_INPUT_HEIGHT: f32 = 36.;
-const TEXT_INPUT_LINE_HEIGHT: f32 = 20.;
-const TEXT_INPUT_RADIUS: f32 = 6.;
+const APP_BASE_TEXT_SIZE: f32 = 14.;
+const TOP_BAR_BRAND_TEXT_SIZE: f32 = 16.;
+const TOP_BAR_ACTION_TEXT_SIZE: f32 = 14.;
+const ACTION_BUTTON_TEXT_SIZE: f32 = 15.;
+const COMPACT_CONTROL_TEXT_SIZE: f32 = 14.;
+const COMPACT_SYMBOL_TEXT_SIZE: f32 = 12.;
+const METHOD_CHEVRON_TEXT_SIZE: f32 = 11.;
+const PANE_HEADER_TITLE_TEXT_SIZE: f32 = 18.;
+const SIDEBAR_NAV_TEXT_SIZE: f32 = 15.;
+const SIDEBAR_ACTION_TEXT_SIZE: f32 = 14.;
+const SIDEBAR_PRIMARY_ROW_TEXT_SIZE: f32 = 15.;
+const SIDEBAR_METHOD_TEXT_SIZE: f32 = 14.;
+const SIDEBAR_COMPACT_METHOD_TEXT_SIZE: f32 = 12.;
+const ROW_META_TEXT_SIZE: f32 = 13.;
+const REQUEST_PRIMARY_CONTROL_TEXT_SIZE: f32 = 16.;
+const REQUEST_EDITOR_TAB_TEXT_SIZE: f32 = 16.;
+const PANEL_TITLE_TEXT_SIZE: f32 = 17.;
+const PANEL_CONTENT_TEXT_SIZE: f32 = 16.;
+const PANEL_META_TEXT_SIZE: f32 = 14.;
+const TABLE_HEADER_TEXT_SIZE: f32 = 14.;
+const TEXT_INPUT_TEXT_SIZE: f32 = 16.;
+const RESPONSE_BODY_TEXT_SIZE: f32 = 16.;
+const UI_RADIUS_TIGHT: f32 = 4.;
+const UI_RADIUS_CONTROL: f32 = 5.;
+const UI_RADIUS_INPUT: f32 = 6.;
+const TEXT_INPUT_HEIGHT: f32 = 38.;
+const TEXT_INPUT_LINE_HEIGHT: f32 = 22.;
+const TEXT_INPUT_RADIUS: f32 = UI_RADIUS_INPUT;
+const TEXT_INPUT_BORDER_WIDTH: f32 = 2.;
 const KEY_VALUE_KEY_COLUMN_WIDTH: f32 = 150.;
 const KEY_VALUE_EDITOR_KEY_COLUMN_WIDTH: f32 = 128.;
 const KEY_VALUE_EDITOR_COMPACT_KEY_COLUMN_WIDTH: f32 = 112.;
@@ -303,6 +415,7 @@ const COLLECTION_TREE_INDENT_STEP: f32 = 14.;
 const COLLECTION_TREE_INDENT_MAX: f32 = 78.;
 const COLLECTION_TREE_MARKER_WIDTH: f32 = 14.;
 const HTTP_METHOD_LABEL_WIDTH: f32 = 58.;
+const SIDEBAR_SECONDARY_ROW_INDENT: f32 = HTTP_METHOD_LABEL_WIDTH + 8.;
 const RUNNER_METHOD_COLUMN_WIDTH: f32 = 70.;
 const RUNNER_STATUS_COLUMN_WIDTH: f32 = 42.;
 const RUNNER_PRE_REQUEST_COLUMN_WIDTH: f32 = 52.;
@@ -359,6 +472,26 @@ fn bind_app_keys(cx: &mut App) {
         KeyBinding::new("cmd-l", FocusRequestUrl, None),
         KeyBinding::new("ctrl-s", SaveCurrentRequest, None),
         KeyBinding::new("cmd-s", SaveCurrentRequest, None),
+        KeyBinding::new("ctrl-1", SelectRequestTabParams, None),
+        KeyBinding::new("cmd-1", SelectRequestTabParams, None),
+        KeyBinding::new("ctrl-2", SelectRequestTabHeaders, None),
+        KeyBinding::new("cmd-2", SelectRequestTabHeaders, None),
+        KeyBinding::new("ctrl-3", SelectRequestTabAuth, None),
+        KeyBinding::new("cmd-3", SelectRequestTabAuth, None),
+        KeyBinding::new("ctrl-4", SelectRequestTabBody, None),
+        KeyBinding::new("cmd-4", SelectRequestTabBody, None),
+        KeyBinding::new("ctrl-5", SelectRequestTabScripts, None),
+        KeyBinding::new("cmd-5", SelectRequestTabScripts, None),
+        KeyBinding::new("ctrl-6", SelectRequestTabRealtime, None),
+        KeyBinding::new("cmd-6", SelectRequestTabRealtime, None),
+        KeyBinding::new("ctrl-7", SelectRequestTabTools, None),
+        KeyBinding::new("cmd-7", SelectRequestTabTools, None),
+        KeyBinding::new("ctrl-shift-1", SelectResponseTabPretty, None),
+        KeyBinding::new("cmd-shift-1", SelectResponseTabPretty, None),
+        KeyBinding::new("ctrl-shift-2", SelectResponseTabRaw, None),
+        KeyBinding::new("cmd-shift-2", SelectResponseTabRaw, None),
+        KeyBinding::new("ctrl-shift-3", SelectResponseTabHeaders, None),
+        KeyBinding::new("cmd-shift-3", SelectResponseTabHeaders, None),
         KeyBinding::new("escape", CloseTransientUi, None),
     ]);
 }
@@ -523,7 +656,7 @@ enum SidebarFocusTarget {
     HistoryFilter,
 }
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum RequestPaneTab {
     Params,
     Headers,
@@ -543,6 +676,19 @@ fn request_editor_tabs() -> [(&'static str, RequestPaneTab); REQUEST_EDITOR_TAB_
         ("Scripts", RequestPaneTab::Scripts),
         ("Realtime", RequestPaneTab::Realtime),
         ("Tools", RequestPaneTab::Tools),
+    ]
+}
+
+#[cfg(test)]
+fn request_tab_shortcuts() -> [(usize, RequestPaneTab); REQUEST_EDITOR_TAB_COUNT] {
+    [
+        (1, RequestPaneTab::Params),
+        (2, RequestPaneTab::Headers),
+        (3, RequestPaneTab::Auth),
+        (4, RequestPaneTab::Body),
+        (5, RequestPaneTab::Scripts),
+        (6, RequestPaneTab::Realtime),
+        (7, RequestPaneTab::Tools),
     ]
 }
 
@@ -725,6 +871,10 @@ fn ui_text_placeholder() -> Hsla {
 
 fn ui_text_body() -> Hsla {
     rgb(UI_COLOR_TEXT_BODY).into()
+}
+
+fn ui_sidebar_detail_text() -> Hsla {
+    rgb(UI_COLOR_SIDEBAR_DETAIL_TEXT).into()
 }
 
 fn ui_accent() -> Hsla {
@@ -1030,7 +1180,7 @@ impl ZenApiApp {
             codegen_menu_open: false,
             server: None,
             server_running: false,
-            server_status: "Mock stopped".to_string(),
+            server_status: MOCK_STATUS_STOPPED.to_string(),
             mock_logs: Vec::new(),
             runner_running: false,
             runner_stop_on_failure: false,
@@ -1051,10 +1201,10 @@ impl ZenApiApp {
         let path = path.trim();
         if path.is_empty() {
             self.set_response(
-                "Import needs a file path",
+                IMPORT_PATH_REQUIRED_TITLE,
                 "",
                 ResponseTone::Error,
-                "Enter a local OpenAPI or Swagger JSON/YAML file path.",
+                PATH_REQUIRED_BODY,
             );
             cx.notify();
             return;
@@ -1074,21 +1224,22 @@ impl ZenApiApp {
                 self.visible_routes = routes.clone();
                 self.routes = routes;
                 self.selected_route = None;
-                self.spec_label = display_spec_label(path);
+                let spec_label = display_spec_label(path);
+                self.spec_label = spec_label.clone();
                 self.import_popover_open = false;
                 self.server_running = false;
                 self.server_status = if self.routes.is_empty() {
-                    "No mock routes".to_string()
+                    MOCK_STATUS_NO_ROUTES.to_string()
                 } else {
-                    "Mock ready".to_string()
+                    MOCK_STATUS_READY.to_string()
                 };
                 self.route_filter
                     .update(cx, |input, cx| input.set_text("", cx));
                 self.set_response(
                     format!("Imported {spec_name}"),
-                    format!("{} routes", self.routes.len()),
+                    route_count_label(self.routes.len()),
                     ResponseTone::Success,
-                    format!("Ready: {} routes parsed.", self.routes.len()),
+                    import_success_body(&spec_label),
                 );
             }
             Err(error) => {
@@ -1096,12 +1247,7 @@ impl ZenApiApp {
                     "Import failed",
                     "",
                     ResponseTone::Error,
-                    file_operation_error(
-                        "Could not import OpenAPI document.",
-                        path,
-                        &error.to_string(),
-                        "Check that the path exists and points to a JSON or YAML OpenAPI/Swagger file.",
-                    ),
+                    file_operation_error("OpenAPI import failed.", path, &error.to_string()),
                 );
             }
         }
@@ -1118,10 +1264,10 @@ impl ZenApiApp {
         let path = path.trim();
         if path.is_empty() {
             self.set_response(
-                "Path needed",
+                COLLECTION_PATH_REQUIRED_TITLE,
                 "",
                 ResponseTone::Error,
-                "Enter a ZenAPI or Postman JSON path.",
+                PATH_REQUIRED_BODY,
             );
             cx.notify();
             return;
@@ -1133,10 +1279,10 @@ impl ZenApiApp {
                 self.collection = collection;
                 self.expanded_collection_nodes = vec!["collection".to_string()];
                 self.set_response(
-                    "Collection imported",
+                    RESPONSE_TITLE_IMPORTED,
                     self.collection.items.len().to_string(),
                     ResponseTone::Success,
-                    format!("Loaded collection: {}", self.collection.name),
+                    self.collection.name.clone(),
                 );
             }
             Err(error) => {
@@ -1145,12 +1291,7 @@ impl ZenApiApp {
                     "Collection failed",
                     "",
                     ResponseTone::Error,
-                    file_operation_error(
-                        "Could not import collection.",
-                        path,
-                        &error.to_string(),
-                        "Check that the path exists and contains ZenAPI or Postman collection JSON.",
-                    ),
+                    file_operation_error("Collection import failed.", path, &error.to_string()),
                 );
             }
         }
@@ -1165,10 +1306,10 @@ impl ZenApiApp {
         if !can_export_collection(&self.collection) {
             self.collection_status = "Nothing to export".to_string();
             self.set_response(
-                "Export unavailable",
+                COLLECTION_EXPORT_EMPTY_TITLE,
                 "",
                 ResponseTone::Neutral,
-                "Save at least one request to the collection before exporting.",
+                SAVED_REQUESTS_EMPTY_BODY,
             );
             cx.notify();
             return;
@@ -1178,10 +1319,10 @@ impl ZenApiApp {
         let path = path.trim();
         if path.is_empty() {
             self.set_response(
-                "Path needed",
+                EXPORT_PATH_REQUIRED_TITLE,
                 "",
                 ResponseTone::Error,
-                "Enter a target JSON path.",
+                PATH_REQUIRED_BODY,
             );
             cx.notify();
             return;
@@ -1201,10 +1342,10 @@ impl ZenApiApp {
                     "Exported ZenAPI".to_string()
                 };
                 self.set_response(
-                    "Collection exported",
+                    RESPONSE_TITLE_EXPORTED,
                     "",
                     ResponseTone::Success,
-                    format!("Wrote collection: {path}"),
+                    path.to_string(),
                 );
             }
             Err(error) => {
@@ -1213,12 +1354,7 @@ impl ZenApiApp {
                     "Export failed",
                     "",
                     ResponseTone::Error,
-                    file_operation_error(
-                        "Could not export collection.",
-                        path,
-                        &error.to_string(),
-                        "Check that the parent directory exists and is writable.",
-                    ),
+                    file_operation_error("Collection export failed.", path, &error.to_string()),
                 );
             }
         }
@@ -1236,10 +1372,10 @@ impl ZenApiApp {
                 self.pre_request_status = pre_request_status_label(build.pre_request_actions);
                 self.last_pre_request_actions = build.pre_request_action_labels;
                 self.set_response(
-                    "Save needs URL",
+                    SAVE_URL_REQUIRED_TITLE,
                     "",
                     ResponseTone::Error,
-                    "Enter a request URL before saving to the collection.",
+                    URL_REQUIRED_BODY,
                 );
                 cx.notify();
                 return;
@@ -1256,11 +1392,7 @@ impl ZenApiApp {
                     "Save failed",
                     "",
                     ResponseTone::Error,
-                    editor_error(
-                        "Could not build the request before saving.",
-                        &error,
-                        "Fix the highlighted request fields or pre-request action line, then save again.",
-                    ),
+                    editor_error("Save build failed.", &error),
                 );
                 cx.notify();
                 return;
@@ -1273,11 +1405,7 @@ impl ZenApiApp {
                     "Save failed",
                     "",
                     ResponseTone::Error,
-                    editor_error(
-                        "Could not save the request tests.",
-                        &error.to_string(),
-                        "Check each configured test row for the expected target/value format.",
-                    ),
+                    editor_error("Tests save failed.", &error.to_string()),
                 );
                 cx.notify();
                 return;
@@ -1294,10 +1422,10 @@ impl ZenApiApp {
             .push(CollectionItem::Request(collection_request));
         self.collection_status = format!("{} items", self.collection.items.len());
         self.set_response(
-            "Request saved",
+            RESPONSE_TITLE_SAVED,
             self.collection.name.clone(),
             ResponseTone::Success,
-            "Saved current request to collection.",
+            STATUS_SAVED_BODY,
         );
         cx.notify();
     }
@@ -1364,6 +1492,110 @@ impl ZenApiApp {
         if self.close_transient_layers() {
             cx.notify();
         }
+    }
+
+    fn select_request_tab(&mut self, tab: RequestPaneTab, cx: &mut Context<Self>) {
+        self.close_transient_layers();
+        self.active_request_tab = tab;
+        reset_scroll_handle(&self.request_scroll);
+        cx.notify();
+    }
+
+    fn select_request_tab_params(
+        &mut self,
+        _: &SelectRequestTabParams,
+        _: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        self.select_request_tab(RequestPaneTab::Params, cx);
+    }
+
+    fn select_request_tab_headers(
+        &mut self,
+        _: &SelectRequestTabHeaders,
+        _: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        self.select_request_tab(RequestPaneTab::Headers, cx);
+    }
+
+    fn select_request_tab_auth(
+        &mut self,
+        _: &SelectRequestTabAuth,
+        _: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        self.select_request_tab(RequestPaneTab::Auth, cx);
+    }
+
+    fn select_request_tab_body(
+        &mut self,
+        _: &SelectRequestTabBody,
+        _: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        self.select_request_tab(RequestPaneTab::Body, cx);
+    }
+
+    fn select_request_tab_scripts(
+        &mut self,
+        _: &SelectRequestTabScripts,
+        _: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        self.select_request_tab(RequestPaneTab::Scripts, cx);
+    }
+
+    fn select_request_tab_realtime(
+        &mut self,
+        _: &SelectRequestTabRealtime,
+        _: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        self.select_request_tab(RequestPaneTab::Realtime, cx);
+    }
+
+    fn select_request_tab_tools(
+        &mut self,
+        _: &SelectRequestTabTools,
+        _: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        self.select_request_tab(RequestPaneTab::Tools, cx);
+    }
+
+    fn select_response_tab(&mut self, view: ResponseView, cx: &mut Context<Self>) {
+        self.close_transient_layers();
+        self.response_view = view;
+        reset_scroll_handle(&self.response_scroll);
+        cx.notify();
+    }
+
+    fn select_response_tab_pretty(
+        &mut self,
+        _: &SelectResponseTabPretty,
+        _: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        self.select_response_tab(ResponseView::Pretty, cx);
+    }
+
+    fn select_response_tab_raw(
+        &mut self,
+        _: &SelectResponseTabRaw,
+        _: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        self.select_response_tab(ResponseView::Raw, cx);
+    }
+
+    fn select_response_tab_headers(
+        &mut self,
+        _: &SelectResponseTabHeaders,
+        _: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        self.select_response_tab(ResponseView::Headers, cx);
     }
 
     fn set_busy(&mut self, busy: bool, cx: &mut Context<Self>) {
@@ -1643,7 +1875,7 @@ impl ZenApiApp {
             "Collection request",
             "",
             ResponseTone::Neutral,
-            "Restored request from collection.",
+            STATUS_RESTORED_BODY,
         );
         cx.notify();
     }
@@ -1814,11 +2046,7 @@ impl ZenApiApp {
                     "Request build failed",
                     "",
                     ResponseTone::Error,
-                    editor_error(
-                        "Could not build the request.",
-                        &error,
-                        "Fix the request fields or pre-request action line, then send again.",
-                    ),
+                    editor_error("Request build failed.", &error),
                 );
                 cx.notify();
                 return;
@@ -1829,10 +2057,10 @@ impl ZenApiApp {
         let request = build.request;
         if request.url.is_empty() {
             self.set_response(
-                "Request needs a URL",
+                REQUEST_URL_REQUIRED_TITLE,
                 "",
                 ResponseTone::Error,
-                "Enter a request URL or select an imported route first.",
+                URL_REQUIRED_BODY,
             );
             cx.notify();
             return;
@@ -1844,11 +2072,7 @@ impl ZenApiApp {
                     "Tests invalid",
                     "",
                     ResponseTone::Error,
-                    editor_error(
-                        "Could not run the configured tests.",
-                        &error.to_string(),
-                        "Check each test row target and expected value, then send again.",
-                    ),
+                    editor_error("Tests invalid.", &error.to_string()),
                 );
                 cx.notify();
                 return;
@@ -1957,17 +2181,13 @@ impl ZenApiApp {
             if self.busy || self.websocket_running {
                 return;
             }
+            let (title, body) = websocket_url_validation_response(&url);
             self.websocket_status = if has_trimmed_text(&url) {
                 "invalid URL".to_string()
             } else {
                 "URL required".to_string()
             };
-            self.set_response(
-                "WebSocket needs a URL",
-                "",
-                ResponseTone::Error,
-                "Enter a ws:// or wss:// URL before connecting.",
-            );
+            self.set_response(title, "", ResponseTone::Error, body);
             cx.notify();
             return;
         }
@@ -2026,10 +2246,10 @@ impl ZenApiApp {
         let Some(command_tx) = self.websocket_command_tx.as_ref() else {
             self.websocket_status = "not connected".to_string();
             self.set_response(
-                "WS not open",
+                WEBSOCKET_NOT_OPEN_TITLE,
                 "",
                 ResponseTone::Error,
-                "Open a WS session before sending.",
+                WEBSOCKET_NOT_OPEN_BODY,
             );
             cx.notify();
             return;
@@ -2040,11 +2260,7 @@ impl ZenApiApp {
             WebSocketMessageMode::BinaryHex => match websocket_hex_bytes(&message) {
                 Ok(bytes) => client::WebSocketSessionCommand::SendBinary(bytes),
                 Err(error) => {
-                    let body = editor_error(
-                        "Could not parse the WebSocket binary message.",
-                        &error,
-                        "Enter an even number of hexadecimal digits, for example: 00 ff 7a.",
-                    );
+                    let body = editor_error("WS binary invalid.", &error);
                     self.websocket_status = "invalid binary".to_string();
                     self.set_response("WebSocket binary invalid", "", ResponseTone::Error, body);
                     cx.notify();
@@ -2062,11 +2278,10 @@ impl ZenApiApp {
                 "",
                 ResponseTone::Error,
                 realtime_operation_error(
-                    "Could not send the WS message.",
+                    "WS send failed.",
                     "WS URL",
                     &self.websocket_session_url,
-                    "The WebSocket command channel is closed.",
-                    "Open the WS session again, then send the message.",
+                    "Closed.",
                 ),
             );
         } else {
@@ -2096,12 +2311,7 @@ impl ZenApiApp {
                 self.websocket_running = true;
                 self.websocket_session_url = url.clone();
                 self.websocket_status = "connected".to_string();
-                self.set_response(
-                    "WebSocket connected",
-                    "",
-                    ResponseTone::Success,
-                    format!("connected: {url}"),
-                );
+                self.set_response("WebSocket connected", "", ResponseTone::Success, url);
             }
             client::WebSocketSessionEvent::Sent(message) => {
                 self.push_websocket_log(WebSocketLogEntry {
@@ -2137,11 +2347,10 @@ impl ZenApiApp {
                     "",
                     ResponseTone::Error,
                     realtime_operation_error(
-                        "Could not keep the WS session open.",
+                        "WS session failed.",
                         "WS URL",
                         &self.websocket_session_url,
                         &error,
-                        "Check the URL, headers, subprotocols, server availability, and TLS settings.",
                     ),
                 );
             }
@@ -2165,17 +2374,13 @@ impl ZenApiApp {
             if self.busy || self.sse_running {
                 return;
             }
+            let (title, body) = sse_url_validation_response(&url);
             self.sse_status = if has_trimmed_text(&url) {
                 "invalid URL".to_string()
             } else {
                 "URL required".to_string()
             };
-            self.set_response(
-                "SSE needs a URL",
-                "",
-                ResponseTone::Error,
-                "Enter an http:// or https:// SSE URL before fetching events.",
-            );
+            self.set_response(title, "", ResponseTone::Error, body);
             cx.notify();
             return;
         }
@@ -2222,11 +2427,10 @@ impl ZenApiApp {
                         Err(error) => {
                             let error = error.to_string();
                             let body = realtime_operation_error(
-                                "Could not fetch SSE events.",
+                                "SSE fetch failed.",
                                 "SSE URL",
                                 &url_for_error,
                                 &error,
-                                "Check that the endpoint is reachable and returns text/event-stream.",
                             );
                             app.sse_status = format!("error: {}", preview_text(&error));
                             app.set_response("SSE failed", "", ResponseTone::Error, body);
@@ -2247,17 +2451,13 @@ impl ZenApiApp {
             if self.busy || self.sse_running {
                 return;
             }
+            let (title, body) = sse_url_validation_response(&url);
             self.sse_status = if has_trimmed_text(&url) {
                 "invalid URL".to_string()
             } else {
                 "URL required".to_string()
             };
-            self.set_response(
-                "SSE needs a URL",
-                "",
-                ResponseTone::Error,
-                "Enter an http:// or https:// SSE URL before subscribing.",
-            );
+            self.set_response(title, "", ResponseTone::Error, body);
             cx.notify();
             return;
         }
@@ -2321,7 +2521,7 @@ impl ZenApiApp {
                 "SSE stopped",
                 "",
                 ResponseTone::Neutral,
-                "SSE subscription was stopped.",
+                STATUS_STOPPED_BODY,
             );
         }
         cx.notify();
@@ -2333,12 +2533,7 @@ impl ZenApiApp {
                 self.sse_running = true;
                 self.sse_session_url = url.clone();
                 self.sse_status = "subscribed".to_string();
-                self.set_response(
-                    "SSE subscribed",
-                    "",
-                    ResponseTone::Success,
-                    format!("subscribed: {url}"),
-                );
+                self.set_response("SSE subscribed", "", ResponseTone::Success, url);
             }
             client::SseStreamEvent::Event(event) => {
                 let label = sse_event_label(&event).to_string();
@@ -2353,17 +2548,16 @@ impl ZenApiApp {
                 reason,
             } => {
                 self.sse_running = true;
-                self.sse_status = format!("reconnect {attempt} in {delay_ms}ms");
+                self.sse_status = sse_reconnect_status(attempt, delay_ms);
                 self.set_response(
-                    "SSE reconnecting",
+                    "SSE retry",
                     self.sse_status.clone(),
                     ResponseTone::Busy,
                     realtime_operation_error(
-                        "SSE subscription lost connection and will retry.",
+                        "SSE retry.",
                         "SSE URL",
                         &self.sse_session_url,
                         &reason,
-                        "Leave the subscription running to retry, or stop it and check the server.",
                     ),
                 );
             }
@@ -2382,11 +2576,10 @@ impl ZenApiApp {
                     "",
                     ResponseTone::Error,
                     realtime_operation_error(
-                        "Could not keep the SSE subscription open.",
+                        "SSE subscription failed.",
                         "SSE URL",
                         &self.sse_session_url,
                         &error,
-                        "Check that the endpoint is reachable and returns text/event-stream.",
                     ),
                 );
             }
@@ -2413,10 +2606,10 @@ impl ZenApiApp {
         if total == 0 {
             self.runner_status = RUNNER_EMPTY_REQUESTS_LABEL.to_string();
             self.set_response(
-                "Runner needs requests",
+                RUNNER_EMPTY_TITLE,
                 "",
                 ResponseTone::Error,
-                "Add or import saved requests before running.",
+                SAVED_REQUESTS_EMPTY_BODY,
             );
             cx.notify();
             return;
@@ -2439,13 +2632,8 @@ impl ZenApiApp {
         self.set_busy(true, cx);
         self.runner_running = true;
         self.runner_results.clear();
-        self.runner_status = format!("Running {total} requests");
-        self.set_response(
-            "Runner active",
-            "",
-            ResponseTone::Busy,
-            "Collection runner is executing requests.",
-        );
+        self.runner_status = format!("Run {total}");
+        self.set_response("Runner active", "", ResponseTone::Busy, STATUS_RUNNING_BODY);
         cx.notify();
 
         runtime.spawn(async move {
@@ -2521,7 +2709,7 @@ impl ZenApiApp {
         if let Some(server) = self.server.take() {
             self.set_busy(true, cx);
             self.server_running = false;
-            self.server_status = "Stopping mock".to_string();
+            self.server_status = MOCK_STATUS_STOPPING.to_string();
             let runtime = self.runtime.clone();
             let (tx, rx) = oneshot::channel();
 
@@ -2535,7 +2723,7 @@ impl ZenApiApp {
                     app.update(cx, |app, cx| {
                         app.set_busy(false, cx);
                         app.server_running = false;
-                        app.server_status = "Mock stopped".to_string();
+                        app.server_status = MOCK_STATUS_STOPPED.to_string();
                         cx.notify();
                     })
                     .ok();
@@ -2548,12 +2736,12 @@ impl ZenApiApp {
 
         if self.routes.is_empty() {
             self.set_response(
-                "Mock needs routes",
+                MOCK_ROUTES_REQUIRED_TITLE,
                 "",
                 ResponseTone::Error,
-                "Import an OpenAPI file before starting the mock server.",
+                MOCK_ROUTES_REQUIRED_BODY,
             );
-            self.server_status = "Import routes first".to_string();
+            self.server_status = MOCK_STATUS_IMPORT_ROUTES_FIRST.to_string();
             cx.notify();
             return;
         }
@@ -2563,7 +2751,7 @@ impl ZenApiApp {
         let (tx, rx) = oneshot::channel();
         let (log_tx, mut log_rx) = mpsc::unbounded_channel();
         self.set_busy(true, cx);
-        self.server_status = "Starting mock".to_string();
+        self.server_status = MOCK_STATUS_STARTING.to_string();
         self.mock_logs.clear();
         cx.notify();
 
@@ -2597,9 +2785,9 @@ impl ZenApiApp {
                         }
                         Err(error) => {
                             app.server_running = false;
-                            app.server_status = "Mock failed".to_string();
+                            app.server_status = MOCK_STATUS_FAILED.to_string();
                             app.set_response(
-                                "Mock server failed",
+                                MOCK_STATUS_FAILED,
                                 "",
                                 ResponseTone::Error,
                                 mock_server_error(MOCK_SERVER_PORT, &error.to_string()),
@@ -2697,7 +2885,7 @@ impl ZenApiApp {
                 VARIABLES_ENV_NEEDED_TITLE,
                 "",
                 ResponseTone::Error,
-                "Enter an env name before creating it.",
+                VARIABLES_ENV_NAME_REQUIRED_BODY,
             );
             cx.notify();
             return;
@@ -2715,7 +2903,7 @@ impl ZenApiApp {
                 VARIABLES_ENV_SELECTED_TITLE,
                 name,
                 ResponseTone::Neutral,
-                "Existing env is now active.",
+                STATUS_ACTIVE_BODY,
             );
             cx.notify();
             return;
@@ -2733,7 +2921,7 @@ impl ZenApiApp {
             VARIABLES_ENV_CREATED_TITLE,
             name,
             ResponseTone::Success,
-            "Env ready.",
+            STATUS_READY_BODY,
         );
         cx.notify();
     }
@@ -2758,7 +2946,7 @@ impl ZenApiApp {
                 VARIABLES_ENV_DELETED_TITLE,
                 active_environment,
                 ResponseTone::Success,
-                "Env vars were removed from the active session.",
+                STATUS_DELETED_BODY,
             );
             cx.notify();
         }
@@ -2770,12 +2958,7 @@ impl ZenApiApp {
             if self.busy {
                 return;
             }
-            self.set_response(
-                "No headers",
-                "",
-                ResponseTone::Neutral,
-                "There are no request headers to copy.",
-            );
+            self.set_response("No headers", "", ResponseTone::Neutral, NO_HEADERS_BODY);
             cx.notify();
             return;
         }
@@ -2785,7 +2968,7 @@ impl ZenApiApp {
             "Headers copied",
             headers.len().to_string(),
             ResponseTone::Success,
-            "Request headers were copied as bulk text.",
+            STATUS_COPIED_BODY,
         );
         cx.notify();
     }
@@ -2800,7 +2983,7 @@ impl ZenApiApp {
                 "No WebSocket log",
                 "",
                 ResponseTone::Neutral,
-                "There are no WebSocket messages to copy.",
+                NO_MESSAGES_BODY,
             );
             cx.notify();
             return;
@@ -2812,7 +2995,7 @@ impl ZenApiApp {
             "WebSocket log copied",
             self.websocket_messages.len().to_string(),
             ResponseTone::Success,
-            "WebSocket messages were copied as text.",
+            STATUS_COPIED_BODY,
         );
         cx.notify();
     }
@@ -2827,7 +3010,7 @@ impl ZenApiApp {
                 "No WebSocket log",
                 "",
                 ResponseTone::Neutral,
-                "There are no WebSocket messages to clear.",
+                NO_MESSAGES_BODY,
             );
             cx.notify();
             return;
@@ -2843,7 +3026,7 @@ impl ZenApiApp {
             "WebSocket log cleared",
             "",
             ResponseTone::Neutral,
-            "WebSocket message history was cleared.",
+            STATUS_CLEARED_BODY,
         );
         cx.notify();
     }
@@ -2854,12 +3037,7 @@ impl ZenApiApp {
         }
 
         if !can_use_realtime_log_actions(self.busy, self.sse_events.len()) {
-            self.set_response(
-                "No SSE log",
-                "",
-                ResponseTone::Neutral,
-                "There are no SSE events to copy.",
-            );
+            self.set_response("No SSE log", "", ResponseTone::Neutral, NO_EVENTS_BODY);
             cx.notify();
             return;
         }
@@ -2870,7 +3048,7 @@ impl ZenApiApp {
             "SSE log copied",
             self.sse_events.len().to_string(),
             ResponseTone::Success,
-            "SSE events were copied as text.",
+            STATUS_COPIED_BODY,
         );
         cx.notify();
     }
@@ -2904,12 +3082,7 @@ impl ZenApiApp {
         }
 
         if !can_use_realtime_log_actions(self.busy, self.sse_events.len()) {
-            self.set_response(
-                "No SSE log",
-                "",
-                ResponseTone::Neutral,
-                "There are no SSE events to clear.",
-            );
+            self.set_response("No SSE log", "", ResponseTone::Neutral, NO_EVENTS_BODY);
             cx.notify();
             return;
         }
@@ -2925,7 +3098,7 @@ impl ZenApiApp {
             "SSE log cleared",
             "",
             ResponseTone::Neutral,
-            "SSE event history was cleared.",
+            STATUS_CLEARED_BODY,
         );
         cx.notify();
     }
@@ -2937,10 +3110,10 @@ impl ZenApiApp {
 
         let Some(text) = cx.read_from_clipboard().and_then(|item| item.text()) else {
             self.set_response(
-                "Clipboard empty",
+                HEADER_BULK_CLIPBOARD_EMPTY_TITLE,
                 "",
                 ResponseTone::Error,
-                "Copy header lines before using bulk paste.",
+                HEADER_BULK_CLIPBOARD_EMPTY_BODY,
             );
             cx.notify();
             return;
@@ -2948,10 +3121,10 @@ impl ZenApiApp {
         let headers = parse_header_bulk(&text);
         if headers.is_empty() {
             self.set_response(
-                "No headers parsed",
+                HEADER_BULK_PARSE_EMPTY_TITLE,
                 "",
                 ResponseTone::Error,
-                "Use one header per line, for example: Accept: application/json.",
+                HEADER_BULK_PARSE_EMPTY_BODY,
             );
             cx.notify();
             return;
@@ -2962,7 +3135,7 @@ impl ZenApiApp {
             "Headers pasted",
             headers.len().to_string(),
             ResponseTone::Success,
-            "Bulk headers were applied to the request.",
+            STATUS_APPLIED_BODY,
         );
         cx.notify();
     }
@@ -3003,7 +3176,7 @@ impl ZenApiApp {
                     "Body formatted",
                     "JSON",
                     ResponseTone::Success,
-                    "Raw JSON body was formatted.",
+                    STATUS_FORMATTED_BODY,
                 );
             }
             Err(error) => {
@@ -3383,7 +3556,7 @@ impl ZenApiApp {
             .w(px(REQUEST_METHOD_SEGMENT_WIDTH))
             .flex_shrink_0()
             .px_2()
-            .text_size(px(12.))
+            .text_size(px(REQUEST_PRIMARY_CONTROL_TEXT_SIZE))
             .font_weight(FontWeight::BOLD)
             .text_color(if enabled {
                 method_color(&self.method)
@@ -3414,7 +3587,7 @@ impl ZenApiApp {
             .child(
                 div()
                     .flex_shrink_0()
-                    .text_size(px(10.))
+                    .text_size(px(METHOD_CHEVRON_TEXT_SIZE))
                     .text_color(if !enabled {
                         ui_disabled_text()
                     } else if self.method_menu_open {
@@ -3513,10 +3686,10 @@ impl ZenApiApp {
         let Some(metrics) = Self::scrollbar_metrics(scroll) else {
             return div()
                 .absolute()
-                .right(px(0.))
-                .top(px(0.))
-                .w(px(0.))
-                .h(px(0.));
+                .right(px(LAYOUT_ZERO))
+                .top(px(LAYOUT_ZERO))
+                .w(px(SCROLLBAR_HIDDEN_SIZE))
+                .h(px(SCROLLBAR_HIDDEN_SIZE));
         };
         let entity = cx.entity();
         let scroll_handle = scroll.clone();
@@ -3532,8 +3705,8 @@ impl ZenApiApp {
 
         div()
             .absolute()
-            .top(px(0.))
-            .right(px(0.))
+            .top(px(LAYOUT_ZERO))
+            .right(px(LAYOUT_ZERO))
             .w(px(SCROLLBAR_GUTTER_WIDTH))
             .h_full()
             .border_l_1()
@@ -3672,7 +3845,7 @@ impl ZenApiApp {
             .top(px(METHOD_MENU_TOP_OFFSET))
             .left(px(METHOD_MENU_LEFT_OFFSET))
             .w(px(METHOD_MENU_WIDTH))
-            .rounded(px(5.))
+            .rounded(px(UI_RADIUS_CONTROL))
             .border_1()
             .border_color(ui_border_strong())
             .bg(ui_surface())
@@ -3685,14 +3858,14 @@ impl ZenApiApp {
         div()
             .flex()
             .items_center()
-            .h(px(28.))
+            .h(px(METHOD_MENU_ITEM_HEIGHT))
             .px_2()
             .font_weight(if active {
                 FontWeight::BOLD
             } else {
                 FontWeight::NORMAL
             })
-            .text_size(px(12.))
+            .text_size(px(REQUEST_PRIMARY_CONTROL_TEXT_SIZE))
             .text_color(if active {
                 method_color(method)
             } else {
@@ -3745,11 +3918,11 @@ impl ZenApiApp {
             .flex_shrink_0()
             .min_w_0()
             .overflow_hidden()
-            .rounded(px(6.))
+            .rounded(px(UI_RADIUS_INPUT))
             .border_1()
             .border_color(colors.border)
             .bg(colors.background)
-            .text_size(px(13.))
+            .text_size(px(ACTION_BUTTON_TEXT_SIZE))
             .font_weight(FontWeight::BOLD)
             .text_color(colors.text)
             .opacity(control_opacity(enabled))
@@ -3781,16 +3954,16 @@ impl ZenApiApp {
             .flex()
             .items_center()
             .justify_center()
-            .h(px(30.))
+            .h(px(TOP_BAR_ACTION_HEIGHT))
             .w(px(width))
             .flex_shrink_0()
             .min_w_0()
             .overflow_hidden()
-            .rounded(px(5.))
+            .rounded(px(UI_RADIUS_CONTROL))
             .border_1()
             .border_color(colors.border)
             .bg(colors.background)
-            .text_size(px(12.))
+            .text_size(px(TOP_BAR_ACTION_TEXT_SIZE))
             .font_weight(FontWeight::BOLD)
             .text_color(colors.text)
             .opacity(control_opacity(enabled))
@@ -3829,7 +4002,7 @@ impl ZenApiApp {
             } else {
                 ui_disabled_surface()
             })
-            .text_size(px(12.))
+            .text_size(px(REQUEST_PRIMARY_CONTROL_TEXT_SIZE))
             .font_weight(FontWeight::BOLD)
             .text_color(if enabled {
                 ui_accent()
@@ -3877,7 +4050,7 @@ impl ZenApiApp {
                     .w(px(TOP_BAR_BRAND_WIDTH))
                     .flex_shrink_0()
                     .font_weight(FontWeight::BOLD)
-                    .text_size(px(15.))
+                    .text_size(px(TOP_BAR_BRAND_TEXT_SIZE))
                     .text_color(ui_text_primary())
                     .child("ZenAPI"),
             )
@@ -3922,7 +4095,7 @@ impl ZenApiApp {
             .right(px(IMPORT_POPOVER_RIGHT_OFFSET))
             .w(px(IMPORT_POPOVER_WIDTH))
             .h(px(IMPORT_POPOVER_HEIGHT))
-            .rounded(px(5.))
+            .rounded(px(UI_RADIUS_CONTROL))
             .border_1()
             .border_color(ui_border_strong())
             .bg(ui_surface())
@@ -4012,11 +4185,11 @@ impl ZenApiApp {
             .flex()
             .items_center()
             .justify_between()
-            .h(px(28.))
+            .h(px(SIDEBAR_SECTION_BUTTON_HEIGHT))
             .flex_1()
             .min_w_0()
             .px_2()
-            .rounded(px(5.))
+            .rounded(px(UI_RADIUS_CONTROL))
             .border_1()
             .border_color(if active { ui_accent() } else { ui_border() })
             .bg(if active {
@@ -4024,7 +4197,7 @@ impl ZenApiApp {
             } else {
                 ui_sidebar_pane()
             })
-            .text_size(px(11.))
+            .text_size(px(SIDEBAR_NAV_TEXT_SIZE))
             .font_weight(FontWeight::BOLD)
             .text_color(if active { ui_accent() } else { ui_text_body() })
             .cursor_pointer()
@@ -4175,7 +4348,9 @@ impl ZenApiApp {
             .gap_3()
             .child(sidebar_section_header(
                 SIDEBAR_SAVED_LABEL,
-                sidebar_status_text(self.collection_status.clone()),
+                sidebar_status_text(
+                    collection_sidebar_status_label(&self.collection_status).unwrap_or_default(),
+                ),
             ))
             .child(bounded_text_input(self.collection_path.clone()))
             .child(
@@ -4228,7 +4403,7 @@ impl ZenApiApp {
                     .flex_col()
                     .min_w_0()
                     .gap_1()
-                    .rounded(px(4.))
+                    .rounded(px(UI_RADIUS_TIGHT))
                     .border_1()
                     .border_color(ui_border())
                     .bg(ui_surface())
@@ -4274,7 +4449,7 @@ impl ZenApiApp {
             .min_w_0()
             .overflow_hidden()
             .gap_2()
-            .rounded(px(5.))
+            .rounded(px(UI_RADIUS_CONTROL))
             .border_1()
             .border_color(ui_border_strong())
             .bg(ui_surface())
@@ -4290,7 +4465,7 @@ impl ZenApiApp {
                         div()
                             .min_w_0()
                             .truncate()
-                            .text_size(px(12.))
+                            .text_size(px(PANEL_META_TEXT_SIZE))
                             .font_weight(FontWeight::BOLD)
                             .text_color(ui_text_body())
                             .child(menu.label),
@@ -4401,11 +4576,11 @@ impl ZenApiApp {
             .flex_shrink_0()
             .min_w_0()
             .overflow_hidden()
-            .rounded(px(5.))
+            .rounded(px(UI_RADIUS_CONTROL))
             .border_1()
             .border_color(colors.border)
             .bg(colors.background)
-            .text_size(px(11.))
+            .text_size(px(SIDEBAR_ACTION_TEXT_SIZE))
             .font_weight(FontWeight::BOLD)
             .text_color(colors.text)
             .opacity(control_opacity(enabled))
@@ -4440,11 +4615,11 @@ impl ZenApiApp {
             .flex_1()
             .min_w_0()
             .overflow_hidden()
-            .rounded(px(5.))
+            .rounded(px(UI_RADIUS_CONTROL))
             .border_1()
             .border_color(colors.border)
             .bg(colors.background)
-            .text_size(px(11.))
+            .text_size(px(SIDEBAR_ACTION_TEXT_SIZE))
             .font_weight(FontWeight::BOLD)
             .text_color(colors.text)
             .opacity(control_opacity(enabled))
@@ -4479,11 +4654,11 @@ impl ZenApiApp {
             .flex_1()
             .min_w_0()
             .overflow_hidden()
-            .rounded(px(6.))
+            .rounded(px(UI_RADIUS_INPUT))
             .border_1()
             .border_color(colors.border)
             .bg(colors.background)
-            .text_size(px(13.))
+            .text_size(px(ACTION_BUTTON_TEXT_SIZE))
             .font_weight(FontWeight::BOLD)
             .text_color(colors.text)
             .opacity(control_opacity(enabled))
@@ -4596,7 +4771,7 @@ impl ZenApiApp {
             .h(px(ROUTE_ROW_HEIGHT))
             .min_w_0()
             .overflow_hidden()
-            .rounded(px(4.))
+            .rounded(px(UI_RADIUS_TIGHT))
             .border_l(px(ROUTE_SELECTED_MARKER_WIDTH))
             .border_color(if selected {
                 ui_accent()
@@ -4635,14 +4810,14 @@ impl ZenApiApp {
                     .gap_2()
                     .child(
                         fixed_row_cell(method, HTTP_METHOD_LABEL_WIDTH, method_color, true, false)
-                            .text_size(px(12.)),
+                            .text_size(px(SIDEBAR_METHOD_TEXT_SIZE)),
                     )
                     .child(
                         div()
                             .flex_1()
                             .min_w_0()
                             .truncate()
-                            .text_size(px(13.))
+                            .text_size(px(SIDEBAR_PRIMARY_ROW_TEXT_SIZE))
                             .text_color(ui_text_primary())
                             .font_family(PLATFORM_MONOSPACE_FONT)
                             .child(path),
@@ -4650,11 +4825,11 @@ impl ZenApiApp {
             )
             .child(
                 div()
-                    .ml(px(66.))
+                    .ml(px(SIDEBAR_SECONDARY_ROW_INDENT))
                     .min_w_0()
                     .truncate()
-                    .text_size(px(12.))
-                    .text_color(ui_text_secondary())
+                    .text_size(px(PANEL_META_TEXT_SIZE))
+                    .text_color(ui_sidebar_detail_text())
                     .child(summary),
             )
     }
@@ -4746,12 +4921,17 @@ impl ZenApiApp {
                     .min_w_0()
                     .h(px(TEXT_INPUT_HEIGHT))
                     .rounded(px(REQUEST_ADDRESS_RADIUS))
-                    .border_1()
+                    .border(px(TEXT_INPUT_BORDER_WIDTH))
                     .border_color(address_border)
                     .bg(address_background)
                     .overflow_hidden()
                     .child(self.method_selector(cx))
-                    .child(div().h(px(20.)).w(px(1.)).bg(ui_border()))
+                    .child(
+                        div()
+                            .h(px(REQUEST_ADDRESS_DIVIDER_HEIGHT))
+                            .w(px(REQUEST_ADDRESS_DIVIDER_WIDTH))
+                            .bg(ui_border()),
+                    )
                     .child(
                         div()
                             .flex_1()
@@ -4800,7 +4980,7 @@ impl ZenApiApp {
             .min_w_0()
             .overflow_hidden()
             .px_1()
-            .text_size(px(11.))
+            .text_size(px(REQUEST_EDITOR_TAB_TEXT_SIZE))
             .font_weight(if active {
                 FontWeight::BOLD
             } else {
@@ -4812,10 +4992,7 @@ impl ZenApiApp {
             .on_mouse_up(
                 MouseButton::Left,
                 cx.listener(move |app, _event: &MouseUpEvent, _window, cx| {
-                    app.close_transient_layers();
-                    app.active_request_tab = tab;
-                    app.request_scroll.set_offset(point(px(0.), px(0.)));
-                    cx.notify();
+                    app.select_request_tab(tab, cx);
                 }),
             )
             .child(
@@ -4965,19 +5142,24 @@ impl ZenApiApp {
                     .child(
                         div()
                             .flex_shrink_0()
-                            .text_size(px(12.))
+                            .text_size(px(PANEL_TITLE_TEXT_SIZE))
                             .font_weight(FontWeight::BOLD)
                             .text_color(ui_text_primary())
                             .child(REALTIME_WEBSOCKET_TITLE),
                     )
-                    .child(panel_status_text(
-                        self.websocket_status.clone(),
-                        if self.websocket_running {
-                            ResponseTone::Busy.color()
-                        } else {
-                            ui_text_body()
+                    .when_some(
+                        panel_header_status_label(&self.websocket_status),
+                        |header, status| {
+                            header.child(panel_status_text(
+                                status,
+                                if self.websocket_running {
+                                    ResponseTone::Busy.color()
+                                } else {
+                                    ui_text_body()
+                                },
+                            ))
                         },
-                    )),
+                    ),
             )
             .child(
                 div()
@@ -5057,7 +5239,7 @@ impl ZenApiApp {
                     .flex_col()
                     .min_w_0()
                     .overflow_hidden()
-                    .rounded(px(4.))
+                    .rounded(px(UI_RADIUS_TIGHT))
                     .border_1()
                     .border_color(ui_border())
                     .bg(ui_surface())
@@ -5098,19 +5280,24 @@ impl ZenApiApp {
                     .child(
                         div()
                             .flex_shrink_0()
-                            .text_size(px(12.))
+                            .text_size(px(PANEL_TITLE_TEXT_SIZE))
                             .font_weight(FontWeight::BOLD)
                             .text_color(ui_text_primary())
                             .child(REALTIME_SSE_TITLE),
                     )
-                    .child(panel_status_text(
-                        self.sse_status.clone(),
-                        if self.sse_running {
-                            ResponseTone::Busy.color()
-                        } else {
-                            ui_text_body()
+                    .when_some(
+                        panel_header_status_label(&self.sse_status),
+                        |header, status| {
+                            header.child(panel_status_text(
+                                status,
+                                if self.sse_running {
+                                    ResponseTone::Busy.color()
+                                } else {
+                                    ui_text_body()
+                                },
+                            ))
                         },
-                    )),
+                    ),
             )
             .child(
                 div()
@@ -5176,7 +5363,7 @@ impl ZenApiApp {
                     .flex_col()
                     .min_w_0()
                     .overflow_hidden()
-                    .rounded(px(4.))
+                    .rounded(px(UI_RADIUS_TIGHT))
                     .border_1()
                     .border_color(ui_border())
                     .bg(ui_surface())
@@ -5205,12 +5392,10 @@ impl ZenApiApp {
                 assertion_editor_row(index, row, self.request_assertions.len(), self.busy, cx)
             })
             .collect::<Vec<_>>();
-        let meta = assertion_meta(&self.last_assertion_results).unwrap_or_else(|| {
-            format!(
-                "{} configured",
-                configured_assertion_count(&self.request_assertions, cx)
-            )
-        });
+        let meta = tests_header_status_label(
+            &self.last_assertion_results,
+            configured_assertion_count(&self.request_assertions, cx),
+        );
 
         div()
             .flex()
@@ -5228,7 +5413,7 @@ impl ZenApiApp {
                     .child(
                         div()
                             .flex_shrink_0()
-                            .text_size(px(12.))
+                            .text_size(px(PANEL_TITLE_TEXT_SIZE))
                             .font_weight(FontWeight::BOLD)
                             .text_color(ui_text_primary())
                             .child(TESTS_PANEL_TITLE),
@@ -5240,7 +5425,9 @@ impl ZenApiApp {
                             .justify_end()
                             .min_w_0()
                             .gap_2()
-                            .child(panel_status_text(meta, ui_text_body()))
+                            .when_some(meta, |actions, meta| {
+                                actions.child(panel_status_text(meta, ui_text_body()))
+                            })
                             .when(!self.last_assertion_results.is_empty(), |actions| {
                                 actions.child(self.response_assertions_clear_button(cx))
                             })
@@ -5254,7 +5441,7 @@ impl ZenApiApp {
                     .min_w_0()
                     .gap_2()
                     .px_2()
-                    .text_size(px(11.))
+                    .text_size(px(TABLE_HEADER_TEXT_SIZE))
                     .font_weight(FontWeight::BOLD)
                     .text_color(ui_text_body())
                     .child(
@@ -5297,7 +5484,7 @@ impl ZenApiApp {
                         .flex_col()
                         .min_w_0()
                         .overflow_hidden()
-                        .rounded(px(4.))
+                        .rounded(px(UI_RADIUS_TIGHT))
                         .border_1()
                         .border_color(ui_border())
                         .bg(ui_surface())
@@ -5349,11 +5536,11 @@ impl ZenApiApp {
             .flex_shrink_0()
             .min_w_0()
             .overflow_hidden()
-            .rounded(px(5.))
+            .rounded(px(UI_RADIUS_CONTROL))
             .border_1()
             .border_color(colors.border)
             .bg(colors.background)
-            .text_size(px(11.))
+            .text_size(px(COMPACT_SYMBOL_TEXT_SIZE))
             .font_weight(FontWeight::BOLD)
             .text_color(colors.text)
             .opacity(control_opacity(enabled))
@@ -5396,19 +5583,24 @@ impl ZenApiApp {
                     .child(
                         div()
                             .flex_shrink_0()
-                            .text_size(px(12.))
+                            .text_size(px(PANEL_TITLE_TEXT_SIZE))
                             .font_weight(FontWeight::BOLD)
                             .text_color(ui_text_primary())
                             .child("Runner"),
                     )
-                    .child(panel_status_text(
-                        self.runner_status.clone(),
-                        if self.runner_running {
-                            ResponseTone::Busy.color()
-                        } else {
-                            ui_text_body()
+                    .when_some(
+                        runner_header_status_label(&self.runner_status),
+                        |header, status| {
+                            header.child(panel_status_text(
+                                status,
+                                if self.runner_running {
+                                    ResponseTone::Busy.color()
+                                } else {
+                                    ui_text_body()
+                                },
+                            ))
                         },
-                    )),
+                    ),
             )
             .child(
                 panel_button_row()
@@ -5442,7 +5634,7 @@ impl ZenApiApp {
                     .flex_col()
                     .min_w_0()
                     .overflow_hidden()
-                    .rounded(px(4.))
+                    .rounded(px(UI_RADIUS_TIGHT))
                     .border_1()
                     .border_color(ui_border())
                     .bg(ui_surface())
@@ -5477,7 +5669,7 @@ impl ZenApiApp {
             .gap_2()
             .child(
                 div()
-                    .text_size(px(12.))
+                    .text_size(px(PANEL_TITLE_TEXT_SIZE))
                     .font_weight(FontWeight::BOLD)
                     .text_color(ui_text_primary())
                     .child("Mock Log"),
@@ -5489,13 +5681,16 @@ impl ZenApiApp {
                     .flex_1()
                     .min_w_0()
                     .overflow_hidden()
-                    .rounded(px(4.))
+                    .rounded(px(UI_RADIUS_TIGHT))
                     .border_1()
                     .border_color(ui_border())
                     .bg(ui_surface())
                     .children(rows)
                     .when(self.mock_logs.is_empty(), |list| {
-                        list.child(empty_state_row("No mock requests", EMPTY_STATE_ROW_HEIGHT))
+                        list.child(empty_state_row(
+                            MOCK_LOG_EMPTY_LABEL,
+                            EMPTY_STATE_ROW_HEIGHT,
+                        ))
                     }),
             )
     }
@@ -5591,7 +5786,7 @@ impl ZenApiApp {
             .gap_2()
             .child(
                 div()
-                    .text_size(px(12.))
+                    .text_size(px(PANEL_TITLE_TEXT_SIZE))
                     .font_weight(FontWeight::BOLD)
                     .text_color(ui_text_primary())
                     .child(VARIABLES_PANEL_TITLE),
@@ -5604,7 +5799,7 @@ impl ZenApiApp {
                     .justify_between()
                     .child(
                         div()
-                            .text_size(px(12.))
+                            .text_size(px(PANEL_META_TEXT_SIZE))
                             .font_weight(FontWeight::BOLD)
                             .text_color(ui_text_body())
                             .child(VARIABLES_ENV_LABEL),
@@ -5613,7 +5808,7 @@ impl ZenApiApp {
                         div()
                             .min_w_0()
                             .truncate()
-                            .text_size(px(12.))
+                            .text_size(px(PANEL_META_TEXT_SIZE))
                             .font_family(PLATFORM_MONOSPACE_FONT)
                             .text_color(ui_text_body())
                             .child(active_environment.to_string()),
@@ -5701,7 +5896,7 @@ impl ZenApiApp {
             .gap_2()
             .child(
                 div()
-                    .text_size(px(12.))
+                    .text_size(px(PANEL_TITLE_TEXT_SIZE))
                     .font_weight(FontWeight::BOLD)
                     .text_color(ui_text_primary())
                     .child(AUTH_PANEL_TITLE),
@@ -5818,19 +6013,24 @@ impl ZenApiApp {
                     .child(
                         div()
                             .flex_shrink_0()
-                            .text_size(px(12.))
+                            .text_size(px(PANEL_TITLE_TEXT_SIZE))
                             .font_weight(FontWeight::BOLD)
                             .text_color(ui_text_primary())
                             .child("Pre-request"),
                     )
-                    .child(panel_status_text(
-                        self.pre_request_status.clone(),
-                        if self.pre_request_status.starts_with("error") {
-                            ResponseTone::Error.color()
-                        } else {
-                            ui_text_body()
+                    .when_some(
+                        panel_header_status_label(&self.pre_request_status),
+                        |header, status| {
+                            header.child(panel_status_text(
+                                status,
+                                if self.pre_request_status.starts_with("error") {
+                                    ResponseTone::Error.color()
+                                } else {
+                                    ui_text_body()
+                                },
+                            ))
                         },
-                    )),
+                    ),
             )
             .child(bounded_text_input(self.pre_request_script.clone()))
             .when(!self.last_pre_request_actions.is_empty(), |panel| {
@@ -5840,7 +6040,7 @@ impl ZenApiApp {
                         .flex_col()
                         .min_w_0()
                         .overflow_hidden()
-                        .rounded(px(4.))
+                        .rounded(px(UI_RADIUS_TIGHT))
                         .border_1()
                         .border_color(ui_border())
                         .bg(ui_surface())
@@ -5858,7 +6058,7 @@ impl ZenApiApp {
             .gap_2()
             .child(
                 div()
-                    .text_size(px(12.))
+                    .text_size(px(PANEL_TITLE_TEXT_SIZE))
                     .font_weight(FontWeight::BOLD)
                     .text_color(ui_text_primary())
                     .child("Body"),
@@ -5936,7 +6136,7 @@ impl ZenApiApp {
                                         .flex_1()
                                         .min_w_0()
                                         .truncate()
-                                        .text_size(px(12.))
+                                        .text_size(px(PANEL_TITLE_TEXT_SIZE))
                                         .font_weight(FontWeight::BOLD)
                                         .text_color(ui_text_primary())
                                         .child("GraphQL"),
@@ -5985,7 +6185,7 @@ impl ZenApiApp {
             .gap_1()
             .child(
                 div()
-                    .text_size(px(12.))
+                    .text_size(px(PANEL_TITLE_TEXT_SIZE))
                     .font_weight(FontWeight::BOLD)
                     .text_color(ui_text_primary())
                     .child(GRAPHQL_PAYLOAD_TITLE),
@@ -5998,7 +6198,7 @@ impl ZenApiApp {
                     .overflow_y_scroll()
                     .scrollbar_width(px(SCROLLBAR_GUTTER_WIDTH))
                     .h(px(BODY_PREVIEW_HEIGHT))
-                    .rounded(px(4.))
+                    .rounded(px(UI_RADIUS_TIGHT))
                     .border_1()
                     .border_color(ui_border())
                     .bg(ui_surface())
@@ -6006,7 +6206,7 @@ impl ZenApiApp {
                     .pr(px(SCROLLBAR_CONTENT_RIGHT_PADDING))
                     .font_family(PLATFORM_MONOSPACE_FONT)
                     .line_height(px(BODY_PREVIEW_LINE_HEIGHT))
-                    .text_size(px(12.))
+                    .text_size(px(PANEL_CONTENT_TEXT_SIZE))
                     .text_color(ui_text_body())
                     .whitespace_normal()
                     .child(StyledText::new(preview).with_highlights(highlights)),
@@ -6022,7 +6222,7 @@ impl ZenApiApp {
             .gap_1()
             .child(
                 div()
-                    .text_size(px(12.))
+                    .text_size(px(PANEL_TITLE_TEXT_SIZE))
                     .font_weight(FontWeight::BOLD)
                     .text_color(ui_text_primary())
                     .child(GRAPHQL_SCHEMA_TITLE),
@@ -6035,7 +6235,7 @@ impl ZenApiApp {
                     .overflow_y_scroll()
                     .scrollbar_width(px(SCROLLBAR_GUTTER_WIDTH))
                     .h(px(BODY_PREVIEW_HEIGHT))
-                    .rounded(px(4.))
+                    .rounded(px(UI_RADIUS_TIGHT))
                     .border_1()
                     .border_color(ui_border())
                     .bg(ui_surface())
@@ -6043,7 +6243,7 @@ impl ZenApiApp {
                     .pr(px(SCROLLBAR_CONTENT_RIGHT_PADDING))
                     .font_family(PLATFORM_MONOSPACE_FONT)
                     .line_height(px(BODY_PREVIEW_LINE_HEIGHT))
-                    .text_size(px(12.))
+                    .text_size(px(PANEL_CONTENT_TEXT_SIZE))
                     .text_color(ui_text_body())
                     .whitespace_normal()
                     .child(self.graphql_schema_summary.clone()),
@@ -6059,7 +6259,7 @@ impl ZenApiApp {
             .gap_1()
             .child(
                 div()
-                    .text_size(px(12.))
+                    .text_size(px(PANEL_TITLE_TEXT_SIZE))
                     .font_weight(FontWeight::BOLD)
                     .text_color(ui_text_primary())
                     .child(GRAPHQL_SCHEMA_BROWSER_TITLE),
@@ -6072,7 +6272,7 @@ impl ZenApiApp {
                     .overflow_y_scroll()
                     .scrollbar_width(px(SCROLLBAR_GUTTER_WIDTH))
                     .h(px(GRAPHQL_SCHEMA_BROWSER_HEIGHT))
-                    .rounded(px(4.))
+                    .rounded(px(UI_RADIUS_TIGHT))
                     .border_1()
                     .border_color(ui_border())
                     .bg(ui_surface())
@@ -6080,7 +6280,7 @@ impl ZenApiApp {
                     .pr(px(SCROLLBAR_CONTENT_RIGHT_PADDING))
                     .font_family(PLATFORM_MONOSPACE_FONT)
                     .line_height(px(BODY_PREVIEW_LINE_HEIGHT))
-                    .text_size(px(12.))
+                    .text_size(px(PANEL_CONTENT_TEXT_SIZE))
                     .text_color(ui_text_body())
                     .whitespace_normal()
                     .child(self.graphql_schema_browser.clone()),
@@ -6108,7 +6308,7 @@ impl ZenApiApp {
                     .min_w_0()
                     .overflow_hidden()
                     .gap_1()
-                    .rounded(px(4.))
+                    .rounded(px(UI_RADIUS_TIGHT))
                     .border_1()
                     .border_color(ui_border())
                     .bg(ui_surface())
@@ -6125,7 +6325,7 @@ impl ZenApiApp {
                                     .min_w_0()
                                     .truncate()
                                     .font_family(PLATFORM_MONOSPACE_FONT)
-                                    .text_size(px(12.))
+                                    .text_size(px(PANEL_CONTENT_TEXT_SIZE))
                                     .text_color(ui_text_primary())
                                     .child(template.field_name.clone()),
                             )
@@ -6153,7 +6353,7 @@ impl ZenApiApp {
                             .overflow_hidden()
                             .font_family(PLATFORM_MONOSPACE_FONT)
                             .line_height(px(BODY_PREVIEW_LINE_HEIGHT))
-                            .text_size(px(12.))
+                            .text_size(px(PANEL_CONTENT_TEXT_SIZE))
                             .text_color(ui_text_body())
                             .whitespace_normal()
                             .child(operation_preview),
@@ -6165,7 +6365,7 @@ impl ZenApiApp {
                                 .overflow_hidden()
                                 .font_family(PLATFORM_MONOSPACE_FONT)
                                 .line_height(px(BODY_PREVIEW_LINE_HEIGHT))
-                                .text_size(px(12.))
+                                .text_size(px(PANEL_CONTENT_TEXT_SIZE))
                                 .text_color(ui_text_body())
                                 .whitespace_normal()
                                 .child(format!("variables {variables_preview}")),
@@ -6182,7 +6382,7 @@ impl ZenApiApp {
             .gap_1()
             .child(
                 div()
-                    .text_size(px(12.))
+                    .text_size(px(PANEL_TITLE_TEXT_SIZE))
                     .font_weight(FontWeight::BOLD)
                     .text_color(ui_text_primary())
                     .child(GRAPHQL_QUERY_ASSISTANT_TITLE),
@@ -6203,7 +6403,7 @@ impl ZenApiApp {
             .gap_1()
             .child(
                 div()
-                    .text_size(px(12.))
+                    .text_size(px(PANEL_TITLE_TEXT_SIZE))
                     .font_weight(FontWeight::BOLD)
                     .text_color(ui_text_primary())
                     .child(RAW_PREVIEW_TITLE),
@@ -6216,7 +6416,7 @@ impl ZenApiApp {
                     .overflow_y_scroll()
                     .scrollbar_width(px(SCROLLBAR_GUTTER_WIDTH))
                     .h(px(BODY_PREVIEW_HEIGHT))
-                    .rounded(px(4.))
+                    .rounded(px(UI_RADIUS_TIGHT))
                     .border_1()
                     .border_color(ui_border())
                     .bg(ui_surface())
@@ -6224,7 +6424,7 @@ impl ZenApiApp {
                     .pr(px(SCROLLBAR_CONTENT_RIGHT_PADDING))
                     .font_family(PLATFORM_MONOSPACE_FONT)
                     .line_height(px(BODY_PREVIEW_LINE_HEIGHT))
-                    .text_size(px(12.))
+                    .text_size(px(PANEL_CONTENT_TEXT_SIZE))
                     .text_color(ui_text_body())
                     .whitespace_normal()
                     .child(
@@ -6261,7 +6461,7 @@ impl ZenApiApp {
                             .flex_1()
                             .min_w_0()
                             .truncate()
-                            .text_size(px(12.))
+                            .text_size(px(PANEL_TITLE_TEXT_SIZE))
                             .font_weight(FontWeight::BOLD)
                             .text_color(ui_text_primary())
                             .child("Code"),
@@ -6280,11 +6480,11 @@ impl ZenApiApp {
                                     .justify_center()
                                     .h(px(COMPACT_CONTROL_HEIGHT))
                                     .w(px(CODEGEN_COPY_BUTTON_WIDTH))
-                                    .rounded(px(5.))
+                                    .rounded(px(UI_RADIUS_CONTROL))
                                     .border_1()
                                     .border_color(copy_colors.border)
                                     .bg(copy_colors.background)
-                                    .text_size(px(12.))
+                                    .text_size(px(COMPACT_CONTROL_TEXT_SIZE))
                                     .font_weight(FontWeight::BOLD)
                                     .text_color(copy_colors.text)
                                     .opacity(control_opacity(can_copy))
@@ -6316,16 +6516,16 @@ impl ZenApiApp {
                     .overflow_x_hidden()
                     .overflow_y_scroll()
                     .scrollbar_width(px(SCROLLBAR_GUTTER_WIDTH))
-                    .h(px(180.))
-                    .rounded(px(4.))
+                    .h(px(CODEGEN_SNIPPET_HEIGHT))
+                    .rounded(px(UI_RADIUS_TIGHT))
                     .border_1()
                     .border_color(ui_border())
                     .bg(ui_surface())
                     .p_3()
                     .pr(px(SCROLLBAR_CONTENT_RIGHT_PADDING))
                     .font_family(PLATFORM_MONOSPACE_FONT)
-                    .line_height(px(18.))
-                    .text_size(px(12.))
+                    .line_height(px(CODEGEN_SNIPPET_LINE_HEIGHT))
+                    .text_size(px(PANEL_CONTENT_TEXT_SIZE))
                     .text_color(ui_text_primary())
                     .whitespace_normal()
                     .child(snippet),
@@ -6371,7 +6571,7 @@ impl ZenApiApp {
                     div()
                         .flex()
                         .flex_col()
-                        .rounded(px(5.))
+                        .rounded(px(UI_RADIUS_CONTROL))
                         .border_1()
                         .border_color(ui_border_strong())
                         .bg(ui_surface())
@@ -6398,7 +6598,7 @@ impl ZenApiApp {
             .h(px(COMPACT_CONTROL_HEIGHT))
             .w(px(CODEGEN_MENU_WIDTH))
             .px_2()
-            .text_size(px(12.))
+            .text_size(px(COMPACT_CONTROL_TEXT_SIZE))
             .font_weight(if active {
                 FontWeight::BOLD
             } else {
@@ -6426,7 +6626,7 @@ impl ZenApiApp {
                 let snippet = generate_snippet(&request, self.codegen_language);
                 (snippet.clone(), Some(snippet))
             }
-            Ok(_) => ("Enter a request URL".to_string(), None),
+            Ok(_) => (CODEGEN_EMPTY_SNIPPET_LABEL.to_string(), None),
             Err(error) => (format!("Request build failed: {error}"), None),
         }
     }
@@ -6545,11 +6745,7 @@ impl ZenApiApp {
     }
 
     fn render_response_panel(&self, cx: &mut Context<Self>) -> impl IntoElement {
-        let meta = if self.response_meta.is_empty() {
-            None
-        } else {
-            Some(self.response_meta.as_str())
-        };
+        let meta = response_header_meta(&self.response_status, &self.response_meta);
         let body = self.response_body_for_view();
         self.response_body_viewer.update(cx, |viewer, _cx| {
             viewer.set_text_from_parent(body);
@@ -6564,8 +6760,8 @@ impl ZenApiApp {
             .overflow_hidden()
             .bg(ui_response_pane())
             .child(panel_header(
-                &self.response_status,
-                meta,
+                "Response",
+                meta.as_deref(),
                 self.response_tone,
             ))
             .child(self.render_response_tabs(cx))
@@ -6587,8 +6783,8 @@ impl ZenApiApp {
                             .scrollbar_width(px(SCROLLBAR_GUTTER_WIDTH))
                             .track_scroll(&self.response_scroll)
                             .font_family(PLATFORM_MONOSPACE_FONT)
-                            .line_height(px(20.))
-                            .text_size(px(13.))
+                            .line_height(px(RESPONSE_BODY_LINE_HEIGHT))
+                            .text_size(px(RESPONSE_BODY_TEXT_SIZE))
                             .text_color(ui_text_primary())
                             .whitespace_normal()
                             .child(
@@ -6694,7 +6890,7 @@ impl ZenApiApp {
             .min_w_0()
             .overflow_hidden()
             .max_w(px(RESPONSE_TAB_WIDTH))
-            .rounded(px(5.))
+            .rounded(px(UI_RADIUS_CONTROL))
             .border_1()
             .border_color(if active {
                 ui_accent()
@@ -6706,17 +6902,14 @@ impl ZenApiApp {
             } else {
                 ui_response_tab_bar()
             })
-            .text_size(px(12.))
+            .text_size(px(COMPACT_CONTROL_TEXT_SIZE))
             .font_weight(FontWeight::BOLD)
             .text_color(if active { ui_accent() } else { ui_text_body() })
             .cursor_pointer()
             .on_mouse_up(
                 MouseButton::Left,
                 cx.listener(move |app, _event: &MouseUpEvent, _window, cx| {
-                    app.close_transient_layers();
-                    app.response_view = view;
-                    reset_scroll_handle(&app.response_scroll);
-                    cx.notify();
+                    app.select_response_tab(view, cx);
                 }),
             )
             .child(div().min_w_0().truncate().child(label))
@@ -6745,9 +6938,19 @@ impl Render for ZenApiApp {
             .on_action(cx.listener(Self::save_current_request_shortcut))
             .on_action(cx.listener(Self::focus_active_sidebar_input))
             .on_action(cx.listener(Self::focus_request_url))
+            .on_action(cx.listener(Self::select_request_tab_params))
+            .on_action(cx.listener(Self::select_request_tab_headers))
+            .on_action(cx.listener(Self::select_request_tab_auth))
+            .on_action(cx.listener(Self::select_request_tab_body))
+            .on_action(cx.listener(Self::select_request_tab_scripts))
+            .on_action(cx.listener(Self::select_request_tab_realtime))
+            .on_action(cx.listener(Self::select_request_tab_tools))
+            .on_action(cx.listener(Self::select_response_tab_pretty))
+            .on_action(cx.listener(Self::select_response_tab_raw))
+            .on_action(cx.listener(Self::select_response_tab_headers))
             .on_action(cx.listener(Self::close_transient_ui))
             .font_family(PLATFORM_UI_FONT)
-            .text_size(px(13.))
+            .text_size(px(APP_BASE_TEXT_SIZE))
             .text_color(ui_text_primary())
             .bg(ui_surface())
             .child(self.render_top_bar(cx))
@@ -6771,14 +6974,14 @@ impl Render for CollectionDragPreview {
         div()
             .flex()
             .items_center()
-            .h(px(28.))
-            .max_w(px(220.))
-            .rounded(px(5.))
+            .h(px(COLLECTION_DRAG_PREVIEW_HEIGHT))
+            .max_w(px(COLLECTION_DRAG_PREVIEW_MAX_WIDTH))
+            .rounded(px(UI_RADIUS_CONTROL))
             .border_1()
             .border_color(ui_accent())
             .bg(collection_drag_over_background())
             .px_2()
-            .text_size(px(12.))
+            .text_size(px(COMPACT_CONTROL_TEXT_SIZE))
             .font_weight(FontWeight::BOLD)
             .text_color(ui_accent_text())
             .min_w_0()
@@ -6808,27 +7011,18 @@ impl Render for WorkspaceSplitDragPreview {
 
 impl ZenApiApp {
     fn render_status_bar(&self) -> impl IntoElement {
-        let route_status = if self.routes.is_empty() {
-            "No routes".to_string()
-        } else {
-            format!(
-                "{} routes, {} visible",
-                self.routes.len(),
-                self.visible_routes.len()
-            )
-        };
-        let busy_status = if self.busy { "Busy" } else { "Ready" };
-        let mock_status = if self.server_running {
-            format!("Mock {}", self.server_status)
-        } else {
-            self.server_status.clone()
-        };
+        let route_status = route_status_label(self.routes.len(), self.visible_routes.len());
+        let busy_status = status_bar_busy_label(self.busy);
+        let mock_status = status_bar_mock_label(self.server_running, &self.server_status);
+        let response_status = response_status_label(&self.response_status);
+        let show_trailing_status =
+            status_bar_trailing_visible(response_status.as_deref(), busy_status);
 
         div()
             .flex()
             .items_center()
             .justify_between()
-            .h(px(32.))
+            .h(px(STATUS_BAR_HEIGHT))
             .w_full()
             .min_w_0()
             .overflow_hidden()
@@ -6836,7 +7030,7 @@ impl ZenApiApp {
             .border_color(ui_border())
             .bg(ui_app_chrome())
             .px_3()
-            .text_size(px(12.))
+            .text_size(px(COMPACT_CONTROL_TEXT_SIZE))
             .text_color(ui_text_secondary())
             .child(
                 div()
@@ -6847,31 +7041,38 @@ impl ZenApiApp {
                     .overflow_hidden()
                     .gap_3()
                     .child(div().flex_shrink_0().truncate().child(route_status))
-                    .child(div().flex_1().min_w_0().truncate().child(mock_status)),
+                    .when_some(mock_status, |bar, status| {
+                        bar.child(div().flex_1().min_w_0().truncate().child(status))
+                    }),
             )
-            .child(
-                div()
-                    .flex()
-                    .items_center()
-                    .justify_end()
-                    .w(px(STATUS_BAR_TRAILING_WIDTH))
-                    .max_w(px(STATUS_BAR_TRAILING_WIDTH))
-                    .flex_shrink_1()
-                    .min_w_0()
-                    .overflow_hidden()
-                    .gap_3()
-                    .child(
-                        div()
-                            .flex_1()
-                            .min_w_0()
-                            .truncate()
-                            .text_right()
-                            .font_family(PLATFORM_MONOSPACE_FONT)
-                            .text_color(self.response_tone.color())
-                            .child(self.response_status.clone()),
-                    )
-                    .child(div().flex_shrink_0().child(busy_status)),
-            )
+            .when(show_trailing_status, |bar| {
+                bar.child(
+                    div()
+                        .flex()
+                        .items_center()
+                        .justify_end()
+                        .max_w(px(STATUS_BAR_TRAILING_MAX_WIDTH))
+                        .flex_shrink_1()
+                        .min_w_0()
+                        .overflow_hidden()
+                        .gap_3()
+                        .when_some(response_status, |bar, status| {
+                            bar.child(
+                                div()
+                                    .flex_1()
+                                    .min_w_0()
+                                    .truncate()
+                                    .text_right()
+                                    .font_family(PLATFORM_MONOSPACE_FONT)
+                                    .text_color(self.response_tone.color())
+                                    .child(status),
+                            )
+                        })
+                        .when_some(busy_status, |bar, status| {
+                            bar.child(div().flex_shrink_0().child(status))
+                        }),
+                )
+            })
     }
 }
 
@@ -6918,7 +7119,7 @@ impl ButtonTone {
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum ResponseView {
     Pretty,
     Raw,
@@ -6930,6 +7131,15 @@ fn response_tabs() -> [(&'static str, ResponseView); RESPONSE_TAB_COUNT] {
         (RESPONSE_PRETTY_LABEL, ResponseView::Pretty),
         (RESPONSE_RAW_LABEL, ResponseView::Raw),
         (RESPONSE_HEADERS_LABEL, ResponseView::Headers),
+    ]
+}
+
+#[cfg(test)]
+fn response_tab_shortcuts() -> [(usize, ResponseView); RESPONSE_TAB_COUNT] {
+    [
+        (1, ResponseView::Pretty),
+        (2, ResponseView::Raw),
+        (3, ResponseView::Headers),
     ]
 }
 
@@ -7232,7 +7442,7 @@ fn response_assertion_from_fields(
         return Ok(None);
     }
     if target.is_empty() {
-        return Err(anyhow!("test target is required for {}", kind.label()));
+        return Err(anyhow!("Target is empty."));
     }
 
     let assertion_name = if name.is_empty() {
@@ -7245,8 +7455,8 @@ fn response_assertion_from_fields(
             status: parse_u16_field(target, "status")?,
         },
         TestAssertionKind::StatusInRange => ResponseAssertionKind::StatusInRange {
-            min: parse_u16_field(target, "minimum status")?,
-            max: parse_u16_field(expected, "maximum status")?,
+            min: parse_u16_field(target, "min status")?,
+            max: parse_u16_field(expected, "max status")?,
         },
         TestAssertionKind::HeaderExists => ResponseAssertionKind::HeaderExists {
             name: target.to_string(),
@@ -7266,7 +7476,7 @@ fn response_assertion_from_fields(
 
     if let ResponseAssertionKind::StatusInRange { min, max } = &kind {
         if min > max {
-            return Err(anyhow!("minimum status must be <= maximum status"));
+            return Err(anyhow!("Min > max status."));
         }
     }
 
@@ -7277,14 +7487,12 @@ fn response_assertion_from_fields(
 }
 
 fn parse_u16_field(input: &str, label: &str) -> Result<u16> {
-    input
-        .parse::<u16>()
-        .map_err(|error| anyhow!("invalid {label}: {error}"))
+    input.parse::<u16>().map_err(|_| anyhow!("Bad {label}."))
 }
 
 fn parse_json_value_field(input: &str) -> Result<serde_json::Value> {
     if input.trim().is_empty() {
-        return Err(anyhow!("expected JSON value is required"));
+        return Err(anyhow!("Expected is empty."));
     }
 
     serde_json::from_str(input).or_else(|_| Ok(serde_json::Value::String(input.to_string())))
@@ -7316,13 +7524,12 @@ fn response_panel_meta(results: &[ResponseAssertionResult]) -> String {
 fn pre_request_status_label(actions: usize) -> String {
     match actions {
         0 => "idle".to_string(),
-        1 => "1 action".to_string(),
-        count => format!("{count} actions"),
+        count => format!("{count} act"),
     }
 }
 
 fn pre_request_error_label(error: &str) -> String {
-    format!("error: {}", preview_text(error))
+    format!("Err {}", preview_text(error))
 }
 
 fn clean_error_message(error: &str) -> &str {
@@ -7334,24 +7541,21 @@ fn clean_error_message(error: &str) -> &str {
     }
 }
 
-fn file_operation_error(action: &str, path: &str, error: &str, next_step: &str) -> String {
+fn file_operation_error(action: &str, path: &str, error: &str) -> String {
     format!(
-        "{action}\n\nPath\n{}\n\nError\n{}\n\nNext step\n{next_step}",
+        "{action}\n\nPath\n{}\n\nError\n{}",
         path.trim(),
         clean_error_message(error)
     )
 }
 
-fn editor_error(action: &str, error: &str, next_step: &str) -> String {
-    format!(
-        "{action}\n\nError\n{}\n\nNext step\n{next_step}",
-        clean_error_message(error)
-    )
+fn editor_error(action: &str, error: &str) -> String {
+    format!("{action}\n\nError\n{}", clean_error_message(error))
 }
 
 fn request_transport_error(method: &str, url: &str, error: &str) -> String {
     format!(
-        "Could not complete the request.\n\nRequest\n{} {}\n\nError\n{}\n\nNext step\nCheck the URL, network connection, TLS settings, and server availability.",
+        "Request failed.\n\nRequest\n{} {}\n\nError\n{}",
         method.trim(),
         url.trim(),
         clean_error_message(error)
@@ -7360,34 +7564,25 @@ fn request_transport_error(method: &str, url: &str, error: &str) -> String {
 
 fn mock_server_error(port: u16, error: &str) -> String {
     format!(
-        "Could not start the mock server.\n\nPort\n{port}\n\nError\n{}\n\nNext step\nStop any process using this port or change the mock server port when port configuration is added.",
+        "Mock start failed.\n\nPort\n{port}\n\nError\n{}",
         clean_error_message(error)
     )
 }
 
-fn realtime_operation_error(
-    action: &str,
-    target_label: &str,
-    target: &str,
-    error: &str,
-    next_step: &str,
-) -> String {
+fn realtime_operation_error(action: &str, target_label: &str, target: &str, error: &str) -> String {
     format!(
-        "{action}\n\n{target_label}\n{}\n\nError\n{}\n\nNext step\n{next_step}",
+        "{action}\n\n{target_label}\n{}\n\nError\n{}",
         target.trim(),
         clean_error_message(error)
     )
 }
 
 fn runner_failure_text(summary: &CollectionRunSummary) -> String {
-    format!(
-        "{}\n\nNext step\nReview the failed runner rows, fix the request URL, variables, pre-request actions, tests, or server state, then run the collection again.",
-        runner_summary_text(summary)
-    )
+    runner_summary_text(summary)
 }
 
 fn runner_worker_stopped_message() -> &'static str {
-    "Collection runner stopped before returning a summary.\n\nNext step\nRun the collection again. If this repeats, check the saved collection requests and pre-request actions."
+    "Collection runner stopped."
 }
 
 fn set_key_value_pairs(
@@ -8178,14 +8373,14 @@ fn websocket_log_entries(exchange: &client::WebSocketExchange) -> Vec<WebSocketL
 #[cfg(test)]
 fn websocket_exchange_text(exchange: &client::WebSocketExchange) -> String {
     let mut lines = vec![
-        format!("url: {}", exchange.url),
-        format!("received: {}", exchange.received.len()),
-        format!("sent text: {}", exchange.sent),
+        format!("URL {}", exchange.url),
+        format!("RX {}", exchange.received.len()),
+        format!("TX text {}", exchange.sent),
     ];
 
     for message in &exchange.received {
         lines.push(format!(
-            "received {}: {}",
+            "RX {} {}",
             websocket_message_kind_label(&message.kind),
             message.data
         ));
@@ -8199,10 +8394,10 @@ fn format_websocket_log(entries: &[WebSocketLogEntry]) -> String {
         .iter()
         .map(|entry| {
             let direction = match entry.direction {
-                WebSocketDirection::Sent => "sent",
-                WebSocketDirection::Received => "received",
+                WebSocketDirection::Sent => "TX",
+                WebSocketDirection::Received => "RX",
             };
-            format!("{direction} {}: {}", entry.kind, entry.data)
+            format!("{direction} {} {}", entry.kind, entry.data)
         })
         .collect::<Vec<_>>()
         .join("\n")
@@ -8224,16 +8419,16 @@ fn websocket_hex_bytes(input: &str) -> std::result::Result<Vec<u8>, String> {
         .filter(|ch| !ch.is_whitespace() && *ch != '_' && *ch != '-')
         .collect::<String>();
     if digits.is_empty() {
-        return Err("Enter binary data as hexadecimal bytes.".to_string());
+        return Err(WEBSOCKET_BINARY_EMPTY_BODY.to_string());
     }
     if digits.len() % 2 != 0 {
-        return Err("Hex binary input must have an even number of digits.".to_string());
+        return Err(WEBSOCKET_BINARY_ODD_DIGITS_BODY.to_string());
     }
 
     let mut bytes = Vec::with_capacity(digits.len() / 2);
     for index in (0..digits.len()).step_by(2) {
         let byte = u8::from_str_radix(&digits[index..index + 2], 16)
-            .map_err(|_| format!("Invalid hex byte at offset {index}."))?;
+            .map_err(|_| format!("Bad hex at {index}."))?;
         bytes.push(byte);
     }
 
@@ -8265,26 +8460,32 @@ fn format_sse_log(entries: &[SseLogEntry]) -> String {
     entries
         .iter()
         .map(|entry| match &entry.id {
-            Some(id) => format!("{} [id {}]: {}", entry.event, id, entry.data),
-            None => format!("{}: {}", entry.event, entry.data),
+            Some(id) => format!("{} #{} {}", entry.event, id, entry.data),
+            None => format!("{} {}", entry.event, entry.data),
         })
         .collect::<Vec<_>>()
         .join("\n")
 }
 
+fn sse_reconnect_status(attempt: usize, delay_ms: u64) -> String {
+    format!("retry {attempt} {delay_ms}ms")
+}
+
 fn sse_exchange_text(exchange: &client::SseExchange) -> String {
     let mut lines = vec![
-        format!("url: {}", exchange.url),
+        format!("URL {}", exchange.url),
         sse_event_count_label(exchange.events.len()),
     ];
 
     for event in &exchange.events {
-        let mut line = format!("{}: {}", sse_event_label(event), event.data);
+        let mut line = sse_event_label(event).to_string();
         if let Some(id) = &event.id {
-            line.push_str(&format!(" [id {id}]"));
+            line.push_str(&format!(" #{id}"));
         }
+        line.push(' ');
+        line.push_str(&event.data);
         if let Some(retry) = event.retry {
-            line.push_str(&format!(" [retry {retry}]"));
+            line.push_str(&format!(" r{retry}"));
         }
         lines.push(line);
     }
@@ -8372,13 +8573,13 @@ fn graphql_schema_summary(body: &str) -> Option<String> {
 
     Some(
         [
-            format!("roots: query {query_type}, mutation {mutation_type}, subscription {subscription_type}"),
+            format!("Roots Q={query_type} M={mutation_type} S={subscription_type}"),
             format!(
-                "types: {} total, {object_count} object, {input_count} input, {enum_count} enum, {scalar_count} scalar",
+                "Types {} | O{object_count} I{input_count} E{enum_count} S{scalar_count}",
                 types.len()
             ),
-            format!("fields: query {query_fields}, mutation {mutation_fields}, subscription {subscription_fields}"),
-            format!("directives: {directives}"),
+            format!("Fields Q{query_fields} M{mutation_fields} S{subscription_fields}"),
+            format!("Dirs {directives}"),
         ]
         .join("\n"),
     )
@@ -8391,9 +8592,9 @@ fn graphql_schema_browser(body: &str) -> Option<String> {
 
     let mut sections = Vec::new();
     for (label, key) in [
-        ("query fields", "queryType"),
-        ("mutation fields", "mutationType"),
-        ("subscription fields", "subscriptionType"),
+        ("Q", "queryType"),
+        ("M", "mutationType"),
+        ("S", "subscriptionType"),
     ] {
         if let Some(type_name) = graphql_schema_root_type_name(schema, key) {
             if let Some(section) = graphql_root_fields_section(types, label, type_name) {
@@ -8728,12 +8929,12 @@ fn graphql_type_ref(type_ref: &serde_json::Value) -> String {
 }
 
 fn graphql_type_index_section(types: &[serde_json::Value]) -> Option<String> {
-    let mut lines = vec!["type index".to_string()];
+    let mut lines = vec!["Types".to_string()];
     for (label, kind) in [
-        ("objects", "OBJECT"),
-        ("inputs", "INPUT_OBJECT"),
-        ("enums", "ENUM"),
-        ("scalars", "SCALAR"),
+        ("Obj", "OBJECT"),
+        ("In", "INPUT_OBJECT"),
+        ("Enum", "ENUM"),
+        ("Scalar", "SCALAR"),
     ] {
         let names = graphql_type_names_by_kind(types, kind);
         if !names.is_empty() {
@@ -8776,7 +8977,7 @@ fn graphql_directives_section(schema: &serde_json::Value) -> Option<String> {
 
     (!names.is_empty()).then(|| {
         format!(
-            "directives\n  {}",
+            "Dirs\n  {}",
             graphql_limited_list(&names, GRAPHQL_SCHEMA_TYPE_LIMIT)
         )
     })
@@ -8889,7 +9090,7 @@ impl ZenApiApp {
                             .flex_1()
                             .min_w_0()
                             .truncate()
-                            .text_size(px(12.))
+                            .text_size(px(PANEL_TITLE_TEXT_SIZE))
                             .font_weight(FontWeight::BOLD)
                             .text_color(ui_text_primary())
                             .child(title),
@@ -8904,7 +9105,7 @@ impl ZenApiApp {
                     .px_2()
                     .min_w_0()
                     .overflow_hidden()
-                    .text_size(px(11.))
+                    .text_size(px(TABLE_HEADER_TEXT_SIZE))
                     .font_weight(FontWeight::BOLD)
                     .text_color(ui_text_body())
                     .child(
@@ -8948,11 +9149,11 @@ impl ZenApiApp {
             .flex_shrink_0()
             .min_w_0()
             .overflow_hidden()
-            .rounded(px(5.))
+            .rounded(px(UI_RADIUS_CONTROL))
             .border_1()
             .border_color(colors.border)
             .bg(colors.background)
-            .text_size(px(11.))
+            .text_size(px(COMPACT_SYMBOL_TEXT_SIZE))
             .font_weight(FontWeight::BOLD)
             .text_color(colors.text)
             .opacity(control_opacity(enabled))
@@ -9021,11 +9222,11 @@ impl ZenApiApp {
             .flex_shrink_0()
             .min_w_0()
             .overflow_hidden()
-            .rounded(px(5.))
+            .rounded(px(UI_RADIUS_CONTROL))
             .border_1()
             .border_color(colors.border)
             .bg(colors.background)
-            .text_size(px(11.))
+            .text_size(px(COMPACT_SYMBOL_TEXT_SIZE))
             .font_weight(FontWeight::BOLD)
             .text_color(colors.text)
             .opacity(control_opacity(enabled))
@@ -9097,7 +9298,7 @@ fn empty_state_row(label: impl Into<SharedString>, height: f32) -> gpui::Div {
         .overflow_hidden()
         .px_2()
         .text_color(ui_text_body())
-        .text_size(px(13.))
+        .text_size(px(PANEL_CONTENT_TEXT_SIZE))
         .child(div().min_w_0().truncate().child(label.into()))
 }
 
@@ -9128,7 +9329,7 @@ fn sidebar_section_header(title: &'static str, trailing: gpui::Div) -> gpui::Div
         .min_w_0()
         .gap_2()
         .h(px(SECTION_HEADER_HEIGHT))
-        .text_size(px(13.))
+        .text_size(px(SIDEBAR_NAV_TEXT_SIZE))
         .child(
             div()
                 .flex_1()
@@ -9178,11 +9379,11 @@ fn sidebar_small_button(
         .flex_shrink_0()
         .min_w_0()
         .overflow_hidden()
-        .rounded(px(4.))
+        .rounded(px(UI_RADIUS_TIGHT))
         .border_1()
         .border_color(colors.border)
         .bg(colors.background)
-        .text_size(px(11.))
+        .text_size(px(COMPACT_SYMBOL_TEXT_SIZE))
         .font_weight(FontWeight::BOLD)
         .text_color(colors.text)
         .opacity(control_opacity(enabled))
@@ -9256,11 +9457,11 @@ fn assertion_remove_button(
         .flex_shrink_0()
         .min_w_0()
         .overflow_hidden()
-        .rounded(px(5.))
+        .rounded(px(UI_RADIUS_CONTROL))
         .border_1()
         .border_color(colors.border)
         .bg(colors.background)
-        .text_size(px(11.))
+        .text_size(px(COMPACT_SYMBOL_TEXT_SIZE))
         .font_weight(FontWeight::BOLD)
         .text_color(colors.text)
         .opacity(control_opacity(enabled))
@@ -9283,14 +9484,14 @@ fn assertion_result_row(result: ResponseAssertionResult) -> gpui::Div {
     div()
         .flex()
         .items_center()
-        .h(px(30.))
+        .h(px(RESULT_ROW_HEIGHT))
         .min_w_0()
         .overflow_hidden()
         .px_2()
         .gap_2()
         .border_b_1()
         .border_color(ui_hover())
-        .text_size(px(12.))
+        .text_size(px(PANEL_CONTENT_TEXT_SIZE))
         .child(
             fixed_row_cell(
                 if result.passed { "PASS" } else { "FAIL" },
@@ -9300,7 +9501,7 @@ fn assertion_result_row(result: ResponseAssertionResult) -> gpui::Div {
                 false,
             )
             .font_family(PLATFORM_MONOSPACE_FONT)
-            .text_size(px(12.)),
+            .text_size(px(PANEL_CONTENT_TEXT_SIZE)),
         )
         .child(
             fixed_row_cell(
@@ -9310,7 +9511,7 @@ fn assertion_result_row(result: ResponseAssertionResult) -> gpui::Div {
                 true,
                 false,
             )
-            .text_size(px(12.)),
+            .text_size(px(PANEL_CONTENT_TEXT_SIZE)),
         )
         .child(
             div()
@@ -9326,14 +9527,14 @@ fn pre_request_action_row(action: String) -> gpui::Div {
     div()
         .flex()
         .items_center()
-        .h(px(30.))
+        .h(px(RESULT_ROW_HEIGHT))
         .min_w_0()
         .overflow_hidden()
         .px_2()
         .gap_2()
         .border_b_1()
         .border_color(ui_hover())
-        .text_size(px(12.))
+        .text_size(px(PANEL_CONTENT_TEXT_SIZE))
         .child(
             fixed_row_cell(
                 "PASS",
@@ -9343,7 +9544,7 @@ fn pre_request_action_row(action: String) -> gpui::Div {
                 false,
             )
             .font_family(PLATFORM_MONOSPACE_FONT)
-            .text_size(px(12.)),
+            .text_size(px(PANEL_CONTENT_TEXT_SIZE)),
         )
         .child(
             div()
@@ -9356,8 +9557,16 @@ fn pre_request_action_row(action: String) -> gpui::Div {
         )
 }
 
+fn compact_toggle_width(label: &str) -> f32 {
+    if label.len() > COMPACT_TOGGLE_LONG_LABEL_THRESHOLD {
+        COMPACT_TOGGLE_LONG_WIDTH
+    } else {
+        COMPACT_TOGGLE_SHORT_WIDTH
+    }
+}
+
 fn compact_toggle_enabled(label: &str, active: bool, enabled: bool) -> gpui::Div {
-    let width = if label.len() > 12 { px(156.) } else { px(76.) };
+    let width = px(compact_toggle_width(label));
 
     div()
         .flex()
@@ -9368,7 +9577,7 @@ fn compact_toggle_enabled(label: &str, active: bool, enabled: bool) -> gpui::Div
         .min_w_0()
         .overflow_hidden()
         .px_2()
-        .rounded(px(5.))
+        .rounded(px(UI_RADIUS_CONTROL))
         .border_1()
         .border_color(if !enabled {
             ui_disabled_border()
@@ -9382,7 +9591,7 @@ fn compact_toggle_enabled(label: &str, active: bool, enabled: bool) -> gpui::Div
         } else {
             ui_disabled_surface()
         })
-        .text_size(px(12.))
+        .text_size(px(COMPACT_CONTROL_TEXT_SIZE))
         .font_weight(FontWeight::BOLD)
         .text_color(if !enabled {
             ui_disabled_text()
@@ -9402,7 +9611,7 @@ fn panel_status_text(label: impl Into<SharedString>, color: Hsla) -> gpui::Div {
         .truncate()
         .text_right()
         .font_family(PLATFORM_MONOSPACE_FONT)
-        .text_size(px(12.))
+        .text_size(px(PANEL_META_TEXT_SIZE))
         .text_color(color)
         .child(label.into())
 }
@@ -9419,11 +9628,11 @@ fn response_toolbar_button(label: &'static str, width: f32, enabled: bool) -> gp
         .flex_shrink_0()
         .min_w_0()
         .overflow_hidden()
-        .rounded(px(5.))
+        .rounded(px(UI_RADIUS_CONTROL))
         .border_1()
         .border_color(colors.border)
         .bg(colors.background)
-        .text_size(px(12.))
+        .text_size(px(COMPACT_CONTROL_TEXT_SIZE))
         .font_weight(FontWeight::BOLD)
         .text_color(colors.text)
         .opacity(control_opacity(enabled))
@@ -9447,7 +9656,7 @@ fn flexible_toggle_enabled(
         .min_w_0()
         .overflow_hidden()
         .px_2()
-        .rounded(px(5.))
+        .rounded(px(UI_RADIUS_CONTROL))
         .border_1()
         .border_color(if !enabled {
             ui_disabled_border()
@@ -9463,7 +9672,7 @@ fn flexible_toggle_enabled(
         } else {
             ui_surface()
         })
-        .text_size(px(12.))
+        .text_size(px(COMPACT_CONTROL_TEXT_SIZE))
         .font_weight(FontWeight::BOLD)
         .text_color(if !enabled {
             ui_disabled_text()
@@ -9493,7 +9702,7 @@ fn full_width_toggle_enabled(
         .min_w_0()
         .overflow_hidden()
         .px_2()
-        .rounded(px(5.))
+        .rounded(px(UI_RADIUS_CONTROL))
         .border_1()
         .border_color(if !enabled {
             ui_disabled_border()
@@ -9507,7 +9716,7 @@ fn full_width_toggle_enabled(
         } else {
             ui_disabled_surface()
         })
-        .text_size(px(12.))
+        .text_size(px(COMPACT_CONTROL_TEXT_SIZE))
         .font_weight(FontWeight::BOLD)
         .text_color(if !enabled {
             ui_disabled_text()
@@ -9568,6 +9777,8 @@ fn panel_header(
     tone: ResponseTone,
 ) -> impl IntoElement {
     let title = title.into();
+    let meta = panel_header_meta_text(meta);
+    let has_meta = meta.is_some();
     div()
         .flex()
         .flex_col()
@@ -9590,42 +9801,49 @@ fn panel_header(
                         .min_w_0()
                         .truncate()
                         .font_weight(FontWeight::BOLD)
-                        .text_size(px(13.))
+                        .text_size(px(PANE_HEADER_TITLE_TEXT_SIZE))
                         .text_color(ui_text_primary())
                         .child(title.clone()),
                 )
-                .child(
-                    div()
-                        .w(px(PANEL_HEADER_META_WIDTH))
-                        .max_w(px(PANEL_HEADER_META_WIDTH))
-                        .flex_shrink_1()
-                        .min_w_0()
-                        .truncate()
-                        .text_right()
-                        .font_family(PLATFORM_MONOSPACE_FONT)
-                        .text_size(px(12.))
-                        .font_weight(FontWeight::SEMIBOLD)
-                        .text_color(tone.color())
-                        .child(meta.unwrap_or("").to_string()),
-                ),
+                .when(has_meta, move |row| {
+                    row.child(
+                        div()
+                            .max_w(px(PANEL_HEADER_META_MAX_WIDTH))
+                            .flex_shrink_1()
+                            .min_w_0()
+                            .truncate()
+                            .text_right()
+                            .font_family(PLATFORM_MONOSPACE_FONT)
+                            .text_size(px(PANEL_META_TEXT_SIZE))
+                            .font_weight(FontWeight::SEMIBOLD)
+                            .text_color(tone.color())
+                            .child(meta.clone().unwrap_or_default()),
+                    )
+                }),
         )
         .child(
             div()
-                .ml(px(12.))
+                .ml(px(PANEL_HEADER_UNDERLINE_LEFT_OFFSET))
                 .h(px(PANEL_HEADER_UNDERLINE_HEIGHT))
                 .w(px(PANEL_HEADER_UNDERLINE_WIDTH))
                 .bg(ui_accent()),
         )
 }
 
+fn panel_header_meta_text(meta: Option<&str>) -> Option<String> {
+    meta.map(str::trim)
+        .filter(|meta| !meta.is_empty())
+        .map(str::to_string)
+}
+
 fn runner_status_text(summary: &CollectionRunSummary) -> String {
     let suffix = if summary.stopped_early {
-        ", stopped"
+        " / stopped"
     } else {
         ""
     };
     format!(
-        "{} passed, {} failed, {} total{suffix}",
+        "P {} / F {} / T {}{suffix}",
         summary.passed, summary.failed, summary.total
     )
 }
@@ -9642,17 +9860,17 @@ fn runner_summary_text(summary: &CollectionRunSummary) -> String {
             .status
             .map(|status| status.to_string())
             .unwrap_or_else(|| "ERR".to_string());
-        let outcome = if result.success { "PASS" } else { "FAIL" };
+        let outcome = runner_outcome_label(result.success);
         let mut line = format!("[{outcome}] {status} {} {}", result.method, result.url);
         if let Some(error) = &result.error {
             line.push_str(&format!(" - {error}"));
         }
         lines.push(line);
         for action in &result.pre_request_actions {
-            lines.push(format!("  [PASS] pre-request {action}"));
+            lines.push(format!("  [OK] pre {action}"));
         }
         for assertion in &result.assertions {
-            let outcome = if assertion.passed { "PASS" } else { "FAIL" };
+            let outcome = runner_outcome_label(assertion.passed);
             let mut line = format!("  [{outcome}] test {}", assertion.name);
             if let Some(error) = &assertion.error {
                 line.push_str(&format!(" - {error}"));
@@ -9662,6 +9880,10 @@ fn runner_summary_text(summary: &CollectionRunSummary) -> String {
     }
 
     lines.join("\n")
+}
+
+fn runner_outcome_label(success: bool) -> &'static str {
+    if success { "OK" } else { "ERR" }
 }
 
 fn runner_result_row(result: CollectionRunResult) -> impl IntoElement {
@@ -9680,7 +9902,7 @@ fn runner_result_row(result: CollectionRunResult) -> impl IntoElement {
     div()
         .flex()
         .items_center()
-        .h(px(30.))
+        .h(px(RESULT_ROW_HEIGHT))
         .min_w_0()
         .overflow_hidden()
         .px_2()
@@ -9688,7 +9910,7 @@ fn runner_result_row(result: CollectionRunResult) -> impl IntoElement {
         .border_b_1()
         .border_color(ui_hover())
         .font_family(PLATFORM_MONOSPACE_FONT)
-        .text_size(px(12.))
+        .text_size(px(PANEL_CONTENT_TEXT_SIZE))
         .child(fixed_row_cell(
             result.method,
             RUNNER_METHOD_COLUMN_WIDTH,
@@ -9750,7 +9972,7 @@ fn mock_log_row(method: String, path: String, status: u16) -> impl IntoElement {
     div()
         .flex()
         .items_center()
-        .h(px(30.))
+        .h(px(RESULT_ROW_HEIGHT))
         .min_w_0()
         .overflow_hidden()
         .px_2()
@@ -9758,7 +9980,7 @@ fn mock_log_row(method: String, path: String, status: u16) -> impl IntoElement {
         .border_b_1()
         .border_color(ui_hover())
         .font_family(PLATFORM_MONOSPACE_FONT)
-        .text_size(px(12.))
+        .text_size(px(PANEL_CONTENT_TEXT_SIZE))
         .child(fixed_row_cell(
             method,
             RUNNER_METHOD_COLUMN_WIDTH,
@@ -9792,7 +10014,7 @@ fn websocket_log_row(entry: WebSocketLogEntry) -> impl IntoElement {
     div()
         .flex()
         .items_center()
-        .h(px(30.))
+        .h(px(RESULT_ROW_HEIGHT))
         .min_w_0()
         .overflow_hidden()
         .px_2()
@@ -9800,7 +10022,7 @@ fn websocket_log_row(entry: WebSocketLogEntry) -> impl IntoElement {
         .border_b_1()
         .border_color(ui_hover())
         .font_family(PLATFORM_MONOSPACE_FONT)
-        .text_size(px(12.))
+        .text_size(px(PANEL_CONTENT_TEXT_SIZE))
         .child(fixed_row_cell(
             direction,
             WEBSOCKET_DIRECTION_COLUMN_WIDTH,
@@ -9831,7 +10053,7 @@ fn sse_log_row(entry: SseLogEntry) -> impl IntoElement {
     div()
         .flex()
         .items_center()
-        .h(px(30.))
+        .h(px(RESULT_ROW_HEIGHT))
         .min_w_0()
         .overflow_hidden()
         .px_2()
@@ -9839,7 +10061,7 @@ fn sse_log_row(entry: SseLogEntry) -> impl IntoElement {
         .border_b_1()
         .border_color(ui_hover())
         .font_family(PLATFORM_MONOSPACE_FONT)
-        .text_size(px(12.))
+        .text_size(px(PANEL_CONTENT_TEXT_SIZE))
         .child(fixed_row_cell(
             entry.event,
             SSE_EVENT_COLUMN_WIDTH,
@@ -9879,10 +10101,10 @@ fn history_row(
         .id(("history", id))
         .flex()
         .items_center()
-        .h(px(46.))
+        .h(px(HISTORY_ROW_HEIGHT))
         .min_w_0()
         .overflow_hidden()
-        .rounded(px(4.))
+        .rounded(px(UI_RADIUS_TIGHT))
         .px_2()
         .py_1()
         .opacity(control_opacity(enabled))
@@ -9916,7 +10138,7 @@ fn history_row(
                                 true,
                                 false,
                             )
-                            .text_size(px(12.)),
+                            .text_size(px(SIDEBAR_METHOD_TEXT_SIZE)),
                         )
                         .child(
                             div()
@@ -9924,19 +10146,19 @@ fn history_row(
                                 .min_w_0()
                                 .truncate()
                                 .font_family(PLATFORM_MONOSPACE_FONT)
-                                .text_size(px(12.))
+                                .text_size(px(SIDEBAR_PRIMARY_ROW_TEXT_SIZE))
                                 .text_color(ui_text_primary())
                                 .child(url),
                         ),
                 )
                 .child(
                     div()
-                        .ml(px(66.))
+                        .ml(px(SIDEBAR_SECONDARY_ROW_INDENT))
                         .min_w_0()
                         .truncate()
                         .font_family(PLATFORM_MONOSPACE_FONT)
-                        .text_size(px(11.))
-                        .text_color(ui_text_secondary())
+                        .text_size(px(ROW_META_TEXT_SIZE))
+                        .text_color(ui_sidebar_detail_text())
                         .child(status),
                 ),
         )
@@ -10044,10 +10266,10 @@ fn collection_root_row(
         .h(px(collection_tree_row_height(CollectionNodeKind::Root)))
         .min_w_0()
         .overflow_hidden()
-        .rounded(px(4.))
+        .rounded(px(UI_RADIUS_TIGHT))
         .px_2()
         .gap_2()
-        .text_size(px(12.))
+        .text_size(px(SIDEBAR_PRIMARY_ROW_TEXT_SIZE))
         .cursor_pointer()
         .hover(|row| row.bg(ui_hover()))
         .on_mouse_up(
@@ -10137,11 +10359,11 @@ fn collection_folder_row(
         .h(px(collection_tree_row_height(CollectionNodeKind::Folder)))
         .min_w_0()
         .overflow_hidden()
-        .rounded(px(4.))
+        .rounded(px(UI_RADIUS_TIGHT))
         .pl(px(collection_tree_indent(depth)))
         .pr_2()
         .gap_2()
-        .text_size(px(12.))
+        .text_size(px(SIDEBAR_PRIMARY_ROW_TEXT_SIZE))
         .cursor_pointer()
         .hover(|row| row.bg(ui_hover()))
         .on_mouse_up(
@@ -10239,7 +10461,7 @@ fn collection_request_row(
         .h(px(collection_tree_row_height(CollectionNodeKind::Request)))
         .min_w_0()
         .overflow_hidden()
-        .rounded(px(4.))
+        .rounded(px(UI_RADIUS_TIGHT))
         .pl(px(collection_tree_indent(depth)))
         .pr_2()
         .gap_2()
@@ -10289,7 +10511,7 @@ fn collection_request_row(
         )
         .child(
             fixed_row_cell(method, HTTP_METHOD_LABEL_WIDTH, method_color, true, false)
-                .text_size(px(11.)),
+                .text_size(px(SIDEBAR_COMPACT_METHOD_TEXT_SIZE)),
         )
         .child(
             div()
@@ -10301,7 +10523,7 @@ fn collection_request_row(
                     div()
                         .min_w_0()
                         .truncate()
-                        .text_size(px(12.))
+                        .text_size(px(SIDEBAR_PRIMARY_ROW_TEXT_SIZE))
                         .text_color(ui_text_primary())
                         .child(name),
                 )
@@ -10310,8 +10532,8 @@ fn collection_request_row(
                         .min_w_0()
                         .truncate()
                         .font_family(PLATFORM_MONOSPACE_FONT)
-                        .text_size(px(11.))
-                        .text_color(ui_text_secondary())
+                        .text_size(px(ROW_META_TEXT_SIZE))
+                        .text_color(ui_sidebar_detail_text())
                         .child(url),
                 ),
         )
@@ -10476,6 +10698,15 @@ fn display_spec_label(path: &str) -> String {
         .to_string()
 }
 
+fn import_success_body(spec_label: &str) -> String {
+    let spec_label = spec_label.trim();
+    if spec_label.is_empty() {
+        "Spec loaded".to_string()
+    } else {
+        spec_label.to_string()
+    }
+}
+
 fn mock_button_label(server_running: bool) -> &'static str {
     if server_running { "Stop" } else { "Mock" }
 }
@@ -10502,15 +10733,19 @@ fn close_transient_ui_state(state: &mut TransientUiState) -> bool {
 }
 
 fn reset_scroll_handle(scroll: &ScrollHandle) {
-    scroll.set_offset(point(px(0.), px(0.)));
+    scroll.set_offset(point(px(LAYOUT_ZERO), px(LAYOUT_ZERO)));
 }
 
 fn sending_response_body(method: &str, url: &str) -> String {
-    format!("Waiting for response\n\n{} {}", method, preview_text(url))
+    format!(
+        "{PENDING_RESPONSE_BODY_LABEL}\n\n{} {}",
+        method,
+        preview_text(url)
+    )
 }
 
 fn request_worker_stopped_message() -> &'static str {
-    "Request worker stopped before returning a response."
+    "Request worker stopped."
 }
 
 fn filter_routes(routes: &[ApiRoute], query: &str) -> Vec<ApiRoute> {
@@ -10533,9 +10768,156 @@ fn filter_routes(routes: &[ApiRoute], query: &str) -> Vec<ApiRoute> {
 fn filtered_count_label(total: usize, visible: usize) -> String {
     if total == 0 {
         "0".to_string()
+    } else if visible >= total {
+        total.to_string()
     } else {
-        format!("{}/{}", visible.min(total), total)
+        format!("{visible}/{total}")
     }
+}
+
+fn route_status_label(total: usize, visible: usize) -> String {
+    if total == 0 {
+        "No routes".to_string()
+    } else if visible >= total {
+        route_count_label(total)
+    } else {
+        format!("{}/{} routes", visible, total)
+    }
+}
+
+fn route_count_label(count: usize) -> String {
+    if count == 1 {
+        "1 route".to_string()
+    } else {
+        format!("{count} routes")
+    }
+}
+
+fn status_bar_busy_label(busy: bool) -> Option<&'static str> {
+    busy.then_some("Busy")
+}
+
+fn status_bar_mock_label(server_running: bool, server_status: &str) -> Option<String> {
+    let status = server_status.trim();
+    if server_running {
+        if status.is_empty() {
+            Some("Mock".to_string())
+        } else if let Ok(addr) = status.parse::<SocketAddr>() {
+            Some(format!("Mock :{}", addr.port()))
+        } else {
+            Some(format!("Mock {status}"))
+        }
+    } else if is_idle_mock_status(status) {
+        None
+    } else {
+        Some(status.to_string())
+    }
+}
+
+fn is_idle_mock_status(status: &str) -> bool {
+    matches!(
+        status.trim(),
+        "" | MOCK_STATUS_STOPPED | MOCK_STATUS_READY | MOCK_STATUS_NO_ROUTES
+    )
+}
+
+fn status_bar_trailing_visible(response_status: Option<&str>, busy_status: Option<&str>) -> bool {
+    response_status.is_some() || busy_status.is_some()
+}
+
+fn response_status_label(status: &str) -> Option<String> {
+    let status = status.trim();
+    if status.is_empty() || status == "Idle" {
+        None
+    } else {
+        Some(status.to_string())
+    }
+}
+
+fn response_header_meta(status: &str, meta: &str) -> Option<String> {
+    let status = response_status_label(status);
+    let meta = meta.trim();
+
+    match (status, meta.is_empty()) {
+        (None, true) => None,
+        (None, false) => Some(meta.to_string()),
+        (Some(status), true) => Some(status),
+        (Some(status), false) => Some(format!("{status} | {meta}")),
+    }
+}
+
+fn panel_header_status_label(status: &str) -> Option<String> {
+    let status = status.trim();
+    if status.is_empty() || status == "idle" {
+        None
+    } else if let Some(error) = status.strip_prefix("error:") {
+        Some(format!("Err {}", error.trim()))
+    } else {
+        Some(status.to_string())
+    }
+}
+
+fn runner_header_status_label(status: &str) -> Option<String> {
+    let status = status.trim();
+    if status.is_empty()
+        || matches!(
+            status,
+            "Runner idle" | RUNNER_EMPTY_REQUESTS_LABEL | RUNNER_EMPTY_RESULTS_LABEL
+        )
+    {
+        None
+    } else {
+        Some(status.to_string())
+    }
+}
+
+fn tests_header_status_label(
+    results: &[ResponseAssertionResult],
+    configured_count: usize,
+) -> Option<String> {
+    assertion_meta(results).or_else(|| {
+        if configured_count == 0 {
+            None
+        } else {
+            Some(format!("{configured_count} cfg"))
+        }
+    })
+}
+
+fn collection_sidebar_status_label(status: &str) -> Option<String> {
+    let status = status.trim();
+    if status.is_empty() || status == "No collection file" {
+        return None;
+    }
+
+    let label = if status.starts_with("Imported ") {
+        "Imported"
+    } else if status.starts_with("Exported ") {
+        "Exported"
+    } else {
+        match status.split_once(':').map_or(status, |(prefix, _)| prefix) {
+            "Request created" => "+ Req",
+            "Folder created" => "+ Dir",
+            "Item copied" => "Copied",
+            "Item deleted" => "Deleted",
+            "Item moved" => "Moved",
+            "Item renamed" => "Renamed",
+            "Import failed" => "Import fail",
+            "Export failed" => "Export fail",
+            "Create failed" => "Create fail",
+            "Copy failed" => "Copy fail",
+            "Delete failed" => "Delete fail",
+            "Move failed" => "Move fail",
+            "Rename failed" => "Rename fail",
+            "Nothing to export" => "No export",
+            "Name needed" => "Name needed",
+            "Rename unavailable while busy" => "Busy",
+            "Rename unavailable" => "Unavailable",
+            other => other,
+        }
+    };
+
+    Some(label.to_string())
 }
 
 fn has_trimmed_text(input: &str) -> bool {
@@ -10604,6 +10986,14 @@ fn is_websocket_url(url: &str) -> bool {
     url.starts_with("ws://") || url.starts_with("wss://")
 }
 
+fn websocket_url_validation_response(url: &str) -> (&'static str, &'static str) {
+    if has_trimmed_text(url) {
+        (WEBSOCKET_URL_INVALID_TITLE, WEBSOCKET_URL_INVALID_BODY)
+    } else {
+        (WEBSOCKET_URL_REQUIRED_TITLE, URL_REQUIRED_BODY)
+    }
+}
+
 fn can_connect_websocket(busy: bool, running: bool, url: &str) -> bool {
     !busy && !running && is_websocket_url(url)
 }
@@ -10615,6 +11005,14 @@ fn can_close_websocket(busy: bool, running: bool) -> bool {
 fn is_sse_url(url: &str) -> bool {
     let url = url.trim();
     url.starts_with("http://") || url.starts_with("https://")
+}
+
+fn sse_url_validation_response(url: &str) -> (&'static str, &'static str) {
+    if has_trimmed_text(url) {
+        (SSE_URL_INVALID_TITLE, SSE_URL_INVALID_BODY)
+    } else {
+        (SSE_URL_REQUIRED_TITLE, URL_REQUIRED_BODY)
+    }
 }
 
 fn can_start_sse(busy: bool, running: bool, url: &str) -> bool {
@@ -10789,7 +11187,7 @@ fn pretty_json(value: &serde_json::Value) -> String {
 fn formatted_json_body(input: &str) -> Result<String> {
     let input = input.trim();
     if input.is_empty() {
-        return Err(anyhow!("Enter a JSON body before formatting."));
+        return Err(anyhow!(RAW_JSON_EMPTY_FORMAT_BODY));
     }
 
     let value = serde_json::from_str::<serde_json::Value>(input)
@@ -10832,7 +11230,7 @@ fn response_body_for_view(
         ResponseView::Raw => raw_body.to_string(),
         ResponseView::Headers => {
             if headers.trim().is_empty() {
-                "No response headers".to_string()
+                RESPONSE_HEADERS_EMPTY_LABEL.to_string()
             } else {
                 headers.to_string()
             }
@@ -10980,9 +11378,170 @@ mod tests {
     #[test]
     fn filtered_count_labels_show_visible_and_total() {
         assert_eq!(filtered_count_label(0, 0), "0");
-        assert_eq!(filtered_count_label(4, 4), "4/4");
+        assert_eq!(filtered_count_label(4, 4), "4");
         assert_eq!(filtered_count_label(4, 2), "2/4");
-        assert_eq!(filtered_count_label(4, 8), "4/4");
+        assert_eq!(filtered_count_label(4, 8), "4");
+        assert_eq!(route_count_label(0), "0 routes");
+        assert_eq!(route_count_label(1), "1 route");
+        assert_eq!(route_count_label(4), "4 routes");
+        assert_eq!(route_status_label(0, 0), "No routes");
+        assert_eq!(route_status_label(1, 1), "1 route");
+        assert_eq!(route_status_label(4, 4), "4 routes");
+        assert_eq!(route_status_label(4, 2), "2/4 routes");
+        assert_eq!(route_status_label(4, 8), "4 routes");
+        assert_eq!(import_success_body(" petstore.yaml "), "petstore.yaml");
+        assert_eq!(import_success_body(""), "Spec loaded");
+        assert!(!import_success_body("petstore.yaml").contains("Ready"));
+        assert!(!import_success_body("petstore.yaml").contains("routes parsed"));
+    }
+
+    #[test]
+    fn status_bar_labels_skip_idle_noise() {
+        assert_eq!(status_bar_busy_label(false), None);
+        assert_eq!(status_bar_busy_label(true), Some("Busy"));
+        assert_eq!(MOCK_STATUS_IMPORT_ROUTES_FIRST, "No routes");
+        assert!(
+            !MOCK_STATUS_IMPORT_ROUTES_FIRST.contains("Import")
+                && !MOCK_STATUS_IMPORT_ROUTES_FIRST.contains("first")
+        );
+        assert_eq!(status_bar_mock_label(false, ""), None);
+        assert_eq!(status_bar_mock_label(false, MOCK_STATUS_STOPPED), None);
+        assert_eq!(status_bar_mock_label(false, MOCK_STATUS_READY), None);
+        assert_eq!(status_bar_mock_label(false, MOCK_STATUS_NO_ROUTES), None);
+        assert!(is_idle_mock_status(MOCK_STATUS_READY));
+        assert!(is_idle_mock_status(MOCK_STATUS_NO_ROUTES));
+        assert_eq!(
+            status_bar_mock_label(false, " No routes ").as_deref(),
+            Some(MOCK_STATUS_IMPORT_ROUTES_FIRST)
+        );
+        assert_eq!(
+            status_bar_mock_label(false, MOCK_STATUS_STARTING).as_deref(),
+            Some(MOCK_STATUS_STARTING)
+        );
+        assert_eq!(
+            status_bar_mock_label(false, MOCK_STATUS_STOPPING).as_deref(),
+            Some(MOCK_STATUS_STOPPING)
+        );
+        assert_eq!(
+            status_bar_mock_label(false, MOCK_STATUS_FAILED).as_deref(),
+            Some(MOCK_STATUS_FAILED)
+        );
+        assert!(
+            [
+                MOCK_STATUS_STARTING,
+                MOCK_STATUS_STOPPING,
+                MOCK_STATUS_FAILED
+            ]
+            .iter()
+            .all(|status| status.len() <= 10
+                && !status.contains("Starting")
+                && !status.contains("Stopping")
+                && !status.contains("failed"))
+        );
+        assert_eq!(status_bar_mock_label(true, "").as_deref(), Some("Mock"));
+        assert_eq!(
+            status_bar_mock_label(true, "127.0.0.1:8080").as_deref(),
+            Some("Mock :8080")
+        );
+        assert_eq!(
+            status_bar_mock_label(true, "[::1]:8081").as_deref(),
+            Some("Mock :8081")
+        );
+        assert!(
+            !status_bar_mock_label(true, "127.0.0.1:8080")
+                .unwrap()
+                .contains("127.0.0.1")
+        );
+        assert_eq!(response_status_label(""), None);
+        assert_eq!(response_status_label(" Idle "), None);
+        assert_eq!(
+            response_status_label("HTTP 200").as_deref(),
+            Some("HTTP 200")
+        );
+        assert_eq!(
+            response_status_label("Request failed").as_deref(),
+            Some("Request failed")
+        );
+        assert!(!status_bar_trailing_visible(None, None));
+        assert!(status_bar_trailing_visible(Some("HTTP 200"), None));
+        assert!(status_bar_trailing_visible(None, Some("Busy")));
+        assert!(status_bar_trailing_visible(
+            Some("Request failed"),
+            Some("Busy")
+        ));
+    }
+
+    #[test]
+    fn panel_header_status_labels_skip_default_noise() {
+        assert_eq!(panel_header_meta_text(None), None);
+        assert_eq!(panel_header_meta_text(Some("")), None);
+        assert_eq!(panel_header_meta_text(Some("   ")), None);
+        assert_eq!(
+            panel_header_meta_text(Some(" Tests 2/3 ")).as_deref(),
+            Some("Tests 2/3")
+        );
+        assert_eq!(panel_header_status_label(""), None);
+        assert_eq!(panel_header_status_label(" idle "), None);
+        assert_eq!(
+            panel_header_status_label("connected").as_deref(),
+            Some("connected")
+        );
+        assert_eq!(
+            panel_header_status_label("error: failed").as_deref(),
+            Some("Err failed")
+        );
+
+        assert_eq!(runner_header_status_label("Runner idle"), None);
+        assert_eq!(
+            runner_header_status_label(RUNNER_EMPTY_REQUESTS_LABEL),
+            None
+        );
+        assert_eq!(runner_header_status_label(RUNNER_EMPTY_RESULTS_LABEL), None);
+        assert_eq!(
+            runner_header_status_label("Run 3").as_deref(),
+            Some("Run 3")
+        );
+
+        assert_eq!(tests_header_status_label(&[], 0), None);
+        assert_eq!(tests_header_status_label(&[], 2).as_deref(), Some("2 cfg"));
+        let results = vec![
+            ResponseAssertionResult {
+                name: "status".to_string(),
+                passed: true,
+                error: None,
+            },
+            ResponseAssertionResult {
+                name: "body".to_string(),
+                passed: false,
+                error: Some("missing".to_string()),
+            },
+        ];
+        assert_eq!(
+            tests_header_status_label(&results, 0).as_deref(),
+            Some("1/2 tests")
+        );
+    }
+
+    #[test]
+    fn response_header_meta_keeps_title_stable() {
+        assert_eq!(response_header_meta("", ""), None);
+        assert_eq!(response_header_meta("Idle", ""), None);
+        assert_eq!(
+            response_header_meta("Idle", "1/2 tests").as_deref(),
+            Some("1/2 tests")
+        );
+        assert_eq!(
+            response_header_meta("HTTP 200", "").as_deref(),
+            Some("HTTP 200")
+        );
+        assert_eq!(
+            response_header_meta("HTTP 200", "1/2 tests").as_deref(),
+            Some("HTTP 200 | 1/2 tests")
+        );
+        assert_eq!(
+            response_header_meta(" Request failed ", " ").as_deref(),
+            Some("Request failed")
+        );
     }
 
     #[test]
@@ -11004,6 +11563,20 @@ mod tests {
 
     #[test]
     fn path_submit_requires_text_and_idle_state() {
+        assert_eq!(PATH_REQUIRED_BODY, "Path is empty.");
+        assert_eq!(IMPORT_PATH_REQUIRED_TITLE, "Import needs path");
+        assert_eq!(COLLECTION_PATH_REQUIRED_TITLE, "Collection needs path");
+        assert_eq!(EXPORT_PATH_REQUIRED_TITLE, "Export needs path");
+        assert!(
+            [
+                PATH_REQUIRED_BODY,
+                IMPORT_PATH_REQUIRED_TITLE,
+                COLLECTION_PATH_REQUIRED_TITLE,
+                EXPORT_PATH_REQUIRED_TITLE
+            ]
+            .iter()
+            .all(|label| !label.contains("Enter ") && !label.contains(" before "))
+        );
         assert!(!can_submit_path_action(false, ""));
         assert!(!can_submit_path_action(false, "   "));
         assert!(!can_submit_path_action(true, "api.yaml"));
@@ -11114,6 +11687,18 @@ mod tests {
 
     #[test]
     fn request_send_requires_url_or_pre_request_url_action() {
+        assert_eq!(REQUEST_URL_REQUIRED_TITLE, "Request needs URL");
+        assert_eq!(SAVE_URL_REQUIRED_TITLE, "Save needs URL");
+        assert_eq!(URL_REQUIRED_BODY, "URL is empty.");
+        assert!(
+            [
+                REQUEST_URL_REQUIRED_TITLE,
+                SAVE_URL_REQUIRED_TITLE,
+                URL_REQUIRED_BODY
+            ]
+            .iter()
+            .all(|label| !label.contains("Enter ") && !label.contains("select"))
+        );
         assert!(!can_send_request("", ""));
         assert!(!can_send_request(
             "   ",
@@ -11560,8 +12145,17 @@ mod tests {
 
         let text = runner_summary_text(&summary);
 
-        assert!(text.contains("[PASS] pre-request set_var token"));
-        assert!(text.contains("[PASS] pre-request set_header Authorization"));
+        assert_eq!(runner_status_text(&summary), "P 1 / F 0 / T 1");
+        assert!(text.contains("P 1 / F 0 / T 1"));
+        assert_eq!(runner_outcome_label(true), "OK");
+        assert_eq!(runner_outcome_label(false), "ERR");
+        assert!(text.contains("[OK] pre set_var token"));
+        assert!(text.contains("[OK] pre set_header Authorization"));
+        assert!(!text.contains("[PASS]"));
+        assert!(!text.contains("[FAIL]"));
+        assert!(!text.contains("pre-request"));
+        assert!(!text.contains("passed,"));
+        assert!(!text.contains("failed,"));
         assert!(!text.contains(" ms"));
         assert!(!text.contains(" B"));
     }
@@ -11609,7 +12203,16 @@ mod tests {
             formatted_json_body(r#"{"ok":true,"items":[1,2]}"#).expect("formatted"),
             "{\n  \"ok\": true,\n  \"items\": [\n    1,\n    2\n  ]\n}"
         );
-        assert!(formatted_json_body("   ").is_err());
+        assert_eq!(
+            formatted_json_body("   ")
+                .expect_err("empty body")
+                .to_string(),
+            RAW_JSON_EMPTY_FORMAT_BODY
+        );
+        assert!(
+            !RAW_JSON_EMPTY_FORMAT_BODY.contains("Enter ")
+                && !RAW_JSON_EMPTY_FORMAT_BODY.contains(" before ")
+        );
         assert!(formatted_json_body("{not-json").is_err());
     }
 
@@ -11637,6 +12240,12 @@ mod tests {
         let raw = r#"{"ok":true}"#;
         let headers = "content-type: application/json";
 
+        assert_eq!(INITIAL_RESPONSE_BODY, "No response");
+        assert!(!INITIAL_RESPONSE_BODY.contains("Import"));
+        assert!(INITIAL_RESPONSE_BODY.len() <= 12);
+        assert_eq!(RESPONSE_HEADERS_EMPTY_LABEL, "No headers");
+        assert!(!RESPONSE_HEADERS_EMPTY_LABEL.contains("response"));
+        assert!(RESPONSE_HEADERS_EMPTY_LABEL.len() <= 10);
         assert_eq!(
             response_body_for_view(ResponseView::Pretty, false, pretty, raw, headers),
             pretty
@@ -11655,11 +12264,11 @@ mod tests {
         );
         assert_eq!(
             response_body_for_view(ResponseView::Headers, false, pretty, raw, ""),
-            "No response headers"
+            RESPONSE_HEADERS_EMPTY_LABEL
         );
         assert_eq!(
             response_body_for_view(ResponseView::Headers, false, pretty, raw, "   \n\t"),
-            "No response headers"
+            RESPONSE_HEADERS_EMPTY_LABEL
         );
         assert_eq!(
             response_copy_text(ResponseView::Pretty, false, pretty, raw, headers).as_deref(),
@@ -11773,6 +12382,18 @@ Cookie: a=b; c=d
         assert!(!can_copy_headers_bulk(false, false));
         assert!(can_copy_headers_bulk(false, true));
         assert!(!can_copy_headers_bulk(true, true));
+        assert_eq!(HEADER_BULK_CLIPBOARD_EMPTY_BODY, "No clipboard text.");
+        assert_eq!(HEADER_BULK_PARSE_EMPTY_BODY, "No header lines.");
+        assert!(
+            [
+                HEADER_BULK_CLIPBOARD_EMPTY_BODY,
+                HEADER_BULK_PARSE_EMPTY_BODY
+            ]
+            .iter()
+            .all(|label| label.len() <= 18
+                && !label.contains("Use ")
+                && !label.contains("for example"))
+        );
     }
 
     #[test]
@@ -11835,16 +12456,22 @@ Cookie: a=b; c=d
         let invalid_status =
             response_assertion_from_fields(TestAssertionKind::StatusEquals, "", "abc", "")
                 .expect_err("invalid status");
-        assert!(invalid_status.to_string().contains("invalid status"));
+        assert_eq!(invalid_status.to_string(), "Bad status.");
 
         let invalid_range =
             response_assertion_from_fields(TestAssertionKind::StatusInRange, "", "500", "200")
                 .expect_err("invalid range");
-        assert!(
-            invalid_range
-                .to_string()
-                .contains("minimum status must be <= maximum status")
-        );
+        assert_eq!(invalid_range.to_string(), "Min > max status.");
+
+        let missing_target =
+            response_assertion_from_fields(TestAssertionKind::HeaderExists, "", "", "ignored")
+                .expect_err("missing target");
+        assert_eq!(missing_target.to_string(), "Target is empty.");
+
+        let missing_expected =
+            response_assertion_from_fields(TestAssertionKind::JsonPathEquals, "", "$.ok", "")
+                .expect_err("missing expected");
+        assert_eq!(missing_expected.to_string(), "Expected is empty.");
 
         assert!(
             response_assertion_from_fields(TestAssertionKind::HeaderExists, "", "", "")
@@ -11856,53 +12483,127 @@ Cookie: a=b; c=d
     #[test]
     fn formats_pre_request_status_labels() {
         assert_eq!(pre_request_status_label(0), "idle");
-        assert_eq!(pre_request_status_label(1), "1 action");
-        assert_eq!(pre_request_status_label(3), "3 actions");
+        assert_eq!(pre_request_status_label(1), "1 act");
+        assert_eq!(pre_request_status_label(3), "3 act");
         assert_eq!(
             pre_request_error_label("set_header expects name=value"),
-            "error: set_header expects name=value"
+            "Err set_header expects name=value"
         );
     }
 
     #[test]
-    fn user_visible_errors_include_context_and_next_step() {
-        let file_error = file_operation_error(
-            "Could not import OpenAPI document.",
-            "/tmp/api.yaml",
-            "No such file",
-            "Check the path.",
-        );
+    fn user_visible_errors_keep_context_without_guidance_blocks() {
+        let file_error =
+            file_operation_error("OpenAPI import failed.", "/tmp/api.yaml", "No such file");
+        assert!(file_error.starts_with("OpenAPI import failed."));
         assert!(file_error.contains("Path\n/tmp/api.yaml"));
         assert!(file_error.contains("Error\nNo such file"));
-        assert!(file_error.contains("Next step\nCheck the path."));
+        assert!(!file_error.contains("Next step"));
 
         let request_error = request_transport_error(
             "POST",
             "https://api.example.com/users",
             "connection refused",
         );
+        assert!(request_error.starts_with("Request failed."));
         assert!(request_error.contains("Request\nPOST https://api.example.com/users"));
-        assert!(request_error.contains("TLS settings"));
+        assert!(request_error.contains("Error\nconnection refused"));
+        assert!(!request_error.contains("Could not"));
+        assert!(!request_error.contains("TLS settings"));
+        assert!(!request_error.contains("Next step"));
 
         let mock_error = mock_server_error(MOCK_SERVER_PORT, "");
+        assert!(mock_error.starts_with("Mock start failed."));
         assert!(mock_error.contains("Port\n8080"));
         assert!(mock_error.contains("Unknown error"));
+        assert!(!mock_error.contains("Could not"));
+        assert!(!mock_error.contains("Next step"));
 
-        let editor = editor_error("Could not build the request.", "bad input", "Fix it.");
+        let editor = editor_error("Request build failed.", "bad input");
+        assert!(editor.starts_with("Request build failed."));
         assert!(editor.contains("Error\nbad input"));
-        assert!(editor.contains("Next step\nFix it."));
+        assert!(!editor.contains("Could not"));
+        assert!(!editor.contains("Next step"));
 
         let realtime = realtime_operation_error(
-            "Could not keep the SSE subscription open.",
+            "SSE subscription failed.",
             "SSE URL",
             "https://api.example.com/events",
             "wrong content-type",
-            "Check the stream.",
         );
+        assert!(realtime.starts_with("SSE subscription failed."));
         assert!(realtime.contains("SSE URL\nhttps://api.example.com/events"));
-        assert!(realtime.contains("Next step\nCheck the stream."));
+        assert!(realtime.contains("Error\nwrong content-type"));
+        assert!(!realtime.contains("Could not"));
+        assert!(!realtime.contains("lost connection"));
+        assert!(!realtime.contains("Next step"));
 
-        assert!(runner_worker_stopped_message().contains("Collection runner stopped"));
+        assert_eq!(
+            runner_worker_stopped_message(),
+            "Collection runner stopped."
+        );
+        assert!(!runner_worker_stopped_message().contains("Next step"));
+    }
+
+    #[test]
+    fn response_status_bodies_stay_short() {
+        let success_titles = [
+            RESPONSE_TITLE_IMPORTED,
+            RESPONSE_TITLE_EXPORTED,
+            RESPONSE_TITLE_SAVED,
+        ];
+        assert_eq!(success_titles, ["Imported", "Exported", "Saved"]);
+        assert!(success_titles.iter().all(|title| title.len() <= 8));
+        assert!(success_titles.iter().all(|title| {
+            !title.contains("Collection")
+                && !title.contains("Request")
+                && !title.contains("current")
+        }));
+
+        let bodies = [
+            STATUS_ACTIVE_BODY,
+            STATUS_READY_BODY,
+            STATUS_DELETED_BODY,
+            STATUS_COPIED_BODY,
+            STATUS_CLEARED_BODY,
+            STATUS_RUNNING_BODY,
+            STATUS_STOPPED_BODY,
+            STATUS_FORMATTED_BODY,
+            STATUS_SAVED_BODY,
+            STATUS_RESTORED_BODY,
+            STATUS_APPLIED_BODY,
+            NO_HEADERS_BODY,
+            NO_MESSAGES_BODY,
+            NO_EVENTS_BODY,
+        ];
+
+        assert_eq!(
+            bodies,
+            [
+                "Active.",
+                "Ready.",
+                "Deleted.",
+                "Copied.",
+                "Cleared.",
+                "Running.",
+                "Stopped.",
+                "Formatted.",
+                "Saved.",
+                "Restored.",
+                "Applied.",
+                "No headers.",
+                "No messages.",
+                "No events."
+            ]
+        );
+        assert!(bodies.iter().all(|body| body.len() <= 12));
+        assert!(bodies.iter().all(|body| {
+            !body.contains(" was ")
+                && !body.contains(" were ")
+                && !body.contains("There are")
+                && !body.contains(" is now ")
+                && !body.contains("executing")
+        }));
     }
 
     #[test]
@@ -12015,6 +12716,11 @@ Cookie: a=b; c=d
 
     #[test]
     fn add_environment_requires_normalized_name() {
+        assert_eq!(VARIABLES_ENV_NAME_REQUIRED_BODY, "Env name is empty.");
+        assert!(
+            !VARIABLES_ENV_NAME_REQUIRED_BODY.contains("Enter ")
+                && !VARIABLES_ENV_NAME_REQUIRED_BODY.contains(" before ")
+        );
         assert!(!can_add_environment(""));
         assert!(!can_add_environment("   \n\t"));
         assert!(can_add_environment("staging"));
@@ -12173,10 +12879,18 @@ Cookie: a=b; c=d
 
         let summary = graphql_schema_summary(&response).expect("schema");
 
-        assert!(summary.contains("roots: query Query, mutation Mutation, subscription -"));
-        assert!(summary.contains("5 total, 2 object, 1 input, 1 enum, 1 scalar"));
-        assert!(summary.contains("fields: query 2, mutation 1, subscription 0"));
-        assert!(summary.contains("directives: 2"));
+        assert!(summary.contains("Roots Q=Query M=Mutation S=-"));
+        assert!(summary.contains("Types 5 | O2 I1 E1 S1"));
+        assert!(summary.contains("Fields Q2 M1 S0"));
+        assert!(summary.contains("Dirs 2"));
+        assert!(summary.lines().all(|line| line.len() <= 30));
+        assert!(!summary.contains("roots:"));
+        assert!(!summary.contains("types:"));
+        assert!(!summary.contains("fields:"));
+        assert!(!summary.contains("directives:"));
+        assert!(!summary.contains("Directives"));
+        assert!(!summary.contains("mutation "));
+        assert!(!summary.contains("subscription "));
         assert_eq!(graphql_schema_summary(r#"{"data":{"ok":true}}"#), None);
     }
 
@@ -12254,17 +12968,24 @@ Cookie: a=b; c=d
 
         let browser = graphql_schema_browser(&response).expect("schema browser");
 
-        assert!(browser.contains("query fields (Query)"));
+        assert!(browser.contains("Q (Query)"));
         assert!(browser.contains("viewer: User!"));
         assert!(browser.contains("search(term: String!, limit: Int = 10): [User]"));
         assert!(browser.contains("legacy: String @deprecated"));
-        assert!(browser.contains("mutation fields (Mutation)"));
+        assert!(browser.contains("M (Mutation)"));
         assert!(browser.contains("createUser: User"));
-        assert!(browser.contains("objects: Mutation, Query, User"));
-        assert!(browser.contains("inputs: UserInput"));
-        assert!(browser.contains("enums: Role"));
-        assert!(browser.contains("scalars: Int, String"));
-        assert!(browser.contains("directives\n  @include, @skip"));
+        assert!(browser.contains("Types"));
+        assert!(browser.contains("Obj: Mutation, Query, User"));
+        assert!(browser.contains("In: UserInput"));
+        assert!(browser.contains("Enum: Role"));
+        assert!(browser.contains("Scalar: Int, String"));
+        assert!(browser.contains("Dirs\n  @include, @skip"));
+        assert!(!browser.contains("query fields"));
+        assert!(!browser.contains("mutation fields"));
+        assert!(!browser.contains("type index"));
+        assert!(!browser.contains("objects:"));
+        assert!(!browser.contains("inputs:"));
+        assert!(!browser.contains("directives\n"));
         assert!(!browser.contains("__Schema"));
         assert_eq!(graphql_schema_browser(r#"{"data":{"ok":true}}"#), None);
     }
@@ -12420,15 +13141,18 @@ Cookie: a=b; c=d
         );
 
         let text = websocket_exchange_text(&exchange);
-        assert!(text.contains("url: ws://localhost/socket"));
-        assert!(text.contains("received: 2"));
-        assert!(text.contains("sent text: hello"));
-        assert!(text.contains("received text: echo:hello"));
-        assert!(text.contains("received pong: 0 bytes"));
+        assert!(text.contains("URL ws://localhost/socket"));
+        assert!(text.contains("RX 2"));
+        assert!(text.contains("TX text hello"));
+        assert!(text.contains("RX text echo:hello"));
+        assert!(text.contains("RX pong 0 bytes"));
         assert!(!text.contains("elapsed:"));
+        assert!(!text.contains("url:"));
+        assert!(!text.contains("received:"));
+        assert!(!text.contains("sent text:"));
         assert_eq!(
             format_websocket_log(&entries),
-            "sent text: hello\nreceived text: echo:hello\nreceived pong: 0 bytes"
+            "TX text hello\nRX text echo:hello\nRX pong 0 bytes"
         );
     }
 
@@ -12443,21 +13167,36 @@ Cookie: a=b; c=d
             vec![0, 1, 255]
         );
 
-        assert!(
-            websocket_hex_bytes("")
-                .expect_err("empty")
-                .contains("hexadecimal")
+        assert_eq!(
+            websocket_hex_bytes("").expect_err("empty"),
+            WEBSOCKET_BINARY_EMPTY_BODY
         );
-        assert!(websocket_hex_bytes("0").expect_err("odd").contains("even"));
-        assert!(
-            websocket_hex_bytes("zz")
-                .expect_err("invalid")
-                .contains("offset 0")
+        assert_eq!(
+            websocket_hex_bytes("0").expect_err("odd"),
+            WEBSOCKET_BINARY_ODD_DIGITS_BODY
+        );
+        assert_eq!(
+            websocket_hex_bytes("zz").expect_err("invalid"),
+            "Bad hex at 0."
         );
     }
 
     #[test]
     fn websocket_send_requires_running_and_valid_message_mode_input() {
+        assert_eq!(WEBSOCKET_NOT_OPEN_TITLE, "WS not open");
+        assert_eq!(WEBSOCKET_NOT_OPEN_BODY, "No active session.");
+        assert!(
+            [
+                WEBSOCKET_NOT_OPEN_BODY,
+                WEBSOCKET_BINARY_EMPTY_BODY,
+                WEBSOCKET_BINARY_ODD_DIGITS_BODY
+            ]
+            .iter()
+            .all(|label| label.len() <= 18
+                && !label.contains("Enter ")
+                && !label.contains(" before ")
+                && !label.contains("for example"))
+        );
         assert!(!can_send_websocket_message(
             false,
             false,
@@ -12504,6 +13243,31 @@ Cookie: a=b; c=d
 
     #[test]
     fn websocket_connect_requires_valid_scheme_and_idle_state() {
+        assert_eq!(WEBSOCKET_URL_REQUIRED_TITLE, "WS needs URL");
+        assert_eq!(WEBSOCKET_URL_INVALID_TITLE, "WS URL invalid");
+        assert_eq!(WEBSOCKET_URL_INVALID_BODY, "Expected WS(S).");
+        assert_eq!(
+            websocket_url_validation_response(""),
+            (WEBSOCKET_URL_REQUIRED_TITLE, URL_REQUIRED_BODY)
+        );
+        assert_eq!(
+            websocket_url_validation_response("http://localhost/socket"),
+            (WEBSOCKET_URL_INVALID_TITLE, WEBSOCKET_URL_INVALID_BODY)
+        );
+        assert!(
+            [
+                WEBSOCKET_URL_REQUIRED_TITLE,
+                WEBSOCKET_URL_INVALID_TITLE,
+                URL_REQUIRED_BODY,
+                WEBSOCKET_URL_INVALID_BODY
+            ]
+            .iter()
+            .all(|label| label.len() <= 15
+                && !label.contains("Enter ")
+                && !label.contains(" before ")
+                && !label.contains("for example")
+                && !label.contains("WebSocket"))
+        );
         assert!(!can_connect_websocket(false, false, ""));
         assert!(!can_connect_websocket(false, false, "   "));
         assert!(!can_connect_websocket(
@@ -12588,19 +13352,51 @@ Cookie: a=b; c=d
         );
 
         let text = sse_exchange_text(&exchange);
-        assert!(text.contains("url: http://localhost/events"));
+        assert!(text.contains("URL http://localhost/events"));
         assert!(text.contains("2 events"));
-        assert!(text.contains("ready: connected [id 1] [retry 3000]"));
-        assert!(text.contains("message: plain"));
+        assert!(text.contains("ready #1 connected r3000"));
+        assert!(text.contains("message plain"));
         assert!(!text.contains("elapsed:"));
+        assert!(!text.contains("url:"));
+        assert!(!text.contains("[id "));
+        assert!(!text.contains("[retry "));
         assert_eq!(
             format_sse_log(&sse_log_entries(&exchange)),
-            "ready [id 1]: connected\nmessage: plain"
+            "ready #1 connected\nmessage plain"
         );
+        assert_eq!(sse_reconnect_status(3, 2500), "retry 3 2500ms");
+        assert!(!sse_reconnect_status(3, 2500).contains(" in "));
+        assert!(!sse_reconnect_status(3, 2500).contains("reconnect"));
     }
 
     #[test]
     fn sse_start_requires_http_scheme_and_idle_state() {
+        assert_eq!(SSE_URL_REQUIRED_TITLE, "SSE needs URL");
+        assert_eq!(SSE_URL_INVALID_TITLE, "SSE URL invalid");
+        assert_eq!(SSE_URL_INVALID_BODY, "Expected HTTP(S).");
+        assert_eq!(
+            sse_url_validation_response(""),
+            (SSE_URL_REQUIRED_TITLE, URL_REQUIRED_BODY)
+        );
+        assert_eq!(
+            sse_url_validation_response("ws://localhost/events"),
+            (SSE_URL_INVALID_TITLE, SSE_URL_INVALID_BODY)
+        );
+        assert!(
+            [
+                SSE_URL_REQUIRED_TITLE,
+                SSE_URL_INVALID_TITLE,
+                URL_REQUIRED_BODY,
+                SSE_URL_INVALID_BODY
+            ]
+            .iter()
+            .all(|label| label.len() <= 17
+                && !label.contains("Enter ")
+                && !label.contains(" before ")
+                && !label.contains("for example")
+                && !label.contains("http://")
+                && !label.contains("https://"))
+        );
         assert!(!can_start_sse(false, false, ""));
         assert!(!can_start_sse(false, false, "   "));
         assert!(!can_start_sse(false, false, "ws://localhost/events"));
@@ -12797,6 +13593,9 @@ Cookie: a=b; c=d
 
         assert_eq!(labels, ["cURL", "Py", "JS", "Rust", "Go"]);
         assert!(labels.iter().all(|label| label.len() <= 4));
+        assert_eq!(CODEGEN_EMPTY_SNIPPET_LABEL, "No URL");
+        assert!(!CODEGEN_EMPTY_SNIPPET_LABEL.contains("Enter"));
+        assert!(CODEGEN_EMPTY_SNIPPET_LABEL.len() <= 6);
     }
 
     #[test]
@@ -12933,6 +13732,24 @@ Cookie: a=b; c=d
 
     #[test]
     fn collection_export_requires_at_least_one_request() {
+        assert_eq!(COLLECTION_EXPORT_EMPTY_TITLE, "Export empty");
+        assert_eq!(SAVED_REQUESTS_EMPTY_BODY, "No saved requests.");
+        assert_eq!(RUNNER_EMPTY_TITLE, "Runner empty");
+        assert_eq!(MOCK_ROUTES_REQUIRED_TITLE, "Mock needs routes");
+        assert_eq!(MOCK_ROUTES_REQUIRED_BODY, "No routes loaded.");
+        assert!(
+            [
+                COLLECTION_EXPORT_EMPTY_TITLE,
+                SAVED_REQUESTS_EMPTY_BODY,
+                RUNNER_EMPTY_TITLE,
+                MOCK_ROUTES_REQUIRED_TITLE,
+                MOCK_ROUTES_REQUIRED_BODY
+            ]
+            .iter()
+            .all(|label| !label.contains("Enter ")
+                && !label.contains(" before ")
+                && !label.contains("Import "))
+        );
         let empty = ApiCollection::new("Empty");
         assert!(!can_export_collection(&empty));
 
@@ -13110,6 +13927,8 @@ Cookie: a=b; c=d
         assert_eq!(WORKSPACE_SPLIT_RATIO_EPSILON, 0.001);
         assert_eq!(WORKSPACE_SPLIT_UPDATE_STEP_PX, 48.);
         assert_eq!(SIDEBAR_NAV_HEIGHT, 42.);
+        assert_eq!(LAYOUT_ZERO, 0.);
+        assert_eq!(SCROLLBAR_HIDDEN_SIZE, LAYOUT_ZERO);
         assert_eq!(SCROLLBAR_WIDTH, 6.);
         assert_eq!(SCROLLBAR_RIGHT_OFFSET, 3.);
         assert_eq!(
@@ -13126,6 +13945,22 @@ Cookie: a=b; c=d
                 "Params", "Headers", "Auth", "Body", "Scripts", "Realtime", "Tools"
             ]
         );
+        assert_eq!(
+            request_tab_shortcuts().map(|(shortcut, _)| shortcut),
+            [1, 2, 3, 4, 5, 6, 7]
+        );
+        assert_eq!(
+            request_tab_shortcuts().map(|(_, tab)| tab),
+            [
+                RequestPaneTab::Params,
+                RequestPaneTab::Headers,
+                RequestPaneTab::Auth,
+                RequestPaneTab::Body,
+                RequestPaneTab::Scripts,
+                RequestPaneTab::Realtime,
+                RequestPaneTab::Tools
+            ]
+        );
         assert!(WORKSPACE_SIDEBAR_MIN_RATIO < WORKSPACE_SIDEBAR_DEFAULT_RATIO);
         assert!(WORKSPACE_SIDEBAR_DEFAULT_RATIO < WORKSPACE_SIDEBAR_MAX_RATIO);
         assert!(WORKSPACE_REQUEST_MIN_RATIO < WORKSPACE_REQUEST_DEFAULT_RATIO);
@@ -13140,12 +13975,14 @@ Cookie: a=b; c=d
         assert_eq!(TOP_BAR_BRAND_WIDTH, 132.);
         assert_eq!(TOP_BAR_ACTION_WIDTH, 76.);
         assert_eq!(TOP_BAR_MOCK_ACTION_WIDTH, 68.);
+        assert_eq!(TOP_BAR_ACTION_HEIGHT, 30.);
+        assert_eq!(STATUS_BAR_HEIGHT, 32.);
         assert_eq!(DISABLED_CONTROL_OPACITY, 0.78);
         assert_eq!(IMPORT_POPOVER_WIDTH, 520.);
         assert_eq!(IMPORT_POPOVER_HEIGHT, 58.);
         assert!(IMPORT_POPOVER_WIDTH > ACTION_BUTTON_WIDTH + IMPORT_POPOVER_PADDING * 2.);
         assert_eq!(SIDEBAR_WIDTH, 320.);
-        assert_eq!(REQUEST_BAR_HEIGHT, 52.);
+        assert_eq!(REQUEST_BAR_HEIGHT, 54.);
         assert_eq!(REQUEST_BAR_CONTROL_Y_OFFSET, 8.);
         assert_eq!(REQUEST_METHOD_SEGMENT_WIDTH, 100.);
         assert_eq!(REQUEST_ADDRESS_RADIUS, TEXT_INPUT_RADIUS);
@@ -13154,33 +13991,95 @@ Cookie: a=b; c=d
             PANEL_HEADER_HEIGHT + REQUEST_BAR_CONTROL_Y_OFFSET + TEXT_INPUT_HEIGHT + 4.
         );
         assert_eq!(METHOD_MENU_WIDTH, REQUEST_METHOD_SEGMENT_WIDTH);
+        assert_eq!(METHOD_MENU_ITEM_HEIGHT, 30.);
         assert_eq!(REQUEST_SEND_WIDTH, 86.);
-        assert_eq!(TEXT_INPUT_HEIGHT, 36.);
-        assert_eq!(TEXT_INPUT_LINE_HEIGHT, 20.);
-        assert_eq!(TEXT_INPUT_RADIUS, 6.);
+        assert_eq!(TEXT_INPUT_HEIGHT, 38.);
+        assert_eq!(TEXT_INPUT_LINE_HEIGHT, 22.);
+        assert_eq!(UI_RADIUS_TIGHT, 4.);
+        assert_eq!(UI_RADIUS_CONTROL, 5.);
+        assert_eq!(UI_RADIUS_INPUT, 6.);
+        assert_eq!(TEXT_INPUT_RADIUS, UI_RADIUS_INPUT);
+        assert_eq!(TEXT_INPUT_BORDER_WIDTH, 2.);
         assert_eq!(ROUTE_ROW_HEIGHT, 48.);
+        assert_eq!(HISTORY_ROW_HEIGHT, 46.);
         assert_eq!(ROUTE_SELECTED_MARKER_WIDTH, 3.);
+        assert_eq!(REQUEST_ADDRESS_DIVIDER_HEIGHT, 22.);
+        assert_eq!(REQUEST_ADDRESS_DIVIDER_WIDTH, 1.);
         assert_eq!(RESPONSE_TAB_BAR_HEIGHT, 36.);
         assert_eq!(RESPONSE_TAB_COUNT, 3);
         assert_eq!(
             response_tabs().map(|(label, _)| label),
             ["Pretty", "Raw", "Hdrs"]
         );
+        assert_eq!(
+            response_tab_shortcuts().map(|(shortcut, _)| shortcut),
+            [1, 2, 3]
+        );
+        assert_eq!(
+            response_tab_shortcuts().map(|(_, view)| view),
+            [
+                ResponseView::Pretty,
+                ResponseView::Raw,
+                ResponseView::Headers
+            ]
+        );
         assert_eq!(RESPONSE_TAB_WIDTH, 72.);
         assert_eq!(RESPONSE_FOLD_BUTTON_WIDTH, 54.);
         assert_eq!(RESPONSE_COPY_BUTTON_WIDTH, 54.);
-        assert_eq!(STATUS_BAR_TRAILING_WIDTH, 360.);
+        assert_eq!(STATUS_BAR_TRAILING_MAX_WIDTH, 220.);
+        assert!(STATUS_BAR_TRAILING_MAX_WIDTH < 360.);
+        assert_eq!(SIDEBAR_BUTTON_HEIGHT, 28.);
+        assert_eq!(SIDEBAR_SECTION_BUTTON_HEIGHT, 28.);
+        assert_eq!(COMPACT_CONTROL_HEIGHT, 28.);
+        assert_eq!(COMPACT_TOGGLE_SHORT_WIDTH, 76.);
+        assert_eq!(COMPACT_TOGGLE_LONG_WIDTH, 156.);
+        assert_eq!(COMPACT_TOGGLE_LONG_LABEL_THRESHOLD, 12);
+        assert_eq!(compact_toggle_width("Short"), COMPACT_TOGGLE_SHORT_WIDTH);
+        assert_eq!(
+            compact_toggle_width("application/json"),
+            COMPACT_TOGGLE_LONG_WIDTH
+        );
         assert_eq!(BODY_EDITOR_HEIGHT, 118.);
         assert_eq!(GRAPHQL_VARIABLES_EDITOR_HEIGHT, 86.);
         assert_eq!(BODY_PREVIEW_HEIGHT, 86.);
-        assert_eq!(BODY_PREVIEW_LINE_HEIGHT, 18.);
+        assert_eq!(BODY_PREVIEW_LINE_HEIGHT, 22.);
         assert_eq!(GRAPHQL_QUERY_TEMPLATE_LIMIT, 5);
         assert_eq!(GRAPHQL_QUERY_TEMPLATE_USE_BUTTON_WIDTH, 54.);
         assert_eq!(GRAPHQL_SCHEMA_BROWSER_HEIGHT, 112.);
+        assert_eq!(CODEGEN_SNIPPET_HEIGHT, 180.);
+        assert_eq!(CODEGEN_SNIPPET_LINE_HEIGHT, 22.);
+        assert_eq!(RESPONSE_BODY_LINE_HEIGHT, 22.);
+        assert_eq!(RESULT_ROW_HEIGHT, 32.);
+        assert_eq!(COLLECTION_DRAG_PREVIEW_HEIGHT, 28.);
+        assert_eq!(COLLECTION_DRAG_PREVIEW_MAX_WIDTH, 220.);
         assert_eq!(PANEL_HEADER_HEIGHT, 40.);
-        assert_eq!(PANEL_HEADER_META_WIDTH, 260.);
+        assert_eq!(PANEL_HEADER_META_MAX_WIDTH, 180.);
+        assert!(PANEL_HEADER_META_MAX_WIDTH < 260.);
         assert_eq!(PANEL_HEADER_RIGHT_PADDING, 14.);
         assert_eq!(PANEL_HEADER_UNDERLINE_HEIGHT, 2.);
+        assert_eq!(PANEL_HEADER_UNDERLINE_LEFT_OFFSET, 12.);
+        assert_eq!(APP_BASE_TEXT_SIZE, 14.);
+        assert_eq!(TOP_BAR_BRAND_TEXT_SIZE, 16.);
+        assert_eq!(TOP_BAR_ACTION_TEXT_SIZE, 14.);
+        assert_eq!(ACTION_BUTTON_TEXT_SIZE, 15.);
+        assert_eq!(COMPACT_CONTROL_TEXT_SIZE, 14.);
+        assert_eq!(COMPACT_SYMBOL_TEXT_SIZE, 12.);
+        assert_eq!(METHOD_CHEVRON_TEXT_SIZE, 11.);
+        assert_eq!(PANE_HEADER_TITLE_TEXT_SIZE, 18.);
+        assert_eq!(SIDEBAR_NAV_TEXT_SIZE, 15.);
+        assert_eq!(SIDEBAR_ACTION_TEXT_SIZE, 14.);
+        assert_eq!(SIDEBAR_PRIMARY_ROW_TEXT_SIZE, 15.);
+        assert_eq!(SIDEBAR_METHOD_TEXT_SIZE, 14.);
+        assert_eq!(SIDEBAR_COMPACT_METHOD_TEXT_SIZE, 12.);
+        assert_eq!(ROW_META_TEXT_SIZE, 13.);
+        assert_eq!(REQUEST_PRIMARY_CONTROL_TEXT_SIZE, 16.);
+        assert_eq!(REQUEST_EDITOR_TAB_TEXT_SIZE, 16.);
+        assert_eq!(PANEL_TITLE_TEXT_SIZE, 17.);
+        assert_eq!(PANEL_CONTENT_TEXT_SIZE, 16.);
+        assert_eq!(PANEL_META_TEXT_SIZE, 14.);
+        assert_eq!(TABLE_HEADER_TEXT_SIZE, 14.);
+        assert_eq!(TEXT_INPUT_TEXT_SIZE, 16.);
+        assert_eq!(RESPONSE_BODY_TEXT_SIZE, 16.);
         assert_eq!(collection_tree_indent(0), 8.);
         assert_eq!(collection_tree_indent(1), 22.);
         assert_eq!(collection_tree_indent(2), 36.);
@@ -13197,6 +14096,7 @@ Cookie: a=b; c=d
         );
         assert_eq!(COLLECTION_TREE_MARKER_WIDTH, 14.);
         assert_eq!(HTTP_METHOD_LABEL_WIDTH, 58.);
+        assert_eq!(SIDEBAR_SECONDARY_ROW_INDENT, HTTP_METHOD_LABEL_WIDTH + 8.);
         assert_eq!(RUNNER_METHOD_COLUMN_WIDTH, 70.);
         assert_eq!(RUNNER_STATUS_COLUMN_WIDTH, 42.);
         assert_eq!(RUNNER_PRE_REQUEST_COLUMN_WIDTH, 52.);
@@ -13226,14 +14126,16 @@ Cookie: a=b; c=d
         assert_eq!(UI_COLOR_DISABLED_SURFACE, 0xf2f2f3);
         assert_eq!(UI_COLOR_DISABLED_BORDER, 0xd9d9df);
         assert_eq!(UI_COLOR_DISABLED_TEXT, 0x8a8f98);
-        assert_eq!(UI_COLOR_BORDER_STRONG, 0xc7ccd3);
+        assert_eq!(UI_COLOR_BORDER_STRONG, 0xaeb7c2);
         assert_eq!(UI_COLOR_HOVER, 0xf4f4f5);
         assert_eq!(UI_COLOR_TEXT_SECONDARY, 0x4b5563);
         assert_eq!(UI_COLOR_TEXT_MUTED, 0x64748b);
-        assert_eq!(UI_COLOR_TEXT_PLACEHOLDER, 0xe3e7ee);
+        assert_eq!(UI_COLOR_TEXT_PLACEHOLDER, 0xb8c0cc);
         assert_eq!(UI_COLOR_TEXT_BODY, 0x1f2937);
+        assert_eq!(UI_COLOR_SIDEBAR_DETAIL_TEXT, UI_COLOR_TEXT_BODY);
         assert_ne!(UI_COLOR_DISABLED_SURFACE, UI_COLOR_HOVER);
         assert_ne!(UI_COLOR_TEXT_PLACEHOLDER, UI_COLOR_TEXT_MUTED);
+        assert_ne!(UI_COLOR_SIDEBAR_DETAIL_TEXT, UI_COLOR_TEXT_MUTED);
         assert_ne!(UI_COLOR_TEXT_MUTED, UI_COLOR_DISABLED_TEXT);
         assert_ne!(UI_COLOR_BORDER, UI_COLOR_BORDER_STRONG);
         assert_eq!(WORKSPACE_SPLIT_UPDATE_STEP_PX, 48.);
@@ -13311,6 +14213,45 @@ Cookie: a=b; c=d
                 .iter()
                 .all(|label| !label.contains("Postman") && !label.contains("Delete"))
         );
+    }
+
+    #[test]
+    fn collection_sidebar_status_labels_stay_compact() {
+        assert_eq!(collection_sidebar_status_label(""), None);
+        assert_eq!(collection_sidebar_status_label("No collection file"), None);
+        let labels = [
+            collection_sidebar_status_label("Imported Demo").unwrap(),
+            collection_sidebar_status_label("Exported Postman").unwrap(),
+            collection_sidebar_status_label("Request created: 4 requests").unwrap(),
+            collection_sidebar_status_label("Folder created: 4 requests").unwrap(),
+            collection_sidebar_status_label("Item copied: 4 requests").unwrap(),
+            collection_sidebar_status_label("Item deleted: 4 requests").unwrap(),
+            collection_sidebar_status_label("Item moved: 4 requests").unwrap(),
+            collection_sidebar_status_label("Item renamed: 4 requests").unwrap(),
+            collection_sidebar_status_label("Import failed").unwrap(),
+            collection_sidebar_status_label("Export failed").unwrap(),
+            collection_sidebar_status_label("Nothing to export").unwrap(),
+            collection_sidebar_status_label("Rename unavailable while busy").unwrap(),
+        ];
+
+        assert_eq!(
+            labels,
+            [
+                "Imported",
+                "Exported",
+                "+ Req",
+                "+ Dir",
+                "Copied",
+                "Deleted",
+                "Moved",
+                "Renamed",
+                "Import fail",
+                "Export fail",
+                "No export",
+                "Busy"
+            ]
+        );
+        assert!(labels.iter().all(|label| label.len() <= 11));
     }
 
     #[test]
@@ -13452,7 +14393,7 @@ Cookie: a=b; c=d
                 "Global",
                 "Env",
                 "Env needed",
-                "Env selected",
+                "Env active",
                 "Env created",
                 "Env deleted"
             ]
@@ -13487,6 +14428,7 @@ Cookie: a=b; c=d
             REALTIME_SSE_STOP_LABEL,
             REALTIME_SSE_HEADERS_TITLE,
             REALTIME_SSE_EMPTY_LABEL,
+            MOCK_LOG_EMPTY_LABEL,
         ];
         assert_eq!(
             realtime_labels,
@@ -13498,16 +14440,20 @@ Cookie: a=b; c=d
                 "WS Headers",
                 "Text",
                 "Hex",
-                "No WS messages",
+                "No messages",
                 "SSE",
                 "Once",
                 "Stream",
                 "Stop",
                 "SSE Headers",
-                "No events"
+                "No events",
+                "No logs"
             ]
         );
-        assert!(realtime_labels.iter().all(|label| label.len() <= 14));
+        assert!(realtime_labels.iter().all(|label| label.len() <= 11));
+        assert!(realtime_labels.iter().all(|label| !label.contains("mock")
+            && !label.contains("WebSocket")
+            && !label.contains("WS messages")));
 
         let test_headers = [
             TEST_ASSERTION_NAME_HEADER,
@@ -13620,22 +14566,23 @@ Cookie: a=b; c=d
 
         reset_scroll_handle(&scroll);
 
-        assert_eq!(scroll.offset(), point(px(0.), px(0.)));
+        assert_eq!(scroll.offset(), point(px(LAYOUT_ZERO), px(LAYOUT_ZERO)));
     }
 
     #[test]
     fn sending_response_body_identifies_pending_request() {
         let body = sending_response_body("POST", "https://api.example.com/users");
 
-        assert_eq!(
-            body,
-            "Waiting for response\n\nPOST https://api.example.com/users"
-        );
+        assert_eq!(PENDING_RESPONSE_BODY_LABEL, "Pending");
+        assert!(PENDING_RESPONSE_BODY_LABEL.len() <= 8);
+        assert_eq!(body, "Pending\n\nPOST https://api.example.com/users");
+        assert!(!body.contains("response"));
     }
 
     #[test]
     fn request_worker_stopped_message_is_user_visible() {
-        assert!(request_worker_stopped_message().contains("Request worker stopped"));
+        assert_eq!(request_worker_stopped_message(), "Request worker stopped.");
+        assert!(!request_worker_stopped_message().contains(" before "));
     }
 
     #[derive(Debug, PartialEq, Eq)]
