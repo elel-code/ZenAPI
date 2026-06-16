@@ -77,7 +77,10 @@
   baseline provides line-based editors, applies pre-request actions during
   send/codegen, evaluates native tests after single sends, and saves/restores
   both fields with collection requests, with row-based test controls pending.
-- [ ] Rebuild WebSocket and SSE panels using the restored client modules.
+- [~] Rebuild WebSocket and SSE panels using the restored client modules;
+  current Slint baseline provides WebSocket one-shot send and SSE event preview
+  controls that reuse the request URL/headers and show output in the response
+  panel, with full session subscribe/send/close controls still pending.
 - [ ] Add GraphQL and gRPC UI surfaces after REST parity is stable.
 - [ ] Add mock request logs and richer mock manager controls.
 - [ ] Split reusable controls from `ui/app.slint` into `ui/widgets/` once two or
@@ -107,5 +110,5 @@
 | Codegen | Domain implemented | Slint baseline generates resolved request snippets |
 | Runner | Domain + CLI implemented | Slint baseline runs active collections and shows result rows |
 | Assertions/scripts | Domain implemented | Slint baseline edits, saves, restores, and evaluates native scripts/tests |
-| WebSocket/SSE | Client modules restored | Slint UI parity pending |
+| WebSocket/SSE | Client modules restored | Slint baseline supports one-shot WS sends and SSE previews |
 | gRPC | Design documented | Domain and UI pending |

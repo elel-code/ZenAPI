@@ -38,6 +38,7 @@ pub fn run() -> Result<()> {
     wire_request_sender(&app, runtime.clone(), state.clone());
     wire_codegen(&app);
     wire_collection_runner(&app, runtime.clone(), state.clone());
+    wire_realtime_actions(&app, runtime.clone());
     wire_mock_server(&app, runtime, state);
 
     app.run().map_err(|err| anyhow!(err.to_string()))
@@ -745,6 +746,118 @@ fn wire_collection_runner(app: &AppWindow, runtime: Arc<Runtime>, state: Arc<Mut
     });
 }
 
+fn wire_realtime_actions(app: &AppWindow, runtime: Arc<Runtime>) {
+    let weak_app = app.as_weak();
+    let websocket_runtime = runtime.clone();
+    app.on_run_websocket(move || {
+        let Some(app) = weak_app.upgrade() else {
+            return;
+        };
+        if app.get_busy() {
+            return;
+        }
+
+        let url = app.get_url().to_string();
+        let message = app.get_realtime_message().to_string();
+        app.set_busy(true);
+        app.set_activity("Sending WebSocket message".into());
+        set_response(
+            &app,
+            "WebSocket sending",
+            "",
+            "busy",
+            &format!("Connecting\n\n{url}"),
+        );
+
+        let weak_app = app.as_weak();
+        websocket_runtime.spawn(async move {
+            let result = client::send_websocket_message(&url, &message).await;
+            let _ = slint::invoke_from_event_loop(move || {
+                let Some(app) = weak_app.upgrade() else {
+                    return;
+                };
+                match result {
+                    Ok(exchange) => set_response(
+                        &app,
+                        "WebSocket complete",
+                        &format!("{} ms", exchange.elapsed_ms),
+                        "success",
+                        &format_websocket_exchange(&exchange),
+                    ),
+                    Err(error) => {
+                        set_response(&app, "WebSocket failed", "", "error", &error.to_string())
+                    }
+                }
+                app.set_activity("".into());
+                app.set_busy(false);
+            });
+        });
+    });
+
+    let weak_app = app.as_weak();
+    let sse_runtime = runtime;
+    app.on_run_sse(move || {
+        let Some(app) = weak_app.upgrade() else {
+            return;
+        };
+        if app.get_busy() {
+            return;
+        }
+
+        let max_events = match parse_positive_usize(&app.get_sse_max_events(), "SSE events") {
+            Ok(max_events) => max_events,
+            Err(error) => {
+                set_response(&app, "SSE failed", "", "error", &error.to_string());
+                return;
+            }
+        };
+        let headers = match parse_key_value_lines(&app.get_request_headers(), "SSE header") {
+            Ok(headers) => headers,
+            Err(error) => {
+                set_response(&app, "SSE failed", "", "error", &error.to_string());
+                return;
+            }
+        };
+        let url = app.get_url().to_string();
+
+        app.set_busy(true);
+        app.set_activity("Collecting SSE events".into());
+        set_response(
+            &app,
+            "SSE collecting",
+            "",
+            "busy",
+            &format!("Waiting for {max_events} event(s)\n\n{url}"),
+        );
+
+        let weak_app = app.as_weak();
+        sse_runtime.spawn(async move {
+            let result = client::collect_sse_events_with_headers(&url, max_events, headers).await;
+            let _ = slint::invoke_from_event_loop(move || {
+                let Some(app) = weak_app.upgrade() else {
+                    return;
+                };
+                match result {
+                    Ok(exchange) => set_response(
+                        &app,
+                        "SSE complete",
+                        &format!(
+                            "{} ms / {} events",
+                            exchange.elapsed_ms,
+                            exchange.events.len()
+                        ),
+                        "success",
+                        &format_sse_exchange(&exchange),
+                    ),
+                    Err(error) => set_response(&app, "SSE failed", "", "error", &error.to_string()),
+                }
+                app.set_activity("".into());
+                app.set_busy(false);
+            });
+        });
+    });
+}
+
 fn wire_mock_server(app: &AppWindow, runtime: Arc<Runtime>, state: Arc<Mutex<AppState>>) {
     let weak_app = app.as_weak();
     app.on_toggle_server(move || {
@@ -1198,6 +1311,65 @@ fn result_status_label(result: &CollectionRunResult) -> String {
         .status
         .map(|status| format!("HTTP {status}"))
         .unwrap_or_else(|| "ERR".to_string())
+}
+
+fn parse_positive_usize(input: &str, field_name: &str) -> Result<usize> {
+    let value = input.trim();
+    let parsed = value
+        .parse::<usize>()
+        .map_err(|_| anyhow!("{field_name} must be a positive integer"))?;
+    if parsed == 0 {
+        bail!("{field_name} must be greater than zero");
+    }
+    Ok(parsed)
+}
+
+fn format_websocket_exchange(exchange: &client::WebSocketExchange) -> String {
+    let mut lines = vec![
+        format!("URL: {}", exchange.url),
+        format!("Sent: {}", exchange.sent),
+    ];
+    for (index, message) in exchange.received.iter().enumerate() {
+        lines.push(format!(
+            "Received {} [{}]: {}",
+            index + 1,
+            websocket_message_kind(&message.kind),
+            message.data
+        ));
+    }
+    lines.join("\n")
+}
+
+fn websocket_message_kind(kind: &client::WebSocketMessageKind) -> &'static str {
+    match kind {
+        client::WebSocketMessageKind::Text => "text",
+        client::WebSocketMessageKind::Binary => "binary",
+        client::WebSocketMessageKind::Ping => "ping",
+        client::WebSocketMessageKind::Pong => "pong",
+        client::WebSocketMessageKind::Close => "close",
+    }
+}
+
+fn format_sse_exchange(exchange: &client::SseExchange) -> String {
+    let mut lines = vec![format!("URL: {}", exchange.url)];
+    for (index, event) in exchange.events.iter().enumerate() {
+        lines.push(format_sse_event(index + 1, event));
+    }
+    lines.join("\n")
+}
+
+fn format_sse_event(index: usize, event: &client::SseEvent) -> String {
+    let event_name = event.event.as_deref().unwrap_or("message");
+    let id = event
+        .id
+        .as_deref()
+        .map(|id| format!(" / id {id}"))
+        .unwrap_or_default();
+    let retry = event
+        .retry
+        .map(|retry| format!(" / retry {retry}"))
+        .unwrap_or_default();
+    format!("{index}. {event_name}{id}{retry}\n{}", event.data)
 }
 
 fn history_model(entries: &[zenapi::history::HistoryEntry]) -> ModelRc<HistoryRow> {
@@ -2344,6 +2516,55 @@ mod tests {
         assert_eq!(
             format_runner_result(&result),
             "[FAIL] ERR POST https://api.example.com/users (Demo / Create) - connection refused - pre-request 1"
+        );
+    }
+
+    #[test]
+    fn parses_realtime_event_limits() {
+        assert_eq!(parse_positive_usize("3", "SSE events").unwrap(), 3);
+        assert!(
+            parse_positive_usize("0", "SSE events")
+                .expect_err("zero")
+                .to_string()
+                .contains("greater than zero")
+        );
+        assert!(
+            parse_positive_usize("many", "SSE events")
+                .expect_err("invalid")
+                .to_string()
+                .contains("positive integer")
+        );
+    }
+
+    #[test]
+    fn formats_websocket_and_sse_output() {
+        let websocket = client::WebSocketExchange {
+            url: "ws://localhost/socket".to_string(),
+            sent: "hello".to_string(),
+            received: vec![client::WebSocketMessage {
+                kind: client::WebSocketMessageKind::Text,
+                data: "echo:hello".to_string(),
+            }],
+            elapsed_ms: 12,
+        };
+        assert_eq!(
+            format_websocket_exchange(&websocket),
+            "URL: ws://localhost/socket\nSent: hello\nReceived 1 [text]: echo:hello"
+        );
+
+        let sse = client::SseExchange {
+            url: "http://localhost/events".to_string(),
+            events: vec![client::SseEvent {
+                event: Some("update".to_string()),
+                data: "{\"ok\":true}".to_string(),
+                id: Some("42".to_string()),
+                retry: None,
+            }],
+            elapsed_ms: 14,
+        };
+        assert_eq!(
+            format_sse_exchange(&sse),
+            "URL: http://localhost/events\n1. update / id 42\n{\"ok\":true}"
         );
     }
 

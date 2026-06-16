@@ -1136,6 +1136,12 @@ component RequestPanel inherits Rectangle {
     in-out property <string> request_body;
     in-out property <string> pre_request_script;
     in-out property <string> request_tests;
+    in-out property <string> realtime_mode;
+    in-out property <string> realtime_message;
+    in-out property <string> sse_max_events;
+    in property <bool> busy;
+    callback run_websocket();
+    callback run_sse();
 
     horizontal-stretch: 1;
     vertical-stretch: 1;
@@ -1323,6 +1329,95 @@ component RequestPanel inherits Rectangle {
                         LabeledEditor {
                             label: "Tests";
                             text <=> root.request_tests;
+                        }
+
+                        Rectangle {
+                            horizontal-stretch: 1;
+                            vertical-stretch: 1;
+
+                            VerticalLayout {
+                                padding: 0px;
+                                spacing: 6px;
+
+                                UiText {
+                                    text: "Realtime / " + root.realtime_mode;
+                                    height: 20px;
+                                    horizontal-stretch: 1;
+                                    color: Theme.on_surface_variant;
+                                    font-size: 12px;
+                                    font-weight: 800;
+                                    vertical-alignment: center;
+                                    overflow: elide;
+                                }
+
+                                HorizontalLayout {
+                                    height: 26px;
+                                    spacing: 8px;
+
+                                    BodyModeButton {
+                                        mode: "ws";
+                                        label: "ws";
+                                        button_width: 48px;
+                                        selected: root.realtime_mode == "ws";
+                                        enabled: !root.busy;
+                                        picked(mode) => {
+                                            root.realtime_mode = mode;
+                                        }
+                                    }
+
+                                    BodyModeButton {
+                                        mode: "sse";
+                                        label: "sse";
+                                        button_width: 48px;
+                                        selected: root.realtime_mode == "sse";
+                                        enabled: !root.busy;
+                                        picked(mode) => {
+                                            root.realtime_mode = mode;
+                                        }
+                                    }
+
+                                    TextField {
+                                        text <=> root.sse_max_events;
+                                        placeholder: "events";
+                                        mono: true;
+                                        enabled: !root.busy;
+                                        height: 26px;
+                                    }
+                                }
+
+                                TextField {
+                                    text <=> root.realtime_message;
+                                    placeholder: "WebSocket message";
+                                    mono: true;
+                                    enabled: !root.busy;
+                                    height: 28px;
+                                }
+
+                                HorizontalLayout {
+                                    height: 30px;
+                                    spacing: 8px;
+
+                                    ActionButton {
+                                        text: "WS Send";
+                                        button_width: 82px;
+                                        enabled: !root.busy;
+                                        primary: root.realtime_mode == "ws";
+                                        clicked => {
+                                            root.run_websocket();
+                                        }
+                                    }
+
+                                    ActionButton {
+                                        text: "SSE Once";
+                                        button_width: 82px;
+                                        enabled: !root.busy;
+                                        primary: root.realtime_mode == "sse";
+                                        clicked => {
+                                            root.run_sse();
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -1724,6 +1819,9 @@ export component AppWindow inherits Window {
     in-out property <string> request_body;
     in-out property <string> pre_request_script;
     in-out property <string> request_tests;
+    in-out property <string> realtime_mode: "ws";
+    in-out property <string> realtime_message: "hello";
+    in-out property <string> sse_max_events: "3";
     in-out property <string> response_status: "Idle";
     in-out property <string> response_meta: "";
     in-out property <string> response_tone: "neutral";
@@ -1754,6 +1852,8 @@ export component AppWindow inherits Window {
     callback toggle_server();
     callback generate_code();
     callback run_collection();
+    callback run_websocket();
+    callback run_sse();
 
     background: Theme.background;
 
@@ -1858,6 +1958,16 @@ export component AppWindow inherits Window {
                             request_body <=> root.request_body;
                             pre_request_script <=> root.pre_request_script;
                             request_tests <=> root.request_tests;
+                            realtime_mode <=> root.realtime_mode;
+                            realtime_message <=> root.realtime_message;
+                            sse_max_events <=> root.sse_max_events;
+                            busy: root.busy;
+                            run_websocket => {
+                                root.run_websocket();
+                            }
+                            run_sse => {
+                                root.run_sse();
+                            }
                         }
 
                         Rectangle {
