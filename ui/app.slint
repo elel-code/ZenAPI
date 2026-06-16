@@ -915,6 +915,191 @@ component DataPanel inherits Rectangle {
     }
 }
 
+component AuthEditorPanel inherits Rectangle {
+    in-out property <string> auth_mode;
+    in-out property <string> auth_config;
+    in property <bool> busy;
+
+    horizontal-stretch: 1;
+    vertical-stretch: 1;
+    background: transparent;
+
+    VerticalLayout {
+        padding: 0px;
+        spacing: 12px;
+
+        HorizontalLayout {
+            height: 30px;
+            spacing: 8px;
+            alignment: center;
+
+            for item in [
+                { mode: "none", label: "none", width: 64px },
+                { mode: "bearer", label: "bearer", width: 78px },
+                { mode: "basic", label: "basic", width: 72px },
+                { mode: "jwt", label: "jwt", width: 58px },
+                { mode: "api-header", label: "api hdr", width: 88px },
+                { mode: "api-query", label: "api query", width: 96px },
+            ]: BodyModeButton {
+                mode: item.mode;
+                label: item.label;
+                button_width: item.width;
+                selected: root.auth_mode == item.mode;
+                enabled: !root.busy;
+                picked(mode) => {
+                    root.auth_mode = mode;
+                }
+            }
+
+            Rectangle {
+                horizontal-stretch: 1;
+            }
+        }
+
+        if root.auth_mode == "none": DataPanel {
+            title: "No Authentication";
+            body: "Requests are sent without generated Authorization headers or API key query parameters.";
+        }
+
+        if root.auth_mode == "bearer": Rectangle {
+            height: 92px;
+            horizontal-stretch: 1;
+            background: transparent;
+
+            VerticalLayout {
+                padding: 0px;
+                spacing: 8px;
+
+                UiText {
+                    text: "Bearer Token";
+                    height: 20px;
+                    horizontal-stretch: 1;
+                    color: Theme.on_surface_variant;
+                    font-size: 12px;
+                    font-weight: 800;
+                    vertical-alignment: center;
+                    overflow: elide;
+                }
+
+                TextField {
+                    text <=> root.auth_config;
+                    placeholder: "token or {{token}}";
+                    mono: true;
+                    enabled: !root.busy;
+                }
+
+                UiText {
+                    text: "Sends Authorization: Bearer <token>.";
+                    height: 18px;
+                    horizontal-stretch: 1;
+                    color: Theme.outline;
+                    font-size: 12px;
+                    vertical-alignment: center;
+                    overflow: elide;
+                }
+            }
+        }
+
+        if root.auth_mode == "jwt": Rectangle {
+            height: 92px;
+            horizontal-stretch: 1;
+            background: transparent;
+
+            VerticalLayout {
+                padding: 0px;
+                spacing: 8px;
+
+                UiText {
+                    text: "JWT";
+                    height: 20px;
+                    horizontal-stretch: 1;
+                    color: Theme.on_surface_variant;
+                    font-size: 12px;
+                    font-weight: 800;
+                    vertical-alignment: center;
+                    overflow: elide;
+                }
+
+                TextField {
+                    text <=> root.auth_config;
+                    placeholder: "eyJhbGciOi...";
+                    mono: true;
+                    enabled: !root.busy;
+                }
+
+                UiText {
+                    text: "JWT is sent as Authorization: Bearer <token>.";
+                    height: 18px;
+                    horizontal-stretch: 1;
+                    color: Theme.outline;
+                    font-size: 12px;
+                    vertical-alignment: center;
+                    overflow: elide;
+                }
+            }
+        }
+
+        if root.auth_mode == "basic": Rectangle {
+            height: 92px;
+            horizontal-stretch: 1;
+            background: transparent;
+
+            VerticalLayout {
+                padding: 0px;
+                spacing: 8px;
+
+                UiText {
+                    text: "Basic Credentials";
+                    height: 20px;
+                    horizontal-stretch: 1;
+                    color: Theme.on_surface_variant;
+                    font-size: 12px;
+                    font-weight: 800;
+                    vertical-alignment: center;
+                    overflow: elide;
+                }
+
+                TextField {
+                    text <=> root.auth_config;
+                    placeholder: "username:password";
+                    mono: true;
+                    enabled: !root.busy;
+                }
+
+                UiText {
+                    text: "The value is base64 encoded before sending.";
+                    height: 18px;
+                    horizontal-stretch: 1;
+                    color: Theme.outline;
+                    font-size: 12px;
+                    vertical-alignment: center;
+                    overflow: elide;
+                }
+            }
+        }
+
+        if root.auth_mode == "api-header": LabeledEditor {
+            label: "API Key Header";
+            text <=> root.auth_config;
+        }
+
+        if root.auth_mode == "api-query": LabeledEditor {
+            label: "API Key Query";
+            text <=> root.auth_config;
+        }
+
+        if root.auth_mode == "api-header" || root.auth_mode == "api-query": UiText {
+            text: "Use one key=value pair per line, for example x-api-key={{apiKey}}.";
+            height: 20px;
+            horizontal-stretch: 1;
+            color: Theme.outline;
+            font-size: 12px;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+    }
+}
+
 component AddressBar inherits Rectangle {
     in-out property <string> method;
     in-out property <string> url;
@@ -1125,6 +1310,7 @@ component RequestPanel inherits Rectangle {
                     { mode: "params", label: "Params" },
                     { mode: "headers", label: "Headers" },
                     { mode: "body", label: "Body" },
+                    { mode: "auth", label: "Auth" },
                     { mode: "scripts", label: "Scripts" },
                 ]: WorkspaceTab {
                     mode: item.mode;
@@ -1249,6 +1435,16 @@ component RequestPanel inherits Rectangle {
                 height: parent.height;
                 text <=> root.request_body;
                 read_only: root.body_mode == "none";
+            }
+
+            if root.active_tab == "auth": AuthEditorPanel {
+                x: 16px;
+                y: 16px;
+                width: parent.width - 32px;
+                height: parent.height - 32px;
+                auth_mode <=> root.auth_mode;
+                auth_config <=> root.auth_config;
+                busy: root.busy;
             }
 
             if root.active_tab == "scripts": HorizontalLayout {

@@ -54,9 +54,9 @@
   dedicated form file controls and GraphQL schema response helpers still
   pending.
 - [~] Rebuild Auth controls for None, Bearer, Basic, JWT, and API key modes;
-  current Slint baseline supports mode buttons plus per-mode config panels with
-  mode-specific labels, placeholders, and transport mapping, with split
-  credential/key-value field rows still pending.
+  current Slint Request Builder has the dedicated Auth tab, mode buttons, and
+  mode-specific config panels wired to transport mapping, with split
+  credential/key-value rows and OAuth flows still pending.
 - [~] Rebuild Environments and Variables UI on top of `variables::VariableStore`;
   current Slint baseline supports one active environment with dev/test/prod
   quick selectors plus line-based global and environment variable editors, with
