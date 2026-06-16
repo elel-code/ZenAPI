@@ -96,8 +96,8 @@
   sidebar, with richer route controls pending.
 - [~] Split reusable controls from `ui/app.slint` into `ui/widgets/`; current
   Slint baseline extracts shared styles, buttons, text fields, method controls,
-  tab headers, and editor panes into `ui/widgets.slint`, with larger business
-  panels still pending.
+  tab headers, editor panes, and reusable list rows into `ui/widgets.slint`,
+  with larger business panels still pending.
 
 ## Phase 4: Verification And Release
 
