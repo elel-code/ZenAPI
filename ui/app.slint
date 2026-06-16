@@ -239,9 +239,10 @@ component BodyModeButton inherits Rectangle {
     in property <string> label;
     in property <bool> selected;
     in property <bool> enabled: true;
+    in property <length> button_width: 76px;
     callback picked(string);
 
-    width: 76px;
+    width: root.button_width;
     height: 26px;
     border-radius: 6px;
     border-width: 1px;
@@ -1011,9 +1012,13 @@ component RequestPanel inherits Rectangle {
 component ResponsePanel inherits Rectangle {
     in-out property <string> response_body;
     in-out property <string> response_headers;
+    in-out property <string> codegen_language;
+    in-out property <string> codegen_output;
     in property <string> response_status;
     in property <string> response_meta;
     in property <string> response_tone;
+    in property <bool> busy;
+    callback generate_code();
 
     width: 420px;
     vertical-stretch: 1;
@@ -1067,6 +1072,56 @@ component ResponsePanel inherits Rectangle {
                         label: "Headers";
                         text <=> root.response_headers;
                         read_only: true;
+                    }
+                }
+
+                Rectangle {
+                    height: 182px;
+                    horizontal-stretch: 1;
+                    background: transparent;
+
+                    VerticalLayout {
+                        padding: 0px;
+                        spacing: 8px;
+
+                        HorizontalLayout {
+                            height: 28px;
+                            spacing: 8px;
+                            alignment: center;
+
+                            for item in [
+                                { mode: "curl", label: "curl" },
+                                { mode: "python", label: "py" },
+                                { mode: "js", label: "js" },
+                                { mode: "rust", label: "rust" },
+                                { mode: "go", label: "go" },
+                            ]: BodyModeButton {
+                                mode: item.mode;
+                                label: item.label;
+                                button_width: 54px;
+                                selected: root.codegen_language == item.mode;
+                                enabled: !root.busy;
+                                picked(mode) => {
+                                    root.codegen_language = mode;
+                                }
+                            }
+
+                            ActionButton {
+                                text: "Generate";
+                                button_width: 86px;
+                                primary: true;
+                                enabled: !root.busy;
+                                clicked => {
+                                    root.generate_code();
+                                }
+                            }
+                        }
+
+                        LabeledEditor {
+                            label: "Code / " + root.codegen_language;
+                            text <=> root.codegen_output;
+                            read_only: true;
+                        }
                     }
                 }
             }
@@ -1173,6 +1228,8 @@ export component AppWindow inherits Window {
     in-out property <string> response_tone: "neutral";
     in-out property <string> response_body: "Import an OpenAPI or Swagger document to begin.";
     in-out property <string> response_headers: "";
+    in-out property <string> codegen_language: "curl";
+    in-out property <string> codegen_output: "";
     in-out property <string> route_filter;
     in-out property <int> total_route_count: 0;
     in-out property <string> server_status: "Stopped";
@@ -1185,6 +1242,7 @@ export component AppWindow inherits Window {
     callback select_route(int);
     callback send_request();
     callback toggle_server();
+    callback generate_code();
 
     background: Theme.background;
 
@@ -1273,9 +1331,15 @@ export component AppWindow inherits Window {
                         ResponsePanel {
                             response_body <=> root.response_body;
                             response_headers <=> root.response_headers;
+                            codegen_language <=> root.codegen_language;
+                            codegen_output <=> root.codegen_output;
                             response_status: root.response_status;
                             response_meta: root.response_meta;
                             response_tone: root.response_tone;
+                            busy: root.busy;
+                            generate_code => {
+                                root.generate_code();
+                            }
                         }
                     }
                 }

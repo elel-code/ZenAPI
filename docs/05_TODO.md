@@ -60,7 +60,9 @@
   current requests, nested folders, rename/delete/copy, and drag/drop.
 - [ ] Rebuild History UI for local request history, filtering, restore, delete,
   and clear.
-- [ ] Rebuild Codegen UI for cURL, Python, JavaScript, Rust, and Go snippets.
+- [~] Rebuild Codegen UI for cURL, Python, JavaScript, Rust, and Go snippets;
+  current Slint baseline generates snippets from the resolved request projection,
+  with copy/export actions still pending.
 - [ ] Rebuild Collection Runner UI while keeping `zenapi run` as the stable CLI.
 - [ ] Rebuild Pre-request script-lite and native Tests panels.
 - [ ] Rebuild WebSocket and SSE panels using the restored client modules.

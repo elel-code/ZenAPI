@@ -6,6 +6,7 @@ use std::sync::{Arc, Mutex};
 use tokio::runtime::Runtime;
 use zenapi::{
     client::{self, RequestBody},
+    codegen::{CodegenRequest, SnippetLanguage, generate_snippet},
     mock_server::MockServer,
     openapi::{ApiRoute, ApiSpec, load_openapi_file},
     variables::{Variable, VariableStore, replace_variables},
@@ -22,6 +23,7 @@ pub fn run() -> Result<()> {
     wire_route_filter(&app, state.clone());
     wire_route_selection(&app, state.clone());
     wire_request_sender(&app, runtime.clone());
+    wire_codegen(&app);
     wire_mock_server(&app, runtime, state);
 
     app.run().map_err(|err| anyhow!(err.to_string()))
@@ -37,6 +39,20 @@ struct AppState {
 enum ServerAction {
     Start(Vec<ApiRoute>),
     Stop(MockServer),
+}
+
+struct RequestProjectionInput {
+    method: String,
+    url: String,
+    query_params: String,
+    headers: String,
+    auth_mode: String,
+    auth_config: String,
+    body_mode: String,
+    body: String,
+    global_variables: String,
+    environment_name: String,
+    environment_variables: String,
 }
 
 impl AppState {
@@ -193,107 +209,31 @@ fn wire_request_sender(app: &AppWindow, runtime: Arc<Runtime>) {
             return;
         }
 
-        let (variables, active_environment) = match build_variable_store(
-            app.get_global_variables().as_str(),
-            app.get_environment_name().as_str(),
-            app.get_environment_variables().as_str(),
-        ) {
-            Ok(variables) => variables,
+        let request = match build_codegen_request_projection(&RequestProjectionInput {
+            method: app.get_method().to_string(),
+            url: app.get_url().to_string(),
+            query_params: app.get_query_params().to_string(),
+            headers: app.get_request_headers().to_string(),
+            auth_mode: app.get_auth_mode().to_string(),
+            auth_config: app.get_auth_config().to_string(),
+            body_mode: app.get_body_mode().to_string(),
+            body: app.get_request_body().to_string(),
+            global_variables: app.get_global_variables().to_string(),
+            environment_name: app.get_environment_name().to_string(),
+            environment_variables: app.get_environment_variables().to_string(),
+        }) {
+            Ok(request) => request,
             Err(error) => {
-                set_response(&app, "Bad vars", "", "error", &error.to_string());
+                set_response(&app, "Build failed", "", "error", &error.to_string());
                 return;
             }
         };
-        let active_environment = active_environment.as_deref();
-        let method = app.get_method().to_string();
-        let url = match resolve_text(app.get_url().as_str(), &variables, active_environment) {
-            Ok(url) => url.trim().to_string(),
-            Err(error) => {
-                set_response(&app, "Bad URL vars", "", "error", &error.to_string());
-                return;
-            }
-        };
-        let mut headers = match parse_key_value_lines(&app.get_request_headers(), "header") {
-            Ok(headers) => headers,
-            Err(error) => {
-                set_response(&app, "Bad headers", "", "error", &error.to_string());
-                return;
-            }
-        };
-        headers = match resolve_pairs(headers, &variables, active_environment) {
-            Ok(headers) => headers,
-            Err(error) => {
-                set_response(&app, "Bad header vars", "", "error", &error.to_string());
-                return;
-            }
-        };
-        let mut query_params = match parse_key_value_lines(&app.get_query_params(), "query param") {
-            Ok(query_params) => query_params,
-            Err(error) => {
-                set_response(&app, "Bad params", "", "error", &error.to_string());
-                return;
-            }
-        };
-        query_params = match resolve_pairs(query_params, &variables, active_environment) {
-            Ok(query_params) => query_params,
-            Err(error) => {
-                set_response(&app, "Bad param vars", "", "error", &error.to_string());
-                return;
-            }
-        };
-        let auth_config = match resolve_text(
-            app.get_auth_config().as_str(),
-            &variables,
-            active_environment,
-        ) {
-            Ok(auth_config) => auth_config,
-            Err(error) => {
-                set_response(&app, "Bad auth vars", "", "error", &error.to_string());
-                return;
-            }
-        };
-        let (auth_headers, auth_query_params) =
-            match build_auth_entries(&app.get_auth_mode(), auth_config.as_str()) {
-                Ok(entries) => entries,
-                Err(error) => {
-                    set_response(&app, "Bad auth", "", "error", &error.to_string());
-                    return;
-                }
-            };
-        for (name, value) in auth_headers {
-            upsert_pair(&mut headers, name, value, true);
-        }
-        for (name, value) in auth_query_params {
-            upsert_pair(&mut query_params, name, value, false);
-        }
-        let request_body = match resolve_text(
-            app.get_request_body().as_str(),
-            &variables,
-            active_environment,
-        ) {
-            Ok(request_body) => request_body,
-            Err(error) => {
-                set_response(&app, "Bad body vars", "", "error", &error.to_string());
-                return;
-            }
-        };
-        let body = match build_request_body(&app.get_body_mode(), request_body.as_str()) {
-            Ok(body) => body,
-            Err(error) => {
-                set_response(&app, "Bad body", "", "error", &error.to_string());
-                return;
-            }
-        };
-        if url.is_empty() {
-            set_response(
-                &app,
-                "Request needs a URL",
-                "",
-                "error",
-                "Enter a request URL or select an imported route first.",
-            );
-            return;
-        }
+
+        let method = request.method.clone();
+        let url = request.url.clone();
+        let headers = request.headers.clone();
+        let query_params = request.query_params.clone();
+        let body = request.body.clone();
 
         app.set_busy(true);
         app.set_activity("Sending request".into());
@@ -333,6 +273,48 @@ fn wire_request_sender(app: &AppWindow, runtime: Arc<Runtime>) {
                 app.set_busy(false);
             });
         });
+    });
+}
+
+fn wire_codegen(app: &AppWindow) {
+    let weak_app = app.as_weak();
+    app.on_generate_code(move || {
+        let Some(app) = weak_app.upgrade() else {
+            return;
+        };
+        if app.get_busy() {
+            return;
+        }
+
+        let request = match build_codegen_request_projection(&RequestProjectionInput {
+            method: app.get_method().to_string(),
+            url: app.get_url().to_string(),
+            query_params: app.get_query_params().to_string(),
+            headers: app.get_request_headers().to_string(),
+            auth_mode: app.get_auth_mode().to_string(),
+            auth_config: app.get_auth_config().to_string(),
+            body_mode: app.get_body_mode().to_string(),
+            body: app.get_request_body().to_string(),
+            global_variables: app.get_global_variables().to_string(),
+            environment_name: app.get_environment_name().to_string(),
+            environment_variables: app.get_environment_variables().to_string(),
+        }) {
+            Ok(request) => request,
+            Err(error) => {
+                set_response(&app, "Codegen failed", "", "error", &error.to_string());
+                return;
+            }
+        };
+        let language = snippet_language(&app.get_codegen_language());
+        let snippet = generate_snippet(&request, language);
+        app.set_codegen_output(snippet.into());
+        set_response(
+            &app,
+            "Codegen ready",
+            &app.get_codegen_language(),
+            "success",
+            "Snippet generated.",
+        );
     });
 }
 
@@ -498,6 +480,49 @@ fn parse_key_value_lines(input: &str, field_name: &str) -> Result<Vec<(String, S
             Ok((key.to_string(), value.trim().to_string()))
         })
         .collect()
+}
+
+fn build_codegen_request_projection(input: &RequestProjectionInput) -> Result<CodegenRequest> {
+    let (variables, active_environment) = build_variable_store(
+        &input.global_variables,
+        &input.environment_name,
+        &input.environment_variables,
+    )?;
+    let active_environment = active_environment.as_deref();
+    let url = resolve_text(&input.url, &variables, active_environment)?
+        .trim()
+        .to_string();
+    if url.is_empty() {
+        bail!("request URL is empty");
+    }
+
+    let mut headers = resolve_pairs(
+        parse_key_value_lines(&input.headers, "header")?,
+        &variables,
+        active_environment,
+    )?;
+    let mut query_params = resolve_pairs(
+        parse_key_value_lines(&input.query_params, "query param")?,
+        &variables,
+        active_environment,
+    )?;
+    let auth_config = resolve_text(&input.auth_config, &variables, active_environment)?;
+    let (auth_headers, auth_query_params) = build_auth_entries(&input.auth_mode, &auth_config)?;
+    for (name, value) in auth_headers {
+        upsert_pair(&mut headers, name, value, true);
+    }
+    for (name, value) in auth_query_params {
+        upsert_pair(&mut query_params, name, value, false);
+    }
+    let request_body = resolve_text(&input.body, &variables, active_environment)?;
+
+    Ok(CodegenRequest {
+        method: input.method.clone(),
+        url,
+        headers,
+        query_params,
+        body: build_request_body(&input.body_mode, &request_body)?,
+    })
 }
 
 fn split_key_value_line(line: &str) -> Option<(&str, &str)> {
@@ -690,6 +715,16 @@ fn default_body_mode(method: &str) -> &'static str {
     match method {
         "POST" | "PUT" | "PATCH" => "raw",
         _ => "none",
+    }
+}
+
+fn snippet_language(language: &str) -> SnippetLanguage {
+    match language {
+        "python" => SnippetLanguage::PythonRequests,
+        "js" => SnippetLanguage::JavaScriptFetch,
+        "rust" => SnippetLanguage::RustReqwest,
+        "go" => SnippetLanguage::GoNetHttp,
+        _ => SnippetLanguage::Curl,
     }
 }
 
@@ -911,5 +946,54 @@ mod tests {
             .expect_err("missing env name");
 
         assert!(error.to_string().contains("environment name is empty"));
+    }
+
+    #[test]
+    fn projects_current_slint_request_for_codegen() {
+        let request = build_codegen_request_projection(&RequestProjectionInput {
+            method: "POST".to_string(),
+            url: "{{baseUrl}}/users".to_string(),
+            query_params: "debug=true".to_string(),
+            headers: "Accept: application/json".to_string(),
+            auth_mode: "bearer".to_string(),
+            auth_config: "{{token}}".to_string(),
+            body_mode: "raw".to_string(),
+            body: "{\"name\":\"{{name}}\"}".to_string(),
+            global_variables: "baseUrl=https://api.example.com\ntoken=secret\nname=Zen".to_string(),
+            environment_name: String::new(),
+            environment_variables: String::new(),
+        })
+        .expect("request");
+
+        assert_eq!(request.method, "POST");
+        assert_eq!(request.url, "https://api.example.com/users");
+        assert_eq!(
+            request.headers,
+            vec![
+                ("Accept".to_string(), "application/json".to_string()),
+                ("Authorization".to_string(), "Bearer secret".to_string())
+            ]
+        );
+        assert_eq!(
+            request.query_params,
+            vec![("debug".to_string(), "true".to_string())]
+        );
+        assert_eq!(
+            request.body,
+            RequestBody::Raw {
+                content_type: Some("application/json".to_string()),
+                body: "{\"name\":\"Zen\"}".to_string(),
+            }
+        );
+    }
+
+    #[test]
+    fn maps_slint_codegen_language_names() {
+        assert_eq!(snippet_language("curl"), SnippetLanguage::Curl);
+        assert_eq!(snippet_language("python"), SnippetLanguage::PythonRequests);
+        assert_eq!(snippet_language("js"), SnippetLanguage::JavaScriptFetch);
+        assert_eq!(snippet_language("rust"), SnippetLanguage::RustReqwest);
+        assert_eq!(snippet_language("go"), SnippetLanguage::GoNetHttp);
+        assert_eq!(snippet_language("unknown"), SnippetLanguage::Curl);
     }
 }
