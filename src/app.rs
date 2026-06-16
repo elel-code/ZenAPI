@@ -1,10 +1,15 @@
 use anyhow::{Result, anyhow, bail};
 use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64_STANDARD};
+use serde_json::Value;
 use slint::{ComponentHandle, ModelRc, SharedString, VecModel};
 use std::path::Path;
 use std::sync::{Arc, Mutex};
 use tokio::runtime::Runtime;
 use zenapi::{
+    assertions::{
+        ResponseAssertion, ResponseAssertionKind, ResponseAssertionResult,
+        evaluate_response_assertions,
+    },
     client::{self, ClientResponse, RequestBody},
     codegen::{CodegenRequest, SnippetLanguage, generate_snippet},
     collection_runner::{
@@ -14,6 +19,7 @@ use zenapi::{
     history::{HistoryRequest, HistoryResponse, RequestHistory},
     mock_server::MockServer,
     openapi::{ApiRoute, ApiSpec, load_openapi_file},
+    pre_request::{execute_pre_request_actions, resolve_codegen_request_templates},
     variables::{Variable, VariableStore, replace_variables},
 };
 
@@ -59,6 +65,7 @@ struct RequestProjectionInput {
     auth_config: String,
     body_mode: String,
     body: String,
+    pre_request_script: String,
     global_variables: String,
     environment_name: String,
     environment_variables: String,
@@ -74,6 +81,7 @@ fn request_projection_input(app: &AppWindow) -> RequestProjectionInput {
         auth_config: app.get_auth_config().to_string(),
         body_mode: app.get_body_mode().to_string(),
         body: app.get_request_body().to_string(),
+        pre_request_script: app.get_pre_request_script().to_string(),
         global_variables: app.get_global_variables().to_string(),
         environment_name: app.get_environment_name().to_string(),
         environment_variables: app.get_environment_variables().to_string(),
@@ -434,7 +442,22 @@ fn wire_collection_actions(app: &AppWindow, state: Arc<Mutex<AppState>>) {
             return;
         }
 
-        let request = match build_codegen_request_projection(&request_projection_input(&app)) {
+        let input = request_projection_input(&app);
+        let tests = match parse_response_assertions(&app.get_request_tests()) {
+            Ok(tests) => tests,
+            Err(error) => {
+                app.set_collection_status("Add failed".into());
+                set_response(
+                    &app,
+                    "Collection add failed",
+                    "",
+                    "error",
+                    &error.to_string(),
+                );
+                return;
+            }
+        };
+        let collection_request = match collection_request_from_editor(&input, tests) {
             Ok(request) => request,
             Err(error) => {
                 app.set_collection_status("Add failed".into());
@@ -448,8 +471,8 @@ fn wire_collection_actions(app: &AppWindow, state: Arc<Mutex<AppState>>) {
                 return;
             }
         };
-        let collection_request = collection_request_from_codegen(&request);
         let request_name = collection_request.name.clone();
+        let request_url = collection_request.url.clone();
 
         let Some((collection_name, request_count, rows)) =
             add_state.lock().ok().map(|mut state| {
@@ -475,7 +498,7 @@ fn wire_collection_actions(app: &AppWindow, state: Arc<Mutex<AppState>>) {
             "Request saved to collection",
             &request_name,
             "success",
-            &request.url,
+            &request_url,
         );
     });
 
@@ -517,6 +540,13 @@ fn wire_request_sender(app: &AppWindow, runtime: Arc<Runtime>, state: Arc<Mutex<
                 return;
             }
         };
+        let assertions = match parse_response_assertions(&app.get_request_tests()) {
+            Ok(assertions) => assertions,
+            Err(error) => {
+                set_response(&app, "Tests failed", "", "error", &error.to_string());
+                return;
+            }
+        };
 
         let method = request.method.clone();
         let url = request.url.clone();
@@ -546,9 +576,16 @@ fn wire_request_sender(app: &AppWindow, runtime: Arc<Runtime>, state: Arc<Mutex<
                 match result {
                     Ok(response) => {
                         let response_headers = format_headers(&response.headers);
-                        let response_status = format!("HTTP {}", response.status);
+                        let assertion_results =
+                            evaluate_response_assertions(&response, &assertions);
+                        let response_status =
+                            response_status_with_assertions(response.status, &assertion_results);
                         let response_meta =
                             format!("{} ms / {} B", response.elapsed_ms, response.body_bytes);
+                        let response_tone =
+                            response_tone_with_assertions(response.status, &assertion_results);
+                        let response_body =
+                            response_body_with_assertions(&response.body, &assertion_results);
                         record_history(&state, &request, success_history_response(&response));
                         if let Ok(state) = state.lock() {
                             app.set_history_rows(history_model(state.history.entries()));
@@ -557,8 +594,8 @@ fn wire_request_sender(app: &AppWindow, runtime: Arc<Runtime>, state: Arc<Mutex<
                             &app,
                             &response_status,
                             &response_meta,
-                            response_tone(response.status),
-                            &response.body,
+                            response_tone,
+                            &response_body,
                         );
                         app.set_response_headers(response_headers.into());
                     }
@@ -922,6 +959,37 @@ fn collection_request_from_codegen(request: &CodegenRequest) -> CollectionReques
     }
 }
 
+fn collection_request_from_editor(
+    input: &RequestProjectionInput,
+    tests: Vec<ResponseAssertion>,
+) -> Result<CollectionRequest> {
+    let mut headers = parse_key_value_lines(&input.headers, "header")?;
+    let mut query_params = parse_key_value_lines(&input.query_params, "query param")?;
+    let (auth_headers, auth_query_params) =
+        build_auth_entries(&input.auth_mode, &input.auth_config)?;
+    for (name, value) in auth_headers {
+        upsert_pair(&mut headers, name, value, true);
+    }
+    for (name, value) in auth_query_params {
+        upsert_pair(&mut query_params, name, value, false);
+    }
+    let request = CodegenRequest {
+        method: input.method.clone(),
+        url: input.url.trim().to_string(),
+        headers,
+        query_params,
+        body: build_request_body(&input.body_mode, &input.body)?,
+    };
+    if request.url.trim().is_empty() {
+        bail!("request URL is empty");
+    }
+
+    let mut collection_request = collection_request_from_codegen(&request);
+    collection_request.pre_request_script = input.pre_request_script.trim().to_string();
+    collection_request.tests = tests;
+    Ok(collection_request)
+}
+
 fn name_values_from_pairs(pairs: &[(String, String)]) -> Vec<NameValue> {
     pairs
         .iter()
@@ -966,6 +1034,8 @@ fn restore_collection_request(app: &AppWindow, request: &CollectionRequest) {
     app.set_auth_config("".into());
     app.set_body_mode(body_mode.into());
     app.set_request_body(request_body.into());
+    app.set_pre_request_script(request.pre_request_script.clone().into());
+    app.set_request_tests(format_response_assertions(&request.tests).into());
     app.set_collection_status(format!("Selected {}", request.name).into());
     set_response(
         app,
@@ -1246,23 +1316,34 @@ fn build_codegen_request_projection(input: &RequestProjectionInput) -> Result<Co
         &input.environment_variables,
     )?;
     let active_environment = active_environment.as_deref();
-    let url = resolve_text(&input.url, &variables, active_environment)?
-        .trim()
-        .to_string();
-    if url.is_empty() {
+
+    let mut request = build_unresolved_editor_request(input, &variables, active_environment)?;
+    let execution = execute_pre_request_actions(
+        &input.pre_request_script,
+        request,
+        variables,
+        active_environment,
+    )?;
+    request = resolve_codegen_request_templates(
+        execution.request,
+        &execution.variables,
+        active_environment,
+    )?;
+    request.url = request.url.trim().to_string();
+    if request.url.is_empty() {
         bail!("request URL is empty");
     }
 
-    let mut headers = resolve_pairs(
-        parse_key_value_lines(&input.headers, "header")?,
-        &variables,
-        active_environment,
-    )?;
-    let mut query_params = resolve_pairs(
-        parse_key_value_lines(&input.query_params, "query param")?,
-        &variables,
-        active_environment,
-    )?;
+    Ok(request)
+}
+
+fn build_unresolved_editor_request(
+    input: &RequestProjectionInput,
+    variables: &VariableStore,
+    active_environment: Option<&str>,
+) -> Result<CodegenRequest> {
+    let mut headers = parse_key_value_lines(&input.headers, "header")?;
+    let mut query_params = parse_key_value_lines(&input.query_params, "query param")?;
     let auth_config = resolve_text(&input.auth_config, &variables, active_environment)?;
     let (auth_headers, auth_query_params) = build_auth_entries(&input.auth_mode, &auth_config)?;
     for (name, value) in auth_headers {
@@ -1271,14 +1352,13 @@ fn build_codegen_request_projection(input: &RequestProjectionInput) -> Result<Co
     for (name, value) in auth_query_params {
         upsert_pair(&mut query_params, name, value, false);
     }
-    let request_body = resolve_text(&input.body, &variables, active_environment)?;
 
     Ok(CodegenRequest {
         method: input.method.clone(),
-        url,
+        url: input.url.trim().to_string(),
         headers,
         query_params,
-        body: build_request_body(&input.body_mode, &request_body)?,
+        body: build_request_body(&input.body_mode, &input.body)?,
     })
 }
 
@@ -1404,6 +1484,7 @@ fn resolve_text(
     replace_variables(input, variables, active_environment)
 }
 
+#[cfg(test)]
 fn resolve_pairs(
     pairs: Vec<(String, String)>,
     variables: &VariableStore,
@@ -1447,6 +1528,177 @@ fn format_headers(headers: &[(String, String)]) -> String {
     headers
         .iter()
         .map(|(name, value)| format!("{name}: {value}"))
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+fn parse_response_assertions(input: &str) -> Result<Vec<ResponseAssertion>> {
+    input
+        .lines()
+        .enumerate()
+        .filter_map(|(index, line)| {
+            let line = line.trim();
+            (!line.is_empty() && !line.starts_with('#') && !line.starts_with("//"))
+                .then_some((index, line))
+        })
+        .map(|(index, line)| {
+            parse_response_assertion_line(line)
+                .map_err(|error| anyhow!("test line {}: {error}", index + 1))
+        })
+        .collect()
+}
+
+fn parse_response_assertion_line(line: &str) -> Result<ResponseAssertion> {
+    let (kind, args) = split_assertion_command(line)?;
+    let assertion_kind = match kind {
+        "status" | "status_equals" | "status=" => ResponseAssertionKind::StatusEquals {
+            status: parse_status(args, kind)?,
+        },
+        "range" | "status_in_range" => {
+            let mut parts = args.split_whitespace();
+            let min = parts
+                .next()
+                .ok_or_else(|| anyhow!("{kind} expects min max"))
+                .and_then(|value| parse_status(value, kind))?;
+            let max = parts
+                .next()
+                .ok_or_else(|| anyhow!("{kind} expects min max"))
+                .and_then(|value| parse_status(value, kind))?;
+            ResponseAssertionKind::StatusInRange { min, max }
+        }
+        "header" | "header_exists" | "header?" => ResponseAssertionKind::HeaderExists {
+            name: require_assertion_arg(args, kind)?,
+        },
+        "header_equals" | "header=" => {
+            let (name, value) = split_first_arg(args, kind)?;
+            ResponseAssertionKind::HeaderEquals { name, value }
+        }
+        "body" | "body_contains" | "body?" => ResponseAssertionKind::BodyContains {
+            text: require_assertion_arg(args, kind)?,
+        },
+        "json" | "json_path_equals" | "json=" => {
+            let (path, value) = split_first_arg(args, kind)?;
+            ResponseAssertionKind::JsonPathEquals {
+                path,
+                value: parse_json_assertion_value(&value),
+            }
+        }
+        _ => bail!("unknown assertion kind: {kind}"),
+    };
+
+    Ok(ResponseAssertion {
+        name: format!("{kind} {args}"),
+        kind: assertion_kind,
+    })
+}
+
+fn split_assertion_command(line: &str) -> Result<(&str, &str)> {
+    let Some((kind, args)) = line.split_once(char::is_whitespace) else {
+        bail!("assertion needs arguments: {line}");
+    };
+    Ok((kind.trim(), args.trim()))
+}
+
+fn require_assertion_arg(args: &str, kind: &str) -> Result<String> {
+    let args = args.trim();
+    if args.is_empty() {
+        bail!("{kind} expects a value");
+    }
+    Ok(args.to_string())
+}
+
+fn split_first_arg(args: &str, kind: &str) -> Result<(String, String)> {
+    let Some((first, rest)) = args.trim().split_once(char::is_whitespace) else {
+        bail!("{kind} expects target and expected value");
+    };
+    let first = first.trim();
+    let rest = rest.trim();
+    if first.is_empty() || rest.is_empty() {
+        bail!("{kind} expects target and expected value");
+    }
+    Ok((first.to_string(), rest.to_string()))
+}
+
+fn parse_status(value: &str, kind: &str) -> Result<u16> {
+    value
+        .trim()
+        .parse::<u16>()
+        .map_err(|_| anyhow!("{kind} expects an HTTP status code"))
+}
+
+fn parse_json_assertion_value(value: &str) -> Value {
+    serde_json::from_str(value).unwrap_or_else(|_| Value::String(value.to_string()))
+}
+
+fn format_response_assertions(assertions: &[ResponseAssertion]) -> String {
+    assertions
+        .iter()
+        .map(|assertion| match &assertion.kind {
+            ResponseAssertionKind::StatusEquals { status } => format!("status_equals {status}"),
+            ResponseAssertionKind::StatusInRange { min, max } => {
+                format!("status_in_range {min} {max}")
+            }
+            ResponseAssertionKind::HeaderExists { name } => format!("header_exists {name}"),
+            ResponseAssertionKind::HeaderEquals { name, value } => {
+                format!("header_equals {name} {value}")
+            }
+            ResponseAssertionKind::BodyContains { text } => format!("body_contains {text}"),
+            ResponseAssertionKind::JsonPathEquals { path, value } => {
+                format!("json_path_equals {path} {value}")
+            }
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+fn response_status_with_assertions(
+    status: u16,
+    assertion_results: &[ResponseAssertionResult],
+) -> String {
+    if assertion_results.is_empty() {
+        return format!("HTTP {status}");
+    }
+    let passed = assertion_results
+        .iter()
+        .filter(|result| result.passed)
+        .count();
+    format!("HTTP {status} / tests {passed}/{}", assertion_results.len())
+}
+
+fn response_tone_with_assertions(
+    status: u16,
+    assertion_results: &[ResponseAssertionResult],
+) -> &'static str {
+    if assertion_results.iter().any(|result| !result.passed) {
+        "error"
+    } else {
+        response_tone(status)
+    }
+}
+
+fn response_body_with_assertions(
+    body: &str,
+    assertion_results: &[ResponseAssertionResult],
+) -> String {
+    if assertion_results.is_empty() {
+        return body.to_string();
+    }
+    format!(
+        "{body}\n\nTests\n{}",
+        format_assertion_results(assertion_results)
+    )
+}
+
+fn format_assertion_results(assertion_results: &[ResponseAssertionResult]) -> String {
+    assertion_results
+        .iter()
+        .map(|result| {
+            let outcome = if result.passed { "PASS" } else { "FAIL" };
+            match &result.error {
+                Some(error) => format!("[{outcome}] {} - {error}", result.name),
+                None => format!("[{outcome}] {}", result.name),
+            }
+        })
         .collect::<Vec<_>>()
         .join("\n")
 }
@@ -1729,6 +1981,7 @@ mod tests {
             auth_config: "{{token}}".to_string(),
             body_mode: "raw".to_string(),
             body: "{\"name\":\"{{name}}\"}".to_string(),
+            pre_request_script: String::new(),
             global_variables: "baseUrl=https://api.example.com\ntoken=secret\nname=Zen".to_string(),
             environment_name: String::new(),
             environment_variables: String::new(),
@@ -1755,6 +2008,126 @@ mod tests {
                 body: "{\"name\":\"Zen\"}".to_string(),
             }
         );
+    }
+
+    #[test]
+    fn applies_pre_request_actions_before_projection_resolution() {
+        let request = build_codegen_request_projection(&RequestProjectionInput {
+            method: "GET".to_string(),
+            url: "{{baseUrl}}/users".to_string(),
+            query_params: String::new(),
+            headers: String::new(),
+            auth_mode: "none".to_string(),
+            auth_config: String::new(),
+            body_mode: "none".to_string(),
+            body: String::new(),
+            pre_request_script:
+                "set_var baseUrl=http://127.0.0.1:8080\nset_header X-Mode=test\nset_query debug=true"
+                    .to_string(),
+            global_variables: "baseUrl=https://api.example.com".to_string(),
+            environment_name: String::new(),
+            environment_variables: String::new(),
+        })
+        .expect("request");
+
+        assert_eq!(request.url, "http://127.0.0.1:8080/users");
+        assert_eq!(
+            request.headers,
+            vec![("X-Mode".to_string(), "test".to_string())]
+        );
+        assert_eq!(
+            request.query_params,
+            vec![("debug".to_string(), "true".to_string())]
+        );
+    }
+
+    #[test]
+    fn parses_and_formats_native_test_assertions() {
+        let assertions = parse_response_assertions(
+            "status_equals 200\nheader_equals Content-Type application/json\njson_path_equals ok true",
+        )
+        .expect("assertions");
+
+        assert_eq!(
+            assertions,
+            vec![
+                ResponseAssertion {
+                    name: "status_equals 200".to_string(),
+                    kind: ResponseAssertionKind::StatusEquals { status: 200 },
+                },
+                ResponseAssertion {
+                    name: "header_equals Content-Type application/json".to_string(),
+                    kind: ResponseAssertionKind::HeaderEquals {
+                        name: "Content-Type".to_string(),
+                        value: "application/json".to_string(),
+                    },
+                },
+                ResponseAssertion {
+                    name: "json_path_equals ok true".to_string(),
+                    kind: ResponseAssertionKind::JsonPathEquals {
+                        path: "ok".to_string(),
+                        value: Value::Bool(true),
+                    },
+                },
+            ]
+        );
+        assert_eq!(
+            format_response_assertions(&assertions),
+            "status_equals 200\nheader_equals Content-Type application/json\njson_path_equals ok true"
+        );
+    }
+
+    #[test]
+    fn formats_single_response_assertion_results() {
+        let results = vec![
+            ResponseAssertionResult {
+                name: "status_equals 200".to_string(),
+                passed: true,
+                error: None,
+            },
+            ResponseAssertionResult {
+                name: "body_contains ok".to_string(),
+                passed: false,
+                error: Some("response body does not contain \"ok\"".to_string()),
+            },
+        ];
+
+        assert_eq!(
+            response_status_with_assertions(200, &results),
+            "HTTP 200 / tests 1/2"
+        );
+        assert_eq!(response_tone_with_assertions(200, &results), "error");
+        assert_eq!(
+            response_body_with_assertions("{}", &results),
+            "{}\n\nTests\n[PASS] status_equals 200\n[FAIL] body_contains ok - response body does not contain \"ok\""
+        );
+    }
+
+    #[test]
+    fn saves_editor_request_with_pre_request_and_tests() {
+        let tests = parse_response_assertions("status_equals 201").expect("assertions");
+        let request = collection_request_from_editor(
+            &RequestProjectionInput {
+                method: "POST".to_string(),
+                url: "{{baseUrl}}/users".to_string(),
+                query_params: "debug=true".to_string(),
+                headers: "Accept: application/json".to_string(),
+                auth_mode: "none".to_string(),
+                auth_config: String::new(),
+                body_mode: "raw".to_string(),
+                body: "{\"name\":\"{{name}}\"}".to_string(),
+                pre_request_script: "set_header X-Mode=test".to_string(),
+                global_variables: String::new(),
+                environment_name: String::new(),
+                environment_variables: String::new(),
+            },
+            tests.clone(),
+        )
+        .expect("collection request");
+
+        assert_eq!(request.url, "{{baseUrl}}/users");
+        assert_eq!(request.pre_request_script, "set_header X-Mode=test");
+        assert_eq!(request.tests, tests);
     }
 
     #[test]

@@ -58,9 +58,10 @@
   and environment variable editors, with full environment list management pending.
 - [~] Rebuild Collections UI for native JSON/Postman import/export, saving
   current requests, nested folders, rename/delete/copy, and drag/drop; current
-  Slint baseline loads native/Postman JSON, saves the effective current request,
+  Slint baseline loads native/Postman JSON, saves the current editor request,
   saves native JSON, exports Postman JSON, and restores saved requests from a
-  flat sidebar list, with tree editing and item management still pending.
+  flat sidebar list, including pre-request/tests text, with tree editing and
+  item management still pending.
 - [~] Rebuild History UI for local request history, filtering, restore, delete,
   and clear; current Slint baseline records recent requests and restores method,
   URL, body mode, and body preview, with filtering/delete/clear and full request
@@ -72,7 +73,10 @@
   current Slint baseline runs the active collection with delay and stop-on-fail
   controls and shows summary/result rows, with richer reports and cancellation
   controls still pending.
-- [ ] Rebuild Pre-request script-lite and native Tests panels.
+- [~] Rebuild Pre-request script-lite and native Tests panels; current Slint
+  baseline provides line-based editors, applies pre-request actions during
+  send/codegen, evaluates native tests after single sends, and saves/restores
+  both fields with collection requests, with row-based test controls pending.
 - [ ] Rebuild WebSocket and SSE panels using the restored client modules.
 - [ ] Add GraphQL and gRPC UI surfaces after REST parity is stable.
 - [ ] Add mock request logs and richer mock manager controls.
@@ -102,6 +106,6 @@
 | History | Domain implemented | Slint baseline records and restores recent requests |
 | Codegen | Domain implemented | Slint baseline generates resolved request snippets |
 | Runner | Domain + CLI implemented | Slint baseline runs active collections and shows result rows |
-| Assertions/scripts | Domain implemented | Slint UI parity pending |
+| Assertions/scripts | Domain implemented | Slint baseline edits, saves, restores, and evaluates native scripts/tests |
 | WebSocket/SSE | Client modules restored | Slint UI parity pending |
 | gRPC | Design documented | Domain and UI pending |

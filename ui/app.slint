@@ -1134,6 +1134,8 @@ component RequestPanel inherits Rectangle {
     in-out property <string> auth_config;
     in-out property <string> body_mode;
     in-out property <string> request_body;
+    in-out property <string> pre_request_script;
+    in-out property <string> request_tests;
 
     horizontal-stretch: 1;
     vertical-stretch: 1;
@@ -1297,11 +1299,32 @@ component RequestPanel inherits Rectangle {
 
             VerticalLayout {
                 padding: 10px;
+                spacing: 10px;
 
                 LabeledEditor {
                     label: "Body / " + root.body_mode;
                     text <=> root.request_body;
                     read_only: root.body_mode == "none";
+                }
+
+                Rectangle {
+                    height: 126px;
+                    horizontal-stretch: 1;
+
+                    HorizontalLayout {
+                        padding: 0px;
+                        spacing: 10px;
+
+                        LabeledEditor {
+                            label: "Pre-request";
+                            text <=> root.pre_request_script;
+                        }
+
+                        LabeledEditor {
+                            label: "Tests";
+                            text <=> root.request_tests;
+                        }
+                    }
                 }
             }
         }
@@ -1699,6 +1722,8 @@ export component AppWindow inherits Window {
     in-out property <string> auth_config;
     in-out property <string> body_mode: "none";
     in-out property <string> request_body;
+    in-out property <string> pre_request_script;
+    in-out property <string> request_tests;
     in-out property <string> response_status: "Idle";
     in-out property <string> response_meta: "";
     in-out property <string> response_tone: "neutral";
@@ -1831,6 +1856,8 @@ export component AppWindow inherits Window {
                             auth_config <=> root.auth_config;
                             body_mode <=> root.body_mode;
                             request_body <=> root.request_body;
+                            pre_request_script <=> root.pre_request_script;
+                            request_tests <=> root.request_tests;
                         }
 
                         Rectangle {
