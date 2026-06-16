@@ -17,8 +17,16 @@ pub struct HistoryRequest {
     pub query_params: Vec<(String, String)>,
     #[serde(default)]
     pub headers: Vec<(String, String)>,
+    #[serde(default)]
+    pub auth_mode: String,
+    #[serde(default)]
+    pub auth_config: String,
     pub body_kind: String,
     pub body_preview: String,
+    #[serde(default)]
+    pub pre_request_script: String,
+    #[serde(default)]
+    pub request_tests: String,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -116,8 +124,12 @@ mod tests {
             url: url.to_string(),
             query_params: Vec::new(),
             headers: Vec::new(),
+            auth_mode: "none".to_string(),
+            auth_config: String::new(),
             body_kind: "none".to_string(),
             body_preview: String::new(),
+            pre_request_script: String::new(),
+            request_tests: String::new(),
         }
     }
 

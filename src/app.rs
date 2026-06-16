@@ -277,13 +277,13 @@ fn wire_history_selection(app: &AppWindow, state: Arc<Mutex<AppState>>) {
             app.set_url(entry.request.url.into());
             app.set_query_params(format_key_value_preview(&entry.request.query_params).into());
             app.set_request_headers(format_key_value_preview(&entry.request.headers).into());
-            app.set_auth_mode("none".into());
-            app.set_auth_config("".into());
+            app.set_auth_mode(normalized_history_auth_mode(&entry.request.auth_mode).into());
+            app.set_auth_config(entry.request.auth_config.into());
             app.set_body_mode(entry.request.body_kind.into());
             app.set_request_body(entry.request.body_preview.into());
             app.set_graphql_variables("{}".into());
-            app.set_pre_request_script("".into());
-            app.set_request_tests("".into());
+            app.set_pre_request_script(entry.request.pre_request_script.into());
+            app.set_request_tests(entry.request.request_tests.into());
             set_response(
                 &app,
                 "History restored",
@@ -704,14 +704,16 @@ fn wire_request_sender(app: &AppWindow, runtime: Arc<Runtime>, state: Arc<Mutex<
             return;
         }
 
-        let request = match build_codegen_request_projection(&request_projection_input(&app)) {
+        let input = request_projection_input(&app);
+        let request = match build_codegen_request_projection(&input) {
             Ok(request) => request,
             Err(error) => {
                 set_response(&app, "Build failed", "", "error", &error.to_string());
                 return;
             }
         };
-        let assertions = match parse_response_assertions(&app.get_request_tests()) {
+        let request_tests = app.get_request_tests().to_string();
+        let assertions = match parse_response_assertions(&request_tests) {
             Ok(assertions) => assertions,
             Err(error) => {
                 set_response(&app, "Tests failed", "", "error", &error.to_string());
@@ -724,6 +726,7 @@ fn wire_request_sender(app: &AppWindow, runtime: Arc<Runtime>, state: Arc<Mutex<
         let headers = request.headers.clone();
         let query_params = request.query_params.clone();
         let body = request.body.clone();
+        let history_snapshot = history_request(&request, &input, &request_tests);
 
         app.set_busy(true);
         app.set_activity("Sending request".into());
@@ -757,7 +760,11 @@ fn wire_request_sender(app: &AppWindow, runtime: Arc<Runtime>, state: Arc<Mutex<
                             response_tone_with_assertions(response.status, &assertion_results);
                         let response_body =
                             response_body_with_assertions(&response.body, &assertion_results);
-                        record_history(&state, &request, success_history_response(&response));
+                        record_history(
+                            &state,
+                            history_snapshot.clone(),
+                            success_history_response(&response),
+                        );
                         if let Ok(state) = state.lock() {
                             app.set_history_rows(filtered_history_model(
                                 &state.history,
@@ -777,7 +784,7 @@ fn wire_request_sender(app: &AppWindow, runtime: Arc<Runtime>, state: Arc<Mutex<
                         let body = error.to_string();
                         record_history(
                             &state,
-                            &request,
+                            history_snapshot.clone(),
                             HistoryResponse {
                                 status: "ERR".to_string(),
                                 meta: String::new(),
@@ -1791,24 +1798,37 @@ fn history_model_from_entries<'a>(
 
 fn record_history(
     state: &Arc<Mutex<AppState>>,
-    request: &CodegenRequest,
+    request: HistoryRequest,
     response: HistoryResponse,
 ) {
     if let Ok(mut state) = state.lock() {
-        state.history.record(history_request(request), response);
+        state.history.record(request, response);
     }
 }
 
-fn history_request(request: &CodegenRequest) -> HistoryRequest {
+fn history_request(
+    request: &CodegenRequest,
+    input: &RequestProjectionInput,
+    request_tests: &str,
+) -> HistoryRequest {
     let (body_kind, body_preview) = request_body_preview(&request.body);
     HistoryRequest {
         method: request.method.clone(),
         url: request.url.clone(),
         query_params: request.query_params.clone(),
         headers: request.headers.clone(),
+        auth_mode: input.auth_mode.clone(),
+        auth_config: input.auth_config.clone(),
         body_kind,
         body_preview,
+        pre_request_script: input.pre_request_script.clone(),
+        request_tests: request_tests.to_string(),
     }
+}
+
+fn normalized_history_auth_mode(mode: &str) -> &str {
+    let mode = mode.trim();
+    if mode.is_empty() { "none" } else { mode }
 }
 
 fn success_history_response(response: &ClientResponse) -> HistoryResponse {
@@ -3238,16 +3258,35 @@ mod tests {
                 ("role".to_string(), "admin".to_string()),
             ]),
         };
+        let input = RequestProjectionInput {
+            method: "POST".to_string(),
+            url: "{{baseUrl}}/users".to_string(),
+            query_params: "debug=true".to_string(),
+            headers: String::new(),
+            auth_mode: "bearer".to_string(),
+            auth_config: "{{token}}".to_string(),
+            body_mode: "urlenc".to_string(),
+            body: "name=Zen\nrole=admin".to_string(),
+            graphql_variables: String::new(),
+            pre_request_script: "set_header X-Trace=yes".to_string(),
+            global_variables: "baseUrl=https://api.example.com\ntoken=secret".to_string(),
+            environment_name: String::new(),
+            environment_variables: String::new(),
+        };
 
         assert_eq!(
-            history_request(&request),
+            history_request(&request, &input, "status_equals 201"),
             HistoryRequest {
                 method: "POST".to_string(),
                 url: "https://api.example.com/users".to_string(),
                 query_params: vec![("debug".to_string(), "true".to_string())],
                 headers: vec![("Authorization".to_string(), "Bearer token".to_string())],
+                auth_mode: "bearer".to_string(),
+                auth_config: "{{token}}".to_string(),
                 body_kind: "urlenc".to_string(),
                 body_preview: "name=Zen\nrole=admin".to_string(),
+                pre_request_script: "set_header X-Trace=yes".to_string(),
+                request_tests: "status_equals 201".to_string(),
             }
         );
     }
@@ -3264,8 +3303,12 @@ mod tests {
                 url: "https://api.example.com/users".to_string(),
                 query_params: Vec::new(),
                 headers: Vec::new(),
+                auth_mode: "none".to_string(),
+                auth_config: String::new(),
                 body_kind: "none".to_string(),
                 body_preview: String::new(),
+                pre_request_script: String::new(),
+                request_tests: String::new(),
             },
             HistoryResponse {
                 status: "HTTP 200".to_string(),
@@ -3280,8 +3323,12 @@ mod tests {
                 url: "https://api.example.com/sessions".to_string(),
                 query_params: Vec::new(),
                 headers: Vec::new(),
+                auth_mode: "none".to_string(),
+                auth_config: String::new(),
                 body_kind: "raw".to_string(),
                 body_preview: "{}".to_string(),
+                pre_request_script: String::new(),
+                request_tests: String::new(),
             },
             HistoryResponse {
                 status: "HTTP 401".to_string(),
@@ -3310,8 +3357,12 @@ mod tests {
                 url: "https://api.example.com/users".to_string(),
                 query_params: Vec::new(),
                 headers: Vec::new(),
+                auth_mode: "none".to_string(),
+                auth_config: String::new(),
                 body_kind: "none".to_string(),
                 body_preview: String::new(),
+                pre_request_script: String::new(),
+                request_tests: String::new(),
             },
             HistoryResponse {
                 status: "HTTP 200".to_string(),
@@ -3326,8 +3377,12 @@ mod tests {
                 url: "https://api.example.com/sessions".to_string(),
                 query_params: Vec::new(),
                 headers: Vec::new(),
+                auth_mode: "none".to_string(),
+                auth_config: String::new(),
                 body_kind: "raw".to_string(),
                 body_preview: "{}".to_string(),
+                pre_request_script: String::new(),
+                request_tests: String::new(),
             },
             HistoryResponse {
                 status: "HTTP 401".to_string(),

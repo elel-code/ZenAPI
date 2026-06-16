@@ -275,8 +275,9 @@ summary. The History sidebar supports:
 - `Del` one entry.
 - Clear all entries.
 
-Restoring a history entry fills method, URL, query params, headers, body mode,
-and body preview from the resolved request snapshot.
+Restoring a history entry fills method, URL, query params, headers, auth config,
+body mode, body preview, pre-request script, and tests from the request
+snapshot.
 
 ## Local Mock Server
 
