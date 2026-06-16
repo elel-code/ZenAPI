@@ -48,8 +48,9 @@
   `send_request_with_options`; current Slint baseline supports line-based
   `key=value` / `key: value` editors, with table controls still pending.
 - [~] Rebuild Body mode controls for none, form-data, URL-encoded, raw, GraphQL,
-  and binary bodies; current Slint baseline maps one body text area into these
-  transport modes, with dedicated GraphQL/form controls still pending.
+  and binary bodies; current Slint baseline maps editors into transport modes,
+  including GraphQL query/variables payload building, with dedicated form file
+  controls and GraphQL introspection/schema helpers still pending.
 - [~] Rebuild Auth controls for None, Bearer, Basic, JWT, and API key modes;
   current Slint baseline supports mode buttons plus one config field, with
   dedicated per-mode forms still pending.
@@ -81,7 +82,9 @@
   current Slint baseline provides WebSocket one-shot send and SSE event preview
   controls that reuse the request URL/headers and show output in the response
   panel, with full session subscribe/send/close controls still pending.
-- [ ] Add GraphQL and gRPC UI surfaces after REST parity is stable.
+- [~] Add GraphQL and gRPC UI surfaces after REST parity is stable; current
+  Slint baseline has GraphQL query/variables editing and a gRPC draft domain
+  model, with gRPC UI/transport and GraphQL schema helpers still pending.
 - [~] Add mock request logs and richer mock manager controls; current Slint
   baseline shows recent mock requests in the sidebar, with filtering/export and
   richer route controls pending.
@@ -116,4 +119,5 @@
 | Assertions/scripts | Domain implemented | Slint baseline edits, saves, restores, and evaluates native scripts/tests |
 | WebSocket/SSE | Client modules restored | Slint baseline supports one-shot WS sends and SSE previews |
 | Mock logs | Core implemented | Slint baseline shows recent mock requests |
+| GraphQL | Payload builder implemented | Slint baseline edits query and variables |
 | gRPC | Domain draft model implemented | Descriptor loading, unary transport, and Slint UI pending |

@@ -770,6 +770,7 @@ component RequestPanel inherits Rectangle {
     in-out property <string> auth_config;
     in-out property <string> body_mode;
     in-out property <string> request_body;
+    in-out property <string> graphql_variables;
     in-out property <string> pre_request_script;
     in-out property <string> request_tests;
     in-out property <string> realtime_mode;
@@ -943,7 +944,21 @@ component RequestPanel inherits Rectangle {
                 padding: 10px;
                 spacing: 10px;
 
-                LabeledEditor {
+                if root.body_mode == "graphql": HorizontalLayout {
+                    spacing: 10px;
+
+                    LabeledEditor {
+                        label: "GraphQL Query";
+                        text <=> root.request_body;
+                    }
+
+                    LabeledEditor {
+                        label: "GraphQL Variables";
+                        text <=> root.graphql_variables;
+                    }
+                }
+
+                if root.body_mode != "graphql": LabeledEditor {
                     label: "Body / " + root.body_mode;
                     text <=> root.request_body;
                     read_only: root.body_mode == "none";
@@ -1454,6 +1469,7 @@ export component AppWindow inherits Window {
     in-out property <string> auth_config;
     in-out property <string> body_mode: "none";
     in-out property <string> request_body;
+    in-out property <string> graphql_variables: "{}";
     in-out property <string> pre_request_script;
     in-out property <string> request_tests;
     in-out property <string> realtime_mode: "ws";
@@ -1594,6 +1610,7 @@ export component AppWindow inherits Window {
                             auth_config <=> root.auth_config;
                             body_mode <=> root.body_mode;
                             request_body <=> root.request_body;
+                            graphql_variables <=> root.graphql_variables;
                             pre_request_script <=> root.pre_request_script;
                             request_tests <=> root.request_tests;
                             realtime_mode <=> root.realtime_mode;

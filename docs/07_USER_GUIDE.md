@@ -339,11 +339,10 @@ zenapi run collection.json --delay-ms 100
 - Pre-request script-lite and native response assertions are available in
   collection JSON, but a full script engine and `pm.*` compatibility are not
   implemented yet.
-- GraphQL body editing, introspection query fill, `Schema`, `Fields`, and
-  `Templates` are available; full field selection
-  assistance is still future work. WS persistent `Text` and `Hex` sessions are
-  available with connection headers/protocols. SSE `Once` previews are available
-  with `Stream` subscription and `Last-Event-ID`
-  resume plus custom headers and reconnect/backoff. gRPC has an implementation
-  plan in `docs/09_GRPC.md`, but transport/UI support is future work.
+- GraphQL query and variables payload editing is available; introspection query
+  fill, `Schema`, `Fields`, and `Templates` are future work. WebSocket one-shot
+  sends and SSE `Once` previews are available; persistent WS sessions, SSE
+  stream controls, and reconnect/resume UI are future work. gRPC has a draft
+  domain model and an implementation plan in `docs/09_GRPC.md`, but transport/UI
+  support is future work.
 - Plugin APIs are future work.

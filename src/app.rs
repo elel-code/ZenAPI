@@ -67,6 +67,7 @@ struct RequestProjectionInput {
     auth_config: String,
     body_mode: String,
     body: String,
+    graphql_variables: String,
     pre_request_script: String,
     global_variables: String,
     environment_name: String,
@@ -83,6 +84,7 @@ fn request_projection_input(app: &AppWindow) -> RequestProjectionInput {
         auth_config: app.get_auth_config().to_string(),
         body_mode: app.get_body_mode().to_string(),
         body: app.get_request_body().to_string(),
+        graphql_variables: app.get_graphql_variables().to_string(),
         pre_request_script: app.get_pre_request_script().to_string(),
         global_variables: app.get_global_variables().to_string(),
         environment_name: app.get_environment_name().to_string(),
@@ -236,6 +238,7 @@ fn wire_route_selection(app: &AppWindow, state: Arc<Mutex<AppState>>) {
             app.set_request_headers("Accept: application/json".into());
             app.set_body_mode(default_body_mode(&app.get_method()).into());
             app.set_request_body(default_request_body(&app.get_method()).into());
+            app.set_graphql_variables("{}".into());
             set_response(
                 &app,
                 "Route selected",
@@ -270,6 +273,7 @@ fn wire_history_selection(app: &AppWindow, state: Arc<Mutex<AppState>>) {
             app.set_url(entry.request.url.into());
             app.set_body_mode(entry.request.body_kind.into());
             app.set_request_body(entry.request.body_preview.into());
+            app.set_graphql_variables("{}".into());
             set_response(
                 &app,
                 "History restored",
@@ -1121,7 +1125,7 @@ fn collection_request_from_editor(
         url: input.url.trim().to_string(),
         headers,
         query_params,
-        body: build_request_body(&input.body_mode, &input.body)?,
+        body: build_request_body(&input.body_mode, &input.body, &input.graphql_variables)?,
     };
     if request.url.trim().is_empty() {
         bail!("request URL is empty");
@@ -1177,6 +1181,7 @@ fn restore_collection_request(app: &AppWindow, request: &CollectionRequest) {
     app.set_auth_config("".into());
     app.set_body_mode(body_mode.into());
     app.set_request_body(request_body.into());
+    app.set_graphql_variables("{}".into());
     app.set_pre_request_script(request.pre_request_script.clone().into());
     app.set_request_tests(format_response_assertions(&request.tests).into());
     app.set_collection_status(format!("Selected {}", request.name).into());
@@ -1573,7 +1578,7 @@ fn build_unresolved_editor_request(
         url: input.url.trim().to_string(),
         headers,
         query_params,
-        body: build_request_body(&input.body_mode, &input.body)?,
+        body: build_request_body(&input.body_mode, &input.body, &input.graphql_variables)?,
     })
 }
 
@@ -1588,7 +1593,7 @@ fn split_key_value_line(line: &str) -> Option<(&str, &str)> {
     Some((&line[..separator], &line[separator + 1..]))
 }
 
-fn build_request_body(mode: &str, input: &str) -> Result<RequestBody> {
+fn build_request_body(mode: &str, input: &str, graphql_variables: &str) -> Result<RequestBody> {
     match mode {
         "none" => Ok(RequestBody::None),
         "form" => Ok(RequestBody::Multipart(parse_key_value_lines(
@@ -1609,15 +1614,43 @@ fn build_request_body(mode: &str, input: &str) -> Result<RequestBody> {
                 content_type: None,
             })
         }
-        "graphql" => Ok(RequestBody::Raw {
-            content_type: Some("application/json".to_string()),
-            body: input.to_string(),
-        }),
+        "graphql" => build_graphql_request_body(input, graphql_variables),
         _ => Ok(RequestBody::Raw {
             content_type: Some("application/json".to_string()),
             body: input.to_string(),
         }),
     }
+}
+
+fn build_graphql_request_body(query: &str, variables: &str) -> Result<RequestBody> {
+    let query = query.trim();
+    if query.is_empty() {
+        bail!("GraphQL query is empty");
+    }
+    let variables = parse_graphql_variables(variables)?;
+    let payload = serde_json::json!({
+        "query": query,
+        "variables": variables,
+    });
+
+    Ok(RequestBody::Raw {
+        content_type: Some("application/json".to_string()),
+        body: serde_json::to_string(&payload)?,
+    })
+}
+
+fn parse_graphql_variables(input: &str) -> Result<Value> {
+    let input = input.trim();
+    if input.is_empty() {
+        return Ok(Value::Object(Default::default()));
+    }
+
+    let value = serde_json::from_str::<Value>(input)
+        .map_err(|error| anyhow!("GraphQL variables JSON is invalid: {error}"))?;
+    if !value.is_object() {
+        bail!("GraphQL variables must be a JSON object");
+    }
+    Ok(value)
 }
 
 fn build_auth_entries(
@@ -2047,29 +2080,29 @@ mod tests {
     #[test]
     fn builds_request_body_from_slint_mode() {
         assert_eq!(
-            build_request_body("none", "ignored").unwrap(),
+            build_request_body("none", "ignored", "").unwrap(),
             RequestBody::None
         );
         assert_eq!(
-            build_request_body("raw", "{\"name\":\"Zen\"}").unwrap(),
+            build_request_body("raw", "{\"name\":\"Zen\"}", "").unwrap(),
             RequestBody::Raw {
                 content_type: Some("application/json".to_string()),
                 body: "{\"name\":\"Zen\"}".to_string(),
             }
         );
         assert_eq!(
-            build_request_body("urlenc", "search=rust slint\nlimit: 20").unwrap(),
+            build_request_body("urlenc", "search=rust slint\nlimit: 20", "").unwrap(),
             RequestBody::FormUrlEncoded(vec![
                 ("search".to_string(), "rust slint".to_string()),
                 ("limit".to_string(), "20".to_string())
             ])
         );
         assert_eq!(
-            build_request_body("form", "file=@/tmp/upload.txt").unwrap(),
+            build_request_body("form", "file=@/tmp/upload.txt", "").unwrap(),
             RequestBody::Multipart(vec![("file".to_string(), "@/tmp/upload.txt".to_string())])
         );
         assert_eq!(
-            build_request_body("binary", "/tmp/body.bin").unwrap(),
+            build_request_body("binary", "/tmp/body.bin", "").unwrap(),
             RequestBody::BinaryFile {
                 path: "/tmp/body.bin".to_string(),
                 content_type: None,
@@ -2079,9 +2112,29 @@ mod tests {
 
     #[test]
     fn rejects_empty_binary_body_path() {
-        let error = build_request_body("binary", "  ").expect_err("empty path");
+        let error = build_request_body("binary", "  ", "").expect_err("empty path");
 
         assert!(error.to_string().contains("path is empty"));
+    }
+
+    #[test]
+    fn builds_graphql_payload_body() {
+        assert_eq!(
+            build_request_body(
+                "graphql",
+                "query User($id: ID!) { user(id: $id) { name } }",
+                r#"{"id":"u_123"}"#,
+            )
+            .unwrap(),
+            RequestBody::Raw {
+                content_type: Some("application/json".to_string()),
+                body: r#"{"query":"query User($id: ID!) { user(id: $id) { name } }","variables":{"id":"u_123"}}"#.to_string(),
+            }
+        );
+
+        let error = build_request_body("graphql", "{ viewer { id } }", "[]")
+            .expect_err("invalid variables");
+        assert!(error.to_string().contains("JSON object"));
     }
 
     #[test]
@@ -2196,6 +2249,7 @@ mod tests {
             auth_config: "{{token}}".to_string(),
             body_mode: "raw".to_string(),
             body: "{\"name\":\"{{name}}\"}".to_string(),
+            graphql_variables: String::new(),
             pre_request_script: String::new(),
             global_variables: "baseUrl=https://api.example.com\ntoken=secret\nname=Zen".to_string(),
             environment_name: String::new(),
@@ -2236,6 +2290,7 @@ mod tests {
             auth_config: String::new(),
             body_mode: "none".to_string(),
             body: String::new(),
+            graphql_variables: String::new(),
             pre_request_script:
                 "set_var baseUrl=http://127.0.0.1:8080\nset_header X-Mode=test\nset_query debug=true"
                     .to_string(),
@@ -2331,6 +2386,7 @@ mod tests {
                 auth_config: String::new(),
                 body_mode: "raw".to_string(),
                 body: "{\"name\":\"{{name}}\"}".to_string(),
+                graphql_variables: String::new(),
                 pre_request_script: "set_header X-Mode=test".to_string(),
                 global_variables: String::new(),
                 environment_name: String::new(),
