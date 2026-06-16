@@ -35,6 +35,7 @@ pub fn run() -> Result<()> {
     wire_route_filter(&app, state.clone());
     wire_route_selection(&app, state.clone());
     wire_history_selection(&app, state.clone());
+    wire_history_actions(&app, state.clone());
     wire_collection_actions(&app, state.clone());
     wire_request_sender(&app, runtime.clone(), state.clone());
     wire_codegen(&app);
@@ -284,6 +285,44 @@ fn wire_history_selection(app: &AppWindow, state: Arc<Mutex<AppState>>) {
                 &entry.response.body_preview,
             );
         }
+    });
+}
+
+fn wire_history_actions(app: &AppWindow, state: Arc<Mutex<AppState>>) {
+    let weak_app = app.as_weak();
+    let filter_state = state.clone();
+    app.on_filter_history(move |query| {
+        let Some(app) = weak_app.upgrade() else {
+            return;
+        };
+        let model = filter_state
+            .lock()
+            .ok()
+            .map(|state| filtered_history_model(&state.history, query.as_str()))
+            .unwrap_or_else(empty_history_model);
+        app.set_history_rows(model);
+    });
+
+    let weak_app = app.as_weak();
+    app.on_clear_history(move || {
+        let Some(app) = weak_app.upgrade() else {
+            return;
+        };
+        if app.get_busy() {
+            return;
+        }
+        if let Ok(mut state) = state.lock() {
+            state.history.clear();
+        }
+        app.set_history_filter("".into());
+        app.set_history_rows(empty_history_model());
+        set_response(
+            &app,
+            "History cleared",
+            "",
+            "neutral",
+            "Request history is empty.",
+        );
     });
 }
 
@@ -597,7 +636,10 @@ fn wire_request_sender(app: &AppWindow, runtime: Arc<Runtime>, state: Arc<Mutex<
                             response_body_with_assertions(&response.body, &assertion_results);
                         record_history(&state, &request, success_history_response(&response));
                         if let Ok(state) = state.lock() {
-                            app.set_history_rows(history_model(state.history.entries()));
+                            app.set_history_rows(filtered_history_model(
+                                &state.history,
+                                &app.get_history_filter(),
+                            ));
                         }
                         set_response(
                             &app,
@@ -620,7 +662,10 @@ fn wire_request_sender(app: &AppWindow, runtime: Arc<Runtime>, state: Arc<Mutex<
                             },
                         );
                         if let Ok(state) = state.lock() {
-                            app.set_history_rows(history_model(state.history.entries()));
+                            app.set_history_rows(filtered_history_model(
+                                &state.history,
+                                &app.get_history_filter(),
+                            ));
                         }
                         set_response(&app, "Request failed", "", "error", &error.to_string());
                     }
@@ -1473,14 +1518,23 @@ fn push_mock_log(logs: &mut Vec<MockRequestLog>, log: MockRequestLog, limit: usi
     logs.truncate(limit);
 }
 
-fn history_model(entries: &[zenapi::history::HistoryEntry]) -> ModelRc<HistoryRow> {
-    ModelRc::new(VecModel::from_iter(entries.iter().map(|entry| {
-        HistoryRow {
-            id: entry.id as i32,
-            method: entry.request.method.clone().into(),
-            url: entry.request.url.clone().into(),
-            status: entry.response.status.clone().into(),
-        }
+fn filtered_history_model(history: &RequestHistory, query: &str) -> ModelRc<HistoryRow> {
+    let entries = history.filtered(query);
+    history_model_from_entries(entries.into_iter())
+}
+
+fn empty_history_model() -> ModelRc<HistoryRow> {
+    history_model_from_entries(std::iter::empty())
+}
+
+fn history_model_from_entries<'a>(
+    entries: impl Iterator<Item = &'a zenapi::history::HistoryEntry>,
+) -> ModelRc<HistoryRow> {
+    ModelRc::new(VecModel::from_iter(entries.map(|entry| HistoryRow {
+        id: entry.id as i32,
+        method: entry.request.method.clone().into(),
+        url: entry.request.url.clone().into(),
+        status: entry.response.status.clone().into(),
     })))
 }
 
@@ -2794,6 +2848,48 @@ mod tests {
                 body_preview: "name=Zen\nrole=admin".to_string(),
             }
         );
+    }
+
+    #[test]
+    fn filters_history_rows_for_sidebar_model() {
+        use slint::Model;
+
+        let mut history = RequestHistory::new();
+        history.record_at(
+            1,
+            HistoryRequest {
+                method: "GET".to_string(),
+                url: "https://api.example.com/users".to_string(),
+                body_kind: "none".to_string(),
+                body_preview: String::new(),
+            },
+            HistoryResponse {
+                status: "HTTP 200".to_string(),
+                meta: "12 ms".to_string(),
+                body_preview: "{}".to_string(),
+            },
+        );
+        history.record_at(
+            2,
+            HistoryRequest {
+                method: "POST".to_string(),
+                url: "https://api.example.com/sessions".to_string(),
+                body_kind: "raw".to_string(),
+                body_preview: "{}".to_string(),
+            },
+            HistoryResponse {
+                status: "HTTP 401".to_string(),
+                meta: "auth".to_string(),
+                body_preview: "{}".to_string(),
+            },
+        );
+
+        let model = filtered_history_model(&history, "sessions");
+
+        assert_eq!(model.row_count(), 1);
+        let row = model.row_data(0).expect("history row");
+        assert_eq!(row.method.as_str(), "POST");
+        assert_eq!(row.status.as_str(), "HTTP 401");
     }
 
     #[test]

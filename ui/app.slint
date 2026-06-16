@@ -256,6 +256,7 @@ component Sidebar inherits Rectangle {
     in-out property <[MockLogRow]> mock_logs;
     in-out property <int> selected_route;
     in-out property <string> route_filter;
+    in-out property <string> history_filter;
     in-out property <string> collection_path;
     in-out property <string> collection_name;
     in-out property <string> collection_status;
@@ -268,6 +269,8 @@ component Sidebar inherits Rectangle {
     callback save_collection(string);
     callback export_postman_collection(string);
     callback select_history(int);
+    callback filter_history(string);
+    callback clear_history();
     callback filter_routes(string);
 
     width: 240px;
@@ -454,8 +457,34 @@ component Sidebar inherits Rectangle {
             meta: root.history_rows.length == 0 ? "" : root.history_rows.length + "";
         }
 
+        HorizontalLayout {
+            height: 32px;
+            spacing: 6px;
+
+            TextField {
+                text <=> root.history_filter;
+                placeholder: "Filter history";
+                mono: true;
+                enabled: !root.busy;
+                height: 32px;
+                edited => {
+                    root.filter_history(root.history_filter);
+                }
+            }
+
+            ActionButton {
+                text: "Clear";
+                button_width: 54px;
+                warning: true;
+                enabled: !root.busy && root.history_rows.length > 0;
+                clicked => {
+                    root.clear_history();
+                }
+            }
+        }
+
         if root.history_rows.length == 0: Rectangle {
-            height: 40px;
+            height: 34px;
             horizontal-stretch: 1;
             background: Theme.surface_container;
             border-radius: 6px;
@@ -473,7 +502,7 @@ component Sidebar inherits Rectangle {
         }
 
         if root.history_rows.length != 0: ListView {
-            height: 92px;
+            height: 72px;
             horizontal-stretch: 1;
             vertical-scrollbar-policy: ScrollBarPolicy.always-off;
             horizontal-scrollbar-policy: ScrollBarPolicy.always-off;
@@ -1562,6 +1591,7 @@ export component AppWindow inherits Window {
     in-out property <string> runner_delay_ms: "0";
     in-out property <bool> runner_stop_on_failure: false;
     in-out property <string> route_filter;
+    in-out property <string> history_filter;
     in-out property <int> total_route_count: 0;
     in-out property <string> server_status: "Stopped";
     in-out property <bool> server_running: false;
@@ -1577,6 +1607,8 @@ export component AppWindow inherits Window {
     callback save_collection(string);
     callback export_postman_collection(string);
     callback select_history(int);
+    callback filter_history(string);
+    callback clear_history();
     callback send_request();
     callback toggle_server();
     callback generate_code();
@@ -1618,6 +1650,7 @@ export component AppWindow inherits Window {
                 mock_logs <=> root.mock_logs;
                 selected_route <=> root.selected_route;
                 route_filter <=> root.route_filter;
+                history_filter <=> root.history_filter;
                 collection_path <=> root.collection_path;
                 collection_name <=> root.collection_name;
                 collection_status <=> root.collection_status;
@@ -1646,6 +1679,12 @@ export component AppWindow inherits Window {
                 }
                 select_history(id) => {
                     root.select_history(id);
+                }
+                filter_history(query) => {
+                    root.filter_history(query);
+                }
+                clear_history => {
+                    root.clear_history();
                 }
             }
 
