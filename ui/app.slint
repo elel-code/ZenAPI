@@ -1388,6 +1388,7 @@ component ResponsePanel inherits Rectangle {
     in-out property <string> runner_summary;
     in-out property <string> runner_delay_ms;
     in-out property <bool> runner_stop_on_failure;
+    in-out property <bool> runner_active;
     in property <string> response_status;
     in property <string> response_meta;
     in property <string> response_tone;
@@ -1395,6 +1396,7 @@ component ResponsePanel inherits Rectangle {
     callback generate_code();
     callback save_codegen(string);
     callback run_collection();
+    callback cancel_collection_run();
 
     width: 420px;
     vertical-stretch: 1;
@@ -1470,7 +1472,7 @@ component ResponsePanel inherits Rectangle {
                                 label: "continue";
                                 button_width: 76px;
                                 selected: !root.runner_stop_on_failure;
-                                enabled: !root.busy;
+                                enabled: !root.busy && !root.runner_active;
                                 picked(mode) => {
                                     root.runner_stop_on_failure = false;
                                 }
@@ -1481,7 +1483,7 @@ component ResponsePanel inherits Rectangle {
                                 label: "stop fail";
                                 button_width: 76px;
                                 selected: root.runner_stop_on_failure;
-                                enabled: !root.busy;
+                                enabled: !root.busy && !root.runner_active;
                                 picked(mode) => {
                                     root.runner_stop_on_failure = true;
                                 }
@@ -1495,7 +1497,7 @@ component ResponsePanel inherits Rectangle {
                                     text <=> root.runner_delay_ms;
                                     placeholder: "Delay ms";
                                     mono: true;
-                                    enabled: !root.busy;
+                                    enabled: !root.busy && !root.runner_active;
                                     width: parent.width;
                                     height: parent.height;
                                 }
@@ -1505,9 +1507,19 @@ component ResponsePanel inherits Rectangle {
                                 text: "Run";
                                 button_width: 64px;
                                 primary: true;
-                                enabled: !root.busy;
+                                enabled: !root.busy && !root.runner_active;
                                 clicked => {
                                     root.run_collection();
+                                }
+                            }
+
+                            ActionButton {
+                                text: "Cancel";
+                                button_width: 68px;
+                                warning: true;
+                                enabled: root.runner_active;
+                                clicked => {
+                                    root.cancel_collection_run();
                                 }
                             }
                         }
@@ -1756,6 +1768,7 @@ export component AppWindow inherits Window {
     in-out property <string> runner_summary: "";
     in-out property <string> runner_delay_ms: "0";
     in-out property <bool> runner_stop_on_failure: false;
+    in-out property <bool> runner_active: false;
     in-out property <string> route_filter;
     in-out property <string> history_filter;
     in-out property <string> mock_log_filter;
@@ -1787,6 +1800,7 @@ export component AppWindow inherits Window {
     callback generate_code();
     callback save_codegen(string);
     callback run_collection();
+    callback cancel_collection_run();
     callback open_websocket();
     callback run_websocket();
     callback close_websocket();
@@ -1962,6 +1976,7 @@ export component AppWindow inherits Window {
                             runner_summary <=> root.runner_summary;
                             runner_delay_ms <=> root.runner_delay_ms;
                             runner_stop_on_failure <=> root.runner_stop_on_failure;
+                            runner_active <=> root.runner_active;
                             response_status: root.response_status;
                             response_meta: root.response_meta;
                             response_tone: root.response_tone;
@@ -1974,6 +1989,9 @@ export component AppWindow inherits Window {
                             }
                             run_collection => {
                                 root.run_collection();
+                            }
+                            cancel_collection_run => {
+                                root.cancel_collection_run();
                             }
                         }
                     }

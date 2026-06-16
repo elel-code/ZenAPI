@@ -7,7 +7,7 @@ use std::{
     fs,
     path::{Path, PathBuf},
 };
-use tokio::{runtime::Runtime, sync::mpsc};
+use tokio::{runtime::Runtime, sync::mpsc, task::JoinHandle};
 use zenapi::{
     assertions::{
         ResponseAssertion, ResponseAssertionKind, ResponseAssertionResult,
@@ -950,12 +950,62 @@ fn wire_codegen(app: &AppWindow) {
 }
 
 fn wire_collection_runner(app: &AppWindow, runtime: Arc<Runtime>, state: Arc<Mutex<AppState>>) {
+    let active_run = Arc::new(Mutex::new(None::<JoinHandle<()>>));
+
     let weak_app = app.as_weak();
+    let cancel_run = active_run.clone();
+    app.on_cancel_collection_run(move || {
+        let Some(app) = weak_app.upgrade() else {
+            return;
+        };
+
+        let Some(handle) = cancel_run.lock().ok().and_then(|mut run| run.take()) else {
+            set_response(
+                &app,
+                "Runner idle",
+                "",
+                "neutral",
+                "No collection run is active.",
+            );
+            return;
+        };
+
+        handle.abort();
+        app.set_runner_active(false);
+        app.set_busy(false);
+        app.set_activity("".into());
+        app.set_runner_summary("Cancelled".into());
+        set_response(
+            &app,
+            "Runner cancelled",
+            "",
+            "neutral",
+            "The active collection run was cancelled.",
+        );
+    });
+
+    let weak_app = app.as_weak();
+    let active_run_for_start = active_run.clone();
     app.on_run_collection(move || {
         let Some(app) = weak_app.upgrade() else {
             return;
         };
         if app.get_busy() {
+            return;
+        }
+        if active_run_for_start
+            .lock()
+            .ok()
+            .and_then(|run| run.as_ref().map(|_| ()))
+            .is_some()
+        {
+            set_response(
+                &app,
+                "Runner already running",
+                "",
+                "neutral",
+                "Cancel the active collection run before starting another.",
+            );
             return;
         }
 
@@ -997,6 +1047,7 @@ fn wire_collection_runner(app: &AppWindow, runtime: Arc<Runtime>, state: Arc<Mut
         }
 
         app.set_busy(true);
+        app.set_runner_active(true);
         app.set_activity("Running collection".into());
         app.set_runner_summary(format!("Running {request_count} requests").into());
         app.set_runner_rows(empty_runner_model());
@@ -1009,7 +1060,8 @@ fn wire_collection_runner(app: &AppWindow, runtime: Arc<Runtime>, state: Arc<Mut
         );
 
         let weak_app = app.as_weak();
-        runtime.spawn(async move {
+        let active_run = active_run_for_start.clone();
+        let handle = runtime.spawn(async move {
             let summary = run_collection(
                 &collection,
                 &variables,
@@ -1035,9 +1087,16 @@ fn wire_collection_runner(app: &AppWindow, runtime: Arc<Runtime>, state: Arc<Mut
                     &format_runner_summary(&summary),
                 );
                 app.set_activity("".into());
+                app.set_runner_active(false);
                 app.set_busy(false);
+                if let Ok(mut run) = active_run.lock() {
+                    *run = None;
+                }
             });
         });
+        if let Ok(mut run) = active_run_for_start.lock() {
+            *run = Some(handle);
+        }
     });
 }
 
