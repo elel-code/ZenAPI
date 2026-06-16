@@ -8,6 +8,7 @@ use zenapi::{
     client::{self, RequestBody},
     mock_server::MockServer,
     openapi::{ApiRoute, ApiSpec, load_openapi_file},
+    variables::{Variable, VariableStore, replace_variables},
 };
 
 use crate::ui::{AppWindow, RouteRow};
@@ -192,12 +193,37 @@ fn wire_request_sender(app: &AppWindow, runtime: Arc<Runtime>) {
             return;
         }
 
+        let (variables, active_environment) = match build_variable_store(
+            app.get_global_variables().as_str(),
+            app.get_environment_name().as_str(),
+            app.get_environment_variables().as_str(),
+        ) {
+            Ok(variables) => variables,
+            Err(error) => {
+                set_response(&app, "Bad vars", "", "error", &error.to_string());
+                return;
+            }
+        };
+        let active_environment = active_environment.as_deref();
         let method = app.get_method().to_string();
-        let url = app.get_url().trim().to_string();
+        let url = match resolve_text(app.get_url().as_str(), &variables, active_environment) {
+            Ok(url) => url.trim().to_string(),
+            Err(error) => {
+                set_response(&app, "Bad URL vars", "", "error", &error.to_string());
+                return;
+            }
+        };
         let mut headers = match parse_key_value_lines(&app.get_request_headers(), "header") {
             Ok(headers) => headers,
             Err(error) => {
                 set_response(&app, "Bad headers", "", "error", &error.to_string());
+                return;
+            }
+        };
+        headers = match resolve_pairs(headers, &variables, active_environment) {
+            Ok(headers) => headers,
+            Err(error) => {
+                set_response(&app, "Bad header vars", "", "error", &error.to_string());
                 return;
             }
         };
@@ -208,8 +234,26 @@ fn wire_request_sender(app: &AppWindow, runtime: Arc<Runtime>) {
                 return;
             }
         };
+        query_params = match resolve_pairs(query_params, &variables, active_environment) {
+            Ok(query_params) => query_params,
+            Err(error) => {
+                set_response(&app, "Bad param vars", "", "error", &error.to_string());
+                return;
+            }
+        };
+        let auth_config = match resolve_text(
+            app.get_auth_config().as_str(),
+            &variables,
+            active_environment,
+        ) {
+            Ok(auth_config) => auth_config,
+            Err(error) => {
+                set_response(&app, "Bad auth vars", "", "error", &error.to_string());
+                return;
+            }
+        };
         let (auth_headers, auth_query_params) =
-            match build_auth_entries(&app.get_auth_mode(), app.get_auth_config().as_str()) {
+            match build_auth_entries(&app.get_auth_mode(), auth_config.as_str()) {
                 Ok(entries) => entries,
                 Err(error) => {
                     set_response(&app, "Bad auth", "", "error", &error.to_string());
@@ -222,7 +266,18 @@ fn wire_request_sender(app: &AppWindow, runtime: Arc<Runtime>) {
         for (name, value) in auth_query_params {
             upsert_pair(&mut query_params, name, value, false);
         }
-        let body = match build_request_body(&app.get_body_mode(), app.get_request_body().as_str()) {
+        let request_body = match resolve_text(
+            app.get_request_body().as_str(),
+            &variables,
+            active_environment,
+        ) {
+            Ok(request_body) => request_body,
+            Err(error) => {
+                set_response(&app, "Bad body vars", "", "error", &error.to_string());
+                return;
+            }
+        };
+        let body = match build_request_body(&app.get_body_mode(), request_body.as_str()) {
             Ok(body) => body,
             Err(error) => {
                 set_response(&app, "Bad body", "", "error", &error.to_string());
@@ -433,7 +488,7 @@ fn parse_key_value_lines(input: &str, field_name: &str) -> Result<Vec<(String, S
             }
         })
         .map(|(line_number, line)| {
-            let Some((key, value)) = line.split_once(':').or_else(|| line.split_once('=')) else {
+            let Some((key, value)) = split_key_value_line(line) else {
                 bail!("{field_name} line {line_number} must use key=value or key: value");
             };
             let key = key.trim();
@@ -443,6 +498,17 @@ fn parse_key_value_lines(input: &str, field_name: &str) -> Result<Vec<(String, S
             Ok((key.to_string(), value.trim().to_string()))
         })
         .collect()
+}
+
+fn split_key_value_line(line: &str) -> Option<(&str, &str)> {
+    let separator = match (line.find('='), line.find(':')) {
+        (Some(eq), Some(colon)) => eq.min(colon),
+        (Some(eq), None) => eq,
+        (None, Some(colon)) => colon,
+        (None, None) => return None,
+    };
+
+    Some((&line[..separator], &line[separator + 1..]))
 }
 
 fn build_request_body(mode: &str, input: &str) -> Result<RequestBody> {
@@ -522,6 +588,54 @@ fn build_auth_entries(
         }
         _ => Ok((Vec::new(), Vec::new())),
     }
+}
+
+fn build_variable_store(
+    global_input: &str,
+    environment_name: &str,
+    environment_input: &str,
+) -> Result<(VariableStore, Option<String>)> {
+    let environment_name = environment_name.trim();
+    let environment_pairs = parse_key_value_lines(environment_input, "environment variable")?;
+    if !environment_pairs.is_empty() && environment_name.is_empty() {
+        bail!("environment name is empty");
+    }
+
+    let mut store = VariableStore::new();
+    for (name, value) in parse_key_value_lines(global_input, "global variable")? {
+        store.upsert(Variable::global(name, value));
+    }
+
+    for (name, value) in environment_pairs {
+        store.upsert(Variable::environment(environment_name, name, value));
+    }
+
+    let active_environment = (!environment_name.is_empty()).then(|| environment_name.to_string());
+    Ok((store, active_environment))
+}
+
+fn resolve_text(
+    input: &str,
+    variables: &VariableStore,
+    active_environment: Option<&str>,
+) -> Result<String> {
+    replace_variables(input, variables, active_environment)
+}
+
+fn resolve_pairs(
+    pairs: Vec<(String, String)>,
+    variables: &VariableStore,
+    active_environment: Option<&str>,
+) -> Result<Vec<(String, String)>> {
+    pairs
+        .into_iter()
+        .map(|(name, value)| {
+            Ok((
+                replace_variables(&name, variables, active_environment)?,
+                replace_variables(&value, variables, active_environment)?,
+            ))
+        })
+        .collect()
 }
 
 fn upsert_pair(
@@ -622,13 +736,17 @@ mod tests {
     fn parses_query_and_header_text_lines() {
         assert_eq!(
             parse_key_value_lines(
-                "Accept: application/json\nsearch = rust slint\n# ignored\n\nlimit=20",
+                "Accept: application/json\nsearch = rust slint\nbaseUrl=https://api.example.com\n# ignored\n\nlimit=20",
                 "header"
             )
             .expect("parse"),
             vec![
                 ("Accept".to_string(), "application/json".to_string()),
                 ("search".to_string(), "rust slint".to_string()),
+                (
+                    "baseUrl".to_string(),
+                    "https://api.example.com".to_string()
+                ),
                 ("limit".to_string(), "20".to_string()),
             ]
         );
@@ -739,5 +857,59 @@ mod tests {
                 ("authorization".to_string(), "Bearer new-token".to_string()),
             ]
         );
+    }
+
+    #[test]
+    fn builds_variable_store_and_resolves_environment_overrides() {
+        let (variables, active_environment) = build_variable_store(
+            "baseUrl=https://api.example.com\ntoken=global",
+            "dev",
+            "baseUrl=http://localhost:8080",
+        )
+        .expect("variables");
+
+        assert_eq!(active_environment.as_deref(), Some("dev"));
+        assert_eq!(
+            resolve_text(
+                "{{baseUrl}}/users",
+                &variables,
+                active_environment.as_deref()
+            )
+            .expect("resolve"),
+            "http://localhost:8080/users"
+        );
+        assert_eq!(
+            resolve_text(
+                "Bearer {{token}}",
+                &variables,
+                active_environment.as_deref()
+            )
+            .expect("resolve"),
+            "Bearer global"
+        );
+    }
+
+    #[test]
+    fn resolves_variables_in_pairs() {
+        let (variables, active_environment) =
+            build_variable_store("token=secret", "", "").expect("variables");
+
+        assert_eq!(
+            resolve_pairs(
+                vec![("Authorization".to_string(), "Bearer {{token}}".to_string())],
+                &variables,
+                active_environment.as_deref()
+            )
+            .expect("resolve"),
+            vec![("Authorization".to_string(), "Bearer secret".to_string())]
+        );
+    }
+
+    #[test]
+    fn rejects_environment_variables_without_environment_name() {
+        let error = build_variable_store("", "", "baseUrl=http://localhost:8080")
+            .expect_err("missing env name");
+
+        assert!(error.to_string().contains("environment name is empty"));
     }
 }

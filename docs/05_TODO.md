@@ -53,7 +53,9 @@
 - [~] Rebuild Auth controls for None, Bearer, Basic, JWT, and API key modes;
   current Slint baseline supports mode buttons plus one config field, with
   dedicated per-mode forms still pending.
-- [ ] Rebuild Environments and Variables UI on top of `variables::VariableStore`.
+- [~] Rebuild Environments and Variables UI on top of `variables::VariableStore`;
+  current Slint baseline supports one active environment plus line-based global
+  and environment variable editors, with full environment list management pending.
 - [ ] Rebuild Collections UI for native JSON/Postman import/export, saving
   current requests, nested folders, rename/delete/copy, and drag/drop.
 - [ ] Rebuild History UI for local request history, filtering, restore, delete,

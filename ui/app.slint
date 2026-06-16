@@ -825,6 +825,9 @@ component AddressBar inherits Rectangle {
 }
 
 component RequestPanel inherits Rectangle {
+    in-out property <string> global_variables;
+    in-out property <string> environment_name;
+    in-out property <string> environment_variables;
     in-out property <string> query_params;
     in-out property <string> request_headers;
     in-out property <string> auth_mode;
@@ -842,6 +845,58 @@ component RequestPanel inherits Rectangle {
 
         TabHeader {
             label: "Request";
+        }
+
+        Rectangle {
+            height: 112px;
+            background: Theme.surface;
+
+            HorizontalLayout {
+                padding: 10px;
+                spacing: 10px;
+
+                Rectangle {
+                    width: 128px;
+                    vertical-stretch: 1;
+
+                    VerticalLayout {
+                        padding: 0px;
+                        spacing: 6px;
+
+                        UiText {
+                            text: "Env";
+                            height: 20px;
+                            color: Theme.on_surface_variant;
+                            font-size: 12px;
+                            font-weight: 800;
+                            vertical-alignment: center;
+                            overflow: elide;
+                        }
+
+                        TextField {
+                            text <=> root.environment_name;
+                            placeholder: "dev";
+                            mono: true;
+                            height: 34px;
+                        }
+                    }
+                }
+
+                LabeledEditor {
+                    label: "Globals";
+                    text <=> root.global_variables;
+                }
+
+                LabeledEditor {
+                    label: "Env Vars";
+                    text <=> root.environment_variables;
+                }
+            }
+        }
+
+        Rectangle {
+            height: 1px;
+            background: Theme.outline_variant;
         }
 
         Rectangle {
@@ -1104,6 +1159,9 @@ export component AppWindow inherits Window {
     in-out property <bool> spec_loaded: false;
     in-out property <string> method: "GET";
     in-out property <string> url;
+    in-out property <string> global_variables: "baseUrl=https://api.example.com";
+    in-out property <string> environment_name: "dev";
+    in-out property <string> environment_variables: "baseUrl=http://127.0.0.1:8080";
     in-out property <string> query_params;
     in-out property <string> request_headers: "Accept: application/json";
     in-out property <string> auth_mode: "none";
@@ -1196,6 +1254,9 @@ export component AppWindow inherits Window {
                         vertical-stretch: 1;
 
                         RequestPanel {
+                            global_variables <=> root.global_variables;
+                            environment_name <=> root.environment_name;
+                            environment_variables <=> root.environment_variables;
                             query_params <=> root.query_params;
                             request_headers <=> root.request_headers;
                             auth_mode <=> root.auth_mode;
