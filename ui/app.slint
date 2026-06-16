@@ -37,8 +37,60 @@ export struct MockLogRow {
 }
 
 global AuthText {
+    public pure function title(mode: string) -> string {
+        return mode == "none" ? "Auth disabled" : mode == "basic" ? "Basic credentials" : mode == "api-header" ? "API key header" : mode == "api-query" ? "API key query" : mode == "jwt" ? "JWT token" : "Bearer token";
+    }
+
     public pure function hint(mode: string) -> string {
-        return mode == "none" ? "disabled" : mode == "basic" ? "username:password" : mode == "api-header" ? "header key=value" : mode == "api-query" ? "query key=value" : "token";
+        return mode == "none" ? "disabled" : mode == "basic" ? "username:password" : mode == "api-header" ? "Header-Name=secret" : mode == "api-query" ? "query_key=secret" : "token";
+    }
+
+    public pure function detail(mode: string) -> string {
+        return mode == "none" ? "No auth entries will be sent." : mode == "basic" ? "Sent as Authorization: Basic ..." : mode == "api-header" ? "Adds one request header." : mode == "api-query" ? "Adds one query parameter." : "Sent as Authorization: Bearer ...";
+    }
+}
+
+component AuthConfigPanel inherits Rectangle {
+    in-out property <string> auth_mode;
+    in-out property <string> auth_config;
+    in property <bool> busy;
+
+    horizontal-stretch: 1;
+    vertical-stretch: 1;
+    background: transparent;
+
+    VerticalLayout {
+        padding: 0px;
+        spacing: 6px;
+
+        UiText {
+            text: "Auth / " + AuthText.title(root.auth_mode);
+            height: 20px;
+            horizontal-stretch: 1;
+            color: Theme.on_surface_variant;
+            font-size: 12px;
+            font-weight: 800;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+
+        TextField {
+            text <=> root.auth_config;
+            placeholder: AuthText.hint(root.auth_mode);
+            mono: true;
+            enabled: !root.busy && root.auth_mode != "none";
+            height: 34px;
+        }
+
+        UiText {
+            text: AuthText.detail(root.auth_mode);
+            height: 18px;
+            horizontal-stretch: 1;
+            color: Theme.outline;
+            font-size: 11px;
+            overflow: elide;
+            vertical-alignment: center;
+        }
     }
 }
 
@@ -813,10 +865,10 @@ component RequestPanel inherits Rectangle {
                     text <=> root.request_headers;
                 }
 
-                LabeledEditor {
-                    label: "Auth / " + root.auth_mode + " / " + AuthText.hint(root.auth_mode);
-                    text <=> root.auth_config;
-                    read_only: root.auth_mode == "none";
+                AuthConfigPanel {
+                    auth_mode <=> root.auth_mode;
+                    auth_config <=> root.auth_config;
+                    busy: root.busy;
                 }
             }
         }
