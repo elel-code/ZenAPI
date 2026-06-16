@@ -57,6 +57,7 @@ pub fn run() -> Result<()> {
     wire_history_actions(&app, state.clone());
     wire_collection_actions(&app, state.clone());
     wire_mock_log_filter(&app, state.clone());
+    wire_header_helpers(&app);
     wire_request_sender(&app, runtime.clone(), state.clone());
     wire_graphql_helpers(&app);
     wire_codegen(&app);
@@ -865,6 +866,40 @@ fn wire_mock_log_filter(app: &AppWindow, state: Arc<Mutex<AppState>>) {
                     &app,
                     "Mock log save failed",
                     path.as_str(),
+                    "error",
+                    &error.to_string(),
+                );
+            }
+        }
+    });
+}
+
+fn wire_header_helpers(app: &AppWindow) {
+    let weak_app = app.as_weak();
+    app.on_apply_header_preset(move |preset| {
+        let Some(app) = weak_app.upgrade() else {
+            return;
+        };
+        if app.get_busy() {
+            return;
+        }
+
+        match apply_header_preset(&app.get_request_headers(), preset.as_str()) {
+            Ok(headers) => {
+                app.set_request_headers(headers.into());
+                set_response(
+                    &app,
+                    "Header preset applied",
+                    preset.as_str(),
+                    "success",
+                    "Request headers updated.",
+                );
+            }
+            Err(error) => {
+                set_response(
+                    &app,
+                    "Header preset failed",
+                    preset.as_str(),
                     "error",
                     &error.to_string(),
                 );
@@ -2231,6 +2266,14 @@ fn format_name_values(values: &[NameValue]) -> String {
         .join("\n")
 }
 
+fn format_header_lines(headers: &[(String, String)]) -> String {
+    headers
+        .iter()
+        .map(|(name, value)| format!("{name}: {value}"))
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
 fn empty_runner_model() -> ModelRc<RunnerRow> {
     ModelRc::new(VecModel::from_iter(Vec::<RunnerRow>::new()))
 }
@@ -2829,6 +2872,18 @@ fn parse_key_value_lines(input: &str, field_name: &str) -> Result<Vec<(String, S
             Ok((key.to_string(), value.trim().to_string()))
         })
         .collect()
+}
+
+fn apply_header_preset(input: &str, preset: &str) -> Result<String> {
+    let (name, value) = match preset {
+        "accept-json" => ("Accept", "application/json"),
+        "content-json" => ("Content-Type", "application/json"),
+        "bearer-token" => ("Authorization", "Bearer {{token}}"),
+        _ => bail!("unknown header preset: {preset}"),
+    };
+    let mut headers = parse_key_value_lines(input, "header")?;
+    upsert_pair(&mut headers, name.to_string(), value.to_string(), true);
+    Ok(format_header_lines(&headers))
 }
 
 fn build_codegen_request_projection(input: &RequestProjectionInput) -> Result<CodegenRequest> {
@@ -3467,6 +3522,30 @@ mod tests {
             .expect_err("invalid line");
 
         assert!(error.to_string().contains("line 2"));
+    }
+
+    #[test]
+    fn applies_header_presets_to_text_headers() {
+        assert_eq!(
+            apply_header_preset("accept: text/plain\nX-Trace=abc", "accept-json")
+                .expect("accept preset"),
+            "accept: application/json\nX-Trace: abc"
+        );
+        assert_eq!(
+            apply_header_preset("Accept: application/json", "content-json")
+                .expect("content preset"),
+            "Accept: application/json\nContent-Type: application/json"
+        );
+        assert_eq!(
+            apply_header_preset("", "bearer-token").expect("bearer preset"),
+            "Authorization: Bearer {{token}}"
+        );
+        assert!(
+            apply_header_preset("Accept: application/json", "unknown")
+                .expect_err("unknown preset")
+                .to_string()
+                .contains("unknown header preset")
+        );
     }
 
     #[test]

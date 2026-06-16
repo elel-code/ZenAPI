@@ -155,9 +155,7 @@ with collection requests and restored with them.
 
 ## Headers
 
-Headers can be edited as key/value rows. Use `+` in the table header to add
-another row, and `x` at the row edge to remove one. The bulk header tools
-accept common formats:
+Headers are edited as line-based text. The editor accepts common formats:
 
 ```text
 Accept: application/json
@@ -166,8 +164,8 @@ Authorization=Bearer token
 --header "X-Mode: test"
 ```
 
-Use `Copy` to copy the current headers as one header per line. Header presets
-add or update common values: `Accept`, `Content`, and `Bearer`.
+Header presets add or update common values: `Accept`, `Content`, and `Bearer`.
+Table row editing and header clipboard copy are still future work.
 
 ## Request Body
 
