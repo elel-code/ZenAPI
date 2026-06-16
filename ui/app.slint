@@ -29,6 +29,12 @@ export struct RunnerRow {
     tone: string,
 }
 
+export struct MockLogRow {
+    method: string,
+    path: string,
+    status: string,
+}
+
 component UiText inherits Text {
     font-family: "Inter";
     font-size: 13px;
@@ -656,10 +662,57 @@ component CollectionListItem inherits Rectangle {
     }
 }
 
+component MockLogItem inherits Rectangle {
+    in property <string> method;
+    in property <string> path;
+    in property <string> status;
+
+    height: 34px;
+    horizontal-stretch: 1;
+    border-radius: 6px;
+    background: Theme.surface_container_low;
+
+    MethodChip {
+        x: 8px;
+        y: 6px;
+        method: root.method;
+    }
+
+    UiText {
+        x: 78px;
+        y: 4px;
+        text: root.path;
+        width: parent.width - 126px;
+        height: 26px;
+        font-family: "JetBrains Mono";
+        font-size: 11px;
+        font-weight: 700;
+        color: Theme.on_surface;
+        overflow: elide;
+        vertical-alignment: center;
+    }
+
+    UiText {
+        x: parent.width - 40px;
+        y: 4px;
+        text: root.status;
+        width: 32px;
+        height: 26px;
+        font-family: "JetBrains Mono";
+        font-size: 11px;
+        font-weight: 800;
+        color: root.status == "200" || root.status == "204" ? Theme.secondary : Theme.error;
+        horizontal-alignment: right;
+        overflow: elide;
+        vertical-alignment: center;
+    }
+}
+
 component Sidebar inherits Rectangle {
     in-out property <[RouteRow]> routes;
     in-out property <[CollectionRow]> collection_rows;
     in-out property <[HistoryRow]> history_rows;
+    in-out property <[MockLogRow]> mock_logs;
     in-out property <int> selected_route;
     in-out property <string> route_filter;
     in-out property <string> collection_path;
@@ -833,7 +886,7 @@ component Sidebar inherits Rectangle {
         }
 
         if root.collection_rows.length != 0: ListView {
-            height: 108px;
+            height: 84px;
             horizontal-stretch: 1;
             vertical-scrollbar-policy: ScrollBarPolicy.always-off;
             horizontal-scrollbar-policy: ScrollBarPolicy.always-off;
@@ -879,7 +932,7 @@ component Sidebar inherits Rectangle {
         }
 
         if root.history_rows.length != 0: ListView {
-            height: 132px;
+            height: 92px;
             horizontal-stretch: 1;
             vertical-scrollbar-policy: ScrollBarPolicy.always-off;
             horizontal-scrollbar-policy: ScrollBarPolicy.always-off;
@@ -892,6 +945,48 @@ component Sidebar inherits Rectangle {
                 picked(id) => {
                     root.select_history(id);
                 }
+            }
+        }
+
+        Rectangle {
+            height: 1px;
+            horizontal-stretch: 1;
+            background: Theme.outline_variant;
+        }
+
+        SectionTitle {
+            text: "MOCK LOGS";
+            meta: root.mock_logs.length == 0 ? "" : root.mock_logs.length + "";
+        }
+
+        if root.mock_logs.length == 0: Rectangle {
+            height: 34px;
+            horizontal-stretch: 1;
+            background: Theme.surface_container;
+            border-radius: 6px;
+
+            UiText {
+                text: "No mock requests";
+                width: parent.width;
+                height: parent.height;
+                color: Theme.outline;
+                font-size: 12px;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+                overflow: elide;
+            }
+        }
+
+        if root.mock_logs.length != 0: ListView {
+            height: 92px;
+            horizontal-stretch: 1;
+            vertical-scrollbar-policy: ScrollBarPolicy.always-off;
+            horizontal-scrollbar-policy: ScrollBarPolicy.always-off;
+
+            for log in root.mock_logs: MockLogItem {
+                method: log.method;
+                path: log.path;
+                status: log.status;
             }
         }
     }
@@ -1799,6 +1894,7 @@ export component AppWindow inherits Window {
     in-out property <[CollectionRow]> collection_rows;
     in-out property <[HistoryRow]> history_rows;
     in-out property <[RunnerRow]> runner_rows;
+    in-out property <[MockLogRow]> mock_logs;
     in-out property <int> selected_route: -1;
     in-out property <string> file_path;
     in-out property <string> spec_label: "";
@@ -1885,6 +1981,7 @@ export component AppWindow inherits Window {
                 routes <=> root.routes;
                 collection_rows <=> root.collection_rows;
                 history_rows <=> root.history_rows;
+                mock_logs <=> root.mock_logs;
                 selected_route <=> root.selected_route;
                 route_filter <=> root.route_filter;
                 collection_path <=> root.collection_path;

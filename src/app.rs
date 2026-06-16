@@ -17,13 +17,13 @@ use zenapi::{
     },
     collections::{ApiCollection, CollectionBody, CollectionItem, CollectionRequest, NameValue},
     history::{HistoryRequest, HistoryResponse, RequestHistory},
-    mock_server::MockServer,
+    mock_server::{MockRequestLog, MockServer},
     openapi::{ApiRoute, ApiSpec, load_openapi_file},
     pre_request::{execute_pre_request_actions, resolve_codegen_request_templates},
     variables::{Variable, VariableStore, replace_variables},
 };
 
-use crate::ui::{AppWindow, CollectionRow, HistoryRow, RouteRow, RunnerRow};
+use crate::ui::{AppWindow, CollectionRow, HistoryRow, MockLogRow, RouteRow, RunnerRow};
 
 pub fn run() -> Result<()> {
     let runtime = Arc::new(Runtime::new()?);
@@ -49,6 +49,7 @@ struct AppState {
     visible_routes: Vec<ApiRoute>,
     collection: ApiCollection,
     history: RequestHistory,
+    mock_logs: Vec<MockRequestLog>,
     server: Option<MockServer>,
 }
 
@@ -106,6 +107,7 @@ impl Default for AppState {
             visible_routes: Vec::new(),
             collection: ApiCollection::new("ZenAPI Collection"),
             history: RequestHistory::default(),
+            mock_logs: Vec::new(),
             server: None,
         }
     }
@@ -911,36 +913,64 @@ fn wire_mock_server(app: &AppWindow, runtime: Arc<Runtime>, state: Arc<Mutex<App
                         return;
                     }
 
-                    let result = MockServer::start(routes, 8080).await;
-                    let _ = slint::invoke_from_event_loop(move || {
-                        let Some(app) = weak_app.upgrade() else {
-                            return;
-                        };
+                    let (log_tx, mut log_rx) = tokio::sync::mpsc::unbounded_channel();
+                    match MockServer::start_with_logs(routes, 8080, log_tx).await {
+                        Ok(server) => {
+                            let addr = server.addr();
+                            if let Ok(mut guard) = state.lock() {
+                                guard.server = Some(server);
+                                guard.mock_logs.clear();
+                            }
 
-                        match result {
-                            Ok(server) => {
-                                let addr = server.addr();
-                                if let Ok(mut guard) = state.lock() {
-                                    guard.server = Some(server);
+                            let log_state = state.clone();
+                            let log_weak_app = weak_app.clone();
+                            tokio::spawn(async move {
+                                while let Some(log) = log_rx.recv().await {
+                                    let logs = if let Ok(mut guard) = log_state.lock() {
+                                        push_mock_log(&mut guard.mock_logs, log, 50);
+                                        Some(guard.mock_logs.clone())
+                                    } else {
+                                        None
+                                    };
+                                    if let Some(logs) = logs {
+                                        let weak_app = log_weak_app.clone();
+                                        let _ = slint::invoke_from_event_loop(move || {
+                                            if let Some(app) = weak_app.upgrade() {
+                                                app.set_mock_logs(mock_log_model(&logs));
+                                            }
+                                        });
+                                    }
                                 }
-                                app.set_server_running(true);
-                                app.set_server_status(addr.to_string().into());
-                            }
-                            Err(error) => {
-                                app.set_server_running(false);
-                                app.set_server_status("Failed".into());
-                                set_response(
-                                    &app,
-                                    "Mock server failed",
-                                    "",
-                                    "error",
-                                    &error.to_string(),
-                                );
-                            }
+                            });
+
+                            let _ = slint::invoke_from_event_loop(move || {
+                                if let Some(app) = weak_app.upgrade() {
+                                    app.set_server_running(true);
+                                    app.set_server_status(addr.to_string().into());
+                                    app.set_mock_logs(mock_log_model(&[]));
+                                    app.set_activity("".into());
+                                    app.set_busy(false);
+                                }
+                            });
                         }
-                        app.set_activity("".into());
-                        app.set_busy(false);
-                    });
+                        Err(error) => {
+                            let _ = slint::invoke_from_event_loop(move || {
+                                if let Some(app) = weak_app.upgrade() {
+                                    app.set_server_running(false);
+                                    app.set_server_status("Failed".into());
+                                    set_response(
+                                        &app,
+                                        "Mock server failed",
+                                        "",
+                                        "error",
+                                        &error.to_string(),
+                                    );
+                                    app.set_activity("".into());
+                                    app.set_busy(false);
+                                }
+                            });
+                        }
+                    }
                 }
             }
         });
@@ -1370,6 +1400,19 @@ fn format_sse_event(index: usize, event: &client::SseEvent) -> String {
         .map(|retry| format!(" / retry {retry}"))
         .unwrap_or_default();
     format!("{index}. {event_name}{id}{retry}\n{}", event.data)
+}
+
+fn mock_log_model(logs: &[MockRequestLog]) -> ModelRc<MockLogRow> {
+    ModelRc::new(VecModel::from_iter(logs.iter().map(|log| MockLogRow {
+        method: log.method.clone().into(),
+        path: log.path.clone().into(),
+        status: log.status.to_string().into(),
+    })))
+}
+
+fn push_mock_log(logs: &mut Vec<MockRequestLog>, log: MockRequestLog, limit: usize) {
+    logs.insert(0, log);
+    logs.truncate(limit);
 }
 
 fn history_model(entries: &[zenapi::history::HistoryEntry]) -> ModelRc<HistoryRow> {
@@ -2566,6 +2609,42 @@ mod tests {
             format_sse_exchange(&sse),
             "URL: http://localhost/events\n1. update / id 42\n{\"ok\":true}"
         );
+    }
+
+    #[test]
+    fn keeps_recent_mock_logs_first_and_bounded() {
+        let mut logs = Vec::new();
+        push_mock_log(
+            &mut logs,
+            MockRequestLog {
+                method: "GET".to_string(),
+                path: "/old".to_string(),
+                status: 200,
+            },
+            2,
+        );
+        push_mock_log(
+            &mut logs,
+            MockRequestLog {
+                method: "POST".to_string(),
+                path: "/new".to_string(),
+                status: 404,
+            },
+            2,
+        );
+        push_mock_log(
+            &mut logs,
+            MockRequestLog {
+                method: "PUT".to_string(),
+                path: "/latest".to_string(),
+                status: 204,
+            },
+            2,
+        );
+
+        assert_eq!(logs.len(), 2);
+        assert_eq!(logs[0].path, "/latest");
+        assert_eq!(logs[1].path, "/new");
     }
 
     #[test]

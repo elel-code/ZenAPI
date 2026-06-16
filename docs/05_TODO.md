@@ -82,7 +82,9 @@
   controls that reuse the request URL/headers and show output in the response
   panel, with full session subscribe/send/close controls still pending.
 - [ ] Add GraphQL and gRPC UI surfaces after REST parity is stable.
-- [ ] Add mock request logs and richer mock manager controls.
+- [~] Add mock request logs and richer mock manager controls; current Slint
+  baseline shows recent mock requests in the sidebar, with filtering/export and
+  richer route controls pending.
 - [ ] Split reusable controls from `ui/app.slint` into `ui/widgets/` once two or
   more screens share them.
 
@@ -111,4 +113,5 @@
 | Runner | Domain + CLI implemented | Slint baseline runs active collections and shows result rows |
 | Assertions/scripts | Domain implemented | Slint baseline edits, saves, restores, and evaluates native scripts/tests |
 | WebSocket/SSE | Client modules restored | Slint baseline supports one-shot WS sends and SSE previews |
+| Mock logs | Core implemented | Slint baseline shows recent mock requests |
 | gRPC | Design documented | Domain and UI pending |
