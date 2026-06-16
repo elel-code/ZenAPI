@@ -88,8 +88,8 @@
   backed by the domain model, with gRPC descriptor loading/transport and GraphQL
   schema helpers still pending.
 - [~] Add mock request logs and richer mock manager controls; current Slint
-  baseline shows and filters recent mock requests in the sidebar, with export
-  and richer route controls pending.
+  baseline shows, filters, and exports recent mock requests in the sidebar,
+  with richer route controls pending.
 - [~] Split reusable controls from `ui/app.slint` into `ui/widgets/`; current
   Slint baseline extracts shared styles, buttons, text fields, method controls,
   tab headers, and editor panes into `ui/widgets.slint`, with larger business
@@ -120,6 +120,6 @@
 | Runner | Domain + CLI implemented | Slint baseline runs active collections and shows result rows |
 | Assertions/scripts | Domain implemented | Slint baseline edits, saves, restores, and evaluates native scripts/tests |
 | WebSocket/SSE | Client modules restored | Slint baseline supports one-shot WS sends and SSE previews |
-| Mock logs | Core implemented | Slint baseline shows and filters recent mock requests |
+| Mock logs | Core implemented | Slint baseline shows, filters, and exports recent mock requests |
 | GraphQL | Payload builder implemented | Slint baseline edits query and variables |
 | gRPC | Domain draft model implemented | Slint draft surface wired; descriptor loading and unary transport pending |

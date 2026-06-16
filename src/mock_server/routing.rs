@@ -7,13 +7,14 @@ use axum::{
     response::{IntoResponse, Response},
     routing::any,
 };
+use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use std::{collections::HashMap, sync::Arc};
 use tokio::sync::mpsc;
 
 type RouteMap = HashMap<(Method, String), Value>;
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MockRequestLog {
     pub method: String,
     pub path: String,

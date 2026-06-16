@@ -610,16 +610,54 @@ fn wire_collection_actions(app: &AppWindow, state: Arc<Mutex<AppState>>) {
 
 fn wire_mock_log_filter(app: &AppWindow, state: Arc<Mutex<AppState>>) {
     let weak_app = app.as_weak();
+    let filter_state = state.clone();
     app.on_filter_mock_logs(move |query| {
         let Some(app) = weak_app.upgrade() else {
             return;
         };
-        let model = state
+        let model = filter_state
             .lock()
             .ok()
             .map(|state| filtered_mock_log_model(&state.mock_logs, query.as_str()))
             .unwrap_or_else(|| mock_log_model(&[]));
         app.set_mock_logs(model);
+    });
+
+    let weak_app = app.as_weak();
+    app.on_save_mock_logs(move |path| {
+        let Some(app) = weak_app.upgrade() else {
+            return;
+        };
+        if app.get_busy() {
+            return;
+        }
+
+        let filter = app.get_mock_log_filter();
+        let result = state
+            .lock()
+            .map_err(|_| anyhow!("mock log state is unavailable"))
+            .and_then(|state| save_mock_logs(path.as_str(), &state.mock_logs, filter.as_str()));
+
+        match result {
+            Ok(count) => {
+                set_response(
+                    &app,
+                    "Mock logs saved",
+                    path.as_str(),
+                    "success",
+                    &format!("{count} mock log entries exported."),
+                );
+            }
+            Err(error) => {
+                set_response(
+                    &app,
+                    "Mock log save failed",
+                    path.as_str(),
+                    "error",
+                    &error.to_string(),
+                );
+            }
+        }
     });
 }
 
@@ -1607,16 +1645,22 @@ fn mock_log_model(logs: &[MockRequestLog]) -> ModelRc<MockLogRow> {
 }
 
 fn filtered_mock_log_model(logs: &[MockRequestLog], query: &str) -> ModelRc<MockLogRow> {
+    mock_log_model_from_iter(filtered_mock_logs(logs, query).into_iter())
+}
+
+fn filtered_mock_logs<'a>(logs: &'a [MockRequestLog], query: &str) -> Vec<&'a MockRequestLog> {
     let query = query.trim().to_lowercase();
     if query.is_empty() {
-        return mock_log_model(logs);
+        return logs.iter().collect();
     }
 
-    mock_log_model_from_iter(logs.iter().filter(|log| {
-        log.method.to_lowercase().contains(&query)
-            || log.path.to_lowercase().contains(&query)
-            || log.status.to_string().contains(&query)
-    }))
+    logs.iter()
+        .filter(|log| {
+            log.method.to_lowercase().contains(&query)
+                || log.path.to_lowercase().contains(&query)
+                || log.status.to_string().contains(&query)
+        })
+        .collect()
 }
 
 fn mock_log_model_from_iter<'a>(
@@ -1632,6 +1676,14 @@ fn mock_log_model_from_iter<'a>(
 fn push_mock_log(logs: &mut Vec<MockRequestLog>, log: MockRequestLog, limit: usize) {
     logs.insert(0, log);
     logs.truncate(limit);
+}
+
+fn save_mock_logs(path: &str, logs: &[MockRequestLog], query: &str) -> Result<usize> {
+    let exported = filtered_mock_logs(logs, query);
+    let body = serde_json::to_string_pretty(&exported)
+        .map_err(|err| anyhow!("serialize mock log export: {err}"))?;
+    write_text_file(path, &body, "mock log export")?;
+    Ok(exported.len())
 }
 
 fn filtered_history_model(history: &RequestHistory, query: &str) -> ModelRc<HistoryRow> {
@@ -2222,9 +2274,13 @@ fn snippet_language(language: &str) -> SnippetLanguage {
 }
 
 fn save_codegen_snippet(path: &str, snippet: &str) -> Result<()> {
+    write_text_file(path, snippet, "snippet export")
+}
+
+fn write_text_file(path: &str, contents: &str, label: &str) -> Result<()> {
     let path = path.trim();
     if path.is_empty() {
-        bail!("snippet export path is required");
+        bail!("{label} path is required");
     }
 
     let output_path = Path::new(path);
@@ -2232,15 +2288,11 @@ fn save_codegen_snippet(path: &str, snippet: &str) -> Result<()> {
         .parent()
         .filter(|parent| !parent.as_os_str().is_empty())
     {
-        fs::create_dir_all(parent).map_err(|err| {
-            anyhow!(
-                "create snippet export directory {}: {err}",
-                parent.display()
-            )
-        })?;
+        fs::create_dir_all(parent)
+            .map_err(|err| anyhow!("create {label} directory {}: {err}", parent.display()))?;
     }
-    fs::write(output_path, snippet)
-        .map_err(|err| anyhow!("write snippet export {}: {err}", output_path.display()))
+    fs::write(output_path, contents)
+        .map_err(|err| anyhow!("write {label} {}: {err}", output_path.display()))
 }
 
 fn pretty_json(value: &serde_json::Value) -> String {
@@ -3025,6 +3077,39 @@ mod tests {
             by_status.row_data(0).expect("mock log").path.as_str(),
             "/users"
         );
+    }
+
+    #[test]
+    fn saves_filtered_mock_logs_to_disk() {
+        let logs = vec![
+            MockRequestLog {
+                method: "GET".to_string(),
+                path: "/users".to_string(),
+                status: 200,
+            },
+            MockRequestLog {
+                method: "POST".to_string(),
+                path: "/sessions".to_string(),
+                status: 404,
+            },
+        ];
+        let path = std::env::temp_dir().join(format!(
+            "zenapi-mock-log-export-{}.json",
+            std::process::id()
+        ));
+        let _ = fs::remove_file(&path);
+
+        let count = save_mock_logs(path.to_str().expect("utf-8 temp path"), &logs, "sessions")
+            .expect("save mock logs");
+        let exported: Vec<MockRequestLog> =
+            serde_json::from_str(&fs::read_to_string(&path).expect("mock log export"))
+                .expect("mock log json");
+
+        assert_eq!(count, 1);
+        assert_eq!(exported[0].path, "/sessions");
+        assert!(save_mock_logs("   ", &logs, "").is_err());
+
+        let _ = fs::remove_file(path);
     }
 
     #[test]

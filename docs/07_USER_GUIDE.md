@@ -290,6 +290,7 @@ Behavior:
 - Serves generated JSON responses from OpenAPI schemas and examples.
 - Records recent mock requests in the Mock Log panel.
 - Filters mock logs by method, path, or status.
+- Saves the currently filtered mock log view to a local JSON file.
 
 ## Error Feedback
 
