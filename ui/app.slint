@@ -14,6 +14,13 @@ export struct HistoryRow {
     status: string,
 }
 
+export struct CollectionRow {
+    id: int,
+    method: string,
+    name: string,
+    url: string,
+}
+
 component UiText inherits Text {
     font-family: "Inter";
     font-size: 13px;
@@ -589,13 +596,75 @@ component HistoryListItem inherits Rectangle {
     }
 }
 
+component CollectionListItem inherits Rectangle {
+    in property <int> entry_id;
+    in property <string> method;
+    in property <string> name;
+    in property <string> url;
+    callback picked(int);
+
+    height: 54px;
+    horizontal-stretch: 1;
+    border-radius: 6px;
+    background: touch.has-hover ? Theme.surface_container_high : Theme.surface_container_low;
+
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.picked(root.entry_id);
+        }
+    }
+
+    MethodChip {
+        x: 10px;
+        y: 9px;
+        method: root.method;
+    }
+
+    UiText {
+        x: 82px;
+        y: 6px;
+        text: root.name;
+        width: parent.width - 92px;
+        height: 20px;
+        font-size: 12px;
+        font-weight: 700;
+        color: Theme.on_surface;
+        overflow: elide;
+        vertical-alignment: center;
+    }
+
+    UiText {
+        x: 82px;
+        y: 29px;
+        text: root.url;
+        width: parent.width - 92px;
+        height: 16px;
+        font-family: "JetBrains Mono";
+        font-size: 11px;
+        color: Theme.on_surface_variant;
+        overflow: elide;
+        vertical-alignment: center;
+    }
+}
+
 component Sidebar inherits Rectangle {
     in-out property <[RouteRow]> routes;
+    in-out property <[CollectionRow]> collection_rows;
     in-out property <[HistoryRow]> history_rows;
     in-out property <int> selected_route;
     in-out property <string> route_filter;
+    in-out property <string> collection_path;
+    in-out property <string> collection_name;
+    in-out property <string> collection_status;
     in property <int> total_route_count;
+    in property <bool> busy;
     callback select_route(int);
+    callback select_collection_request(int);
+    callback import_collection(string);
+    callback save_current_request();
+    callback save_collection(string);
+    callback export_postman_collection(string);
     callback select_history(int);
     callback filter_routes(string);
 
@@ -665,6 +734,120 @@ component Sidebar inherits Rectangle {
         }
 
         SectionTitle {
+            text: "COLLECTION";
+            meta: root.collection_rows.length == 0 ? "" : root.collection_rows.length + "";
+        }
+
+        TextField {
+            text <=> root.collection_path;
+            placeholder: "Collection JSON path";
+            mono: true;
+            enabled: !root.busy;
+            height: 32px;
+            accepted => {
+                root.import_collection(root.collection_path);
+            }
+        }
+
+        Rectangle {
+            height: 34px;
+            horizontal-stretch: 1;
+
+            HorizontalLayout {
+                padding: 0px;
+                spacing: 6px;
+                alignment: center;
+
+                ActionButton {
+                    text: "Load";
+                    button_width: 46px;
+                    enabled: !root.busy;
+                    clicked => {
+                        root.import_collection(root.collection_path);
+                    }
+                }
+
+                ActionButton {
+                    text: "Add";
+                    button_width: 46px;
+                    enabled: !root.busy;
+                    clicked => {
+                        root.save_current_request();
+                    }
+                }
+
+                ActionButton {
+                    text: "Save";
+                    button_width: 46px;
+                    enabled: !root.busy;
+                    clicked => {
+                        root.save_collection(root.collection_path);
+                    }
+                }
+
+                ActionButton {
+                    text: "PM";
+                    button_width: 46px;
+                    enabled: !root.busy;
+                    clicked => {
+                        root.export_postman_collection(root.collection_path);
+                    }
+                }
+            }
+        }
+
+        UiText {
+            text: root.collection_status != "" ? root.collection_status : root.collection_name;
+            height: 18px;
+            horizontal-stretch: 1;
+            color: Theme.outline;
+            font-size: 11px;
+            overflow: elide;
+            vertical-alignment: center;
+        }
+
+        if root.collection_rows.length == 0: Rectangle {
+            height: 34px;
+            horizontal-stretch: 1;
+            background: Theme.surface_container;
+            border-radius: 6px;
+
+            UiText {
+                text: "No saved requests";
+                width: parent.width;
+                height: parent.height;
+                color: Theme.outline;
+                font-size: 12px;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+                overflow: elide;
+            }
+        }
+
+        if root.collection_rows.length != 0: ListView {
+            height: 108px;
+            horizontal-stretch: 1;
+            vertical-scrollbar-policy: ScrollBarPolicy.always-off;
+            horizontal-scrollbar-policy: ScrollBarPolicy.always-off;
+
+            for entry in root.collection_rows: CollectionListItem {
+                entry_id: entry.id;
+                method: entry.method;
+                name: entry.name;
+                url: entry.url;
+                picked(id) => {
+                    root.select_collection_request(id);
+                }
+            }
+        }
+
+        Rectangle {
+            height: 1px;
+            horizontal-stretch: 1;
+            background: Theme.outline_variant;
+        }
+
+        SectionTitle {
             text: "HISTORY";
             meta: root.history_rows.length == 0 ? "" : root.history_rows.length + "";
         }
@@ -688,7 +871,7 @@ component Sidebar inherits Rectangle {
         }
 
         if root.history_rows.length != 0: ListView {
-            height: 176px;
+            height: 132px;
             horizontal-stretch: 1;
             vertical-scrollbar-policy: ScrollBarPolicy.always-off;
             horizontal-scrollbar-policy: ScrollBarPolicy.always-off;
@@ -1316,11 +1499,15 @@ export component AppWindow inherits Window {
     default-font-weight: 500;
 
     in-out property <[RouteRow]> routes;
+    in-out property <[CollectionRow]> collection_rows;
     in-out property <[HistoryRow]> history_rows;
     in-out property <int> selected_route: -1;
     in-out property <string> file_path;
     in-out property <string> spec_label: "";
     in-out property <bool> spec_loaded: false;
+    in-out property <string> collection_path;
+    in-out property <string> collection_name: "ZenAPI Collection";
+    in-out property <string> collection_status: "";
     in-out property <string> method: "GET";
     in-out property <string> url;
     in-out property <string> global_variables: "baseUrl=https://api.example.com";
@@ -1349,6 +1536,11 @@ export component AppWindow inherits Window {
     callback import_openapi(string);
     callback filter_routes(string);
     callback select_route(int);
+    callback select_collection_request(int);
+    callback import_collection(string);
+    callback save_current_request();
+    callback save_collection(string);
+    callback export_postman_collection(string);
     callback select_history(int);
     callback send_request();
     callback toggle_server();
@@ -1382,15 +1574,35 @@ export component AppWindow inherits Window {
 
             Sidebar {
                 routes <=> root.routes;
+                collection_rows <=> root.collection_rows;
                 history_rows <=> root.history_rows;
                 selected_route <=> root.selected_route;
                 route_filter <=> root.route_filter;
+                collection_path <=> root.collection_path;
+                collection_name <=> root.collection_name;
+                collection_status <=> root.collection_status;
                 total_route_count: root.total_route_count;
+                busy: root.busy;
                 filter_routes(query) => {
                     root.filter_routes(query);
                 }
                 select_route(index) => {
                     root.select_route(index);
+                }
+                select_collection_request(id) => {
+                    root.select_collection_request(id);
+                }
+                import_collection(path) => {
+                    root.import_collection(path);
+                }
+                save_current_request => {
+                    root.save_current_request();
+                }
+                save_collection(path) => {
+                    root.save_collection(path);
+                }
+                export_postman_collection(path) => {
+                    root.export_postman_collection(path);
                 }
                 select_history(id) => {
                     root.select_history(id);

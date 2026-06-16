@@ -7,13 +7,14 @@ use tokio::runtime::Runtime;
 use zenapi::{
     client::{self, ClientResponse, RequestBody},
     codegen::{CodegenRequest, SnippetLanguage, generate_snippet},
+    collections::{ApiCollection, CollectionBody, CollectionItem, CollectionRequest, NameValue},
     history::{HistoryRequest, HistoryResponse, RequestHistory},
     mock_server::MockServer,
     openapi::{ApiRoute, ApiSpec, load_openapi_file},
     variables::{Variable, VariableStore, replace_variables},
 };
 
-use crate::ui::{AppWindow, HistoryRow, RouteRow};
+use crate::ui::{AppWindow, CollectionRow, HistoryRow, RouteRow};
 
 pub fn run() -> Result<()> {
     let runtime = Arc::new(Runtime::new()?);
@@ -24,6 +25,7 @@ pub fn run() -> Result<()> {
     wire_route_filter(&app, state.clone());
     wire_route_selection(&app, state.clone());
     wire_history_selection(&app, state.clone());
+    wire_collection_actions(&app, state.clone());
     wire_request_sender(&app, runtime.clone(), state.clone());
     wire_codegen(&app);
     wire_mock_server(&app, runtime, state);
@@ -31,10 +33,10 @@ pub fn run() -> Result<()> {
     app.run().map_err(|err| anyhow!(err.to_string()))
 }
 
-#[derive(Default)]
 struct AppState {
     routes: Vec<ApiRoute>,
     visible_routes: Vec<ApiRoute>,
+    collection: ApiCollection,
     history: RequestHistory,
     server: Option<MockServer>,
 }
@@ -58,12 +60,40 @@ struct RequestProjectionInput {
     environment_variables: String,
 }
 
+fn request_projection_input(app: &AppWindow) -> RequestProjectionInput {
+    RequestProjectionInput {
+        method: app.get_method().to_string(),
+        url: app.get_url().to_string(),
+        query_params: app.get_query_params().to_string(),
+        headers: app.get_request_headers().to_string(),
+        auth_mode: app.get_auth_mode().to_string(),
+        auth_config: app.get_auth_config().to_string(),
+        body_mode: app.get_body_mode().to_string(),
+        body: app.get_request_body().to_string(),
+        global_variables: app.get_global_variables().to_string(),
+        environment_name: app.get_environment_name().to_string(),
+        environment_variables: app.get_environment_variables().to_string(),
+    }
+}
+
 impl AppState {
     fn next_server_action(&mut self) -> ServerAction {
         if let Some(server) = self.server.take() {
             ServerAction::Stop(server)
         } else {
             ServerAction::Start(self.routes.clone())
+        }
+    }
+}
+
+impl Default for AppState {
+    fn default() -> Self {
+        Self {
+            routes: Vec::new(),
+            visible_routes: Vec::new(),
+            collection: ApiCollection::new("ZenAPI Collection"),
+            history: RequestHistory::default(),
+            server: None,
         }
     }
 }
@@ -236,6 +266,236 @@ fn wire_history_selection(app: &AppWindow, state: Arc<Mutex<AppState>>) {
     });
 }
 
+fn wire_collection_actions(app: &AppWindow, state: Arc<Mutex<AppState>>) {
+    let weak_app = app.as_weak();
+    let import_state = state.clone();
+    app.on_import_collection(move |path| {
+        let Some(app) = weak_app.upgrade() else {
+            return;
+        };
+        if app.get_busy() {
+            return;
+        }
+
+        let path = path.trim();
+        if path.is_empty() {
+            app.set_collection_status("Collection path required".into());
+            set_response(
+                &app,
+                "Collection import failed",
+                "",
+                "error",
+                "Enter a local native or Postman collection JSON file path.",
+            );
+            return;
+        }
+
+        match ApiCollection::load_file(path) {
+            Ok(collection) => {
+                let name = collection.name.clone();
+                let request_count = count_collection_requests(&collection.items);
+                let rows = collection_model(&collection);
+                if let Ok(mut state) = import_state.lock() {
+                    state.collection = collection;
+                }
+                app.set_collection_name(name.clone().into());
+                app.set_collection_rows(rows);
+                app.set_collection_status(format!("Loaded {request_count} requests").into());
+                set_response(
+                    &app,
+                    "Collection loaded",
+                    path,
+                    "success",
+                    &format!("{name}\n{request_count} requests"),
+                );
+            }
+            Err(error) => {
+                app.set_collection_status("Load failed".into());
+                set_response(
+                    &app,
+                    "Collection import failed",
+                    path,
+                    "error",
+                    &error.to_string(),
+                );
+            }
+        }
+    });
+
+    let weak_app = app.as_weak();
+    let save_state = state.clone();
+    app.on_save_collection(move |path| {
+        let Some(app) = weak_app.upgrade() else {
+            return;
+        };
+        if app.get_busy() {
+            return;
+        }
+
+        let path = path.trim();
+        if path.is_empty() {
+            app.set_collection_status("Collection path required".into());
+            set_response(
+                &app,
+                "Collection save failed",
+                "",
+                "error",
+                "Enter a target native collection JSON file path.",
+            );
+            return;
+        }
+
+        let Some(collection) = save_state.lock().ok().map(|state| state.collection.clone()) else {
+            return;
+        };
+        match collection.save_file(path) {
+            Ok(()) => {
+                app.set_collection_status("Saved native JSON".into());
+                set_response(&app, "Collection saved", path, "success", &collection.name);
+            }
+            Err(error) => {
+                app.set_collection_status("Save failed".into());
+                set_response(
+                    &app,
+                    "Collection save failed",
+                    path,
+                    "error",
+                    &error.to_string(),
+                );
+            }
+        }
+    });
+
+    let weak_app = app.as_weak();
+    let export_state = state.clone();
+    app.on_export_postman_collection(move |path| {
+        let Some(app) = weak_app.upgrade() else {
+            return;
+        };
+        if app.get_busy() {
+            return;
+        }
+
+        let path = path.trim();
+        if path.is_empty() {
+            app.set_collection_status("Collection path required".into());
+            set_response(
+                &app,
+                "Postman export failed",
+                "",
+                "error",
+                "Enter a target Postman collection JSON file path.",
+            );
+            return;
+        }
+
+        let Some(collection) = export_state
+            .lock()
+            .ok()
+            .map(|state| state.collection.clone())
+        else {
+            return;
+        };
+        match collection.save_postman_file(path) {
+            Ok(()) => {
+                app.set_collection_status("Exported Postman JSON".into());
+                set_response(
+                    &app,
+                    "Postman collection exported",
+                    path,
+                    "success",
+                    &collection.name,
+                );
+            }
+            Err(error) => {
+                app.set_collection_status("Export failed".into());
+                set_response(
+                    &app,
+                    "Postman export failed",
+                    path,
+                    "error",
+                    &error.to_string(),
+                );
+            }
+        }
+    });
+
+    let weak_app = app.as_weak();
+    let add_state = state.clone();
+    app.on_save_current_request(move || {
+        let Some(app) = weak_app.upgrade() else {
+            return;
+        };
+        if app.get_busy() {
+            return;
+        }
+
+        let request = match build_codegen_request_projection(&request_projection_input(&app)) {
+            Ok(request) => request,
+            Err(error) => {
+                app.set_collection_status("Add failed".into());
+                set_response(
+                    &app,
+                    "Collection add failed",
+                    "",
+                    "error",
+                    &error.to_string(),
+                );
+                return;
+            }
+        };
+        let collection_request = collection_request_from_codegen(&request);
+        let request_name = collection_request.name.clone();
+
+        let Some((collection_name, request_count, rows)) =
+            add_state.lock().ok().map(|mut state| {
+                state
+                    .collection
+                    .items
+                    .push(CollectionItem::Request(collection_request));
+                (
+                    state.collection.name.clone(),
+                    count_collection_requests(&state.collection.items),
+                    collection_model(&state.collection),
+                )
+            })
+        else {
+            return;
+        };
+
+        app.set_collection_name(collection_name.into());
+        app.set_collection_rows(rows);
+        app.set_collection_status(format!("Saved {request_count} requests").into());
+        set_response(
+            &app,
+            "Request saved to collection",
+            &request_name,
+            "success",
+            &request.url,
+        );
+    });
+
+    let weak_app = app.as_weak();
+    let select_state = state;
+    app.on_select_collection_request(move |id| {
+        let Some(app) = weak_app.upgrade() else {
+            return;
+        };
+        if app.get_busy() || id < 0 {
+            return;
+        }
+
+        let request = select_state
+            .lock()
+            .ok()
+            .and_then(|state| collection_request_at(&state.collection, id as usize).cloned());
+
+        if let Some(request) = request {
+            restore_collection_request(&app, &request);
+        }
+    });
+}
+
 fn wire_request_sender(app: &AppWindow, runtime: Arc<Runtime>, state: Arc<Mutex<AppState>>) {
     let weak_app = app.as_weak();
     app.on_send_request(move || {
@@ -246,19 +506,7 @@ fn wire_request_sender(app: &AppWindow, runtime: Arc<Runtime>, state: Arc<Mutex<
             return;
         }
 
-        let request = match build_codegen_request_projection(&RequestProjectionInput {
-            method: app.get_method().to_string(),
-            url: app.get_url().to_string(),
-            query_params: app.get_query_params().to_string(),
-            headers: app.get_request_headers().to_string(),
-            auth_mode: app.get_auth_mode().to_string(),
-            auth_config: app.get_auth_config().to_string(),
-            body_mode: app.get_body_mode().to_string(),
-            body: app.get_request_body().to_string(),
-            global_variables: app.get_global_variables().to_string(),
-            environment_name: app.get_environment_name().to_string(),
-            environment_variables: app.get_environment_variables().to_string(),
-        }) {
+        let request = match build_codegen_request_projection(&request_projection_input(&app)) {
             Ok(request) => request,
             Err(error) => {
                 set_response(&app, "Build failed", "", "error", &error.to_string());
@@ -344,19 +592,7 @@ fn wire_codegen(app: &AppWindow) {
             return;
         }
 
-        let request = match build_codegen_request_projection(&RequestProjectionInput {
-            method: app.get_method().to_string(),
-            url: app.get_url().to_string(),
-            query_params: app.get_query_params().to_string(),
-            headers: app.get_request_headers().to_string(),
-            auth_mode: app.get_auth_mode().to_string(),
-            auth_config: app.get_auth_config().to_string(),
-            body_mode: app.get_body_mode().to_string(),
-            body: app.get_request_body().to_string(),
-            global_variables: app.get_global_variables().to_string(),
-            environment_name: app.get_environment_name().to_string(),
-            environment_variables: app.get_environment_variables().to_string(),
-        }) {
+        let request = match build_codegen_request_projection(&request_projection_input(&app)) {
             Ok(request) => request,
             Err(error) => {
                 set_response(&app, "Codegen failed", "", "error", &error.to_string());
@@ -496,6 +732,170 @@ fn route_model(routes: &[ApiRoute]) -> ModelRc<RouteRow> {
         path: route.path.clone().into(),
         summary: route.summary.clone().into(),
     })))
+}
+
+fn collection_model(collection: &ApiCollection) -> ModelRc<CollectionRow> {
+    let mut rows = Vec::new();
+    let mut next_id = 0;
+    collect_collection_rows(&collection.items, "", &mut next_id, &mut rows);
+    ModelRc::new(VecModel::from_iter(rows))
+}
+
+fn collect_collection_rows(
+    items: &[CollectionItem],
+    folder_path: &str,
+    next_id: &mut i32,
+    rows: &mut Vec<CollectionRow>,
+) {
+    for item in items {
+        match item {
+            CollectionItem::Folder(folder) => {
+                let nested_path = if folder_path.is_empty() {
+                    folder.name.clone()
+                } else {
+                    format!("{folder_path} / {}", folder.name)
+                };
+                collect_collection_rows(&folder.items, &nested_path, next_id, rows);
+            }
+            CollectionItem::Request(request) => {
+                let name = if folder_path.is_empty() {
+                    request.name.clone()
+                } else {
+                    format!("{folder_path} / {}", request.name)
+                };
+                rows.push(CollectionRow {
+                    id: *next_id,
+                    method: request.method.clone().into(),
+                    name: name.into(),
+                    url: request.url.clone().into(),
+                });
+                *next_id += 1;
+            }
+        }
+    }
+}
+
+fn count_collection_requests(items: &[CollectionItem]) -> usize {
+    items
+        .iter()
+        .map(|item| match item {
+            CollectionItem::Folder(folder) => count_collection_requests(&folder.items),
+            CollectionItem::Request(_) => 1,
+        })
+        .sum()
+}
+
+fn collection_request_at(collection: &ApiCollection, index: usize) -> Option<&CollectionRequest> {
+    let mut current = 0;
+    collection_request_at_items(&collection.items, index, &mut current)
+}
+
+fn collection_request_at_items<'a>(
+    items: &'a [CollectionItem],
+    target: usize,
+    current: &mut usize,
+) -> Option<&'a CollectionRequest> {
+    for item in items {
+        match item {
+            CollectionItem::Folder(folder) => {
+                if let Some(request) = collection_request_at_items(&folder.items, target, current) {
+                    return Some(request);
+                }
+            }
+            CollectionItem::Request(request) => {
+                if *current == target {
+                    return Some(request);
+                }
+                *current += 1;
+            }
+        }
+    }
+    None
+}
+
+fn collection_request_from_codegen(request: &CodegenRequest) -> CollectionRequest {
+    CollectionRequest {
+        name: format!("{} {}", request.method, request.url),
+        method: request.method.clone(),
+        url: request.url.clone(),
+        headers: name_values_from_pairs(&request.headers),
+        query_params: name_values_from_pairs(&request.query_params),
+        body: collection_body_from_request_body(&request.body),
+        pre_request_script: String::new(),
+        tests: Vec::new(),
+    }
+}
+
+fn name_values_from_pairs(pairs: &[(String, String)]) -> Vec<NameValue> {
+    pairs
+        .iter()
+        .map(|(name, value)| NameValue {
+            name: name.clone(),
+            value: value.clone(),
+        })
+        .collect()
+}
+
+fn collection_body_from_request_body(body: &RequestBody) -> CollectionBody {
+    match body {
+        RequestBody::None => CollectionBody::None,
+        RequestBody::Raw { content_type, body } => CollectionBody::Raw {
+            content_type: content_type
+                .clone()
+                .unwrap_or_else(|| "application/json".to_string()),
+            body: body.clone(),
+        },
+        RequestBody::FormUrlEncoded(fields) => CollectionBody::UrlEncoded {
+            fields: name_values_from_pairs(fields),
+        },
+        RequestBody::Multipart(fields) => CollectionBody::FormData {
+            fields: name_values_from_pairs(fields),
+        },
+        RequestBody::BinaryFile { path, content_type } => CollectionBody::Binary {
+            path: path.clone(),
+            content_type: content_type
+                .clone()
+                .unwrap_or_else(|| "application/octet-stream".to_string()),
+        },
+    }
+}
+
+fn restore_collection_request(app: &AppWindow, request: &CollectionRequest) {
+    let (body_mode, request_body) = collection_body_to_slint(&request.body);
+    app.set_method(request.method.clone().into());
+    app.set_url(request.url.clone().into());
+    app.set_query_params(format_name_values(&request.query_params).into());
+    app.set_request_headers(format_name_values(&request.headers).into());
+    app.set_auth_mode("none".into());
+    app.set_auth_config("".into());
+    app.set_body_mode(body_mode.into());
+    app.set_request_body(request_body.into());
+    app.set_collection_status(format!("Selected {}", request.name).into());
+    set_response(
+        app,
+        "Collection request loaded",
+        &request.name,
+        "neutral",
+        &request.url,
+    );
+}
+
+fn collection_body_to_slint(body: &CollectionBody) -> (String, String) {
+    match body {
+        CollectionBody::None => ("none".to_string(), String::new()),
+        CollectionBody::Raw { body, .. } => ("raw".to_string(), body.clone()),
+        CollectionBody::FormData { fields } => ("form".to_string(), format_name_values(fields)),
+        CollectionBody::UrlEncoded { fields } => ("urlenc".to_string(), format_name_values(fields)),
+        CollectionBody::Binary { path, .. } => ("binary".to_string(), path.clone()),
+    }
+}
+
+fn format_name_values(values: &[NameValue]) -> String {
+    values
+        .iter()
+        .map(|value| format!("{}={}", value.name, value.value))
+        .collect::<Vec<_>>()
+        .join("\n")
 }
 
 fn history_model(entries: &[zenapi::history::HistoryEntry]) -> ModelRc<HistoryRow> {
@@ -871,6 +1271,19 @@ mod tests {
         }
     }
 
+    fn saved_request(name: &str, method: &str, url: &str) -> CollectionRequest {
+        CollectionRequest {
+            name: name.to_string(),
+            method: method.to_string(),
+            url: url.to_string(),
+            headers: Vec::new(),
+            query_params: Vec::new(),
+            body: CollectionBody::None,
+            pre_request_script: String::new(),
+            tests: Vec::new(),
+        }
+    }
+
     #[test]
     fn filters_routes_by_method_path_or_summary() {
         let routes = vec![
@@ -1120,6 +1533,126 @@ mod tests {
         assert_eq!(snippet_language("rust"), SnippetLanguage::RustReqwest);
         assert_eq!(snippet_language("go"), SnippetLanguage::GoNetHttp);
         assert_eq!(snippet_language("unknown"), SnippetLanguage::Curl);
+    }
+
+    #[test]
+    fn saves_projected_request_as_collection_request() {
+        let request = CodegenRequest {
+            method: "POST".to_string(),
+            url: "https://api.example.com/users".to_string(),
+            headers: vec![("Authorization".to_string(), "Bearer secret".to_string())],
+            query_params: vec![("debug".to_string(), "true".to_string())],
+            body: RequestBody::Raw {
+                content_type: Some("application/json".to_string()),
+                body: "{\"name\":\"Zen\"}".to_string(),
+            },
+        };
+
+        let saved = collection_request_from_codegen(&request);
+
+        assert_eq!(saved.name, "POST https://api.example.com/users");
+        assert_eq!(saved.method, "POST");
+        assert_eq!(saved.url, "https://api.example.com/users");
+        assert_eq!(
+            saved.headers,
+            vec![NameValue {
+                name: "Authorization".to_string(),
+                value: "Bearer secret".to_string(),
+            }]
+        );
+        assert_eq!(
+            saved.query_params,
+            vec![NameValue {
+                name: "debug".to_string(),
+                value: "true".to_string(),
+            }]
+        );
+        assert_eq!(
+            saved.body,
+            CollectionBody::Raw {
+                content_type: "application/json".to_string(),
+                body: "{\"name\":\"Zen\"}".to_string(),
+            }
+        );
+    }
+
+    #[test]
+    fn finds_nested_collection_requests_by_flattened_row_id() {
+        let collection = ApiCollection {
+            name: "Demo".to_string(),
+            description: String::new(),
+            items: vec![
+                CollectionItem::Folder(zenapi::collections::CollectionFolder {
+                    name: "Users".to_string(),
+                    description: String::new(),
+                    items: vec![
+                        CollectionItem::Request(saved_request(
+                            "List users",
+                            "GET",
+                            "https://api.example.com/users",
+                        )),
+                        CollectionItem::Request(saved_request(
+                            "Create user",
+                            "POST",
+                            "https://api.example.com/users",
+                        )),
+                    ],
+                }),
+                CollectionItem::Request(saved_request(
+                    "Health",
+                    "GET",
+                    "https://api.example.com/health",
+                )),
+            ],
+        };
+
+        assert_eq!(count_collection_requests(&collection.items), 3);
+        assert_eq!(
+            collection_request_at(&collection, 0).map(|request| request.name.as_str()),
+            Some("List users")
+        );
+        assert_eq!(
+            collection_request_at(&collection, 1).map(|request| request.name.as_str()),
+            Some("Create user")
+        );
+        assert_eq!(
+            collection_request_at(&collection, 2).map(|request| request.name.as_str()),
+            Some("Health")
+        );
+        assert!(collection_request_at(&collection, 3).is_none());
+    }
+
+    #[test]
+    fn maps_collection_body_and_fields_back_to_slint_editors() {
+        assert_eq!(
+            format_name_values(&[
+                NameValue {
+                    name: "Accept".to_string(),
+                    value: "application/json".to_string(),
+                },
+                NameValue {
+                    name: "X-Request-Id".to_string(),
+                    value: "abc".to_string(),
+                },
+            ]),
+            "Accept=application/json\nX-Request-Id=abc"
+        );
+        assert_eq!(
+            collection_body_to_slint(&CollectionBody::UrlEncoded {
+                fields: vec![NameValue {
+                    name: "search".to_string(),
+                    value: "slint".to_string(),
+                }],
+            }),
+            ("urlenc".to_string(), "search=slint".to_string())
+        );
+        assert_eq!(
+            collection_body_to_slint(&CollectionBody::Binary {
+                path: "/tmp/body.bin".to_string(),
+                content_type: "application/octet-stream".to_string(),
+            }),
+            ("binary".to_string(), "/tmp/body.bin".to_string())
+        );
     }
 
     #[test]

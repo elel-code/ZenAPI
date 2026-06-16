@@ -56,8 +56,11 @@
 - [~] Rebuild Environments and Variables UI on top of `variables::VariableStore`;
   current Slint baseline supports one active environment plus line-based global
   and environment variable editors, with full environment list management pending.
-- [ ] Rebuild Collections UI for native JSON/Postman import/export, saving
-  current requests, nested folders, rename/delete/copy, and drag/drop.
+- [~] Rebuild Collections UI for native JSON/Postman import/export, saving
+  current requests, nested folders, rename/delete/copy, and drag/drop; current
+  Slint baseline loads native/Postman JSON, saves the effective current request,
+  saves native JSON, exports Postman JSON, and restores saved requests from a
+  flat sidebar list, with tree editing and item management still pending.
 - [~] Rebuild History UI for local request history, filtering, restore, delete,
   and clear; current Slint baseline records recent requests and restores method,
   URL, body mode, and body preview, with filtering/delete/clear and full request
@@ -92,7 +95,7 @@
 | HTTP client | Core implemented | Slint currently wires method, URL, and raw body |
 | Mock server | Core implemented | Slint start/stop toggle wired |
 | Variables | Domain implemented | Slint UI parity pending |
-| Collections | Domain implemented | Slint UI parity pending |
+| Collections | Domain implemented | Slint baseline supports load/save/export and request restore |
 | History | Domain implemented | Slint baseline records and restores recent requests |
 | Codegen | Domain implemented | Slint UI parity pending |
 | Runner | Domain + CLI implemented | Slint UI parity pending |
