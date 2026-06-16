@@ -58,6 +58,7 @@ pub fn run() -> Result<()> {
     wire_collection_actions(&app, state.clone());
     wire_mock_log_filter(&app, state.clone());
     wire_request_sender(&app, runtime.clone(), state.clone());
+    wire_graphql_helpers(&app);
     wire_codegen(&app);
     wire_collection_runner(&app, runtime.clone(), state.clone());
     wire_realtime_actions(&app, runtime.clone());
@@ -96,6 +97,13 @@ struct RequestProjectionInput {
     global_variables: String,
     environment_name: String,
     environment_variables: String,
+}
+
+#[derive(Clone, Copy)]
+struct GraphqlTemplate {
+    name: &'static str,
+    query: &'static str,
+    variables: &'static str,
 }
 
 fn request_projection_input(app: &AppWindow) -> RequestProjectionInput {
@@ -1170,6 +1178,40 @@ fn wire_collection_runner(app: &AppWindow, runtime: Arc<Runtime>, state: Arc<Mut
         if let Ok(mut run) = active_run_for_start.lock() {
             *run = Some(handle);
         }
+    });
+}
+
+fn wire_graphql_helpers(app: &AppWindow) {
+    let weak_app = app.as_weak();
+    app.on_apply_graphql_template(move |template| {
+        let Some(app) = weak_app.upgrade() else {
+            return;
+        };
+        if app.get_busy() {
+            return;
+        }
+
+        let Some(template) = graphql_template(template.as_str()) else {
+            set_response(
+                &app,
+                "GraphQL template failed",
+                "",
+                "error",
+                "Unknown GraphQL template.",
+            );
+            return;
+        };
+
+        app.set_body_mode("graphql".into());
+        app.set_request_body(template.query.into());
+        app.set_graphql_variables(template.variables.into());
+        set_response(
+            &app,
+            "GraphQL template ready",
+            template.name,
+            "success",
+            "Template applied to the request body.",
+        );
     });
 }
 
@@ -2789,6 +2831,86 @@ fn build_request_body(mode: &str, input: &str, graphql_variables: &str) -> Resul
     }
 }
 
+const GRAPHQL_INTROSPECTION_QUERY: &str = r#"query IntrospectionQuery {
+  __schema {
+    queryType {
+      name
+    }
+    mutationType {
+      name
+    }
+    subscriptionType {
+      name
+    }
+    types {
+      kind
+      name
+      fields(includeDeprecated: true) {
+        name
+        args {
+          name
+          type {
+            kind
+            name
+            ofType {
+              kind
+              name
+            }
+          }
+        }
+        type {
+          kind
+          name
+          ofType {
+            kind
+            name
+          }
+        }
+        isDeprecated
+        deprecationReason
+      }
+    }
+  }
+}"#;
+
+const GRAPHQL_QUERY_TEMPLATE: &str = r#"query Example($id: ID!) {
+  node(id: $id) {
+    id
+    __typename
+  }
+}"#;
+
+const GRAPHQL_MUTATION_TEMPLATE: &str = r#"mutation Example($input: ExampleInput!) {
+  example(input: $input) {
+    id
+  }
+}"#;
+
+fn graphql_template(template: &str) -> Option<GraphqlTemplate> {
+    match template {
+        "introspection" | "intro" => Some(GraphqlTemplate {
+            name: "Introspection",
+            query: GRAPHQL_INTROSPECTION_QUERY,
+            variables: "{}",
+        }),
+        "query" => Some(GraphqlTemplate {
+            name: "Query",
+            query: GRAPHQL_QUERY_TEMPLATE,
+            variables: r#"{
+  "id": "example-id"
+}"#,
+        }),
+        "mutation" => Some(GraphqlTemplate {
+            name: "Mutation",
+            query: GRAPHQL_MUTATION_TEMPLATE,
+            variables: r#"{
+  "input": {}
+}"#,
+        }),
+        _ => None,
+    }
+}
+
 fn build_graphql_request_body(query: &str, variables: &str) -> Result<RequestBody> {
     let query = query.trim();
     if query.is_empty() {
@@ -3324,6 +3446,23 @@ mod tests {
         let error = build_request_body("graphql", "{ viewer { id } }", "[]")
             .expect_err("invalid variables");
         assert!(error.to_string().contains("JSON object"));
+    }
+
+    #[test]
+    fn returns_graphql_helper_templates() {
+        let introspection = graphql_template("introspection").expect("introspection template");
+        assert_eq!(introspection.name, "Introspection");
+        assert!(introspection.query.contains("__schema"));
+        assert_eq!(introspection.variables, "{}");
+
+        let query = graphql_template("query").expect("query template");
+        assert!(query.query.contains("query Example"));
+        assert!(query.variables.contains("example-id"));
+
+        let mutation = graphql_template("mutation").expect("mutation template");
+        assert!(mutation.query.contains("mutation Example"));
+        assert!(mutation.variables.contains("\"input\""));
+        assert!(graphql_template("unknown").is_none());
     }
 
     #[test]

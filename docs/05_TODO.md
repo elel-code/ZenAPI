@@ -49,8 +49,9 @@
   `key=value` / `key: value` editors, with table controls still pending.
 - [~] Rebuild Body mode controls for none, form-data, URL-encoded, raw, GraphQL,
   and binary bodies; current Slint baseline maps editors into transport modes,
-  including GraphQL query/variables payload building, with dedicated form file
-  controls and GraphQL introspection/schema helpers still pending.
+  including GraphQL query/variables payload building and helper templates, with
+  dedicated form file controls and GraphQL schema response helpers still
+  pending.
 - [~] Rebuild Auth controls for None, Bearer, Basic, JWT, and API key modes;
   current Slint baseline supports mode buttons plus one config field with
   mode-specific format hints, with dedicated per-mode forms still pending.
@@ -89,7 +90,7 @@
 - [~] Add GraphQL and gRPC UI surfaces after REST parity is stable; current
   Slint baseline has GraphQL query/variables editing plus a gRPC draft surface
   backed by the domain model, with gRPC descriptor loading/transport and GraphQL
-  schema helpers still pending.
+  schema response helpers still pending.
 - [~] Add mock request logs and richer mock manager controls; current Slint
   baseline shows, filters, and exports recent mock requests in the sidebar,
   with richer route controls pending.
@@ -124,5 +125,5 @@
 | Assertions/scripts | Domain implemented | Slint baseline edits, saves, restores, and evaluates native scripts/tests |
 | WebSocket/SSE | Client modules restored | Slint baseline supports one-shot and persistent WS text sends plus SSE previews and persistent SSE streams |
 | Mock logs | Core implemented | Slint baseline shows, filters, and exports recent mock requests |
-| GraphQL | Payload builder implemented | Slint baseline edits query and variables |
+| GraphQL | Payload builder implemented | Slint baseline edits query/variables and applies helper templates |
 | gRPC | Domain draft model implemented | Slint draft surface wired; descriptor loading and unary transport pending |

@@ -949,6 +949,7 @@ component RequestPanel inherits Rectangle {
     callback run_sse();
     callback open_sse_stream();
     callback close_sse_stream();
+    callback apply_graphql_template(string);
     callback build_grpc_draft();
 
     horizontal-stretch: 1;
@@ -1135,6 +1136,39 @@ component RequestPanel inherits Rectangle {
             VerticalLayout {
                 padding: 10px;
                 spacing: 10px;
+
+                if root.body_mode == "graphql": HorizontalLayout {
+                    height: 30px;
+                    spacing: 8px;
+                    alignment: start;
+
+                    ActionButton {
+                        text: "Intro";
+                        button_width: 58px;
+                        enabled: !root.busy;
+                        clicked => {
+                            root.apply_graphql_template("introspection");
+                        }
+                    }
+
+                    ActionButton {
+                        text: "Query";
+                        button_width: 58px;
+                        enabled: !root.busy;
+                        clicked => {
+                            root.apply_graphql_template("query");
+                        }
+                    }
+
+                    ActionButton {
+                        text: "Mutation";
+                        button_width: 78px;
+                        enabled: !root.busy;
+                        clicked => {
+                            root.apply_graphql_template("mutation");
+                        }
+                    }
+                }
 
                 if root.body_mode == "graphql": HorizontalLayout {
                     spacing: 10px;
@@ -1884,6 +1918,7 @@ export component AppWindow inherits Window {
     callback run_sse();
     callback open_sse_stream();
     callback close_sse_stream();
+    callback apply_graphql_template(string);
     callback build_grpc_draft();
 
     background: Theme.background;
@@ -2047,6 +2082,9 @@ export component AppWindow inherits Window {
                             }
                             close_sse_stream => {
                                 root.close_sse_stream();
+                            }
+                            apply_graphql_template(template) => {
+                                root.apply_graphql_template(template);
                             }
                             build_grpc_draft => {
                                 root.build_grpc_draft();

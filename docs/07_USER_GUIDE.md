@@ -187,10 +187,10 @@ compact titles, and their table headers include `+` for more fields.
 Raw mode supports JSON, XML, Text, and HTML content types, with a compact
 `Preview` for structured text. In JSON raw mode, `Format` rewrites the body as
 pretty JSON when the content parses successfully. GraphQL mode builds a
-`Payload` with `query` and `variables`, can fill a standard introspection
-query, shows `Schema` and `Fields` panels when an introspection response is
-returned, and offers `Templates` rows that can be applied back into the editor.
-Form-data file fields use an `@path` prefix.
+payload with `query` and `variables`. Use `Intro`, `Query`, and `Mutation` to
+fill starter GraphQL documents and matching variables. Schema and field panels
+for introspection responses are still future work. Form-data file fields use an
+`@path` prefix.
 
 ## WebSocket
 
@@ -345,10 +345,10 @@ zenapi run collection.json --delay-ms 100
 - Pre-request script-lite and native response assertions are available in
   collection JSON, but a full script engine and `pm.*` compatibility are not
   implemented yet.
-- GraphQL query and variables payload editing is available; introspection query
-  fill, `Schema`, `Fields`, and `Templates` are future work. WebSocket one-shot
-  sends, persistent WS text sessions, SSE `Once` previews, and persistent SSE
-  stream/resume controls are available. gRPC has a draft
+- GraphQL query and variables payload editing plus starter templates are
+  available; introspection response schema/field panels are future work.
+  WebSocket one-shot sends, persistent WS text sessions, SSE `Once` previews,
+  and persistent SSE stream/resume controls are available. gRPC has a draft
   domain model and an implementation plan in `docs/09_GRPC.md`, but transport/UI
   support is future work.
 - Plugin APIs are future work.
