@@ -103,7 +103,9 @@ component HistoryListItem inherits Rectangle {
     in property <string> method;
     in property <string> url;
     in property <string> status;
+    in property <bool> enabled: true;
     callback picked(int);
+    callback delete_requested(int);
 
     height: 52px;
     horizontal-stretch: 1;
@@ -127,7 +129,7 @@ component HistoryListItem inherits Rectangle {
         x: 82px;
         y: 6px;
         text: root.url;
-        width: parent.width - 92px;
+        width: parent.width - 142px;
         height: 20px;
         font-family: "JetBrains Mono";
         font-size: 12px;
@@ -141,13 +143,25 @@ component HistoryListItem inherits Rectangle {
         x: 82px;
         y: 28px;
         text: root.status;
-        width: parent.width - 92px;
+        width: parent.width - 142px;
         height: 16px;
         font-family: "JetBrains Mono";
         font-size: 11px;
         color: Theme.on_surface_variant;
         overflow: elide;
         vertical-alignment: center;
+    }
+
+    ActionButton {
+        x: parent.width - 52px;
+        y: 9px;
+        text: "Del";
+        button_width: 42px;
+        warning: true;
+        enabled: root.enabled;
+        clicked => {
+            root.delete_requested(root.entry_id);
+        }
     }
 }
 
@@ -270,6 +284,7 @@ component Sidebar inherits Rectangle {
     callback export_postman_collection(string);
     callback select_history(int);
     callback filter_history(string);
+    callback delete_history(int);
     callback clear_history();
     callback filter_routes(string);
 
@@ -512,8 +527,12 @@ component Sidebar inherits Rectangle {
                 method: entry.method;
                 url: entry.url;
                 status: entry.status;
+                enabled: !root.busy;
                 picked(id) => {
                     root.select_history(id);
+                }
+                delete_requested(id) => {
+                    root.delete_history(id);
                 }
             }
         }
@@ -1608,6 +1627,7 @@ export component AppWindow inherits Window {
     callback export_postman_collection(string);
     callback select_history(int);
     callback filter_history(string);
+    callback delete_history(int);
     callback clear_history();
     callback send_request();
     callback toggle_server();
@@ -1682,6 +1702,9 @@ export component AppWindow inherits Window {
                 }
                 filter_history(query) => {
                     root.filter_history(query);
+                }
+                delete_history(id) => {
+                    root.delete_history(id);
                 }
                 clear_history => {
                     root.clear_history();

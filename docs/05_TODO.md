@@ -66,7 +66,8 @@
 - [~] Rebuild History UI for local request history, filtering, restore, delete,
   and clear; current Slint baseline records recent requests and restores method,
   URL, body mode, and body preview, with filtering and clear controls wired;
-  delete and full request state restore are still pending.
+  single-entry delete is wired, while full request state restore is still
+  pending.
 - [~] Rebuild Codegen UI for cURL, Python, JavaScript, Rust, and Go snippets;
   current Slint baseline generates snippets from the resolved request projection,
   with copy/export actions still pending.
@@ -114,7 +115,7 @@
 | Mock server | Core implemented | Slint start/stop toggle wired |
 | Variables | Domain implemented | Slint baseline supports global and one active environment editor |
 | Collections | Domain implemented | Slint baseline supports load/save/export and request restore |
-| History | Domain implemented | Slint baseline records and restores recent requests |
+| History | Domain implemented | Slint baseline records, filters, deletes, and restores recent requests |
 | Codegen | Domain implemented | Slint baseline generates resolved request snippets |
 | Runner | Domain + CLI implemented | Slint baseline runs active collections and shows result rows |
 | Assertions/scripts | Domain implemented | Slint baseline edits, saves, restores, and evaluates native scripts/tests |

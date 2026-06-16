@@ -304,6 +304,36 @@ fn wire_history_actions(app: &AppWindow, state: Arc<Mutex<AppState>>) {
     });
 
     let weak_app = app.as_weak();
+    let delete_state = state.clone();
+    app.on_delete_history(move |id| {
+        let Some(app) = weak_app.upgrade() else {
+            return;
+        };
+        if app.get_busy() || id < 0 {
+            return;
+        }
+
+        let result = delete_state.lock().ok().and_then(|mut state| {
+            delete_history_entry(
+                &mut state.history,
+                id as u64,
+                app.get_history_filter().as_str(),
+            )
+        });
+
+        if let Some(model) = result {
+            app.set_history_rows(model);
+            set_response(
+                &app,
+                "History deleted",
+                "",
+                "neutral",
+                "The selected request was removed from history.",
+            );
+        }
+    });
+
+    let weak_app = app.as_weak();
     app.on_clear_history(move || {
         let Some(app) = weak_app.upgrade() else {
             return;
@@ -1521,6 +1551,17 @@ fn push_mock_log(logs: &mut Vec<MockRequestLog>, log: MockRequestLog, limit: usi
 fn filtered_history_model(history: &RequestHistory, query: &str) -> ModelRc<HistoryRow> {
     let entries = history.filtered(query);
     history_model_from_entries(entries.into_iter())
+}
+
+fn delete_history_entry(
+    history: &mut RequestHistory,
+    id: u64,
+    query: &str,
+) -> Option<ModelRc<HistoryRow>> {
+    if !history.remove(id) {
+        return None;
+    }
+    Some(filtered_history_model(history, query))
 }
 
 fn empty_history_model() -> ModelRc<HistoryRow> {
@@ -2890,6 +2931,47 @@ mod tests {
         let row = model.row_data(0).expect("history row");
         assert_eq!(row.method.as_str(), "POST");
         assert_eq!(row.status.as_str(), "HTTP 401");
+    }
+
+    #[test]
+    fn deletes_history_entry_and_refreshes_filtered_rows() {
+        use slint::Model;
+
+        let mut history = RequestHistory::new();
+        let users_id = history.record_at(
+            1,
+            HistoryRequest {
+                method: "GET".to_string(),
+                url: "https://api.example.com/users".to_string(),
+                body_kind: "none".to_string(),
+                body_preview: String::new(),
+            },
+            HistoryResponse {
+                status: "HTTP 200".to_string(),
+                meta: "12 ms".to_string(),
+                body_preview: "{}".to_string(),
+            },
+        );
+        history.record_at(
+            2,
+            HistoryRequest {
+                method: "POST".to_string(),
+                url: "https://api.example.com/sessions".to_string(),
+                body_kind: "raw".to_string(),
+                body_preview: "{}".to_string(),
+            },
+            HistoryResponse {
+                status: "HTTP 401".to_string(),
+                meta: "auth".to_string(),
+                body_preview: "{}".to_string(),
+            },
+        );
+
+        let model = delete_history_entry(&mut history, users_id, "users").expect("delete model");
+
+        assert_eq!(model.row_count(), 0);
+        assert!(history.find(users_id).is_none());
+        assert!(delete_history_entry(&mut history, users_id, "").is_none());
     }
 
     #[test]
