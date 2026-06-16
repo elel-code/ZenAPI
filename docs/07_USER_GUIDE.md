@@ -323,6 +323,8 @@ Controls:
 - `Run`: run the current collection.
 - `Stop Fail`: stop after the first failed request.
 - `Cancel`: abort the active collection run.
+- Runner report path + `Save`: export the latest completed runner summary and
+  result rows as text.
 
 Results appear in the Runner panel and the response pane summary. HTTP 2xx and
 3xx responses are treated as passing when no tests are defined. Native ZenAPI

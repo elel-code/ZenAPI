@@ -1032,9 +1032,11 @@ fn wire_codegen(app: &AppWindow) {
 
 fn wire_collection_runner(app: &AppWindow, runtime: Arc<Runtime>, state: Arc<Mutex<AppState>>) {
     let active_run = Arc::new(Mutex::new(None::<JoinHandle<()>>));
+    let last_summary = Arc::new(Mutex::new(None::<CollectionRunSummary>));
 
     let weak_app = app.as_weak();
     let cancel_run = active_run.clone();
+    let cancel_summary = last_summary.clone();
     app.on_cancel_collection_run(move || {
         let Some(app) = weak_app.upgrade() else {
             return;
@@ -1056,6 +1058,9 @@ fn wire_collection_runner(app: &AppWindow, runtime: Arc<Runtime>, state: Arc<Mut
         app.set_busy(false);
         app.set_activity("".into());
         app.set_runner_summary("Cancelled".into());
+        if let Ok(mut summary) = cancel_summary.lock() {
+            *summary = None;
+        }
         set_response(
             &app,
             "Runner cancelled",
@@ -1066,7 +1071,47 @@ fn wire_collection_runner(app: &AppWindow, runtime: Arc<Runtime>, state: Arc<Mut
     });
 
     let weak_app = app.as_weak();
+    let save_summary = last_summary.clone();
+    app.on_save_runner_report(move |path| {
+        let Some(app) = weak_app.upgrade() else {
+            return;
+        };
+        if app.get_busy() || app.get_runner_active() {
+            return;
+        }
+
+        let Some(summary) = save_summary.lock().ok().and_then(|summary| summary.clone()) else {
+            set_response(
+                &app,
+                "Runner report failed",
+                "",
+                "error",
+                "Run a collection before saving a report.",
+            );
+            return;
+        };
+
+        match save_runner_report(path.as_str(), &summary) {
+            Ok(()) => set_response(
+                &app,
+                "Runner report saved",
+                path.as_str(),
+                "success",
+                "Collection runner report exported.",
+            ),
+            Err(error) => set_response(
+                &app,
+                "Runner report failed",
+                path.as_str(),
+                "error",
+                &error.to_string(),
+            ),
+        }
+    });
+
+    let weak_app = app.as_weak();
     let active_run_for_start = active_run.clone();
+    let summary_for_start = last_summary.clone();
     app.on_run_collection(move || {
         let Some(app) = weak_app.upgrade() else {
             return;
@@ -1115,6 +1160,9 @@ fn wire_collection_runner(app: &AppWindow, runtime: Arc<Runtime>, state: Arc<Mut
         };
         let request_count = count_collection_requests(&collection.items);
         if request_count == 0 {
+            if let Ok(mut summary) = summary_for_start.lock() {
+                *summary = None;
+            }
             app.set_runner_summary("No requests to run".into());
             app.set_runner_rows(empty_runner_model());
             set_response(
@@ -1132,6 +1180,9 @@ fn wire_collection_runner(app: &AppWindow, runtime: Arc<Runtime>, state: Arc<Mut
         app.set_activity("Running collection".into());
         app.set_runner_summary(format!("Running {request_count} requests").into());
         app.set_runner_rows(empty_runner_model());
+        if let Ok(mut summary) = summary_for_start.lock() {
+            *summary = None;
+        }
         set_response(
             &app,
             "Runner running",
@@ -1142,6 +1193,7 @@ fn wire_collection_runner(app: &AppWindow, runtime: Arc<Runtime>, state: Arc<Mut
 
         let weak_app = app.as_weak();
         let active_run = active_run_for_start.clone();
+        let last_summary = summary_for_start.clone();
         let handle = runtime.spawn(async move {
             let summary = run_collection(
                 &collection,
@@ -1158,6 +1210,9 @@ fn wire_collection_runner(app: &AppWindow, runtime: Arc<Runtime>, state: Arc<Mut
                 let response_tone = runner_response_tone(&summary);
                 let response_status = runner_response_status(&summary);
                 let response_meta = format!("{} ms", summary.elapsed_ms);
+                if let Ok(mut last_summary) = last_summary.lock() {
+                    *last_summary = Some(summary.clone());
+                }
                 app.set_runner_rows(runner_model(&summary.results));
                 app.set_runner_summary(runner_summary_line(&summary).into());
                 set_response(
@@ -2219,6 +2274,10 @@ fn format_runner_summary(summary: &CollectionRunSummary) -> String {
         lines.push(format_runner_result(result));
     }
     lines.join("\n")
+}
+
+fn save_runner_report(path: &str, summary: &CollectionRunSummary) -> Result<()> {
+    write_text_file(path, &format_runner_summary(summary), "runner report")
 }
 
 fn format_runner_result(result: &CollectionRunResult) -> String {
@@ -4068,6 +4127,45 @@ mod tests {
             format_runner_summary(&summary),
             "Demo: 1 passed, 0 failed, 1 total / 15 ms\n[PASS] HTTP 200 GET https://api.example.com/health (Demo / Health)"
         );
+    }
+
+    #[test]
+    fn saves_runner_report_to_disk() {
+        let summary = CollectionRunSummary {
+            collection_name: "Demo".to_string(),
+            total: 1,
+            passed: 1,
+            failed: 0,
+            stopped_early: false,
+            elapsed_ms: 15,
+            results: vec![CollectionRunResult {
+                index: 0,
+                path: vec!["Demo".to_string(), "Health".to_string()],
+                name: "Health".to_string(),
+                method: "GET".to_string(),
+                url: "https://api.example.com/health".to_string(),
+                status: Some(200),
+                success: true,
+                elapsed_ms: 12,
+                body_bytes: 42,
+                pre_request_actions: Vec::new(),
+                assertions: Vec::new(),
+                error: None,
+            }],
+        };
+        let path =
+            std::env::temp_dir().join(format!("zenapi-runner-report-{}.txt", std::process::id()));
+        let _ = fs::remove_file(&path);
+
+        save_runner_report(path.to_str().expect("utf-8 temp path"), &summary)
+            .expect("save runner report");
+
+        assert_eq!(
+            fs::read_to_string(&path).expect("runner report"),
+            "Demo: 1 passed, 0 failed, 1 total / 15 ms\n[PASS] HTTP 200 GET https://api.example.com/health (Demo / Health)"
+        );
+        assert!(save_runner_report("   ", &summary).is_err());
+        let _ = fs::remove_file(path);
     }
 
     #[test]

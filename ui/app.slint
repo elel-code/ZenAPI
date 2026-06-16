@@ -1493,6 +1493,7 @@ component ResponsePanel inherits Rectangle {
     in-out property <[RunnerRow]> runner_rows;
     in-out property <string> runner_summary;
     in-out property <string> runner_delay_ms;
+    in-out property <string> runner_report_path;
     in-out property <bool> runner_stop_on_failure;
     in-out property <bool> runner_active;
     in property <string> response_status;
@@ -1503,6 +1504,7 @@ component ResponsePanel inherits Rectangle {
     callback save_codegen(string);
     callback run_collection();
     callback cancel_collection_run();
+    callback save_runner_report(string);
 
     width: 420px;
     vertical-stretch: 1;
@@ -1560,7 +1562,7 @@ component ResponsePanel inherits Rectangle {
                 }
 
                 Rectangle {
-                    height: 166px;
+                    height: 190px;
                     horizontal-stretch: 1;
                     background: transparent;
 
@@ -1638,6 +1640,29 @@ component ResponsePanel inherits Rectangle {
                             font-size: 11px;
                             overflow: elide;
                             vertical-alignment: center;
+                        }
+
+                        HorizontalLayout {
+                            height: 32px;
+                            spacing: 8px;
+                            alignment: center;
+
+                            TextField {
+                                text <=> root.runner_report_path;
+                                placeholder: "Runner report path";
+                                mono: true;
+                                enabled: !root.busy && !root.runner_active;
+                                height: 32px;
+                            }
+
+                            ActionButton {
+                                text: "Save";
+                                button_width: 64px;
+                                enabled: !root.busy && !root.runner_active && root.runner_report_path != "" && root.runner_summary != "";
+                                clicked => {
+                                    root.save_runner_report(root.runner_report_path);
+                                }
+                            }
                         }
 
                         if root.runner_rows.length == 0: Rectangle {
@@ -1875,6 +1900,7 @@ export component AppWindow inherits Window {
     in-out property <string> codegen_path: "zenapi-snippet.txt";
     in-out property <string> runner_summary: "";
     in-out property <string> runner_delay_ms: "0";
+    in-out property <string> runner_report_path: "zenapi-runner-report.txt";
     in-out property <bool> runner_stop_on_failure: false;
     in-out property <bool> runner_active: false;
     in-out property <string> route_filter;
@@ -1912,6 +1938,7 @@ export component AppWindow inherits Window {
     callback save_codegen(string);
     callback run_collection();
     callback cancel_collection_run();
+    callback save_runner_report(string);
     callback open_websocket();
     callback run_websocket();
     callback close_websocket();
@@ -2105,6 +2132,7 @@ export component AppWindow inherits Window {
                             runner_rows <=> root.runner_rows;
                             runner_summary <=> root.runner_summary;
                             runner_delay_ms <=> root.runner_delay_ms;
+                            runner_report_path <=> root.runner_report_path;
                             runner_stop_on_failure <=> root.runner_stop_on_failure;
                             runner_active <=> root.runner_active;
                             response_status: root.response_status;
@@ -2122,6 +2150,9 @@ export component AppWindow inherits Window {
                             }
                             cancel_collection_run => {
                                 root.cancel_collection_run();
+                            }
+                            save_runner_report(path) => {
+                                root.save_runner_report(path);
                             }
                         }
                     }

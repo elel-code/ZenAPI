@@ -76,8 +76,8 @@
   exports snippets to a local path, with clipboard copy still pending.
 - [~] Rebuild Collection Runner UI while keeping `zenapi run` as the stable CLI;
   current Slint baseline runs the active collection with delay and stop-on-fail
-  controls, cancellation, and summary/result rows, with richer reports still
-  pending.
+  controls, cancellation, summary/result rows, and text report export, with
+  richer report formats still pending.
 - [~] Rebuild Pre-request script-lite and native Tests panels; current Slint
   baseline provides line-based editors, applies pre-request actions during
   send/codegen, evaluates native tests after single sends, and saves/restores
@@ -121,7 +121,7 @@
 | Collections | Domain implemented | Slint baseline supports load/save/export plus flat request restore/rename/duplicate/delete |
 | History | Domain implemented | Slint baseline records, filters, deletes, restores, and persists recent requests |
 | Codegen | Domain implemented | Slint baseline generates and exports resolved request snippets |
-| Runner | Domain + CLI implemented | Slint baseline runs and cancels active collections with result rows |
+| Runner | Domain + CLI implemented | Slint baseline runs/cancels active collections and exports text reports |
 | Assertions/scripts | Domain implemented | Slint baseline edits, saves, restores, and evaluates native scripts/tests |
 | WebSocket/SSE | Client modules restored | Slint baseline supports one-shot and persistent WS text sends plus SSE previews and persistent SSE streams |
 | Mock logs | Core implemented | Slint baseline shows, filters, and exports recent mock requests |
