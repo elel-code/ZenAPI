@@ -301,7 +301,7 @@ mod tests {
             method: "POST".to_string(),
             url: "https://api.example.com/users".to_string(),
             headers: vec![("Content-Type".to_string(), "application/json".to_string())],
-            query_params: vec![("search".to_string(), "rust gpui".to_string())],
+            query_params: vec![("search".to_string(), "rust slint".to_string())],
             body: RequestBody::Raw {
                 content_type: Some("application/json".to_string()),
                 body: "{\"name\":\"Zen\"}".to_string(),
@@ -315,7 +315,7 @@ mod tests {
 
         assert!(snippet.contains("curl"));
         assert!(snippet.contains("-X 'POST'"));
-        assert!(snippet.contains("search=rust+gpui"));
+        assert!(snippet.contains("search=rust+slint"));
         assert!(snippet.contains("-H 'Content-Type: application/json'"));
         assert!(snippet.contains("--data '{\"name\":\"Zen\"}'"));
     }
@@ -340,7 +340,7 @@ mod tests {
 
         assert_eq!(
             url_with_query(&request),
-            "https://api.example.com/users?debug=true&search=rust+gpui"
+            "https://api.example.com/users?debug=true&search=rust+slint"
         );
     }
 

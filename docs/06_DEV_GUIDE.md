@@ -141,9 +141,10 @@ Key constraints:
   `build.rs`.
 - Application-wide styling tokens (colors, fonts, spacing) are exported from
   `ui/theme.slint` as `global Theme { ... }`.
-- Reusable components (MethodChip, AddressBar, KeyValueEditor, etc.) live in
-  `ui/widgets/`.
-- Material Symbols icon assets live in `ui/icons/`.
+- Shell-only Slint components currently live in `ui/app.slint`; split reusable
+  controls into `ui/widgets/` once they are shared by multiple screens.
+- Material Symbols icon assets may live in `ui/icons/` when iconography is
+  introduced.
 - Rust ↔ Slint communication uses Slint `global` singletons for shared state
   and `callback` for events.
 

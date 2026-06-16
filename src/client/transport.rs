@@ -251,7 +251,7 @@ mod tests {
             &format!("http://{addr}/echo"),
             &[("x-token".to_string(), "secret".to_string())],
             &[
-                ("search".to_string(), "rust gpui".to_string()),
+                ("search".to_string(), "rust slint".to_string()),
                 ("limit".to_string(), "20".to_string()),
             ],
             "",
@@ -271,7 +271,7 @@ mod tests {
         assert!(response.body.contains('\n'));
         let body = serde_json::from_str::<Value>(&response.raw_body).expect("json body");
         assert_eq!(body["token"], "secret");
-        assert_eq!(body["search"], "rust gpui");
+        assert_eq!(body["search"], "rust slint");
         assert_eq!(body["limit"], "20");
     }
 
@@ -296,7 +296,7 @@ mod tests {
             &[],
             &[],
             RequestBody::FormUrlEncoded(vec![
-                ("search".to_string(), "rust gpui".to_string()),
+                ("search".to_string(), "rust slint".to_string()),
                 ("limit".to_string(), "20".to_string()),
             ]),
         )
@@ -310,7 +310,7 @@ mod tests {
                 .unwrap_or_default()
                 .starts_with("application/x-www-form-urlencoded")
         );
-        assert_eq!(urlencoded_body["body"], "search=rust+gpui&limit=20");
+        assert_eq!(urlencoded_body["body"], "search=rust+slint&limit=20");
 
         let raw = send_request_with_body(
             "POST",

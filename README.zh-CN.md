@@ -50,12 +50,11 @@ ZenAPI/
 ├── ui/                         # Slint .slint UI 文件
 │   ├── app.slint               # 应用外壳和主布局
 │   ├── theme.slint             # 全局颜色/间距/字体 token
-│   ├── widgets/                # 可复用 UI 组件
-│   └── icons/                  # Material Symbols 图标资源
+│   └── widgets/                # 计划拆分的可复用 UI 组件
 ├── src/
 │   ├── main.rs                 # Slint 应用入口
 │   ├── lib.rs                  # 库根文件
-│   ├── app.rs                  # 应用状态、动作和工作流编排
+│   ├── app.rs                  # Slint 状态、动作和工作流绑定
 │   ├── openapi.rs              # OpenAPI 模块入口
 │   ├── openapi/model.rs        # 解析后的路由和 Schema 模型
 │   ├── openapi/parser.rs       # OpenAPI 3.0 / Swagger 2.0 文件解析器
@@ -73,10 +72,10 @@ ZenAPI/
 │   ├── history.rs              # 请求历史模型与过滤
 │   └── codegen.rs              # 多语言代码片段生成
 ├── docs/
-│   ├── PRD.md                  # 产品需求与 MVP 范围
-│   ├── DESIGN.md               # 视觉与交互设计决策
-│   ├── TODO.md                 # 开发路线图与任务追踪
-│   └── USER_GUIDE.md           # 用户指南
+│   ├── 01_PRD.md               # 产品需求与 MVP 范围
+│   ├── 02_DESIGN.md            # 视觉与交互设计决策
+│   ├── 05_TODO.md              # Slint 迁移路线图与任务追踪
+│   └── 07_USER_GUIDE.md        # 用户指南
 ├── stitch_nextgen_api_studio/  # 设计参考（Nexus API 设计系统）
 ├── Cargo.toml
 ├── Cargo.lock

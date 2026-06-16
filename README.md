@@ -54,12 +54,11 @@ ZenAPI/
 ├── ui/                         # Slint .slint UI files
 │   ├── app.slint               # Application shell and main layout
 │   ├── theme.slint             # Global color/spacing/typography tokens
-│   ├── widgets/                # Reusable UI components
-│   └── icons/                  # Material Symbols icon assets
+│   └── widgets/                # Planned reusable UI components
 ├── src/
 │   ├── main.rs                 # Slint application entry point
 │   ├── lib.rs                  # Library root
-│   ├── app.rs                  # App state, actions, and workflow wiring
+│   ├── app.rs                  # Slint app state, actions, and workflow wiring
 │   ├── openapi.rs              # OpenAPI module umbrella
 │   ├── openapi/model.rs        # Parsed route and schema models
 │   ├── openapi/parser.rs       # OpenAPI 3.0 / Swagger 2.0 file parser
@@ -77,10 +76,10 @@ ZenAPI/
 │   ├── history.rs              # Request history model and filtering
 │   └── codegen.rs              # Multi-language snippet generation
 ├── docs/
-│   ├── PRD.md                  # Product requirements and MVP scope
-│   ├── DESIGN.md               # Visual and interaction design decisions
-│   ├── TODO.md                 # Development roadmap and task tracking
-│   └── USER_GUIDE.md           # User guide
+│   ├── 01_PRD.md               # Product requirements and MVP scope
+│   ├── 02_DESIGN.md            # Visual and interaction design decisions
+│   ├── 05_TODO.md              # Slint migration roadmap and task tracking
+│   └── 07_USER_GUIDE.md        # User guide
 ├── stitch_nextgen_api_studio/  # Design reference (Nexus API design system)
 ├── Cargo.toml
 ├── Cargo.lock
