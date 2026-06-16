@@ -37,6 +37,7 @@ pub fn run() -> Result<()> {
     wire_history_selection(&app, state.clone());
     wire_history_actions(&app, state.clone());
     wire_collection_actions(&app, state.clone());
+    wire_mock_log_filter(&app, state.clone());
     wire_request_sender(&app, runtime.clone(), state.clone());
     wire_codegen(&app);
     wire_collection_runner(&app, runtime.clone(), state.clone());
@@ -607,6 +608,21 @@ fn wire_collection_actions(app: &AppWindow, state: Arc<Mutex<AppState>>) {
     });
 }
 
+fn wire_mock_log_filter(app: &AppWindow, state: Arc<Mutex<AppState>>) {
+    let weak_app = app.as_weak();
+    app.on_filter_mock_logs(move |query| {
+        let Some(app) = weak_app.upgrade() else {
+            return;
+        };
+        let model = state
+            .lock()
+            .ok()
+            .map(|state| filtered_mock_log_model(&state.mock_logs, query.as_str()))
+            .unwrap_or_else(|| mock_log_model(&[]));
+        app.set_mock_logs(model);
+    });
+}
+
 fn wire_request_sender(app: &AppWindow, runtime: Arc<Runtime>, state: Arc<Mutex<AppState>>) {
     let weak_app = app.as_weak();
     app.on_send_request(move || {
@@ -1093,7 +1109,10 @@ fn wire_mock_server(app: &AppWindow, runtime: Arc<Runtime>, state: Arc<Mutex<App
                                         let weak_app = log_weak_app.clone();
                                         let _ = slint::invoke_from_event_loop(move || {
                                             if let Some(app) = weak_app.upgrade() {
-                                                app.set_mock_logs(mock_log_model(&logs));
+                                                app.set_mock_logs(filtered_mock_log_model(
+                                                    &logs,
+                                                    &app.get_mock_log_filter(),
+                                                ));
                                             }
                                         });
                                     }
@@ -1584,7 +1603,26 @@ fn format_grpc_draft(draft: &GrpcRequestDraft) -> String {
 }
 
 fn mock_log_model(logs: &[MockRequestLog]) -> ModelRc<MockLogRow> {
-    ModelRc::new(VecModel::from_iter(logs.iter().map(|log| MockLogRow {
+    mock_log_model_from_iter(logs.iter())
+}
+
+fn filtered_mock_log_model(logs: &[MockRequestLog], query: &str) -> ModelRc<MockLogRow> {
+    let query = query.trim().to_lowercase();
+    if query.is_empty() {
+        return mock_log_model(logs);
+    }
+
+    mock_log_model_from_iter(logs.iter().filter(|log| {
+        log.method.to_lowercase().contains(&query)
+            || log.path.to_lowercase().contains(&query)
+            || log.status.to_string().contains(&query)
+    }))
+}
+
+fn mock_log_model_from_iter<'a>(
+    logs: impl Iterator<Item = &'a MockRequestLog>,
+) -> ModelRc<MockLogRow> {
+    ModelRc::new(VecModel::from_iter(logs.map(|log| MockLogRow {
         method: log.method.clone().into(),
         path: log.path.clone().into(),
         status: log.status.to_string().into(),
@@ -2955,6 +2993,38 @@ mod tests {
         assert_eq!(logs.len(), 2);
         assert_eq!(logs[0].path, "/latest");
         assert_eq!(logs[1].path, "/new");
+    }
+
+    #[test]
+    fn filters_mock_logs_for_sidebar_model() {
+        use slint::Model;
+
+        let logs = vec![
+            MockRequestLog {
+                method: "GET".to_string(),
+                path: "/users".to_string(),
+                status: 200,
+            },
+            MockRequestLog {
+                method: "POST".to_string(),
+                path: "/sessions".to_string(),
+                status: 404,
+            },
+        ];
+
+        let by_path = filtered_mock_log_model(&logs, "sessions");
+        assert_eq!(by_path.row_count(), 1);
+        assert_eq!(
+            by_path.row_data(0).expect("mock log").method.as_str(),
+            "POST"
+        );
+
+        let by_status = filtered_mock_log_model(&logs, "200");
+        assert_eq!(by_status.row_count(), 1);
+        assert_eq!(
+            by_status.row_data(0).expect("mock log").path.as_str(),
+            "/users"
+        );
     }
 
     #[test]

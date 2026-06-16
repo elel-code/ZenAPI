@@ -271,6 +271,7 @@ component Sidebar inherits Rectangle {
     in-out property <int> selected_route;
     in-out property <string> route_filter;
     in-out property <string> history_filter;
+    in-out property <string> mock_log_filter;
     in-out property <string> collection_path;
     in-out property <string> collection_name;
     in-out property <string> collection_status;
@@ -286,6 +287,7 @@ component Sidebar inherits Rectangle {
     callback filter_history(string);
     callback delete_history(int);
     callback clear_history();
+    callback filter_mock_logs(string);
     callback filter_routes(string);
 
     width: 240px;
@@ -546,6 +548,17 @@ component Sidebar inherits Rectangle {
         SectionTitle {
             text: "MOCK LOGS";
             meta: root.mock_logs.length == 0 ? "" : root.mock_logs.length + "";
+        }
+
+        TextField {
+            text <=> root.mock_log_filter;
+            placeholder: "Filter mock logs";
+            mono: true;
+            enabled: !root.busy;
+            height: 32px;
+            edited => {
+                root.filter_mock_logs(root.mock_log_filter);
+            }
         }
 
         if root.mock_logs.length == 0: Rectangle {
@@ -1637,6 +1650,7 @@ export component AppWindow inherits Window {
     in-out property <bool> runner_stop_on_failure: false;
     in-out property <string> route_filter;
     in-out property <string> history_filter;
+    in-out property <string> mock_log_filter;
     in-out property <int> total_route_count: 0;
     in-out property <string> server_status: "Stopped";
     in-out property <bool> server_running: false;
@@ -1655,6 +1669,7 @@ export component AppWindow inherits Window {
     callback filter_history(string);
     callback delete_history(int);
     callback clear_history();
+    callback filter_mock_logs(string);
     callback send_request();
     callback toggle_server();
     callback generate_code();
@@ -1698,6 +1713,7 @@ export component AppWindow inherits Window {
                 selected_route <=> root.selected_route;
                 route_filter <=> root.route_filter;
                 history_filter <=> root.history_filter;
+                mock_log_filter <=> root.mock_log_filter;
                 collection_path <=> root.collection_path;
                 collection_name <=> root.collection_name;
                 collection_status <=> root.collection_status;
@@ -1735,6 +1751,9 @@ export component AppWindow inherits Window {
                 }
                 clear_history => {
                     root.clear_history();
+                }
+                filter_mock_logs(query) => {
+                    root.filter_mock_logs(query);
                 }
             }
 

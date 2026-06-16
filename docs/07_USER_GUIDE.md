@@ -289,6 +289,7 @@ Behavior:
 - Enables permissive CORS for local frontend development.
 - Serves generated JSON responses from OpenAPI schemas and examples.
 - Records recent mock requests in the Mock Log panel.
+- Filters mock logs by method, path, or status.
 
 ## Error Feedback
 
