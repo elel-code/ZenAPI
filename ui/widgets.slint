@@ -668,8 +668,8 @@ export component CodePane inherits Rectangle {
         height: parent.height - 2px;
         viewport-width: max(self.visible-width, code_input.preferred-width + 28px);
         viewport-height: max(self.visible-height, code_input.preferred-height + 24px);
-        vertical-scrollbar-policy: ScrollBarPolicy.always-off;
-        horizontal-scrollbar-policy: ScrollBarPolicy.always-off;
+        vertical-scrollbar-policy: ScrollBarPolicy.as-needed;
+        horizontal-scrollbar-policy: ScrollBarPolicy.as-needed;
 
         code_input := TextInput {
             x: 14px;

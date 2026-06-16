@@ -1,4 +1,4 @@
-import { ListView } from "std-widgets.slint";
+import { ListView, ScrollView } from "std-widgets.slint";
 import { Theme } from "theme.slint";
 import { ActionButton, BodyModeButton, CodePane, LabeledEditor, MethodSelector, TextField, UiText } from "widgets.slint";
 
@@ -394,8 +394,8 @@ component Sidebar inherits Rectangle {
                         x: 32px;
                         width: parent.width - 32px;
                         height: parent.height;
-                        vertical-scrollbar-policy: ScrollBarPolicy.always-off;
-                        horizontal-scrollbar-policy: ScrollBarPolicy.always-off;
+                        vertical-scrollbar-policy: ScrollBarPolicy.as-needed;
+                        horizontal-scrollbar-policy: ScrollBarPolicy.as-needed;
 
                         for entry in root.collection_rows: SidebarRequestLink {
                             method: entry.method;
@@ -412,8 +412,8 @@ component Sidebar inherits Rectangle {
                         x: 32px;
                         width: parent.width - 32px;
                         height: parent.height;
-                        vertical-scrollbar-policy: ScrollBarPolicy.always-off;
-                        horizontal-scrollbar-policy: ScrollBarPolicy.always-off;
+                        vertical-scrollbar-policy: ScrollBarPolicy.as-needed;
+                        horizontal-scrollbar-policy: ScrollBarPolicy.as-needed;
 
                         for route[i] in root.routes: SidebarRequestLink {
                             method: route.method;
@@ -482,8 +482,8 @@ component Sidebar inherits Rectangle {
                 if root.history_rows.length != 0: ListView {
                     horizontal-stretch: 1;
                     vertical-stretch: 1;
-                    vertical-scrollbar-policy: ScrollBarPolicy.always-off;
-                    horizontal-scrollbar-policy: ScrollBarPolicy.always-off;
+                    vertical-scrollbar-policy: ScrollBarPolicy.as-needed;
+                    horizontal-scrollbar-policy: ScrollBarPolicy.as-needed;
 
                     for entry in root.history_rows: SidebarHistoryLink {
                         method: entry.method;
@@ -652,6 +652,265 @@ component TopBar inherits Rectangle {
                     }
                 }
             }
+        }
+    }
+}
+
+component AppNavItem inherits Rectangle {
+    in property <string> page;
+    in property <string> label;
+    in property <string> glyph;
+    in property <bool> selected;
+    callback picked(string);
+
+    height: 36px;
+    horizontal-stretch: 1;
+    border-radius: 8px;
+    background: root.selected ? Theme.primary_container : touch.has-hover ? Theme.surface_variant : transparent;
+
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.picked(root.page);
+        }
+    }
+
+    UiText {
+        x: 12px;
+        text: root.glyph;
+        width: 22px;
+        height: parent.height;
+        color: root.selected ? Theme.on_primary_container : Theme.on_surface_variant;
+        font-size: 16px;
+        font-weight: 800;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+
+    UiText {
+        x: 46px;
+        text: root.label;
+        width: parent.width - 58px;
+        height: parent.height;
+        color: root.selected ? Theme.on_primary_container : Theme.on_surface_variant;
+        font-size: 13px;
+        font-weight: root.selected ? 800 : 600;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+}
+
+component AppNavigation inherits Rectangle {
+    in-out property <string> active_page;
+
+    width: 240px;
+    vertical-stretch: 1;
+    background: Theme.surface_container_low;
+
+    nav_scroll := ScrollView {
+        width: parent.width;
+        height: parent.height;
+        viewport-width: self.visible-width;
+        viewport-height: max(self.visible-height, 650px);
+        vertical-scrollbar-policy: ScrollBarPolicy.as-needed;
+        horizontal-scrollbar-policy: ScrollBarPolicy.as-needed;
+
+        Rectangle {
+            width: nav_scroll.visible-width;
+            height: max(nav_scroll.visible-height, 650px);
+            background: transparent;
+
+            VerticalLayout {
+                padding: 16px;
+                spacing: 12px;
+
+                SidebarProfile {}
+
+                Rectangle {
+                    height: 1px;
+                    horizontal-stretch: 1;
+                    background: Theme.outline_variant;
+                }
+
+                for item in [
+                    { page: "dashboard", label: "Dashboard", glyph: "D" },
+                    { page: "requests", label: "Requests", glyph: "R" },
+                    { page: "mocks", label: "Mocks", glyph: "M" },
+                    { page: "runner", label: "Test Runner", glyph: "T" },
+                    { page: "environments", label: "Environments", glyph: "E" },
+                    { page: "analytics", label: "Traffic Analytics", glyph: "A" },
+                ]: AppNavItem {
+                    page: item.page;
+                    label: item.label;
+                    glyph: item.glyph;
+                    selected: root.active_page == item.page;
+                    picked(page) => {
+                        root.active_page = page;
+                    }
+                }
+
+                Rectangle {
+                    height: 1px;
+                    horizontal-stretch: 1;
+                    background: Theme.outline_variant;
+                }
+
+                for item in [
+                    { page: "docs", label: "API Docs", glyph: "D" },
+                    { page: "keys", label: "API Keys", glyph: "K" },
+                    { page: "team", label: "Team Members", glyph: "T" },
+                    { page: "settings", label: "Project Settings", glyph: "S" },
+                    { page: "codegen", label: "Codegen", glyph: "C" },
+                ]: AppNavItem {
+                    page: item.page;
+                    label: item.label;
+                    glyph: item.glyph;
+                    selected: root.active_page == item.page;
+                    picked(page) => {
+                        root.active_page = page;
+                    }
+                }
+
+                Rectangle {
+                    vertical-stretch: 1;
+                }
+
+                UiText {
+                    text: "v2.4.0";
+                    height: 20px;
+                    horizontal-stretch: 1;
+                    color: Theme.outline;
+                    font-family: "JetBrains Mono";
+                    font-size: 12px;
+                    vertical-alignment: center;
+                    overflow: elide;
+                }
+            }
+        }
+    }
+}
+
+component MetricCard inherits Rectangle {
+    in property <string> label;
+    in property <string> value;
+    in property <string> detail;
+
+    height: 104px;
+    horizontal-stretch: 1;
+    border-radius: 8px;
+    border-width: 1px;
+    border-color: Theme.outline_variant;
+    background: Theme.surface_container;
+
+    VerticalLayout {
+        padding: 16px;
+        spacing: 8px;
+
+        UiText {
+            text: root.label;
+            height: 16px;
+            horizontal-stretch: 1;
+            color: Theme.on_surface_variant;
+            font-size: 11px;
+            font-weight: 800;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+
+        UiText {
+            text: root.value;
+            height: 34px;
+            horizontal-stretch: 1;
+            color: Theme.on_surface;
+            font-size: 28px;
+            font-weight: 800;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+
+        UiText {
+            text: root.detail;
+            height: 18px;
+            horizontal-stretch: 1;
+            color: Theme.outline;
+            font-size: 12px;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+    }
+}
+
+component PageTitle inherits Rectangle {
+    in property <string> title;
+    in property <string> subtitle;
+
+    height: 66px;
+    horizontal-stretch: 1;
+    background: transparent;
+
+    VerticalLayout {
+        padding: 0px;
+        spacing: 4px;
+
+        UiText {
+            text: root.title;
+            height: 38px;
+            horizontal-stretch: 1;
+            color: Theme.on_surface;
+            font-size: 32px;
+            font-weight: 800;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+
+        UiText {
+            text: root.subtitle;
+            height: 20px;
+            horizontal-stretch: 1;
+            color: Theme.on_surface_variant;
+            font-size: 14px;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+    }
+}
+
+component DataPanel inherits Rectangle {
+    in property <string> title;
+    in property <string> body;
+
+    horizontal-stretch: 1;
+    vertical-stretch: 1;
+    border-radius: 8px;
+    border-width: 1px;
+    border-color: Theme.outline_variant;
+    background: Theme.surface_container;
+
+    VerticalLayout {
+        padding: 16px;
+        spacing: 10px;
+
+        UiText {
+            text: root.title;
+            height: 24px;
+            horizontal-stretch: 1;
+            color: Theme.on_surface;
+            font-size: 15px;
+            font-weight: 800;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+
+        UiText {
+            text: root.body;
+            horizontal-stretch: 1;
+            vertical-stretch: 1;
+            color: Theme.on_surface_variant;
+            font-family: "JetBrains Mono";
+            font-size: 12px;
+            vertical-alignment: top;
+            overflow: elide;
         }
     }
 }
@@ -1282,12 +1541,1064 @@ component ResponsePanel inherits Rectangle {
     }
 }
 
+component DashboardPage inherits Rectangle {
+    in property <int> route_count;
+    in property <int> history_count;
+    in property <int> mock_count;
+    in property <string> runner_summary;
+    in property <bool> server_running;
+    in property <string> server_status;
+    in property <string> response_status;
+    callback open_page(string);
+
+    horizontal-stretch: 1;
+    vertical-stretch: 1;
+    background: Theme.background;
+
+    HorizontalLayout {
+        padding: 20px;
+        spacing: 20px;
+
+        Rectangle {
+            horizontal-stretch: 1;
+            vertical-stretch: 1;
+            background: transparent;
+
+            VerticalLayout {
+                padding: 0px;
+                spacing: 18px;
+
+                PageTitle {
+                    title: "System Overview";
+                    subtitle: "Real-time metrics for the local API workspace.";
+                }
+
+                HorizontalLayout {
+                    height: 104px;
+                    spacing: 16px;
+
+                    MetricCard {
+                        label: "ROUTES";
+                        value: root.route_count + "";
+                        detail: "Imported endpoints";
+                    }
+
+                    MetricCard {
+                        label: "HISTORY";
+                        value: root.history_count + "";
+                        detail: "Local requests";
+                    }
+
+                    MetricCard {
+                        label: "MOCK LOGS";
+                        value: root.mock_count + "";
+                        detail: root.server_running ? root.server_status : "Mock stopped";
+                    }
+                }
+
+                DataPanel {
+                    title: "Traffic Volume";
+                    body: "▂▃▅▇█▇▅▃▂▃▅▇█\n\n" + (root.response_status == "" ? "No response yet" : root.response_status);
+                }
+
+                DataPanel {
+                    title: "Top Endpoints";
+                    body: root.route_count == 0 ? "Import an OpenAPI document to populate endpoint metrics." : "Endpoint metrics will follow imported route traffic.";
+                }
+            }
+        }
+
+        Rectangle {
+            width: 320px;
+            vertical-stretch: 1;
+            background: Theme.surface_container_low;
+            border-radius: 8px;
+            border-width: 1px;
+            border-color: Theme.outline_variant;
+
+            VerticalLayout {
+                padding: 16px;
+                spacing: 14px;
+
+                UiText {
+                    text: "QUICK ACTIONS";
+                    height: 20px;
+                    horizontal-stretch: 1;
+                    color: Theme.on_surface_variant;
+                    font-size: 12px;
+                    font-weight: 800;
+                    vertical-alignment: center;
+                    overflow: elide;
+                }
+
+                ActionButton {
+                    text: "Requests";
+                    primary: true;
+                    button_width: 288px;
+                    clicked => {
+                        root.open_page("requests");
+                    }
+                }
+
+                ActionButton {
+                    text: "Mocks";
+                    button_width: 288px;
+                    clicked => {
+                        root.open_page("mocks");
+                    }
+                }
+
+                ActionButton {
+                    text: "Runner";
+                    button_width: 288px;
+                    clicked => {
+                        root.open_page("runner");
+                    }
+                }
+
+                Rectangle {
+                    height: 1px;
+                    horizontal-stretch: 1;
+                    background: Theme.outline_variant;
+                }
+
+                DataPanel {
+                    title: "Live Activity";
+                    body: root.runner_summary == "" ? "No collection run results yet." : root.runner_summary;
+                }
+            }
+        }
+    }
+}
+
+component MockRouteLine inherits Rectangle {
+    in property <string> method;
+    in property <string> path;
+    in property <bool> selected;
+    callback picked();
+
+    height: 36px;
+    horizontal-stretch: 1;
+    border-radius: 6px;
+    border-width: root.selected ? 1px : 0px;
+    border-color: Theme.primary;
+    background: root.selected ? Theme.surface_variant : touch.has-hover ? Theme.surface_container_high : transparent;
+
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.picked();
+        }
+    }
+
+    UiText {
+        x: 10px;
+        text: root.method;
+        width: 48px;
+        height: parent.height;
+        font-family: "JetBrains Mono";
+        font-size: 11px;
+        font-weight: 800;
+        color: root.method == "GET" ? Theme.secondary : root.method == "POST" ? #00a572 : root.method == "PUT" ? Theme.tertiary : root.method == "DELETE" ? Theme.error : Theme.primary;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+
+    UiText {
+        x: 66px;
+        text: root.path;
+        width: parent.width - 76px;
+        height: parent.height;
+        font-family: "JetBrains Mono";
+        font-size: 12px;
+        color: root.selected ? Theme.on_surface : Theme.on_surface_variant;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+}
+
+component MockLogLine inherits Rectangle {
+    in property <string> method;
+    in property <string> path;
+    in property <string> status;
+
+    height: 34px;
+    horizontal-stretch: 1;
+    background: touch.has-hover ? Theme.surface_container_high : transparent;
+    border-radius: 6px;
+
+    touch := TouchArea {}
+
+    UiText {
+        x: 10px;
+        text: root.method;
+        width: 44px;
+        height: parent.height;
+        font-family: "JetBrains Mono";
+        font-size: 11px;
+        color: Theme.secondary;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+
+    UiText {
+        x: 62px;
+        text: root.path;
+        width: parent.width - 122px;
+        height: parent.height;
+        font-family: "JetBrains Mono";
+        font-size: 12px;
+        color: Theme.on_surface_variant;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+
+    UiText {
+        x: parent.width - 52px;
+        text: root.status;
+        width: 42px;
+        height: parent.height;
+        font-family: "JetBrains Mono";
+        font-size: 11px;
+        color: root.status == "500" ? Theme.error : Theme.secondary;
+        horizontal-alignment: right;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+}
+
+component MockManagerPage inherits Rectangle {
+    in-out property <[RouteRow]> routes;
+    in-out property <[MockLogRow]> mock_logs;
+    in-out property <int> selected_route;
+    in-out property <string> mock_log_filter;
+    in-out property <string> mock_log_path;
+    in property <bool> busy;
+    in property <bool> server_running;
+    in property <string> server_status;
+    callback select_route(int);
+    callback toggle_server();
+    callback filter_mock_logs(string);
+    callback save_mock_logs(string);
+    callback clear_mock_logs();
+
+    horizontal-stretch: 1;
+    vertical-stretch: 1;
+    background: Theme.background;
+
+    HorizontalLayout {
+        spacing: 0px;
+
+        Rectangle {
+            width: 300px;
+            vertical-stretch: 1;
+            background: Theme.surface;
+
+            VerticalLayout {
+                padding: 0px;
+                spacing: 0px;
+
+                Rectangle {
+                    height: 56px;
+                    horizontal-stretch: 1;
+                    background: Theme.surface_container_lowest;
+
+                    UiText {
+                        x: 16px;
+                        text: "ENDPOINTS";
+                        width: parent.width - 32px;
+                        height: parent.height;
+                        color: Theme.on_surface;
+                        font-size: 12px;
+                        font-weight: 800;
+                        vertical-alignment: center;
+                        overflow: elide;
+                    }
+                }
+
+                ListView {
+                    horizontal-stretch: 1;
+                    vertical-stretch: 1;
+                    vertical-scrollbar-policy: ScrollBarPolicy.as-needed;
+                    horizontal-scrollbar-policy: ScrollBarPolicy.as-needed;
+
+                    for route[i] in root.routes: MockRouteLine {
+                        method: route.method;
+                        path: route.path;
+                        selected: root.selected_route == i;
+                        picked => {
+                            root.selected_route = i;
+                            root.select_route(i);
+                        }
+                    }
+                }
+            }
+        }
+
+        Rectangle {
+            width: 1px;
+            background: Theme.outline_variant;
+        }
+
+        Rectangle {
+            horizontal-stretch: 1;
+            vertical-stretch: 1;
+            background: Theme.surface;
+
+            VerticalLayout {
+                padding: 20px;
+                spacing: 16px;
+
+                PageTitle {
+                    title: "Mock Server";
+                    subtitle: root.server_running ? "Running at " + root.server_status : "Configure local mock responses.";
+                }
+
+                HorizontalLayout {
+                    height: 38px;
+                    spacing: 10px;
+
+                    ActionButton {
+                        text: root.server_running ? "Stop Server" : "Start Server";
+                        button_width: 128px;
+                        primary: !root.server_running;
+                        warning: root.server_running;
+                        enabled: !root.busy && (root.server_running || root.routes.length > 0);
+                        clicked => {
+                            root.toggle_server();
+                        }
+                    }
+
+                    TextField {
+                        text <=> root.mock_log_filter;
+                        placeholder: "Filter traffic";
+                        mono: true;
+                        enabled: !root.busy;
+                        edited => {
+                            root.filter_mock_logs(root.mock_log_filter);
+                        }
+                    }
+                }
+
+                DataPanel {
+                    title: "Route Configuration";
+                    body: root.routes.length == 0 ? "Import routes before starting the mock server." : "Selected route response configuration will be edited here.";
+                }
+            }
+        }
+
+        Rectangle {
+            width: 360px;
+            vertical-stretch: 1;
+            background: Theme.surface_container_lowest;
+
+            VerticalLayout {
+                padding: 16px;
+                spacing: 12px;
+
+                UiText {
+                    text: "LIVE TRAFFIC";
+                    height: 24px;
+                    horizontal-stretch: 1;
+                    color: Theme.on_surface;
+                    font-size: 13px;
+                    font-weight: 800;
+                    vertical-alignment: center;
+                    overflow: elide;
+                }
+
+                if root.mock_logs.length == 0: DataPanel {
+                    title: "No requests";
+                    body: "Incoming mock traffic appears here.";
+                }
+
+                if root.mock_logs.length != 0: ListView {
+                    horizontal-stretch: 1;
+                    vertical-stretch: 1;
+                    vertical-scrollbar-policy: ScrollBarPolicy.as-needed;
+                    horizontal-scrollbar-policy: ScrollBarPolicy.as-needed;
+
+                    for log in root.mock_logs: MockLogLine {
+                        method: log.method;
+                        path: log.path;
+                        status: log.status;
+                    }
+                }
+
+                HorizontalLayout {
+                    height: 34px;
+                    spacing: 8px;
+
+                    TextField {
+                        text <=> root.mock_log_path;
+                        placeholder: "mock-logs.json";
+                        mono: true;
+                        enabled: !root.busy;
+                    }
+
+                    ActionButton {
+                        text: "Save";
+                        button_width: 62px;
+                        enabled: !root.busy && root.mock_logs.length > 0;
+                        clicked => {
+                            root.save_mock_logs(root.mock_log_path);
+                        }
+                    }
+
+                    ActionButton {
+                        text: "Clear";
+                        button_width: 62px;
+                        warning: true;
+                        enabled: !root.busy && root.mock_logs.length > 0;
+                        clicked => {
+                            root.clear_mock_logs();
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+component EnvironmentPage inherits Rectangle {
+    in-out property <string> global_variables;
+    in-out property <string> environment_name;
+    in-out property <string> environment_variables;
+
+    horizontal-stretch: 1;
+    vertical-stretch: 1;
+    background: Theme.background;
+
+    HorizontalLayout {
+        spacing: 0px;
+
+        Rectangle {
+            width: 260px;
+            vertical-stretch: 1;
+            background: Theme.surface_container;
+
+            VerticalLayout {
+                padding: 16px;
+                spacing: 10px;
+
+                UiText {
+                    text: "Environments";
+                    height: 32px;
+                    horizontal-stretch: 1;
+                    color: Theme.on_surface;
+                    font-size: 18px;
+                    font-weight: 800;
+                    vertical-alignment: center;
+                    overflow: elide;
+                }
+
+                for item in [
+                    { mode: "dev", label: "Development" },
+                    { mode: "test", label: "Staging" },
+                    { mode: "prod", label: "Production" },
+                ]: SidebarFolderRow {
+                    label: item.label;
+                    selected: root.environment_name == item.mode;
+                    picked => {
+                        root.environment_name = item.mode;
+                    }
+                }
+            }
+        }
+
+        Rectangle {
+            width: 1px;
+            background: Theme.outline_variant;
+        }
+
+        Rectangle {
+            horizontal-stretch: 1;
+            vertical-stretch: 1;
+            background: Theme.surface;
+
+            VerticalLayout {
+                padding: 20px;
+                spacing: 16px;
+
+                PageTitle {
+                    title: "Environment Variables";
+                    subtitle: "Active environment / " + root.environment_name;
+                }
+
+                TextField {
+                    text <=> root.environment_name;
+                    placeholder: "Environment name";
+                    mono: true;
+                    height: 38px;
+                }
+
+                HorizontalLayout {
+                    spacing: 14px;
+                    vertical-stretch: 1;
+
+                    LabeledEditor {
+                        label: "Globals";
+                        text <=> root.global_variables;
+                    }
+
+                    LabeledEditor {
+                        label: "Environment";
+                        text <=> root.environment_variables;
+                    }
+                }
+            }
+        }
+    }
+}
+
+component RunnerResultLine inherits Rectangle {
+    in property <string> method;
+    in property <string> name;
+    in property <string> status;
+    in property <string> detail;
+    in property <string> tone;
+
+    height: 48px;
+    horizontal-stretch: 1;
+    border-radius: 6px;
+    background: touch.has-hover ? Theme.surface_container_high : Theme.surface_container;
+
+    touch := TouchArea {}
+
+    UiText {
+        x: 10px;
+        text: root.method;
+        width: 48px;
+        height: parent.height;
+        font-family: "JetBrains Mono";
+        font-size: 11px;
+        color: Theme.secondary;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+
+    UiText {
+        x: 66px;
+        y: 6px;
+        text: root.name;
+        width: parent.width - 150px;
+        height: 20px;
+        color: Theme.on_surface;
+        font-size: 12px;
+        font-weight: 800;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+
+    UiText {
+        x: 66px;
+        y: 26px;
+        text: root.detail;
+        width: parent.width - 150px;
+        height: 16px;
+        color: Theme.on_surface_variant;
+        font-size: 11px;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+
+    UiText {
+        x: parent.width - 74px;
+        text: root.status;
+        width: 64px;
+        height: parent.height;
+        color: root.tone == "error" ? Theme.error : Theme.secondary;
+        font-size: 12px;
+        font-weight: 800;
+        horizontal-alignment: right;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+}
+
+component RunnerPage inherits Rectangle {
+    in-out property <[CollectionRow]> collection_rows;
+    in-out property <[RunnerRow]> runner_rows;
+    in-out property <string> runner_summary;
+    in-out property <string> runner_delay_ms;
+    in-out property <string> runner_report_path;
+    in-out property <bool> runner_stop_on_failure;
+    in-out property <bool> runner_active;
+    in property <bool> busy;
+    callback run_collection();
+    callback cancel_collection_run();
+    callback save_runner_report(string);
+
+    horizontal-stretch: 1;
+    vertical-stretch: 1;
+    background: Theme.background;
+
+    HorizontalLayout {
+        spacing: 0px;
+
+        Rectangle {
+            width: 300px;
+            vertical-stretch: 1;
+            background: Theme.surface_container;
+
+            VerticalLayout {
+                padding: 16px;
+                spacing: 10px;
+
+                UiText {
+                    text: "Test Collections";
+                    height: 32px;
+                    horizontal-stretch: 1;
+                    color: Theme.on_surface;
+                    font-size: 18px;
+                    font-weight: 800;
+                    vertical-alignment: center;
+                    overflow: elide;
+                }
+
+                if root.collection_rows.length == 0: DataPanel {
+                    title: "No collection";
+                    body: "Save requests before running a suite.";
+                }
+
+                if root.collection_rows.length != 0: ListView {
+                    horizontal-stretch: 1;
+                    vertical-stretch: 1;
+                    vertical-scrollbar-policy: ScrollBarPolicy.as-needed;
+                    horizontal-scrollbar-policy: ScrollBarPolicy.as-needed;
+
+                    for entry in root.collection_rows: SidebarRequestLink {
+                        method: entry.method;
+                        label: entry.name;
+                    }
+                }
+            }
+        }
+
+        Rectangle {
+            width: 1px;
+            background: Theme.outline_variant;
+        }
+
+        Rectangle {
+            horizontal-stretch: 1;
+            vertical-stretch: 1;
+            background: Theme.surface;
+
+            VerticalLayout {
+                padding: 20px;
+                spacing: 16px;
+
+                PageTitle {
+                    title: "Automated Test Suite";
+                    subtitle: root.runner_summary == "" ? "No runner results yet." : root.runner_summary;
+                }
+
+                HorizontalLayout {
+                    height: 38px;
+                    spacing: 10px;
+
+                    BodyModeButton {
+                        mode: "continue";
+                        label: "continue";
+                        button_width: 90px;
+                        selected: !root.runner_stop_on_failure;
+                        enabled: !root.busy && !root.runner_active;
+                        picked(mode) => {
+                            root.runner_stop_on_failure = false;
+                        }
+                    }
+
+                    BodyModeButton {
+                        mode: "stop";
+                        label: "stop fail";
+                        button_width: 90px;
+                        selected: root.runner_stop_on_failure;
+                        enabled: !root.busy && !root.runner_active;
+                        picked(mode) => {
+                            root.runner_stop_on_failure = true;
+                        }
+                    }
+
+                    TextField {
+                        text <=> root.runner_delay_ms;
+                        placeholder: "Delay ms";
+                        mono: true;
+                        enabled: !root.busy && !root.runner_active;
+                        width: 110px;
+                        height: 38px;
+                    }
+
+                    ActionButton {
+                        text: "Run Suite";
+                        button_width: 104px;
+                        primary: true;
+                        enabled: !root.busy && !root.runner_active;
+                        clicked => {
+                            root.run_collection();
+                        }
+                    }
+
+                    ActionButton {
+                        text: "Cancel";
+                        button_width: 82px;
+                        warning: true;
+                        enabled: root.runner_active;
+                        clicked => {
+                            root.cancel_collection_run();
+                        }
+                    }
+                }
+
+                if root.runner_rows.length == 0: DataPanel {
+                    title: "Results";
+                    body: "Run a collection to populate request results.";
+                }
+
+                if root.runner_rows.length != 0: ListView {
+                    horizontal-stretch: 1;
+                    vertical-stretch: 1;
+                    vertical-scrollbar-policy: ScrollBarPolicy.as-needed;
+                    horizontal-scrollbar-policy: ScrollBarPolicy.as-needed;
+
+                    for result in root.runner_rows: RunnerResultLine {
+                        method: result.method;
+                        name: result.name;
+                        status: result.status;
+                        detail: result.detail;
+                        tone: result.tone;
+                    }
+                }
+            }
+        }
+
+        Rectangle {
+            width: 320px;
+            vertical-stretch: 1;
+            background: Theme.surface_container_lowest;
+
+            VerticalLayout {
+                padding: 16px;
+                spacing: 12px;
+
+                UiText {
+                    text: "REPORT";
+                    height: 24px;
+                    horizontal-stretch: 1;
+                    color: Theme.on_surface;
+                    font-size: 13px;
+                    font-weight: 800;
+                    vertical-alignment: center;
+                    overflow: elide;
+                }
+
+                LabeledEditor {
+                    label: "Summary";
+                    text <=> root.runner_summary;
+                    read_only: true;
+                }
+
+                HorizontalLayout {
+                    height: 34px;
+                    spacing: 8px;
+
+                    TextField {
+                        text <=> root.runner_report_path;
+                        placeholder: "runner-report.txt";
+                        mono: true;
+                        enabled: !root.busy && !root.runner_active;
+                    }
+
+                    ActionButton {
+                        text: "Save";
+                        button_width: 64px;
+                        enabled: !root.busy && !root.runner_active && root.runner_summary != "";
+                        clicked => {
+                            root.save_runner_report(root.runner_report_path);
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+component CodegenPage inherits Rectangle {
+    in-out property <string> codegen_language;
+    in-out property <string> codegen_output;
+    in-out property <string> codegen_path;
+    in property <bool> busy;
+    callback generate_code();
+    callback save_codegen(string);
+
+    horizontal-stretch: 1;
+    vertical-stretch: 1;
+    background: Theme.background;
+
+    VerticalLayout {
+        padding: 20px;
+        spacing: 16px;
+
+        PageTitle {
+            title: "Code Generation";
+            subtitle: "Generate snippets from the current resolved request.";
+        }
+
+        HorizontalLayout {
+            height: 38px;
+            spacing: 10px;
+
+            for item in [
+                { mode: "curl", label: "curl" },
+                { mode: "python", label: "python" },
+                { mode: "js", label: "js" },
+                { mode: "rust", label: "rust" },
+                { mode: "go", label: "go" },
+            ]: BodyModeButton {
+                mode: item.mode;
+                label: item.label;
+                button_width: 76px;
+                selected: root.codegen_language == item.mode;
+                enabled: !root.busy;
+                picked(mode) => {
+                    root.codegen_language = mode;
+                }
+            }
+
+            ActionButton {
+                text: "Generate";
+                button_width: 96px;
+                primary: true;
+                enabled: !root.busy;
+                clicked => {
+                    root.generate_code();
+                }
+            }
+        }
+
+        CodePane {
+            text <=> root.codegen_output;
+            read_only: true;
+        }
+
+        HorizontalLayout {
+            height: 38px;
+            spacing: 10px;
+
+            TextField {
+                text <=> root.codegen_path;
+                placeholder: "zenapi-snippet.txt";
+                mono: true;
+                enabled: !root.busy;
+            }
+
+            ActionButton {
+                text: "Save";
+                button_width: 72px;
+                enabled: !root.busy && root.codegen_path != "";
+                clicked => {
+                    root.save_codegen(root.codegen_path);
+                }
+            }
+        }
+    }
+}
+
+component PlaceholderPage inherits Rectangle {
+    in property <string> title;
+    in property <string> subtitle;
+
+    horizontal-stretch: 1;
+    vertical-stretch: 1;
+    background: Theme.background;
+
+    VerticalLayout {
+        padding: 20px;
+        spacing: 16px;
+
+        PageTitle {
+            title: root.title;
+            subtitle: root.subtitle;
+        }
+
+        DataPanel {
+            title: "Reference page pending";
+            body: "This page now has a real navigation entry and will be rebuilt from its Nexus API reference screen in a follow-up migration slice.";
+        }
+    }
+}
+
+component BottomNavItem inherits Rectangle {
+    in property <string> page;
+    in property <string> label;
+    in property <string> glyph;
+    in property <bool> selected;
+    callback picked(string);
+
+    horizontal-stretch: 1;
+    height: 56px;
+    background: touch.has-hover ? Theme.surface_container_high : transparent;
+
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.picked(root.page);
+        }
+    }
+
+    Rectangle {
+        x: (parent.width - 44px) / 2;
+        y: 6px;
+        width: 44px;
+        height: 22px;
+        border-radius: 8px;
+        background: root.selected ? Theme.primary_container : transparent;
+    }
+
+    UiText {
+        x: 0px;
+        y: 6px;
+        text: root.glyph;
+        width: parent.width;
+        height: 22px;
+        color: root.selected ? Theme.on_primary_container : Theme.on_surface_variant;
+        font-size: 13px;
+        font-weight: 800;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+
+    UiText {
+        x: 0px;
+        y: 31px;
+        text: root.label;
+        width: parent.width;
+        height: 18px;
+        color: root.selected ? Theme.primary : Theme.on_surface_variant;
+        font-size: 11px;
+        font-weight: root.selected ? 800 : 600;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+}
+
+component BottomNavigation inherits Rectangle {
+    in-out property <string> active_page;
+
+    height: 56px;
+    horizontal-stretch: 1;
+    background: Theme.surface_container;
+
+    Rectangle {
+        width: parent.width;
+        height: 1px;
+        background: Theme.outline_variant;
+    }
+
+    HorizontalLayout {
+        padding: 0px;
+        spacing: 0px;
+
+        for item in [
+            { page: "dashboard", label: "Dashboard", glyph: "D" },
+            { page: "requests", label: "Requests", glyph: "R" },
+            { page: "mocks", label: "Mocks", glyph: "M" },
+            { page: "docs", label: "Docs", glyph: "A" },
+        ]: BottomNavItem {
+            page: item.page;
+            label: item.label;
+            glyph: item.glyph;
+            selected: root.active_page == item.page;
+            picked(page) => {
+                root.active_page = page;
+            }
+        }
+    }
+}
+
+component StatusBar inherits Rectangle {
+    in property <string> active_page;
+    in property <bool> server_running;
+    in property <string> server_status;
+    in property <int> total_route_count;
+    in property <bool> busy;
+    in property <string> activity;
+
+    height: 28px;
+    horizontal-stretch: 1;
+    background: Theme.surface_container;
+
+    Rectangle {
+        width: parent.width;
+        height: 1px;
+        background: Theme.outline_variant;
+    }
+
+    HorizontalLayout {
+        padding-left: 14px;
+        padding-right: 14px;
+        spacing: 16px;
+        alignment: center;
+
+        UiText {
+            text: "Mock " + (root.server_running ? root.server_status : "Stopped");
+            width: 210px;
+            height: parent.height;
+            color: root.server_running ? Theme.secondary : Theme.on_surface_variant;
+            font-family: "JetBrains Mono";
+            font-size: 11px;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+
+        UiText {
+            text: root.total_route_count + " routes";
+            width: 104px;
+            height: parent.height;
+            color: Theme.on_surface_variant;
+            font-family: "JetBrains Mono";
+            font-size: 11px;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+
+        UiText {
+            text: root.active_page;
+            width: 120px;
+            height: parent.height;
+            color: Theme.outline;
+            font-family: "JetBrains Mono";
+            font-size: 11px;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+
+        Rectangle {
+            horizontal-stretch: 1;
+        }
+
+        UiText {
+            text: root.busy ? "Busy" : root.activity;
+            width: 240px;
+            height: parent.height;
+            color: root.busy ? Theme.tertiary : Theme.outline;
+            font-family: "JetBrains Mono";
+            font-size: 11px;
+            horizontal-alignment: right;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+    }
+}
+
 export component AppWindow inherits Window {
     title: "ZenAPI";
     preferred-width: 1280px;
     preferred-height: 800px;
-    min-width: 980px;
-    min-height: 640px;
+    min-width: 720px;
+    min-height: 560px;
     default-font-family: "Inter";
     default-font-size: 13px;
     default-font-weight: 500;
@@ -1351,6 +2662,8 @@ export component AppWindow inherits Window {
     in-out property <bool> server_running: false;
     in-out property <bool> busy: false;
     in-out property <string> activity: "";
+    in-out property <string> active_page: "dashboard";
+    property <bool> compact_mode: root.width < 900px;
 
     callback import_openapi(string);
     callback filter_routes(string);
@@ -1401,157 +2714,117 @@ export component AppWindow inherits Window {
             }
         }
 
-        HorizontalLayout {
-            spacing: 0px;
+        Rectangle {
+            horizontal-stretch: 1;
             vertical-stretch: 1;
+            background: Theme.background;
+            clip: true;
 
-            Sidebar {
-                routes <=> root.routes;
-                collection_rows <=> root.collection_rows;
-                history_rows <=> root.history_rows;
-                mock_logs <=> root.mock_logs;
-                selected_route <=> root.selected_route;
-                route_filter <=> root.route_filter;
-                history_filter <=> root.history_filter;
-                mock_log_filter <=> root.mock_log_filter;
-                mock_log_path <=> root.mock_log_path;
-                collection_path <=> root.collection_path;
-                selected_collection_request <=> root.selected_collection_request;
-                collection_request_name <=> root.collection_request_name;
-                collection_name <=> root.collection_name;
-                collection_status <=> root.collection_status;
-                total_route_count: root.total_route_count;
-                busy: root.busy;
-                filter_routes(query) => {
-                    root.filter_routes(query);
-                }
-                select_route(index) => {
-                    root.select_route(index);
-                }
-                select_collection_request(id) => {
-                    root.select_collection_request(id);
-                }
-                rename_collection_request(id, name) => {
-                    root.rename_collection_request(id, name);
-                }
-                duplicate_collection_request(id) => {
-                    root.duplicate_collection_request(id);
-                }
-                delete_collection_request(id) => {
-                    root.delete_collection_request(id);
-                }
-                import_collection(path) => {
-                    root.import_collection(path);
-                }
-                save_current_request => {
-                    root.save_current_request();
-                }
-                save_collection(path) => {
-                    root.save_collection(path);
-                }
-                export_postman_collection(path) => {
-                    root.export_postman_collection(path);
-                }
-                select_history(id) => {
-                    root.select_history(id);
-                }
-                filter_history(query) => {
-                    root.filter_history(query);
-                }
-                delete_history(id) => {
-                    root.delete_history(id);
-                }
-                clear_history => {
-                    root.clear_history();
-                }
-                filter_mock_logs(query) => {
-                    root.filter_mock_logs(query);
-                }
-                save_mock_logs(path) => {
-                    root.save_mock_logs(path);
-                }
-                clear_mock_logs => {
-                    root.clear_mock_logs();
-                }
+            AppNavigation {
+                x: 0px;
+                y: 0px;
+                height: parent.height;
+                visible: !root.compact_mode;
+                active_page <=> root.active_page;
             }
 
             Rectangle {
+                x: 240px;
+                y: 0px;
                 width: 1px;
+                height: parent.height;
+                visible: !root.compact_mode;
                 background: Theme.outline_variant;
             }
 
             Rectangle {
-                horizontal-stretch: 1;
-                vertical-stretch: 1;
-                background: Theme.surface;
+                x: root.compact_mode ? 0px : 241px;
+                y: 0px;
+                width: root.compact_mode ? parent.width : parent.width - 241px;
+                height: root.compact_mode ? parent.height - 56px : parent.height;
+                background: Theme.background;
+                clip: true;
 
-                VerticalLayout {
-                    padding: 0px;
-                    spacing: 0px;
-
-                    AddressBar {
-                        method <=> root.method;
-                        url <=> root.url;
-                        busy: root.busy;
-                        send_request => {
-                            root.send_request();
-                        }
-                    }
+                if root.active_page == "requests": ScrollView {
+                    width: parent.width;
+                    height: parent.height;
+                    viewport-width: max(self.visible-width, 1040px);
+                    viewport-height: max(self.visible-height, 560px);
+                    vertical-scrollbar-policy: ScrollBarPolicy.as-needed;
+                    horizontal-scrollbar-policy: ScrollBarPolicy.as-needed;
 
                     HorizontalLayout {
-                        padding: 0px;
+                        width: max(parent.visible-width, 1040px);
+                        height: max(parent.visible-height, 560px);
                         spacing: 0px;
-                        vertical-stretch: 1;
 
-                        RequestPanel {
-                            global_variables <=> root.global_variables;
-                            environment_name <=> root.environment_name;
-                            environment_variables <=> root.environment_variables;
-                            query_params <=> root.query_params;
-                            request_headers <=> root.request_headers;
-                            auth_mode <=> root.auth_mode;
-                            auth_config <=> root.auth_config;
-                            body_mode <=> root.body_mode;
-                            request_body <=> root.request_body;
-                            graphql_variables <=> root.graphql_variables;
-                            pre_request_script <=> root.pre_request_script;
-                            request_tests <=> root.request_tests;
-                            realtime_mode <=> root.realtime_mode;
-                            realtime_message <=> root.realtime_message;
-                            sse_max_events <=> root.sse_max_events;
-                            sse_last_event_id <=> root.sse_last_event_id;
-                            sse_streaming <=> root.sse_streaming;
-                            grpc_endpoint <=> root.grpc_endpoint;
-                            grpc_method <=> root.grpc_method;
-                            grpc_metadata <=> root.grpc_metadata;
-                            grpc_message <=> root.grpc_message;
+                        Sidebar {
+                            routes <=> root.routes;
+                            collection_rows <=> root.collection_rows;
+                            history_rows <=> root.history_rows;
+                            mock_logs <=> root.mock_logs;
+                            selected_route <=> root.selected_route;
+                            route_filter <=> root.route_filter;
+                            history_filter <=> root.history_filter;
+                            mock_log_filter <=> root.mock_log_filter;
+                            mock_log_path <=> root.mock_log_path;
+                            collection_path <=> root.collection_path;
+                            selected_collection_request <=> root.selected_collection_request;
+                            collection_request_name <=> root.collection_request_name;
+                            collection_name <=> root.collection_name;
+                            collection_status <=> root.collection_status;
+                            total_route_count: root.total_route_count;
                             busy: root.busy;
-                            open_websocket => {
-                                root.open_websocket();
+                            filter_routes(query) => {
+                                root.filter_routes(query);
                             }
-                            run_websocket => {
-                                root.run_websocket();
+                            select_route(index) => {
+                                root.select_route(index);
                             }
-                            close_websocket => {
-                                root.close_websocket();
+                            select_collection_request(id) => {
+                                root.select_collection_request(id);
                             }
-                            run_sse => {
-                                root.run_sse();
+                            rename_collection_request(id, name) => {
+                                root.rename_collection_request(id, name);
                             }
-                            open_sse_stream => {
-                                root.open_sse_stream();
+                            duplicate_collection_request(id) => {
+                                root.duplicate_collection_request(id);
                             }
-                            close_sse_stream => {
-                                root.close_sse_stream();
+                            delete_collection_request(id) => {
+                                root.delete_collection_request(id);
                             }
-                            apply_graphql_template(template) => {
-                                root.apply_graphql_template(template);
+                            import_collection(path) => {
+                                root.import_collection(path);
                             }
-                            apply_header_preset(preset) => {
-                                root.apply_header_preset(preset);
+                            save_current_request => {
+                                root.save_current_request();
                             }
-                            build_grpc_draft => {
-                                root.build_grpc_draft();
+                            save_collection(path) => {
+                                root.save_collection(path);
+                            }
+                            export_postman_collection(path) => {
+                                root.export_postman_collection(path);
+                            }
+                            select_history(id) => {
+                                root.select_history(id);
+                            }
+                            filter_history(query) => {
+                                root.filter_history(query);
+                            }
+                            delete_history(id) => {
+                                root.delete_history(id);
+                            }
+                            clear_history => {
+                                root.clear_history();
+                            }
+                            filter_mock_logs(query) => {
+                                root.filter_mock_logs(query);
+                            }
+                            save_mock_logs(path) => {
+                                root.save_mock_logs(path);
+                            }
+                            clear_mock_logs => {
+                                root.clear_mock_logs();
                             }
                         }
 
@@ -1560,41 +2833,354 @@ export component AppWindow inherits Window {
                             background: Theme.outline_variant;
                         }
 
-                        ResponsePanel {
-                            response_body <=> root.response_body;
-                            response_headers <=> root.response_headers;
-                            codegen_language <=> root.codegen_language;
-                            codegen_output <=> root.codegen_output;
-                            codegen_path <=> root.codegen_path;
-                            runner_rows <=> root.runner_rows;
-                            runner_summary <=> root.runner_summary;
-                            runner_delay_ms <=> root.runner_delay_ms;
-                            runner_report_path <=> root.runner_report_path;
-                            runner_stop_on_failure <=> root.runner_stop_on_failure;
-                            runner_active <=> root.runner_active;
-                            response_status: root.response_status;
-                            response_meta: root.response_meta;
-                            response_tone: root.response_tone;
-                            busy: root.busy;
-                            generate_code => {
-                                root.generate_code();
-                            }
-                            save_codegen(path) => {
-                                root.save_codegen(path);
-                            }
-                            run_collection => {
-                                root.run_collection();
-                            }
-                            cancel_collection_run => {
-                                root.cancel_collection_run();
-                            }
-                            save_runner_report(path) => {
-                                root.save_runner_report(path);
+                        Rectangle {
+                            horizontal-stretch: 1;
+                            vertical-stretch: 1;
+                            background: Theme.surface;
+
+                            VerticalLayout {
+                                padding: 0px;
+                                spacing: 0px;
+
+                                AddressBar {
+                                    method <=> root.method;
+                                    url <=> root.url;
+                                    busy: root.busy;
+                                    send_request => {
+                                        root.send_request();
+                                    }
+                                }
+
+                                HorizontalLayout {
+                                    padding: 0px;
+                                    spacing: 0px;
+                                    vertical-stretch: 1;
+
+                                    RequestPanel {
+                                        global_variables <=> root.global_variables;
+                                        environment_name <=> root.environment_name;
+                                        environment_variables <=> root.environment_variables;
+                                        query_params <=> root.query_params;
+                                        request_headers <=> root.request_headers;
+                                        auth_mode <=> root.auth_mode;
+                                        auth_config <=> root.auth_config;
+                                        body_mode <=> root.body_mode;
+                                        request_body <=> root.request_body;
+                                        graphql_variables <=> root.graphql_variables;
+                                        pre_request_script <=> root.pre_request_script;
+                                        request_tests <=> root.request_tests;
+                                        realtime_mode <=> root.realtime_mode;
+                                        realtime_message <=> root.realtime_message;
+                                        sse_max_events <=> root.sse_max_events;
+                                        sse_last_event_id <=> root.sse_last_event_id;
+                                        sse_streaming <=> root.sse_streaming;
+                                        grpc_endpoint <=> root.grpc_endpoint;
+                                        grpc_method <=> root.grpc_method;
+                                        grpc_metadata <=> root.grpc_metadata;
+                                        grpc_message <=> root.grpc_message;
+                                        busy: root.busy;
+                                        open_websocket => {
+                                            root.open_websocket();
+                                        }
+                                        run_websocket => {
+                                            root.run_websocket();
+                                        }
+                                        close_websocket => {
+                                            root.close_websocket();
+                                        }
+                                        run_sse => {
+                                            root.run_sse();
+                                        }
+                                        open_sse_stream => {
+                                            root.open_sse_stream();
+                                        }
+                                        close_sse_stream => {
+                                            root.close_sse_stream();
+                                        }
+                                        apply_graphql_template(template) => {
+                                            root.apply_graphql_template(template);
+                                        }
+                                        apply_header_preset(preset) => {
+                                            root.apply_header_preset(preset);
+                                        }
+                                        build_grpc_draft => {
+                                            root.build_grpc_draft();
+                                        }
+                                    }
+
+                                    Rectangle {
+                                        width: 1px;
+                                        background: Theme.outline_variant;
+                                    }
+
+                                    ResponsePanel {
+                                        response_body <=> root.response_body;
+                                        response_headers <=> root.response_headers;
+                                        codegen_language <=> root.codegen_language;
+                                        codegen_output <=> root.codegen_output;
+                                        codegen_path <=> root.codegen_path;
+                                        runner_rows <=> root.runner_rows;
+                                        runner_summary <=> root.runner_summary;
+                                        runner_delay_ms <=> root.runner_delay_ms;
+                                        runner_report_path <=> root.runner_report_path;
+                                        runner_stop_on_failure <=> root.runner_stop_on_failure;
+                                        runner_active <=> root.runner_active;
+                                        response_status: root.response_status;
+                                        response_meta: root.response_meta;
+                                        response_tone: root.response_tone;
+                                        busy: root.busy;
+                                        generate_code => {
+                                            root.generate_code();
+                                        }
+                                        save_codegen(path) => {
+                                            root.save_codegen(path);
+                                        }
+                                        run_collection => {
+                                            root.run_collection();
+                                        }
+                                        cancel_collection_run => {
+                                            root.cancel_collection_run();
+                                        }
+                                        save_runner_report(path) => {
+                                            root.save_runner_report(path);
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
                 }
+
+                if root.active_page == "dashboard": ScrollView {
+                    width: parent.width;
+                    height: parent.height;
+                    viewport-width: max(self.visible-width, 1040px);
+                    viewport-height: max(self.visible-height, 680px);
+                    vertical-scrollbar-policy: ScrollBarPolicy.as-needed;
+                    horizontal-scrollbar-policy: ScrollBarPolicy.as-needed;
+
+                    DashboardPage {
+                        width: max(parent.visible-width, 1040px);
+                        height: max(parent.visible-height, 680px);
+                        route_count: root.total_route_count;
+                        history_count: root.history_rows.length;
+                        mock_count: root.mock_logs.length;
+                        runner_summary: root.runner_summary;
+                        server_running: root.server_running;
+                        server_status: root.server_status;
+                        response_status: root.response_status;
+                        open_page(page) => {
+                            root.active_page = page;
+                        }
+                    }
+                }
+
+                if root.active_page == "mocks": ScrollView {
+                    width: parent.width;
+                    height: parent.height;
+                    viewport-width: max(self.visible-width, 1040px);
+                    viewport-height: max(self.visible-height, 620px);
+                    vertical-scrollbar-policy: ScrollBarPolicy.as-needed;
+                    horizontal-scrollbar-policy: ScrollBarPolicy.as-needed;
+
+                    MockManagerPage {
+                        width: max(parent.visible-width, 1040px);
+                        height: max(parent.visible-height, 620px);
+                        routes <=> root.routes;
+                        mock_logs <=> root.mock_logs;
+                        selected_route <=> root.selected_route;
+                        mock_log_filter <=> root.mock_log_filter;
+                        mock_log_path <=> root.mock_log_path;
+                        busy: root.busy;
+                        server_running: root.server_running;
+                        server_status: root.server_status;
+                        select_route(index) => {
+                            root.select_route(index);
+                        }
+                        toggle_server => {
+                            root.toggle_server();
+                        }
+                        filter_mock_logs(query) => {
+                            root.filter_mock_logs(query);
+                        }
+                        save_mock_logs(path) => {
+                            root.save_mock_logs(path);
+                        }
+                        clear_mock_logs => {
+                            root.clear_mock_logs();
+                        }
+                    }
+                }
+
+                if root.active_page == "environments": ScrollView {
+                    width: parent.width;
+                    height: parent.height;
+                    viewport-width: max(self.visible-width, 1000px);
+                    viewport-height: max(self.visible-height, 620px);
+                    vertical-scrollbar-policy: ScrollBarPolicy.as-needed;
+                    horizontal-scrollbar-policy: ScrollBarPolicy.as-needed;
+
+                    EnvironmentPage {
+                        width: max(parent.visible-width, 1000px);
+                        height: max(parent.visible-height, 620px);
+                        global_variables <=> root.global_variables;
+                        environment_name <=> root.environment_name;
+                        environment_variables <=> root.environment_variables;
+                    }
+                }
+
+                if root.active_page == "runner": ScrollView {
+                    width: parent.width;
+                    height: parent.height;
+                    viewport-width: max(self.visible-width, 1040px);
+                    viewport-height: max(self.visible-height, 620px);
+                    vertical-scrollbar-policy: ScrollBarPolicy.as-needed;
+                    horizontal-scrollbar-policy: ScrollBarPolicy.as-needed;
+
+                    RunnerPage {
+                        width: max(parent.visible-width, 1040px);
+                        height: max(parent.visible-height, 620px);
+                        collection_rows <=> root.collection_rows;
+                        runner_rows <=> root.runner_rows;
+                        runner_summary <=> root.runner_summary;
+                        runner_delay_ms <=> root.runner_delay_ms;
+                        runner_report_path <=> root.runner_report_path;
+                        runner_stop_on_failure <=> root.runner_stop_on_failure;
+                        runner_active <=> root.runner_active;
+                        busy: root.busy;
+                        run_collection => {
+                            root.run_collection();
+                        }
+                        cancel_collection_run => {
+                            root.cancel_collection_run();
+                        }
+                        save_runner_report(path) => {
+                            root.save_runner_report(path);
+                        }
+                    }
+                }
+
+                if root.active_page == "codegen": ScrollView {
+                    width: parent.width;
+                    height: parent.height;
+                    viewport-width: max(self.visible-width, 840px);
+                    viewport-height: max(self.visible-height, 620px);
+                    vertical-scrollbar-policy: ScrollBarPolicy.as-needed;
+                    horizontal-scrollbar-policy: ScrollBarPolicy.as-needed;
+
+                    CodegenPage {
+                        width: max(parent.visible-width, 840px);
+                        height: max(parent.visible-height, 620px);
+                        codegen_language <=> root.codegen_language;
+                        codegen_output <=> root.codegen_output;
+                        codegen_path <=> root.codegen_path;
+                        busy: root.busy;
+                        generate_code => {
+                            root.generate_code();
+                        }
+                        save_codegen(path) => {
+                            root.save_codegen(path);
+                        }
+                    }
+                }
+
+                if root.active_page == "analytics": ScrollView {
+                    width: parent.width;
+                    height: parent.height;
+                    viewport-width: max(self.visible-width, 1040px);
+                    viewport-height: max(self.visible-height, 620px);
+                    vertical-scrollbar-policy: ScrollBarPolicy.as-needed;
+                    horizontal-scrollbar-policy: ScrollBarPolicy.as-needed;
+
+                    PlaceholderPage {
+                        width: max(parent.visible-width, 1040px);
+                        height: max(parent.visible-height, 620px);
+                        title: "Traffic Analytics";
+                        subtitle: "Request volume, latency, and endpoint inspection.";
+                    }
+                }
+
+                if root.active_page == "docs": ScrollView {
+                    width: parent.width;
+                    height: parent.height;
+                    viewport-width: max(self.visible-width, 1040px);
+                    viewport-height: max(self.visible-height, 620px);
+                    vertical-scrollbar-policy: ScrollBarPolicy.as-needed;
+                    horizontal-scrollbar-policy: ScrollBarPolicy.as-needed;
+
+                    PlaceholderPage {
+                        width: max(parent.visible-width, 1040px);
+                        height: max(parent.visible-height, 620px);
+                        title: "API Documentation";
+                        subtitle: "Endpoint reference and Try It panel.";
+                    }
+                }
+
+                if root.active_page == "keys": ScrollView {
+                    width: parent.width;
+                    height: parent.height;
+                    viewport-width: max(self.visible-width, 1040px);
+                    viewport-height: max(self.visible-height, 620px);
+                    vertical-scrollbar-policy: ScrollBarPolicy.as-needed;
+                    horizontal-scrollbar-policy: ScrollBarPolicy.as-needed;
+
+                    PlaceholderPage {
+                        width: max(parent.visible-width, 1040px);
+                        height: max(parent.visible-height, 620px);
+                        title: "API Keys";
+                        subtitle: "Key lifecycle, scopes, and audit metadata.";
+                    }
+                }
+
+                if root.active_page == "team": ScrollView {
+                    width: parent.width;
+                    height: parent.height;
+                    viewport-width: max(self.visible-width, 1040px);
+                    viewport-height: max(self.visible-height, 620px);
+                    vertical-scrollbar-policy: ScrollBarPolicy.as-needed;
+                    horizontal-scrollbar-policy: ScrollBarPolicy.as-needed;
+
+                    PlaceholderPage {
+                        width: max(parent.visible-width, 1040px);
+                        height: max(parent.visible-height, 620px);
+                        title: "Team Management";
+                        subtitle: "Members, roles, invitations, and access review.";
+                    }
+                }
+
+                if root.active_page == "settings": ScrollView {
+                    width: parent.width;
+                    height: parent.height;
+                    viewport-width: max(self.visible-width, 1040px);
+                    viewport-height: max(self.visible-height, 620px);
+                    vertical-scrollbar-policy: ScrollBarPolicy.as-needed;
+                    horizontal-scrollbar-policy: ScrollBarPolicy.as-needed;
+
+                    PlaceholderPage {
+                        width: max(parent.visible-width, 1040px);
+                        height: max(parent.visible-height, 620px);
+                        title: "Project Settings";
+                        subtitle: "General settings, webhooks, retention, and integrations.";
+                    }
+                }
             }
+
+            BottomNavigation {
+                x: 0px;
+                y: parent.height - 56px;
+                width: parent.width;
+                visible: root.compact_mode;
+                active_page <=> root.active_page;
+            }
+        }
+
+        StatusBar {
+            active_page: root.active_page;
+            server_running: root.server_running;
+            server_status: root.server_status;
+            total_route_count: root.total_route_count;
+            busy: root.busy;
+            activity: root.activity;
         }
     }
 }
