@@ -75,12 +75,12 @@
   wired plus local JSON persistence.
 - [~] Rebuild Codegen UI for cURL, Python, JavaScript, Rust, and Go snippets;
   domain wiring still generates snippets from the resolved request projection,
-  while the reference-layout pass moved the controls out of the Request Builder
-  first screen; a dedicated Codegen page plus clipboard copy are pending.
+  and the Slint shell now has a dedicated Codegen page; clipboard copy and
+  richer snippet metadata are still pending.
 - [~] Rebuild Collection Runner UI while keeping `zenapi run` as the stable CLI;
-  domain wiring and CLI execution are in place, while the reference-layout pass
-  moved runner controls out of the Request Builder first screen; a dedicated
-  Runner page with report export and richer formats is pending.
+  domain wiring and CLI execution are in place, and the Slint shell now has a
+  dedicated Test Runner page with run/cancel/report export controls; richer
+  report formats are still pending.
 - [~] Rebuild Pre-request script-lite and native Tests panels; current Slint
   baseline provides line-based editors, applies pre-request actions during
   send/codegen, evaluates native tests after single sends, and saves/restores
@@ -95,8 +95,9 @@
   backed by the domain model, with gRPC descriptor loading/transport and GraphQL
   schema response helpers still pending.
 - [~] Add mock request logs and richer mock manager controls; current Slint
-  baseline shows, filters, clears, and exports recent mock requests in the
-  sidebar, with richer route controls pending.
+  baseline has a dedicated Mock Manager page with endpoint selection,
+  start/stop, traffic filtering, clear, and export placement, with richer route
+  response/rule editors pending.
 - [~] Split reusable controls from `ui/app.slint` into `ui/widgets/`; current
   Slint baseline extracts shared styles, buttons, text fields, method controls,
   tab headers, editor panes, and reusable list rows into `ui/widgets.slint`,
@@ -116,17 +117,18 @@
 
 | Area | Status | Notes |
 |------|--------|-------|
-| App shell | Slint MVP restored | `ui/app.slint`, `ui/theme.slint`, `src/app.rs` |
+| App shell | Multi-page Slint shell restored | Responsive page router, global navigation, bottom compact navigation, status bar, and overflow scrollbars |
 | OpenAPI import | Implemented | JSON/YAML parser and Slint route list wired |
 | HTTP client | Core implemented | Slint wires method, URL, params, headers, auth, variables, and body modes |
 | Mock server | Core implemented | Slint start/stop toggle wired |
 | Variables | Domain implemented | Slint baseline supports global and one active environment editor |
 | Collections | Domain implemented | Slint baseline supports load/save/export plus flat request restore/rename/duplicate/delete |
 | History | Domain implemented | Slint baseline records, filters, deletes, restores, and persists recent requests |
-| Codegen | Domain implemented | Slint page placement pending after Request Builder reference-layout pass |
-| Runner | Domain + CLI implemented | Dedicated Slint runner page pending; CLI remains stable |
+| Codegen | Domain + Slint page implemented | Dedicated page generates and saves snippets; clipboard copy pending |
+| Runner | Domain + Slint page + CLI implemented | Dedicated page runs/cancels collections and saves reports; CLI remains stable |
 | Assertions/scripts | Domain implemented | Slint baseline edits, saves, restores, and evaluates native scripts/tests |
 | WebSocket/SSE | Client modules restored | Slint baseline supports one-shot and persistent WS text sends plus SSE previews and persistent SSE streams |
 | Mock logs | Core implemented | Slint baseline shows, filters, clears, and exports recent mock requests |
 | GraphQL | Payload builder implemented | Slint baseline edits query/variables and applies helper templates |
 | gRPC | Domain draft model implemented | Slint draft surface wired; descriptor loading and unary transport pending |
+| Reference pages | Slint baseline implemented | Dashboard, Request Builder, Mock Manager, Environments, Test Runner, API Docs, API Keys, Team, Project Settings, and Traffic Analytics now have routed reference-aligned page layouts |

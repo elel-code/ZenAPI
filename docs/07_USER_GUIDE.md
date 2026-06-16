@@ -16,19 +16,15 @@ Indigo primary, Mint secondary, Inter + JetBrains Mono typography.
 
 ## Workbench Layout
 
-The main window is a three-pane workbench:
+The main window is a single Slint shell with a fixed top bar, global navigation,
+page content, and a bottom status bar. Wide windows use the left navigation for
+Dashboard, Requests, Mocks, Runner, Environments, Analytics, API Docs, API Keys,
+Team, Settings, and Codegen. Compact widths hide the global navigation and show
+bottom navigation for the primary pages.
 
-- Sidebar tabs for Routes, Saved, and History.
-- Request for method, URL, parameters, headers, auth, body, scripts, realtime,
-  and tools.
-- Response for status, Pretty/Raw/Header views, and response body text.
-
-The two pane dividers can be dragged to resize the workbench. Dragging shows a
-neutral divider preview, and the new pane widths are applied when the pointer is
-released. Sidebar, Request, and Response body content each scroll independently
-with ZenAPI-styled vertical scrollbars. The scrollbar gutter is reserved outside
-the content area; drag the thumb or click the track to jump without activating
-rows or selecting response text beneath it.
+The Requests page keeps the three-pane request builder: collection/history
+sidebar, request editor, and response viewer. Long lists, code panes, and
+narrow-window page content use Slint scrollbars instead of clipping overflow.
 
 ## Keyboard Shortcuts
 
@@ -280,8 +276,8 @@ snapshot.
 ## Local Mock Server
 
 The mock server transport and log storage are available in the Rust domain
-layer. The reference-layout pass removed the previous top-bar mock control from
-the Request Builder first screen; a dedicated Mock Manager page is pending.
+layer. Use the Mocks page for endpoint selection, server start/stop, traffic
+filtering, log clearing, and log export.
 
 Behavior:
 
@@ -305,9 +301,8 @@ panel status.
 
 ## Code Generation
 
-Code generation is implemented in the domain layer, but its Slint controls are
-pending a dedicated page after the Request Builder reference-layout pass. The
-supported snippet targets are:
+Code generation is implemented in the domain layer and exposed through the
+Codegen page. The supported snippet targets are:
 
 - `cURL`
 - `Py` for Python requests
@@ -318,8 +313,8 @@ supported snippet targets are:
 ## Collection Runner
 
 The command-line runner executes every request in the current collection
-sequentially. Dedicated Slint runner controls are pending a separate Test Runner
-page after the Request Builder reference-layout pass.
+sequentially. The Runner page exposes Slint controls for stop-on-failure mode,
+delay, run, cancel, result review, and report export.
 
 HTTP 2xx and 3xx responses are treated as passing when no tests are defined.
 Native ZenAPI collection JSON can include response assertions; when assertions
