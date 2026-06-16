@@ -3,29 +3,30 @@
 ## Product Positioning
 
 ZenAPI is a local-first developer tool that combines an API testing client with
-a local mock server. It is built around Rust and GPUI, with the goal of becoming
+a local mock server. It is built around Rust and Slint, with the goal of becoming
 a focused post-Postman API workstation: native, private, offline-friendly, and
 simple.
 
 Visual and interaction decisions are tracked in [DESIGN.md](DESIGN.md) so the
 product can keep improving without drifting back to unstyled toolkit defaults.
 
+The UI design is aligned with the Nexus API design system (`stitch_nextgen_api_studio/`),
+a dark-themed "Geek Modernity" aesthetic optimized for developer tooling. All
+visual tokens — colors, typography, spacing, elevation — follow this system.
+
 ## Framework And Compatibility Policy
 
-The desktop UI is GPUI, using Zed's official repository. Linux support goes
-through `gpui_platform` with Wayland and X11 features. The former Slint
-implementation was prototype code and is not a compatibility contract.
+The desktop UI is Slint, using the official `slint` crate (v1) and `slint-build`
+for compile-time `.slint` file processing. There is no GPUI compatibility layer.
 
-- The GPUI rewrite is a breaking replacement of the old application shell.
-- Do not reintroduce Slint UI files, generated UI modules, callback names,
-  binding-layer shapes, or build scripts for backwards compatibility.
-- Prefer deleting obsolete toolkit-specific code over adding adapters or
-  compatibility shims.
+- UI is defined declaratively in `.slint` files.
+- Rust modules own business logic, state management, and domain models.
+- Slint `global` singletons and `callback` mechanisms bridge Rust ↔ UI.
+- Do not introduce GPUI adapters, compatibility shims, or hybrid rendering paths.
 - Keep reusable product logic in Rust modules such as OpenAPI parsing, request
-  transport, and the mock server only when it fits the GPUI architecture
-  cleanly.
-- Documentation, examples, and future implementation notes should describe the
-  GPUI architecture as the current application architecture.
+  transport, and the mock server.
+- Documentation, examples, and implementation notes should describe the Slint
+  architecture as the current application architecture.
 
 ## Core Problems
 
@@ -66,14 +67,16 @@ implementation was prototype code and is not a compatibility contract.
 - Import/export native ZenAPI collection JSON and Postman Collection v2.1 JSON.
 - Record request history locally and restore prior requests.
 - Generate request snippets for cURL, Python, JavaScript, Rust, and Go.
-- Run all requests in the current collection sequentially from GPUI or
+- Run all requests in the current collection sequentially from the UI or
   `zenapi run`.
 
 ## Non-Functional Requirements
 
-- Support Windows, macOS, and Linux through Rust and GPUI.
+- Support Windows, macOS, and Linux through Rust and Slint.
 - Keep the UI minimal, direct, and local-first: no ads, no forced accounts, no
   cloud dependency, and no unnecessary configuration surface.
+- Follow the Nexus API dark theme design system: deep charcoal background,
+  Indigo primary, Mint secondary, Inter + JetBrains Mono typography.
 
 ## Initial Acceptance Criteria
 
@@ -99,16 +102,17 @@ implementation was prototype code and is not a compatibility contract.
 
 ## Suggested Build Order
 
-1. Maintain the Rust + GPUI application shell backed by Zed's official
-   `gpui` and `gpui_platform` crates.
-2. Implement OpenAPI and Swagger file import.
-3. Parse paths and methods into an internal route model.
-4. Render the route tree in GPUI.
-5. Wire route selection to the request editor.
-6. Add request sending and response rendering.
-7. Add the local mock server with permissive CORS.
-8. Add schema-based mock response generation.
-9. Maintain local collections, variables, history, code generation, and runner
-   workflows.
-10. Add scripts/tests and additional protocols only after core REST workflows
-   stay stable.
+1. Scaffold the Rust + Slint application shell with `slint` and `slint-build`.
+2. Establish the global Slint theme: color tokens, typography, spacing from
+   the Nexus API design system.
+3. Implement OpenAPI and Swagger file import.
+4. Parse paths and methods into an internal route model.
+5. Render the route tree in Slint.
+6. Wire route selection to the request editor.
+7. Add request sending and response rendering.
+8. Add the local mock server with permissive CORS.
+9. Add schema-based mock response generation.
+10. Maintain local collections, variables, history, code generation, and runner
+    workflows.
+11. Add scripts/tests and additional protocols only after core REST workflows
+    stay stable.

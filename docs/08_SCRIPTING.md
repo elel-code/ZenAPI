@@ -118,7 +118,7 @@ accepted aliases for unset actions. `remove_var` / `delete_var`,
 `remove_global` / `delete_global`, and `remove_env` / `delete_env` are also
 accepted.
 
-Actions can be separated by semicolons or new lines in collection JSON. The GPUI
+Actions can be separated by semicolons or new lines in collection JSON. The Slint
 editor currently uses a compact single-line input. Saved collection requests use
 `pre_request_script`; the field is omitted when empty and defaults to an empty
 string for older collection files. Saving preserves the raw editor request and
@@ -127,11 +127,11 @@ than being baked into the collection at save time.
 
 Execution behavior:
 
-- Single request sending, code generation preview, the GPUI collection runner,
+- Single request sending, code generation preview, the Slint collection runner,
   and the CLI runner all execute the same Rust action evaluator.
 - Action logs record the action name and target field, not the configured
   value, so bearer tokens and other secrets are not echoed into summaries.
-- GPUI runner summaries and CLI output include pre-request action counts or
+- Slint runner summaries and CLI output include pre-request action counts or
   action target lines for saved collection requests.
 - Variable mutations are request-local for build/runner execution and do not
   persist back into stored environment/global variable rows.
@@ -161,7 +161,7 @@ Runner behavior:
   pass. This allows expected error responses such as status 500 to be modeled
   explicitly.
 - Assertion failures appear in runner summaries and response summary text.
-- The GPUI request editor includes a native Tests panel that configures these
+- The Slint request editor includes a native Tests panel that configures these
   assertions without a script engine.
 - Saving a request to a collection preserves configured assertions, and
   restoring a collection request brings them back into the Tests panel.

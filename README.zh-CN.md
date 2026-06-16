@@ -1,9 +1,9 @@
 # ZenAPI
 
-基于 Rust 和 GPUI 构建的本地优先 API 工作站，将 API 测试客户端和本地 Mock
+基于 Rust 和 Slint 构建的本地优先 API 工作站，将 API 测试客户端和本地 Mock
 服务器整合为一个原生可执行文件。
 
-[文档](docs/) · [设计笔记](docs/DESIGN.md) · [开发路线图](docs/TODO.md)
+[文档](docs/) · [设计笔记](docs/02_DESIGN.md) · [开发路线图](docs/05_TODO.md)
 
 ## 特性
 
@@ -21,8 +21,8 @@
   并通过拖拽移动条目。
 - **请求历史** — 本地自动记录历史，支持搜索和一键恢复。
 - **代码生成** — 从任意请求生成 cURL、Python、JavaScript、Rust 和 Go 代码片段。
-- **Rust + GPUI 原生桌面** — 使用 Zed 官方仓库的 GPUI，并在 Linux 下通过
-  `gpui_platform` 启动。
+- **Rust + Slint 原生桌面** — 使用 Slint UI 框架，采用暗色 "Geek Modernity"
+  设计系统。
 
 ## 开始使用
 
@@ -47,61 +47,78 @@ cargo run
 
 ```
 ZenAPI/
+├── ui/                         # Slint .slint UI 文件
+│   ├── app.slint               # 应用外壳和主布局
+│   ├── theme.slint             # 全局颜色/间距/字体 token
+│   ├── widgets/                # 可复用 UI 组件
+│   └── icons/                  # Material Symbols 图标资源
 ├── src/
-│   ├── main.rs                  # GPUI 应用入口
-│   ├── lib.rs                   # 库根文件
-│   ├── app.rs                   # 应用状态、动作和工作流编排
-│   ├── app/input.rs             # 输入控件（单行、多行、键值对）
-│   ├── openapi.rs               # OpenAPI 模块入口
-│   ├── openapi/model.rs         # 解析后的路由和 Schema 模型
-│   ├── openapi/parser.rs        # OpenAPI 3.0 / Swagger 2.0 文件解析器
-│   ├── openapi/json.rs          # JSON 格式处理
-│   ├── openapi/yaml.rs          # YAML 格式处理
-│   ├── openapi/schema.rs        # Schema → Mock 数据生成
-│   ├── client.rs                # HTTP 客户端模块入口
-│   ├── client/transport.rs      # reqwest 请求传输层
-│   ├── client/response.rs       # 响应格式化
-│   ├── mock_server.rs           # Mock 服务器模块入口
-│   ├── mock_server/server.rs    # Axum 服务器生命周期
-│   ├── mock_server/routing.rs   # 动态 Mock 路由生成
-│   ├── collections.rs           # 集合树和 Postman 导入/导出
-│   ├── variables.rs             # 变量存储与插值替换
-│   ├── history.rs               # 请求历史模型与过滤
-│   └── codegen.rs               # 多语言代码片段生成
+│   ├── main.rs                 # Slint 应用入口
+│   ├── lib.rs                  # 库根文件
+│   ├── app.rs                  # 应用状态、动作和工作流编排
+│   ├── openapi.rs              # OpenAPI 模块入口
+│   ├── openapi/model.rs        # 解析后的路由和 Schema 模型
+│   ├── openapi/parser.rs       # OpenAPI 3.0 / Swagger 2.0 文件解析器
+│   ├── openapi/json.rs         # JSON 格式处理
+│   ├── openapi/yaml.rs         # YAML 格式处理
+│   ├── openapi/schema.rs       # Schema → Mock 数据生成
+│   ├── client.rs               # HTTP 客户端模块入口
+│   ├── client/transport.rs     # reqwest 请求传输层
+│   ├── client/response.rs      # 响应格式化
+│   ├── mock_server.rs          # Mock 服务器模块入口
+│   ├── mock_server/server.rs   # Axum 服务器生命周期
+│   ├── mock_server/routing.rs  # 动态 Mock 路由生成
+│   ├── collections.rs          # 集合树和 Postman 导入/导出
+│   ├── variables.rs            # 变量存储与插值替换
+│   ├── history.rs              # 请求历史模型与过滤
+│   └── codegen.rs              # 多语言代码片段生成
 ├── docs/
-│   ├── PRD.md                   # 产品需求与 MVP 范围
-│   ├── DESIGN.md                # 视觉与交互设计决策
-│   ├── TODO.md                  # 开发路线图与任务追踪
-│   └── USER_GUIDE.md            # 用户指南（计划中）
+│   ├── PRD.md                  # 产品需求与 MVP 范围
+│   ├── DESIGN.md               # 视觉与交互设计决策
+│   ├── TODO.md                 # 开发路线图与任务追踪
+│   └── USER_GUIDE.md           # 用户指南
+├── stitch_nextgen_api_studio/  # 设计参考（Nexus API 设计系统）
 ├── Cargo.toml
 ├── Cargo.lock
-├── README.md                    # 英文版
-└── README.zh-CN.md              # 本文件
+└── build.rs                    # slint-build 编译
 ```
 
 ### 核心依赖
 
 | Crate | 用途 |
 |-------|------|
-| `gpui` / `gpui_platform` | GPU 加速桌面 UI（Zed 官方仓库） |
+| `slint` / `slint-build` | 声明式桌面 UI，编译时 `.slint` 处理 |
 | `reqwest` | HTTP/HTTPS 客户端，TLS 支持 |
 | `axum` / `tokio` | 本地 Mock 服务器（异步，默认 CORS） |
 | `serde_json` / `serde_yaml` | OpenAPI 文档解析 |
-| `syntect`（计划中） | JSON 语法高亮 |
+
+## 设计系统
+
+ZenAPI 遵循 **Nexus API 设计系统** —— 一种暗色 "Geek Modernity" 美学，
+定义于 `stitch_nextgen_api_studio/nexus_api/DESIGN.md`。关键设计 token：
+
+- **背景色**: 深炭灰 `#13131b`
+- **主色**: Vibrant Indigo `#c0c1ff`
+- **次要色**: Cyber Mint `#4edea3`（成功状态、活跃端点）
+- **字体**: Inter（UI）+ JetBrains Mono（代码）
+- **图标**: Material Symbols Outlined
+- **布局**: 12 列流式网格，240px 可折叠侧边栏
+
+详见 [docs/02_DESIGN.md](docs/02_DESIGN.md) 获取完整实现指南。
 
 ## 文档
 
-- [PRD](docs/PRD.md) — 产品需求与 MVP 范围
-- [DESIGN](docs/DESIGN.md) — 视觉与交互指南
-- [TODO](docs/TODO.md) — 开发路线图
-- [User Guide](docs/USER_GUIDE.md) — 计划中
+- [PRD](docs/01_PRD.md) — 产品需求与 MVP 范围
+- [DESIGN](docs/02_DESIGN.md) — 视觉与交互指南
+- [TODO](docs/05_TODO.md) — 开发路线图
+- [User Guide](docs/07_USER_GUIDE.md)
 
 ## 平台支持
 
 | 平台 | 状态 |
 |------|------|
 | Linux (Wayland) | ✅ 主要开发平台 |
-| Linux (X11) | ✅ 通过 `gpui_platform` 支持 |
+| Linux (X11) | ✅ 支持 |
 | macOS | 计划中 |
 | Windows | 计划中 |
 

@@ -107,7 +107,7 @@ gRPC 不应塞进 HTTP Body 面板。推荐单独面板或协议工作区：
 2. 实现 reflection descriptor 加载测试。
 3. 实现 `.proto` descriptor 加载测试。
 4. 实现 unary 调用传输层和本地 tonic 服务测试。
-5. 接入 GPUI unary 面板。
+5. 接入 Slint unary 面板。
 6. 再实现 server streaming。
 
 ## 当前结论

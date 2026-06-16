@@ -158,7 +158,7 @@ fn print_run_usage() {
 }
 
 fn usage() -> &'static str {
-    "Usage:\n  zenapi                 Start the GPUI desktop app\n  zenapi run <collection.json> [--delay-ms N] [--stop-on-failure]\n"
+    "Usage:\n  zenapi                 Start the Slint desktop app\n  zenapi run <collection.json> [--delay-ms N] [--stop-on-failure]\n"
 }
 
 fn run_usage() -> &'static str {

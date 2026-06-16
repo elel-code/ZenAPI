@@ -1,6 +1,6 @@
 # ZenAPI User Guide
 
-> Status: current local guide for the GPUI rewrite. Some advanced roadmap
+> Status: current local guide for the Slint rewrite. Some advanced roadmap
 > features such as OAuth2 token acquisition/refresh, full `pm.*` script
 > compatibility, plugins, and multi-protocol sessions are still future work.
 
@@ -10,9 +10,9 @@ ZenAPI is a local-first API workstation. It combines an OpenAPI/Swagger route
 browser, an HTTP client, local mock server, collections, variables, request
 history, code generation, and a sequential collection runner.
 
-The desktop app is built with GPUI from Zed's official repository. Linux uses
-`gpui_platform` with Wayland and X11 support. The old Slint prototype is not a
-compatibility target.
+The desktop app is built with Slint, a declarative Rust UI framework. The UI
+follows the Nexus API dark theme design system — deep charcoal background,
+Indigo primary, Mint secondary, Inter + JetBrains Mono typography.
 
 ## Workbench Layout
 
@@ -57,7 +57,7 @@ cargo build --release
 target/release/zenapi
 ```
 
-The GPUI shell uses platform fonts. No bundled font assets are required.
+The Slint shell uses Inter for UI text and JetBrains Mono for code.
 
 ## Import An API Specification
 
@@ -345,7 +345,5 @@ zenapi run collection.json --delay-ms 100
   available with connection headers/protocols. SSE `Once` previews are available
   with `Stream` subscription and `Last-Event-ID`
   resume plus custom headers and reconnect/backoff. gRPC has an implementation
-  plan in `docs/GRPC.md`, but transport/UI support is future work.
+  plan in `docs/09_GRPC.md`, but transport/UI support is future work.
 - Plugin APIs are future work.
-- Live visual comparison against reference clients still needs current-version
-  review.

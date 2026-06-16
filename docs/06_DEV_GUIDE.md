@@ -1,22 +1,20 @@
 # ZenAPI Developer Guide
 
-> Status: current guide for the Rust + GPUI rewrite.
+> Status: current guide for the Rust + Slint rewrite.
 
 ## Project Shape
 
-ZenAPI is a Rust application with a GPUI desktop shell and reusable domain
-modules. The GPUI rewrite is a breaking replacement of the old Slint prototype.
-Do not add Slint compatibility shims, generated UI modules, callback adapters,
-or old toolkit build steps.
+ZenAPI is a Rust application with a Slint desktop shell and reusable domain
+modules. The Slint rewrite replaces the earlier GPUI experiment. Do not add
+GPUI compatibility shims, generated GPUI modules, callback adapters, or old
+toolkit build steps.
 
 Primary entry points:
 
 | Path | Purpose |
 |------|---------|
 | `src/main.rs` | Binary entry point; dispatches desktop app or CLI commands |
-| `src/app.rs` | GPUI app shell, state, rendering, and event flow |
-| `src/app/input.rs` | Custom single-line GPUI text input |
-| `src/app/read_only_text.rs` | Read-only selectable response text view |
+| `src/app.rs` | Slint app shell, state, rendering, and event flow |
 | `src/cli.rs` | CLI command parsing and collection runner command |
 | `src/lib.rs` | Public library module exports |
 
@@ -37,12 +35,14 @@ Core modules:
 
 ## Dependency Policy
 
-- `gpui` and `gpui_platform` come from Zed's official repository.
-- Linux builds use `gpui_platform` with `wayland` and `x11` features.
+- `slint` and `slint-build` are the UI framework crates.
+- UI is defined declaratively in `.slint` files under `ui/`.
+- `slint-build` compiles `.slint` files at build time through `build.rs`.
 - Keep versions upgrade-friendly; avoid narrow pins unless reproducibility or
   a concrete incompatibility requires one.
-- Do not bundle font assets for the GPUI shell.
-- Prefer Rust/domain modules for reusable behavior and keep GPUI rendering code
+- Bundled font assets (Inter, JetBrains Mono) are loaded via `.slint` import
+  directives or registered at startup.
+- Prefer Rust/domain modules for reusable behavior and keep Slint binding code
   responsible for view state and event wiring.
 
 ## Build And Test
@@ -77,7 +77,7 @@ Build release binary:
 cargo build --release
 ```
 
-CLI help can be checked without starting GPUI:
+CLI help can be checked without starting the Slint UI:
 
 ```sh
 target/debug/zenapi --help
@@ -85,15 +85,15 @@ target/debug/zenapi run --help
 ```
 
 Starting the desktop app requires a GUI session with a usable Wayland or X11
-environment.
+environment. Slint automatically selects the appropriate backend.
 
 ## App State Flow
 
-`ZenApiApp` owns GPUI entities and view state:
+`ZenApiApp` owns Slint component instances and view state:
 
-- Text inputs are GPUI entities.
+- UI components are Slint elements defined in `.slint` files.
 - Long-running network/mock work runs on Tokio.
-- Results return to GPUI through channels and `cx.spawn`.
+- Results return to the UI through Slint callbacks and `invoke_from_event_loop`.
 - Domain modules stay plain Rust where possible.
 
 The request flow is:
@@ -112,11 +112,12 @@ The collection runner flow is:
    requests in depth-first order.
 2. Each `CollectionRequest` is converted into the client request shape.
 3. Requests run sequentially with optional delay.
-4. Results are summarized for GPUI and CLI output.
+4. Results are summarized for the Slint UI and CLI output.
 
 ## UI Guidelines
 
-Persistent visual decisions live in `docs/DESIGN.md`.
+Persistent visual decisions live in `docs/02_DESIGN.md`. The design system follows
+the Nexus API dark theme (see `stitch_nextgen_api_studio/nexus_api/DESIGN.md`).
 
 Key constraints:
 
@@ -124,19 +125,33 @@ Key constraints:
 - Avoid landing-page composition and decorative cards.
 - Keep cards for repeated items, modals, and framed tools only.
 - Use shared helpers for button tones, response tones, and HTTP method colors.
+- Define colors, typography, and spacing in `ui/theme.slint` as Slint globals.
 - Keep stable layout metrics, such as table column widths, method label widths,
   and collection tree indentation, in shared constants instead of inline values.
-- Use platform UI font for normal copy and `monospace` for technical text.
+- Use Inter for UI text and JetBrains Mono for technical text (API paths, JSON,
+  code).
 - Response body text must stay selectable and read-only.
 - Native Tests panel rows should convert to `assertions::ResponseAssertion`
   before request execution or collection save.
 - Actions that cannot succeed should be visibly disabled and guarded in code.
 
+## Slint UI Architecture
+
+- `.slint` files live under `ui/` and are compiled by `slint-build` in
+  `build.rs`.
+- Application-wide styling tokens (colors, fonts, spacing) are exported from
+  `ui/theme.slint` as `global Theme { ... }`.
+- Reusable components (MethodChip, AddressBar, KeyValueEditor, etc.) live in
+  `ui/widgets/`.
+- Material Symbols icon assets live in `ui/icons/`.
+- Rust ↔ Slint communication uses Slint `global` singletons for shared state
+  and `callback` for events.
+
 ## Collections And Formats
 
 Native collection JSON is the current internal format. Postman Collection v2.1
 import/export is the interoperability format. Bru-style text storage is still
-exploratory; see `docs/BRU_FORMAT.md`.
+exploratory; see `docs/08_SCRIPTING.md`.
 
 When changing collection models:
 
@@ -147,22 +162,22 @@ When changing collection models:
 
 ## Scripts And Tests
 
-The scripting engine decision is documented in `docs/SCRIPTING.md`. Do not add
+The scripting engine decision is documented in `docs/08_SCRIPTING.md`. Do not add
 Rhai, mlua, `deno_core`, or another engine without updating that evaluation and
 the sandboxing model. Native response assertions are implemented in Rust and
 should remain the runner/test result foundation when a script engine is added.
 Native pre-request script-lite actions are implemented in Rust and should remain
-the compatibility layer used by GPUI, runner, and CLI until a full engine is
+the compatibility layer used by the Slint UI, runner, and CLI until a full engine is
 deliberately added.
 
 ## Adding Features
 
 For feature work:
 
-1. Start from `docs/TODO.md`.
+1. Start from `docs/05_TODO.md`.
 2. Keep edits scoped to the module boundary implied by the TODO item.
 3. Add focused tests for domain behavior.
-4. Add UI tests or pure helper tests when a GPUI surface has meaningful state
+4. Add UI tests or pure helper tests when a Slint surface has meaningful state
    projection logic.
 5. Update docs when behavior changes.
 6. Run `cargo fmt`, `cargo check`, and `cargo test`.
