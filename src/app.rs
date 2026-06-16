@@ -16,6 +16,7 @@ use zenapi::{
         CollectionRunResult, CollectionRunSummary, FailureStrategy, RunnerOptions, run_collection,
     },
     collections::{ApiCollection, CollectionBody, CollectionItem, CollectionRequest, NameValue},
+    grpc::{GrpcRequestDraft, build_grpc_request_draft},
     history::{HistoryRequest, HistoryResponse, RequestHistory},
     mock_server::{MockRequestLog, MockServer},
     openapi::{ApiRoute, ApiSpec, load_openapi_file},
@@ -39,6 +40,7 @@ pub fn run() -> Result<()> {
     wire_codegen(&app);
     wire_collection_runner(&app, runtime.clone(), state.clone());
     wire_realtime_actions(&app, runtime.clone());
+    wire_grpc_draft(&app);
     wire_mock_server(&app, runtime, state);
 
     app.run().map_err(|err| anyhow!(err.to_string()))
@@ -864,6 +866,34 @@ fn wire_realtime_actions(app: &AppWindow, runtime: Arc<Runtime>) {
     });
 }
 
+fn wire_grpc_draft(app: &AppWindow) {
+    let weak_app = app.as_weak();
+    app.on_build_grpc_draft(move || {
+        let Some(app) = weak_app.upgrade() else {
+            return;
+        };
+        if app.get_busy() {
+            return;
+        }
+
+        match build_grpc_request_draft(
+            &app.get_grpc_endpoint(),
+            &app.get_grpc_method(),
+            &app.get_grpc_metadata(),
+            &app.get_grpc_message(),
+        ) {
+            Ok(draft) => set_response(
+                &app,
+                "gRPC draft ready",
+                &draft.method_path(),
+                "success",
+                &format_grpc_draft(&draft),
+            ),
+            Err(error) => set_response(&app, "gRPC draft failed", "", "error", &error.to_string()),
+        }
+    });
+}
+
 fn wire_mock_server(app: &AppWindow, runtime: Arc<Runtime>, state: Arc<Mutex<AppState>>) {
     let weak_app = app.as_weak();
     app.on_toggle_server(move || {
@@ -1405,6 +1435,29 @@ fn format_sse_event(index: usize, event: &client::SseEvent) -> String {
         .map(|retry| format!(" / retry {retry}"))
         .unwrap_or_default();
     format!("{index}. {event_name}{id}{retry}\n{}", event.data)
+}
+
+fn format_grpc_draft(draft: &GrpcRequestDraft) -> String {
+    let metadata = if draft.metadata.is_empty() {
+        "No metadata".to_string()
+    } else {
+        draft
+            .metadata
+            .iter()
+            .map(|entry| format!("{}: {}", entry.name, entry.value))
+            .collect::<Vec<_>>()
+            .join("\n")
+    };
+    let message =
+        serde_json::to_string_pretty(&draft.message).unwrap_or_else(|_| draft.message.to_string());
+
+    format!(
+        "Endpoint: {}\nMethod: {}\n\nMetadata\n{}\n\nMessage\n{}",
+        draft.endpoint,
+        draft.method_path(),
+        metadata,
+        message
+    )
 }
 
 fn mock_log_model(logs: &[MockRequestLog]) -> ModelRc<MockLogRow> {
@@ -2664,6 +2717,22 @@ mod tests {
         assert_eq!(
             format_sse_exchange(&sse),
             "URL: http://localhost/events\n1. update / id 42\n{\"ok\":true}"
+        );
+    }
+
+    #[test]
+    fn formats_grpc_draft_for_response_panel() {
+        let draft = build_grpc_request_draft(
+            "http://localhost:50051",
+            "demo.Users/GetUser",
+            "authorization=Bearer token",
+            r#"{"id":"u_123"}"#,
+        )
+        .expect("draft");
+
+        assert_eq!(
+            format_grpc_draft(&draft),
+            "Endpoint: http://localhost:50051\nMethod: /demo.Users/GetUser\n\nMetadata\nauthorization: Bearer token\n\nMessage\n{\n  \"id\": \"u_123\"\n}"
         );
     }
 

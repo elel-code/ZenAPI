@@ -776,9 +776,14 @@ component RequestPanel inherits Rectangle {
     in-out property <string> realtime_mode;
     in-out property <string> realtime_message;
     in-out property <string> sse_max_events;
+    in-out property <string> grpc_endpoint;
+    in-out property <string> grpc_method;
+    in-out property <string> grpc_metadata;
+    in-out property <string> grpc_message;
     in property <bool> busy;
     callback run_websocket();
     callback run_sse();
+    callback build_grpc_draft();
 
     horizontal-stretch: 1;
     vertical-stretch: 1;
@@ -1065,6 +1070,73 @@ component RequestPanel inherits Rectangle {
                                         primary: root.realtime_mode == "sse";
                                         clicked => {
                                             root.run_sse();
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        Rectangle {
+                            horizontal-stretch: 1;
+                            vertical-stretch: 1;
+
+                            VerticalLayout {
+                                padding: 0px;
+                                spacing: 6px;
+
+                                UiText {
+                                    text: "gRPC Draft";
+                                    height: 20px;
+                                    horizontal-stretch: 1;
+                                    color: Theme.on_surface_variant;
+                                    font-size: 12px;
+                                    font-weight: 800;
+                                    vertical-alignment: center;
+                                    overflow: elide;
+                                }
+
+                                TextField {
+                                    text <=> root.grpc_endpoint;
+                                    placeholder: "http://localhost:50051";
+                                    mono: true;
+                                    enabled: !root.busy;
+                                    height: 28px;
+                                }
+
+                                TextField {
+                                    text <=> root.grpc_method;
+                                    placeholder: "package.Service/Method";
+                                    mono: true;
+                                    enabled: !root.busy;
+                                    height: 28px;
+                                }
+
+                                TextField {
+                                    text <=> root.grpc_metadata;
+                                    placeholder: "metadata name=value";
+                                    mono: true;
+                                    enabled: !root.busy;
+                                    height: 28px;
+                                }
+
+                                HorizontalLayout {
+                                    height: 30px;
+                                    spacing: 8px;
+
+                                    TextField {
+                                        text <=> root.grpc_message;
+                                        placeholder: "{}";
+                                        mono: true;
+                                        enabled: !root.busy;
+                                        height: 30px;
+                                    }
+
+                                    ActionButton {
+                                        text: "Build";
+                                        button_width: 64px;
+                                        enabled: !root.busy;
+                                        clicked => {
+                                            root.build_grpc_draft();
                                         }
                                     }
                                 }
@@ -1475,6 +1547,10 @@ export component AppWindow inherits Window {
     in-out property <string> realtime_mode: "ws";
     in-out property <string> realtime_message: "hello";
     in-out property <string> sse_max_events: "3";
+    in-out property <string> grpc_endpoint: "http://localhost:50051";
+    in-out property <string> grpc_method: "package.Service/Method";
+    in-out property <string> grpc_metadata: "";
+    in-out property <string> grpc_message: "{}";
     in-out property <string> response_status: "Idle";
     in-out property <string> response_meta: "";
     in-out property <string> response_tone: "neutral";
@@ -1507,6 +1583,7 @@ export component AppWindow inherits Window {
     callback run_collection();
     callback run_websocket();
     callback run_sse();
+    callback build_grpc_draft();
 
     background: Theme.background;
 
@@ -1616,12 +1693,19 @@ export component AppWindow inherits Window {
                             realtime_mode <=> root.realtime_mode;
                             realtime_message <=> root.realtime_message;
                             sse_max_events <=> root.sse_max_events;
+                            grpc_endpoint <=> root.grpc_endpoint;
+                            grpc_method <=> root.grpc_method;
+                            grpc_metadata <=> root.grpc_metadata;
+                            grpc_message <=> root.grpc_message;
                             busy: root.busy;
                             run_websocket => {
                                 root.run_websocket();
                             }
                             run_sse => {
                                 root.run_sse();
+                            }
+                            build_grpc_draft => {
+                                root.build_grpc_draft();
                             }
                         }
 

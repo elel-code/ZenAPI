@@ -83,8 +83,9 @@
   controls that reuse the request URL/headers and show output in the response
   panel, with full session subscribe/send/close controls still pending.
 - [~] Add GraphQL and gRPC UI surfaces after REST parity is stable; current
-  Slint baseline has GraphQL query/variables editing and a gRPC draft domain
-  model, with gRPC UI/transport and GraphQL schema helpers still pending.
+  Slint baseline has GraphQL query/variables editing plus a gRPC draft surface
+  backed by the domain model, with gRPC descriptor loading/transport and GraphQL
+  schema helpers still pending.
 - [~] Add mock request logs and richer mock manager controls; current Slint
   baseline shows recent mock requests in the sidebar, with filtering/export and
   richer route controls pending.
@@ -120,4 +121,4 @@
 | WebSocket/SSE | Client modules restored | Slint baseline supports one-shot WS sends and SSE previews |
 | Mock logs | Core implemented | Slint baseline shows recent mock requests |
 | GraphQL | Payload builder implemented | Slint baseline edits query and variables |
-| gRPC | Domain draft model implemented | Descriptor loading, unary transport, and Slint UI pending |
+| gRPC | Domain draft model implemented | Slint draft surface wired; descriptor loading and unary transport pending |
