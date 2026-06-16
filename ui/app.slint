@@ -864,6 +864,7 @@ component RequestPanel inherits Rectangle {
 
 component ResponsePanel inherits Rectangle {
     in-out property <string> response_body;
+    in-out property <string> response_headers;
     in property <string> response_status;
     in property <string> response_meta;
     in property <string> response_tone;
@@ -904,10 +905,23 @@ component ResponsePanel inherits Rectangle {
 
             VerticalLayout {
                 padding: 10px;
+                spacing: 10px;
 
-                CodePane {
+                LabeledEditor {
+                    label: "Body";
                     text <=> root.response_body;
                     read_only: true;
+                }
+
+                Rectangle {
+                    height: 126px;
+                    horizontal-stretch: 1;
+
+                    LabeledEditor {
+                        label: "Headers";
+                        text <=> root.response_headers;
+                        read_only: true;
+                    }
                 }
             }
         }
@@ -1006,6 +1020,7 @@ export component AppWindow inherits Window {
     in-out property <string> response_meta: "";
     in-out property <string> response_tone: "neutral";
     in-out property <string> response_body: "Import an OpenAPI or Swagger document to begin.";
+    in-out property <string> response_headers: "";
     in-out property <string> route_filter;
     in-out property <int> total_route_count: 0;
     in-out property <string> server_status: "Stopped";
@@ -1099,6 +1114,7 @@ export component AppWindow inherits Window {
 
                         ResponsePanel {
                             response_body <=> root.response_body;
+                            response_headers <=> root.response_headers;
                             response_status: root.response_status;
                             response_meta: root.response_meta;
                             response_tone: root.response_tone;

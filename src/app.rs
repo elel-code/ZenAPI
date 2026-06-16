@@ -239,6 +239,7 @@ fn wire_request_sender(app: &AppWindow, runtime: Arc<Runtime>) {
                 };
                 match result {
                     Ok(response) => {
+                        let response_headers = format_headers(&response.headers);
                         set_response(
                             &app,
                             &format!("HTTP {}", response.status),
@@ -246,6 +247,7 @@ fn wire_request_sender(app: &AppWindow, runtime: Arc<Runtime>) {
                             response_tone(response.status),
                             &response.body,
                         );
+                        app.set_response_headers(response_headers.into());
                     }
                     Err(error) => {
                         set_response(&app, "Request failed", "", "error", &error.to_string());
@@ -352,6 +354,7 @@ fn set_response(app: &AppWindow, status: &str, meta: &str, tone: &str, body: &st
     app.set_response_meta(meta.into());
     app.set_response_tone(tone.into());
     app.set_response_body(body.into());
+    app.set_response_headers("".into());
 }
 
 fn display_spec_name(spec: &ApiSpec) -> String {
@@ -419,6 +422,18 @@ fn parse_key_value_lines(input: &str, field_name: &str) -> Result<Vec<(String, S
             Ok((key.to_string(), value.trim().to_string()))
         })
         .collect()
+}
+
+fn format_headers(headers: &[(String, String)]) -> String {
+    if headers.is_empty() {
+        return "No headers".to_string();
+    }
+
+    headers
+        .iter()
+        .map(|(name, value)| format!("{name}: {value}"))
+        .collect::<Vec<_>>()
+        .join("\n")
 }
 
 fn response_tone(status: u16) -> &'static str {
@@ -499,5 +514,17 @@ mod tests {
             .expect_err("invalid line");
 
         assert!(error.to_string().contains("line 2"));
+    }
+
+    #[test]
+    fn formats_response_headers_for_display() {
+        assert_eq!(
+            format_headers(&[
+                ("content-type".to_string(), "application/json".to_string()),
+                ("x-request-id".to_string(), "abc".to_string())
+            ]),
+            "content-type: application/json\nx-request-id: abc"
+        );
+        assert_eq!(format_headers(&[]), "No headers");
     }
 }
