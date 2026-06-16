@@ -5,14 +5,15 @@ use std::path::Path;
 use std::sync::{Arc, Mutex};
 use tokio::runtime::Runtime;
 use zenapi::{
-    client::{self, RequestBody},
+    client::{self, ClientResponse, RequestBody},
     codegen::{CodegenRequest, SnippetLanguage, generate_snippet},
+    history::{HistoryRequest, HistoryResponse, RequestHistory},
     mock_server::MockServer,
     openapi::{ApiRoute, ApiSpec, load_openapi_file},
     variables::{Variable, VariableStore, replace_variables},
 };
 
-use crate::ui::{AppWindow, RouteRow};
+use crate::ui::{AppWindow, HistoryRow, RouteRow};
 
 pub fn run() -> Result<()> {
     let runtime = Arc::new(Runtime::new()?);
@@ -22,7 +23,8 @@ pub fn run() -> Result<()> {
     wire_import(&app, runtime.clone(), state.clone());
     wire_route_filter(&app, state.clone());
     wire_route_selection(&app, state.clone());
-    wire_request_sender(&app, runtime.clone());
+    wire_history_selection(&app, state.clone());
+    wire_request_sender(&app, runtime.clone(), state.clone());
     wire_codegen(&app);
     wire_mock_server(&app, runtime, state);
 
@@ -33,6 +35,7 @@ pub fn run() -> Result<()> {
 struct AppState {
     routes: Vec<ApiRoute>,
     visible_routes: Vec<ApiRoute>,
+    history: RequestHistory,
     server: Option<MockServer>,
 }
 
@@ -199,7 +202,41 @@ fn wire_route_selection(app: &AppWindow, state: Arc<Mutex<AppState>>) {
     });
 }
 
-fn wire_request_sender(app: &AppWindow, runtime: Arc<Runtime>) {
+fn wire_history_selection(app: &AppWindow, state: Arc<Mutex<AppState>>) {
+    let weak_app = app.as_weak();
+    app.on_select_history(move |id| {
+        let Some(app) = weak_app.upgrade() else {
+            return;
+        };
+        if app.get_busy() {
+            return;
+        }
+        if id < 0 {
+            return;
+        }
+
+        let entry = state
+            .lock()
+            .ok()
+            .and_then(|state| state.history.find(id as u64).cloned());
+
+        if let Some(entry) = entry {
+            app.set_method(entry.request.method.into());
+            app.set_url(entry.request.url.into());
+            app.set_body_mode(entry.request.body_kind.into());
+            app.set_request_body(entry.request.body_preview.into());
+            set_response(
+                &app,
+                "History restored",
+                &entry.response.status,
+                "neutral",
+                &entry.response.body_preview,
+            );
+        }
+    });
+}
+
+fn wire_request_sender(app: &AppWindow, runtime: Arc<Runtime>, state: Arc<Mutex<AppState>>) {
     let weak_app = app.as_weak();
     app.on_send_request(move || {
         let Some(app) = weak_app.upgrade() else {
@@ -246,6 +283,7 @@ fn wire_request_sender(app: &AppWindow, runtime: Arc<Runtime>) {
         );
 
         let weak_app = app.as_weak();
+        let state = state.clone();
         runtime.spawn(async move {
             let result =
                 client::send_request_with_body(&method, &url, &headers, &query_params, body).await;
@@ -256,16 +294,36 @@ fn wire_request_sender(app: &AppWindow, runtime: Arc<Runtime>) {
                 match result {
                     Ok(response) => {
                         let response_headers = format_headers(&response.headers);
+                        let response_status = format!("HTTP {}", response.status);
+                        let response_meta =
+                            format!("{} ms / {} B", response.elapsed_ms, response.body_bytes);
+                        record_history(&state, &request, success_history_response(&response));
+                        if let Ok(state) = state.lock() {
+                            app.set_history_rows(history_model(state.history.entries()));
+                        }
                         set_response(
                             &app,
-                            &format!("HTTP {}", response.status),
-                            &format!("{} ms / {} B", response.elapsed_ms, response.body_bytes),
+                            &response_status,
+                            &response_meta,
                             response_tone(response.status),
                             &response.body,
                         );
                         app.set_response_headers(response_headers.into());
                     }
                     Err(error) => {
+                        let body = error.to_string();
+                        record_history(
+                            &state,
+                            &request,
+                            HistoryResponse {
+                                status: "ERR".to_string(),
+                                meta: String::new(),
+                                body_preview: truncate_preview(&body, 1200),
+                            },
+                        );
+                        if let Ok(state) = state.lock() {
+                            app.set_history_rows(history_model(state.history.entries()));
+                        }
                         set_response(&app, "Request failed", "", "error", &error.to_string());
                     }
                 }
@@ -438,6 +496,73 @@ fn route_model(routes: &[ApiRoute]) -> ModelRc<RouteRow> {
         path: route.path.clone().into(),
         summary: route.summary.clone().into(),
     })))
+}
+
+fn history_model(entries: &[zenapi::history::HistoryEntry]) -> ModelRc<HistoryRow> {
+    ModelRc::new(VecModel::from_iter(entries.iter().map(|entry| {
+        HistoryRow {
+            id: entry.id as i32,
+            method: entry.request.method.clone().into(),
+            url: entry.request.url.clone().into(),
+            status: entry.response.status.clone().into(),
+        }
+    })))
+}
+
+fn record_history(
+    state: &Arc<Mutex<AppState>>,
+    request: &CodegenRequest,
+    response: HistoryResponse,
+) {
+    if let Ok(mut state) = state.lock() {
+        state.history.record(history_request(request), response);
+    }
+}
+
+fn history_request(request: &CodegenRequest) -> HistoryRequest {
+    let (body_kind, body_preview) = request_body_preview(&request.body);
+    HistoryRequest {
+        method: request.method.clone(),
+        url: request.url.clone(),
+        body_kind,
+        body_preview,
+    }
+}
+
+fn success_history_response(response: &ClientResponse) -> HistoryResponse {
+    HistoryResponse {
+        status: format!("HTTP {}", response.status),
+        meta: format!("{} ms / {} B", response.elapsed_ms, response.body_bytes),
+        body_preview: truncate_preview(&response.body, 1200),
+    }
+}
+
+fn request_body_preview(body: &RequestBody) -> (String, String) {
+    match body {
+        RequestBody::None => ("none".to_string(), String::new()),
+        RequestBody::Raw { body, .. } => ("raw".to_string(), body.clone()),
+        RequestBody::FormUrlEncoded(fields) => {
+            ("urlenc".to_string(), format_key_value_preview(fields))
+        }
+        RequestBody::Multipart(fields) => ("form".to_string(), format_key_value_preview(fields)),
+        RequestBody::BinaryFile { path, .. } => ("binary".to_string(), path.clone()),
+    }
+}
+
+fn format_key_value_preview(fields: &[(String, String)]) -> String {
+    fields
+        .iter()
+        .map(|(name, value)| format!("{name}={value}"))
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+fn truncate_preview(input: &str, max_chars: usize) -> String {
+    let mut preview = input.chars().take(max_chars).collect::<String>();
+    if input.chars().count() > max_chars {
+        preview.push_str("\n...");
+    }
+    preview
 }
 
 fn filter_routes(routes: &[ApiRoute], query: &str) -> Vec<ApiRoute> {
@@ -995,5 +1120,64 @@ mod tests {
         assert_eq!(snippet_language("rust"), SnippetLanguage::RustReqwest);
         assert_eq!(snippet_language("go"), SnippetLanguage::GoNetHttp);
         assert_eq!(snippet_language("unknown"), SnippetLanguage::Curl);
+    }
+
+    #[test]
+    fn builds_history_request_from_projected_request() {
+        let request = CodegenRequest {
+            method: "POST".to_string(),
+            url: "https://api.example.com/users".to_string(),
+            headers: Vec::new(),
+            query_params: Vec::new(),
+            body: RequestBody::FormUrlEncoded(vec![
+                ("name".to_string(), "Zen".to_string()),
+                ("role".to_string(), "admin".to_string()),
+            ]),
+        };
+
+        assert_eq!(
+            history_request(&request),
+            HistoryRequest {
+                method: "POST".to_string(),
+                url: "https://api.example.com/users".to_string(),
+                body_kind: "urlenc".to_string(),
+                body_preview: "name=Zen\nrole=admin".to_string(),
+            }
+        );
+    }
+
+    #[test]
+    fn previews_request_body_modes_for_history() {
+        assert_eq!(
+            request_body_preview(&RequestBody::None),
+            ("none".to_string(), String::new())
+        );
+        assert_eq!(
+            request_body_preview(&RequestBody::Raw {
+                content_type: Some("application/json".to_string()),
+                body: "{\"ok\":true}".to_string(),
+            }),
+            ("raw".to_string(), "{\"ok\":true}".to_string())
+        );
+        assert_eq!(
+            request_body_preview(&RequestBody::Multipart(vec![(
+                "file".to_string(),
+                "@/tmp/upload.txt".to_string()
+            )])),
+            ("form".to_string(), "file=@/tmp/upload.txt".to_string())
+        );
+        assert_eq!(
+            request_body_preview(&RequestBody::BinaryFile {
+                path: "/tmp/body.bin".to_string(),
+                content_type: None,
+            }),
+            ("binary".to_string(), "/tmp/body.bin".to_string())
+        );
+    }
+
+    #[test]
+    fn truncates_long_history_response_previews() {
+        assert_eq!(truncate_preview("abc", 3), "abc");
+        assert_eq!(truncate_preview("abcdef", 3), "abc\n...");
     }
 }

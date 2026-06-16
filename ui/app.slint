@@ -7,6 +7,13 @@ export struct RouteRow {
     summary: string,
 }
 
+export struct HistoryRow {
+    id: int,
+    method: string,
+    url: string,
+    status: string,
+}
+
 component UiText inherits Text {
     font-family: "Inter";
     font-size: 13px;
@@ -529,12 +536,67 @@ component RouteListItem inherits Rectangle {
     }
 }
 
+component HistoryListItem inherits Rectangle {
+    in property <int> entry_id;
+    in property <string> method;
+    in property <string> url;
+    in property <string> status;
+    callback picked(int);
+
+    height: 52px;
+    horizontal-stretch: 1;
+    border-radius: 6px;
+    background: touch.has-hover ? Theme.surface_container_high : Theme.surface_container_low;
+
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.picked(root.entry_id);
+        }
+    }
+
+    MethodChip {
+        x: 10px;
+        y: 8px;
+        method: root.method;
+    }
+
+    UiText {
+        x: 82px;
+        y: 6px;
+        text: root.url;
+        width: parent.width - 92px;
+        height: 20px;
+        font-family: "JetBrains Mono";
+        font-size: 12px;
+        font-weight: 700;
+        color: Theme.on_surface;
+        overflow: elide;
+        vertical-alignment: center;
+    }
+
+    UiText {
+        x: 82px;
+        y: 28px;
+        text: root.status;
+        width: parent.width - 92px;
+        height: 16px;
+        font-family: "JetBrains Mono";
+        font-size: 11px;
+        color: Theme.on_surface_variant;
+        overflow: elide;
+        vertical-alignment: center;
+    }
+}
+
 component Sidebar inherits Rectangle {
     in-out property <[RouteRow]> routes;
+    in-out property <[HistoryRow]> history_rows;
     in-out property <int> selected_route;
     in-out property <string> route_filter;
     in property <int> total_route_count;
     callback select_route(int);
+    callback select_history(int);
     callback filter_routes(string);
 
     width: 240px;
@@ -592,6 +654,52 @@ component Sidebar inherits Rectangle {
                 picked => {
                     root.selected_route = i;
                     root.select_route(i);
+                }
+            }
+        }
+
+        Rectangle {
+            height: 1px;
+            horizontal-stretch: 1;
+            background: Theme.outline_variant;
+        }
+
+        SectionTitle {
+            text: "HISTORY";
+            meta: root.history_rows.length == 0 ? "" : root.history_rows.length + "";
+        }
+
+        if root.history_rows.length == 0: Rectangle {
+            height: 40px;
+            horizontal-stretch: 1;
+            background: Theme.surface_container;
+            border-radius: 6px;
+
+            UiText {
+                text: "No requests yet";
+                width: parent.width;
+                height: parent.height;
+                color: Theme.outline;
+                font-size: 12px;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+                overflow: elide;
+            }
+        }
+
+        if root.history_rows.length != 0: ListView {
+            height: 176px;
+            horizontal-stretch: 1;
+            vertical-scrollbar-policy: ScrollBarPolicy.always-off;
+            horizontal-scrollbar-policy: ScrollBarPolicy.always-off;
+
+            for entry in root.history_rows: HistoryListItem {
+                entry_id: entry.id;
+                method: entry.method;
+                url: entry.url;
+                status: entry.status;
+                picked(id) => {
+                    root.select_history(id);
                 }
             }
         }
@@ -1208,6 +1316,7 @@ export component AppWindow inherits Window {
     default-font-weight: 500;
 
     in-out property <[RouteRow]> routes;
+    in-out property <[HistoryRow]> history_rows;
     in-out property <int> selected_route: -1;
     in-out property <string> file_path;
     in-out property <string> spec_label: "";
@@ -1240,6 +1349,7 @@ export component AppWindow inherits Window {
     callback import_openapi(string);
     callback filter_routes(string);
     callback select_route(int);
+    callback select_history(int);
     callback send_request();
     callback toggle_server();
     callback generate_code();
@@ -1272,6 +1382,7 @@ export component AppWindow inherits Window {
 
             Sidebar {
                 routes <=> root.routes;
+                history_rows <=> root.history_rows;
                 selected_route <=> root.selected_route;
                 route_filter <=> root.route_filter;
                 total_route_count: root.total_route_count;
@@ -1280,6 +1391,9 @@ export component AppWindow inherits Window {
                 }
                 select_route(index) => {
                     root.select_route(index);
+                }
+                select_history(id) => {
+                    root.select_history(id);
                 }
             }
 

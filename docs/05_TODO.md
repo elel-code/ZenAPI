@@ -58,8 +58,10 @@
   and environment variable editors, with full environment list management pending.
 - [ ] Rebuild Collections UI for native JSON/Postman import/export, saving
   current requests, nested folders, rename/delete/copy, and drag/drop.
-- [ ] Rebuild History UI for local request history, filtering, restore, delete,
-  and clear.
+- [~] Rebuild History UI for local request history, filtering, restore, delete,
+  and clear; current Slint baseline records recent requests and restores method,
+  URL, body mode, and body preview, with filtering/delete/clear and full request
+  state restore still pending.
 - [~] Rebuild Codegen UI for cURL, Python, JavaScript, Rust, and Go snippets;
   current Slint baseline generates snippets from the resolved request projection,
   with copy/export actions still pending.
@@ -91,7 +93,7 @@
 | Mock server | Core implemented | Slint start/stop toggle wired |
 | Variables | Domain implemented | Slint UI parity pending |
 | Collections | Domain implemented | Slint UI parity pending |
-| History | Domain implemented | Slint UI parity pending |
+| History | Domain implemented | Slint baseline records and restores recent requests |
 | Codegen | Domain implemented | Slint UI parity pending |
 | Runner | Domain + CLI implemented | Slint UI parity pending |
 | Assertions/scripts | Domain implemented | Slint UI parity pending |
