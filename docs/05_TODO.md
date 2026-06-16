@@ -62,8 +62,8 @@
   current requests, nested folders, rename/delete/copy, and drag/drop; current
   Slint baseline loads native/Postman JSON, saves the current editor request,
   saves native JSON, exports Postman JSON, and restores saved requests from a
-  flat sidebar list, including pre-request/tests text, and deletes flat saved
-  requests, with tree editing plus rename/copy/drag/drop still pending.
+  flat sidebar list, including pre-request/tests text, and duplicates/deletes
+  flat saved requests, with tree editing plus rename/drag/drop still pending.
 - [~] Rebuild History UI for local request history, filtering, restore, delete,
   and clear; current Slint baseline records recent requests and restores method,
   URL, query params, headers, auth config, body mode, body preview, pre-request

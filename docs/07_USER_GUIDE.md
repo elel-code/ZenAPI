@@ -259,6 +259,7 @@ Supported actions:
 - Export Postman Collection v2.1 JSON with `PM`.
 - Save the current request to the collection.
 - Restore a collection request into the request builder.
+- Duplicate a saved request from the flat sidebar list with `Dup`.
 - Delete a saved request from the flat sidebar list with `Del`.
 
 Native JSON is the current default storage format. Bru-style text export is

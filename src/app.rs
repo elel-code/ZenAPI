@@ -625,6 +625,39 @@ fn wire_collection_actions(app: &AppWindow, state: Arc<Mutex<AppState>>) {
     });
 
     let weak_app = app.as_weak();
+    let duplicate_state = state.clone();
+    app.on_duplicate_collection_request(move |id| {
+        let Some(app) = weak_app.upgrade() else {
+            return;
+        };
+        if app.get_busy() || id < 0 {
+            return;
+        }
+
+        let Some((duplicate, request_count, rows)) =
+            duplicate_state.lock().ok().and_then(|mut state| {
+                duplicate_collection_request_at(&mut state.collection, id as usize).map(|request| {
+                    let request_count = count_collection_requests(&state.collection.items);
+                    let rows = collection_model(&state.collection);
+                    (request, request_count, rows)
+                })
+            })
+        else {
+            return;
+        };
+
+        app.set_collection_rows(rows);
+        app.set_collection_status(format!("Saved {request_count} requests").into());
+        set_response(
+            &app,
+            "Collection request duplicated",
+            &duplicate.name,
+            "success",
+            &duplicate.url,
+        );
+    });
+
+    let weak_app = app.as_weak();
     let delete_state = state.clone();
     app.on_delete_collection_request(move |id| {
         let Some(app) = weak_app.upgrade() else {
@@ -1376,6 +1409,44 @@ fn collection_request_at_items<'a>(
                 *current += 1;
             }
         }
+    }
+    None
+}
+
+fn duplicate_collection_request_at(
+    collection: &mut ApiCollection,
+    index: usize,
+) -> Option<CollectionRequest> {
+    let mut current = 0;
+    duplicate_collection_request_at_items(&mut collection.items, index, &mut current)
+}
+
+fn duplicate_collection_request_at_items(
+    items: &mut Vec<CollectionItem>,
+    target: usize,
+    current: &mut usize,
+) -> Option<CollectionRequest> {
+    let mut position = 0;
+    while position < items.len() {
+        match &mut items[position] {
+            CollectionItem::Request(request) => {
+                if *current == target {
+                    let mut duplicate = request.clone();
+                    duplicate.name = format!("{} Copy", duplicate.name);
+                    items.insert(position + 1, CollectionItem::Request(duplicate.clone()));
+                    return Some(duplicate);
+                }
+                *current += 1;
+            }
+            CollectionItem::Folder(folder) => {
+                if let Some(request) =
+                    duplicate_collection_request_at_items(&mut folder.items, target, current)
+                {
+                    return Some(request);
+                }
+            }
+        }
+        position += 1;
     }
     None
 }
@@ -2996,6 +3067,52 @@ mod tests {
         );
         assert!(remove_collection_request_at(&mut collection, 5).is_none());
         assert_eq!(count_collection_requests(&collection.items), 2);
+    }
+
+    #[test]
+    fn duplicates_nested_collection_requests_by_flattened_row_id() {
+        let mut collection = ApiCollection {
+            name: "Demo".to_string(),
+            description: String::new(),
+            items: vec![
+                CollectionItem::Folder(zenapi::collections::CollectionFolder {
+                    name: "Users".to_string(),
+                    description: String::new(),
+                    items: vec![
+                        CollectionItem::Request(saved_request(
+                            "List users",
+                            "GET",
+                            "https://api.example.com/users",
+                        )),
+                        CollectionItem::Request(saved_request(
+                            "Create user",
+                            "POST",
+                            "https://api.example.com/users",
+                        )),
+                    ],
+                }),
+                CollectionItem::Request(saved_request(
+                    "Health",
+                    "GET",
+                    "https://api.example.com/health",
+                )),
+            ],
+        };
+
+        let duplicate =
+            duplicate_collection_request_at(&mut collection, 1).expect("duplicated request");
+
+        assert_eq!(duplicate.name, "Create user Copy");
+        assert_eq!(count_collection_requests(&collection.items), 4);
+        assert_eq!(
+            collection_request_at(&collection, 2).map(|request| request.name.as_str()),
+            Some("Create user Copy")
+        );
+        assert_eq!(
+            collection_request_at(&collection, 3).map(|request| request.name.as_str()),
+            Some("Health")
+        );
+        assert!(duplicate_collection_request_at(&mut collection, 9).is_none());
     }
 
     #[test]

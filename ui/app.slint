@@ -178,6 +178,7 @@ component CollectionListItem inherits Rectangle {
     in property <string> url;
     in property <bool> enabled: true;
     callback picked(int);
+    callback duplicate_requested(int);
     callback delete_requested(int);
 
     height: 54px;
@@ -202,7 +203,7 @@ component CollectionListItem inherits Rectangle {
         x: 82px;
         y: 6px;
         text: root.name;
-        width: parent.width - 142px;
+        width: parent.width - 186px;
         height: 20px;
         font-size: 12px;
         font-weight: 700;
@@ -215,7 +216,7 @@ component CollectionListItem inherits Rectangle {
         x: 82px;
         y: 29px;
         text: root.url;
-        width: parent.width - 142px;
+        width: parent.width - 186px;
         height: 16px;
         font-family: "JetBrains Mono";
         font-size: 11px;
@@ -225,10 +226,21 @@ component CollectionListItem inherits Rectangle {
     }
 
     ActionButton {
-        x: parent.width - 52px;
+        x: parent.width - 96px;
+        y: 10px;
+        text: "Dup";
+        button_width: 40px;
+        enabled: root.enabled;
+        clicked => {
+            root.duplicate_requested(root.entry_id);
+        }
+    }
+
+    ActionButton {
+        x: parent.width - 50px;
         y: 10px;
         text: "Del";
-        button_width: 42px;
+        button_width: 40px;
         warning: true;
         enabled: root.enabled;
         clicked => {
@@ -300,6 +312,7 @@ component Sidebar inherits Rectangle {
     in property <bool> busy;
     callback select_route(int);
     callback select_collection_request(int);
+    callback duplicate_collection_request(int);
     callback delete_collection_request(int);
     callback import_collection(string);
     callback save_current_request();
@@ -483,6 +496,9 @@ component Sidebar inherits Rectangle {
                 enabled: !root.busy;
                 picked(id) => {
                     root.select_collection_request(id);
+                }
+                duplicate_requested(id) => {
+                    root.duplicate_collection_request(id);
                 }
                 delete_requested(id) => {
                     root.delete_collection_request(id);
@@ -1732,6 +1748,7 @@ export component AppWindow inherits Window {
     callback filter_routes(string);
     callback select_route(int);
     callback select_collection_request(int);
+    callback duplicate_collection_request(int);
     callback delete_collection_request(int);
     callback import_collection(string);
     callback save_current_request();
@@ -1801,6 +1818,9 @@ export component AppWindow inherits Window {
                 }
                 select_collection_request(id) => {
                     root.select_collection_request(id);
+                }
+                duplicate_collection_request(id) => {
+                    root.duplicate_collection_request(id);
                 }
                 delete_collection_request(id) => {
                     root.delete_collection_request(id);
