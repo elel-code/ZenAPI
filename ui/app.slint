@@ -827,6 +827,8 @@ component AddressBar inherits Rectangle {
 component RequestPanel inherits Rectangle {
     in-out property <string> query_params;
     in-out property <string> request_headers;
+    in-out property <string> auth_mode;
+    in-out property <string> auth_config;
     in-out property <string> body_mode;
     in-out property <string> request_body;
 
@@ -858,6 +860,45 @@ component RequestPanel inherits Rectangle {
                 LabeledEditor {
                     label: "Headers";
                     text <=> root.request_headers;
+                }
+
+                LabeledEditor {
+                    label: "Auth / " + root.auth_mode;
+                    text <=> root.auth_config;
+                    read_only: root.auth_mode == "none";
+                }
+            }
+        }
+
+        Rectangle {
+            height: 1px;
+            background: Theme.outline_variant;
+        }
+
+        Rectangle {
+            height: 34px;
+            background: Theme.surface_container_lowest;
+
+            HorizontalLayout {
+                padding-left: 10px;
+                padding-right: 10px;
+                spacing: 8px;
+                alignment: center;
+
+                for item in [
+                    { mode: "none", label: "no auth" },
+                    { mode: "bearer", label: "bearer" },
+                    { mode: "basic", label: "basic" },
+                    { mode: "jwt", label: "jwt" },
+                    { mode: "api-header", label: "api-h" },
+                    { mode: "api-query", label: "api-q" },
+                ]: BodyModeButton {
+                    mode: item.mode;
+                    label: item.label;
+                    selected: root.auth_mode == item.mode;
+                    picked(mode) => {
+                        root.auth_mode = mode;
+                    }
                 }
             }
         }
@@ -1065,6 +1106,8 @@ export component AppWindow inherits Window {
     in-out property <string> url;
     in-out property <string> query_params;
     in-out property <string> request_headers: "Accept: application/json";
+    in-out property <string> auth_mode: "none";
+    in-out property <string> auth_config;
     in-out property <string> body_mode: "none";
     in-out property <string> request_body;
     in-out property <string> response_status: "Idle";
@@ -1155,6 +1198,8 @@ export component AppWindow inherits Window {
                         RequestPanel {
                             query_params <=> root.query_params;
                             request_headers <=> root.request_headers;
+                            auth_mode <=> root.auth_mode;
+                            auth_config <=> root.auth_config;
                             body_mode <=> root.body_mode;
                             request_body <=> root.request_body;
                         }

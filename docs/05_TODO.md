@@ -50,7 +50,9 @@
 - [~] Rebuild Body mode controls for none, form-data, URL-encoded, raw, GraphQL,
   and binary bodies; current Slint baseline maps one body text area into these
   transport modes, with dedicated GraphQL/form controls still pending.
-- [ ] Rebuild Auth controls for None, Bearer, Basic, JWT, and API key modes.
+- [~] Rebuild Auth controls for None, Bearer, Basic, JWT, and API key modes;
+  current Slint baseline supports mode buttons plus one config field, with
+  dedicated per-mode forms still pending.
 - [ ] Rebuild Environments and Variables UI on top of `variables::VariableStore`.
 - [ ] Rebuild Collections UI for native JSON/Postman import/export, saving
   current requests, nested folders, rename/delete/copy, and drag/drop.

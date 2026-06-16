@@ -1,4 +1,5 @@
 use anyhow::{Result, anyhow, bail};
+use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64_STANDARD};
 use slint::{ComponentHandle, ModelRc, SharedString, VecModel};
 use std::path::Path;
 use std::sync::{Arc, Mutex};
@@ -193,20 +194,34 @@ fn wire_request_sender(app: &AppWindow, runtime: Arc<Runtime>) {
 
         let method = app.get_method().to_string();
         let url = app.get_url().trim().to_string();
-        let headers = match parse_key_value_lines(&app.get_request_headers(), "header") {
+        let mut headers = match parse_key_value_lines(&app.get_request_headers(), "header") {
             Ok(headers) => headers,
             Err(error) => {
                 set_response(&app, "Bad headers", "", "error", &error.to_string());
                 return;
             }
         };
-        let query_params = match parse_key_value_lines(&app.get_query_params(), "query param") {
+        let mut query_params = match parse_key_value_lines(&app.get_query_params(), "query param") {
             Ok(query_params) => query_params,
             Err(error) => {
                 set_response(&app, "Bad params", "", "error", &error.to_string());
                 return;
             }
         };
+        let (auth_headers, auth_query_params) =
+            match build_auth_entries(&app.get_auth_mode(), app.get_auth_config().as_str()) {
+                Ok(entries) => entries,
+                Err(error) => {
+                    set_response(&app, "Bad auth", "", "error", &error.to_string());
+                    return;
+                }
+            };
+        for (name, value) in auth_headers {
+            upsert_pair(&mut headers, name, value, true);
+        }
+        for (name, value) in auth_query_params {
+            upsert_pair(&mut query_params, name, value, false);
+        }
         let body = match build_request_body(&app.get_body_mode(), app.get_request_body().as_str()) {
             Ok(body) => body,
             Err(error) => {
@@ -462,6 +477,72 @@ fn build_request_body(mode: &str, input: &str) -> Result<RequestBody> {
     }
 }
 
+fn build_auth_entries(
+    mode: &str,
+    input: &str,
+) -> Result<(Vec<(String, String)>, Vec<(String, String)>)> {
+    let input = input.trim();
+    match mode {
+        "none" => Ok((Vec::new(), Vec::new())),
+        "bearer" | "jwt" => {
+            if input.is_empty() {
+                bail!("bearer token is empty");
+            }
+            Ok((
+                vec![("Authorization".to_string(), format!("Bearer {input}"))],
+                Vec::new(),
+            ))
+        }
+        "basic" => {
+            let Some((username, password)) = input.split_once(':') else {
+                bail!("basic auth must use username:password");
+            };
+            if username.trim().is_empty() {
+                bail!("basic auth username is empty");
+            }
+            let encoded = BASE64_STANDARD.encode(format!("{}:{}", username.trim(), password));
+            Ok((
+                vec![("Authorization".to_string(), format!("Basic {encoded}"))],
+                Vec::new(),
+            ))
+        }
+        "api-header" => {
+            let values = parse_key_value_lines(input, "api key")?;
+            if values.is_empty() {
+                bail!("api key header is empty");
+            }
+            Ok((values, Vec::new()))
+        }
+        "api-query" => {
+            let values = parse_key_value_lines(input, "api key")?;
+            if values.is_empty() {
+                bail!("api key query is empty");
+            }
+            Ok((Vec::new(), values))
+        }
+        _ => Ok((Vec::new(), Vec::new())),
+    }
+}
+
+fn upsert_pair(
+    pairs: &mut Vec<(String, String)>,
+    name: String,
+    value: String,
+    case_insensitive: bool,
+) {
+    if let Some((_, existing_value)) = pairs.iter_mut().find(|(existing_name, _)| {
+        if case_insensitive {
+            existing_name.eq_ignore_ascii_case(&name)
+        } else {
+            existing_name == &name
+        }
+    }) {
+        *existing_value = value;
+    } else {
+        pairs.push((name, value));
+    }
+}
+
 fn format_headers(headers: &[(String, String)]) -> String {
     if headers.is_empty() {
         return "No headers".to_string();
@@ -611,5 +692,52 @@ mod tests {
         let error = build_request_body("binary", "  ").expect_err("empty path");
 
         assert!(error.to_string().contains("path is empty"));
+    }
+
+    #[test]
+    fn builds_auth_headers_and_query_params() {
+        assert_eq!(
+            build_auth_entries("bearer", "secret").unwrap(),
+            (
+                vec![("Authorization".to_string(), "Bearer secret".to_string())],
+                Vec::new()
+            )
+        );
+        assert_eq!(
+            build_auth_entries("basic", "user:pass").unwrap(),
+            (
+                vec![(
+                    "Authorization".to_string(),
+                    "Basic dXNlcjpwYXNz".to_string()
+                )],
+                Vec::new()
+            )
+        );
+        assert_eq!(
+            build_auth_entries("api-query", "api_key=secret").unwrap(),
+            (
+                Vec::new(),
+                vec![("api_key".to_string(), "secret".to_string())]
+            )
+        );
+    }
+
+    #[test]
+    fn auth_entries_override_existing_headers() {
+        let mut headers = vec![
+            ("accept".to_string(), "application/json".to_string()),
+            ("authorization".to_string(), "old".to_string()),
+        ];
+        for (name, value) in build_auth_entries("jwt", "new-token").unwrap().0 {
+            upsert_pair(&mut headers, name, value, true);
+        }
+
+        assert_eq!(
+            headers,
+            vec![
+                ("accept".to_string(), "application/json".to_string()),
+                ("authorization".to_string(), "Bearer new-token".to_string()),
+            ]
+        );
     }
 }
