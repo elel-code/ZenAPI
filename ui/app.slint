@@ -569,30 +569,63 @@ component Sidebar inherits Rectangle {
 
 component TopBar inherits Rectangle {
     in-out property <string> file_path;
-    in property <string> spec_label;
-    in property <bool> spec_loaded;
-    in property <bool> server_running;
-    in property <string> server_status;
-    in property <int> route_count;
     in property <bool> busy;
     callback import_openapi(string);
-    callback toggle_server();
 
-    height: 48px;
+    height: 64px;
     horizontal-stretch: 1;
     background: Theme.surface_dim;
 
     HorizontalLayout {
-        padding-left: 16px;
-        padding-right: 12px;
-        spacing: 12px;
+        padding-left: 20px;
+        padding-right: 20px;
+        spacing: 16px;
         alignment: center;
 
+        Rectangle {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            background: menu_touch.has-hover ? Theme.surface_container_high : transparent;
+
+            menu_touch := TouchArea {
+                enabled: !root.busy;
+                mouse-cursor: root.busy ? default : pointer;
+                clicked => {
+                    import_popup.show();
+                }
+            }
+
+            Rectangle {
+                x: 7px;
+                y: 11px;
+                width: 22px;
+                height: 2px;
+                background: Theme.primary;
+            }
+
+            Rectangle {
+                x: 7px;
+                y: 17px;
+                width: 22px;
+                height: 2px;
+                background: Theme.primary;
+            }
+
+            Rectangle {
+                x: 7px;
+                y: 23px;
+                width: 22px;
+                height: 2px;
+                background: Theme.primary;
+            }
+        }
+
         UiText {
-            text: "ZenAPI";
-            width: 92px;
+            text: "API Architect";
+            width: 220px;
             height: root.height;
-            font-size: 18px;
+            font-size: 24px;
             font-weight: 800;
             color: Theme.primary;
             vertical-alignment: center;
@@ -601,62 +634,35 @@ component TopBar inherits Rectangle {
 
         Rectangle {
             horizontal-stretch: 1;
-            height: 32px;
-            background: Theme.surface_container_low;
-            border-radius: 8px;
-            border-width: 1px;
-            border-color: Theme.outline_variant;
-
-            TouchArea {
-                enabled: !root.busy;
-                mouse-cursor: root.busy ? default : pointer;
-                clicked => {
-                    import_popup.show();
-                }
-            }
-
-            UiText {
-                x: 12px;
-                text: root.spec_loaded ? root.spec_label : "Import OpenAPI or Swagger file";
-                width: parent.width - 24px;
-                height: parent.height;
-                color: root.spec_loaded ? Theme.on_surface : Theme.outline;
-                font-family: root.spec_loaded ? "JetBrains Mono" : "Inter";
-                font-size: 13px;
-                vertical-alignment: center;
-                horizontal-alignment: center;
-                overflow: elide;
-            }
         }
 
         Rectangle {
-            width: 184px;
-            height: 34px;
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            background: search_touch.has-hover ? Theme.surface_container_high : transparent;
 
-            HorizontalLayout {
-                spacing: 8px;
-                alignment: center;
+            search_touch := TouchArea {
+                mouse-cursor: pointer;
+            }
 
-                UiText {
-                    text: root.server_running ? root.server_status : "Mock stopped";
-                    width: 92px;
-                    height: parent.height;
-                    font-family: "JetBrains Mono";
-                    font-size: 12px;
-                    color: root.server_running ? Theme.secondary : Theme.outline;
-                    overflow: elide;
-                    vertical-alignment: center;
-                }
+            Rectangle {
+                x: 9px;
+                y: 8px;
+                width: 14px;
+                height: 14px;
+                border-radius: 7px;
+                border-width: 2px;
+                border-color: Theme.primary;
+                background: transparent;
+            }
 
-                ActionButton {
-                    text: root.server_running ? "Stop" : "Mock";
-                    button_width: 64px;
-                    warning: root.server_running;
-                    enabled: !root.busy && (root.server_running || root.route_count > 0);
-                    clicked => {
-                        root.toggle_server();
-                    }
-                }
+            Rectangle {
+                x: 22px;
+                y: 22px;
+                width: 8px;
+                height: 2px;
+                background: Theme.primary;
             }
         }
     }
@@ -669,9 +675,9 @@ component TopBar inherits Rectangle {
     }
 
     import_popup := PopupWindow {
-        x: 128px;
+        x: 20px;
         y: root.height + 6px;
-        width: root.width - 360px;
+        width: root.width - 40px;
         height: 58px;
         close-policy: close-on-click-outside;
 
@@ -725,68 +731,113 @@ component AddressBar inherits Rectangle {
     in property <bool> busy;
     callback send_request();
 
-    height: 54px;
+    height: 136px;
     horizontal-stretch: 1;
-    background: Theme.surface;
-
-    Rectangle {
-        x: 14px;
-        y: 8px;
-        width: root.width - 28px;
-        height: 38px;
-        background: Theme.surface_container_lowest;
-        border-radius: 8px;
-        border-width: 1px;
-        border-color: !root.busy && url_field.focused ? Theme.primary : Theme.outline_variant;
-        clip: true;
-
-        HorizontalLayout {
-            spacing: 0px;
-            alignment: center;
-
-            MethodSelector {
-                method <=> root.method;
-                enabled: !root.busy;
-            }
-
-            url_field := TextField {
-                text <=> root.url;
-                placeholder: "Enter request URL";
-                embedded: true;
-                mono: true;
-                enabled: !root.busy;
-                height: 38px;
-                horizontal-stretch: 1;
-                accepted => {
-                    if !root.busy {
-                        root.send_request();
-                    }
-                }
-            }
-
-            Rectangle {
-                width: 1px;
-                height: parent.height;
-                background: Theme.outline_variant;
-            }
-
-            ActionButton {
-                text: "Send";
-                enabled: !root.busy;
-                primary: true;
-                button_width: 86px;
-                clicked => {
-                    root.send_request();
-                }
-            }
-        }
-    }
+    background: Theme.surface_container_low;
 
     Rectangle {
         y: parent.height - 1px;
         width: parent.width;
         height: 1px;
         background: Theme.outline_variant;
+    }
+
+    VerticalLayout {
+        padding: 16px;
+        spacing: 12px;
+
+        HorizontalLayout {
+            height: 22px;
+            spacing: 8px;
+            alignment: center;
+
+            UiText {
+                text: "Users";
+                width: 46px;
+                height: parent.height;
+                color: Theme.on_surface_variant;
+                font-size: 14px;
+                vertical-alignment: center;
+                overflow: elide;
+            }
+
+            UiText {
+                text: ">";
+                width: 10px;
+                height: parent.height;
+                color: Theme.on_surface_variant;
+                font-size: 14px;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+            }
+
+            UiText {
+                text: root.url == "" ? "New Request" : "Request";
+                horizontal-stretch: 1;
+                height: parent.height;
+                color: Theme.on_surface;
+                font-size: 14px;
+                vertical-alignment: center;
+                overflow: elide;
+            }
+        }
+
+        HorizontalLayout {
+            height: 42px;
+            spacing: 8px;
+            alignment: center;
+
+            Rectangle {
+                height: 42px;
+                horizontal-stretch: 1;
+                background: Theme.surface_container;
+                border-radius: 8px;
+                border-width: 1px;
+                border-color: !root.busy && url_field.focused ? Theme.primary : Theme.outline_variant;
+                clip: true;
+
+                HorizontalLayout {
+                    spacing: 0px;
+                    alignment: center;
+
+                    MethodSelector {
+                        method <=> root.method;
+                        enabled: !root.busy;
+                    }
+
+                    Rectangle {
+                        width: 1px;
+                        height: parent.height - 10px;
+                        background: Theme.outline_variant;
+                    }
+
+                    url_field := TextField {
+                        text <=> root.url;
+                        placeholder: "Enter request URL";
+                        embedded: true;
+                        mono: true;
+                        enabled: !root.busy;
+                        height: 42px;
+                        horizontal-stretch: 1;
+                        accepted => {
+                            if !root.busy {
+                                root.send_request();
+                            }
+                        }
+                    }
+                }
+            }
+
+            ActionButton {
+                text: "Send";
+                enabled: !root.busy;
+                primary: true;
+                button_width: 124px;
+                clicked => {
+                    root.send_request();
+                }
+            }
+        }
     }
 }
 
@@ -1772,17 +1823,9 @@ export component AppWindow inherits Window {
 
         TopBar {
             file_path <=> root.file_path;
-            spec_label: root.spec_label;
-            spec_loaded: root.spec_loaded;
-            server_running: root.server_running;
-            server_status: root.server_status;
-            route_count: root.total_route_count;
             busy: root.busy;
             import_openapi(path) => {
                 root.import_openapi(path);
-            }
-            toggle_server => {
-                root.toggle_server();
             }
         }
 
