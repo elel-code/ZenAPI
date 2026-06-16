@@ -1,0 +1,462 @@
+import { ScrollView } from "std-widgets.slint";
+import { Theme } from "theme.slint";
+
+export component UiText inherits Text {
+    font-family: "Inter";
+    font-size: 13px;
+    font-weight: 500;
+    color: Theme.on_surface;
+    letter-spacing: 0px;
+}
+
+export global MethodStyle {
+    public pure function text_color(method: string) -> color {
+        return method == "GET" ? #60a5fa : method == "POST" ? #4ade80 : method == "PUT" ? #facc15 : method == "PATCH" ? #facc15 : method == "DELETE" ? #f87171 : Theme.outline;
+    }
+
+    public pure function background(method: string) -> color {
+        return method == "GET" ? #1d3d66 : method == "POST" ? #17452c : method == "PUT" ? #4a3b12 : method == "PATCH" ? #4a3b12 : method == "DELETE" ? #4f1d22 : #242430;
+    }
+
+    public pure function border(method: string) -> color {
+        return method == "GET" ? #3b82f6 : method == "POST" ? #22c55e : method == "PUT" ? #eab308 : method == "PATCH" ? #eab308 : method == "DELETE" ? #ef4444 : Theme.outline_variant;
+    }
+}
+
+export global ToneStyle {
+    public pure function color(tone: string) -> color {
+        return tone == "error" ? Theme.error : tone == "busy" ? Theme.tertiary : tone == "success" ? Theme.secondary : Theme.on_surface_variant;
+    }
+}
+
+export global ButtonStyle {
+    public pure function border_color(enabled: bool, primary: bool, warning: bool) -> color {
+        return !enabled ? Theme.outline_variant : warning ? Theme.tertiary : primary ? Theme.primary_container : Theme.outline_variant;
+    }
+
+    public pure function background_color(enabled: bool, primary: bool, warning: bool, pressed: bool, hovered: bool) -> color {
+        return !enabled ? Theme.surface_container_low : warning ? (pressed ? #9b520f : hovered ? #c96b18 : #7a430d) : primary ? (pressed ? #3d3fba : hovered ? #5557df : Theme.inverse_primary) : (pressed ? Theme.surface_container_highest : hovered ? Theme.surface_container_high : Theme.surface_container);
+    }
+
+    public pure function text_color(enabled: bool, primary: bool, warning: bool) -> color {
+        return !enabled ? Theme.outline : primary ? Theme.on_surface : warning ? Theme.on_surface : Theme.on_surface;
+    }
+}
+
+export component MethodChip inherits Rectangle {
+    in property <string> method;
+
+    width: 62px;
+    height: 22px;
+    border-radius: 4px;
+    border-width: 1px;
+    border-color: MethodStyle.border(root.method);
+    background: MethodStyle.background(root.method);
+
+    UiText {
+        text: root.method;
+        width: parent.width;
+        height: parent.height;
+        font-family: "JetBrains Mono";
+        font-size: 12px;
+        font-weight: 800;
+        color: MethodStyle.text_color(root.method);
+        horizontal-alignment: center;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+}
+
+export component StatusDot inherits Rectangle {
+    in property <string> tone: "inactive";
+
+    width: 8px;
+    height: 8px;
+    border-radius: 4px;
+    background: root.tone == "active" ? Theme.secondary : root.tone == "error" ? Theme.error : Theme.outline_variant;
+}
+
+export component SectionTitle inherits Rectangle {
+    in property <string> text;
+    in property <string> meta: "";
+
+    height: 24px;
+    horizontal-stretch: 1;
+
+    UiText {
+        x: 0px;
+        text: root.text;
+        width: parent.width - 80px;
+        height: parent.height;
+        font-size: 12px;
+        font-weight: 800;
+        color: Theme.on_surface;
+        overflow: elide;
+        vertical-alignment: center;
+    }
+
+    UiText {
+        x: parent.width - 76px;
+        text: root.meta;
+        width: 76px;
+        height: parent.height;
+        font-size: 12px;
+        color: Theme.outline;
+        overflow: elide;
+        horizontal-alignment: right;
+        vertical-alignment: center;
+    }
+}
+
+export component ActionButton inherits Rectangle {
+    in property <string> text;
+    in property <bool> enabled: true;
+    in property <bool> primary: false;
+    in property <bool> warning: false;
+    in property <length> button_width: 96px;
+    callback clicked();
+
+    width: root.button_width;
+    height: 34px;
+    border-radius: 8px;
+    border-width: 1px;
+    border-color: ButtonStyle.border_color(root.enabled, root.primary, root.warning);
+    background: ButtonStyle.background_color(root.enabled, root.primary, root.warning, touch.pressed, touch.has-hover);
+    opacity: root.enabled ? 1 : 0.62;
+
+    touch := TouchArea {
+        enabled: root.enabled;
+        mouse-cursor: root.enabled ? pointer : default;
+        clicked => {
+            root.clicked();
+        }
+    }
+
+    UiText {
+        text: root.text;
+        width: parent.width;
+        height: parent.height;
+        color: ButtonStyle.text_color(root.enabled, root.primary, root.warning);
+        font-size: 13px;
+        font-weight: 700;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+}
+
+export component TextField inherits Rectangle {
+    in-out property <string> text;
+    in property <string> placeholder;
+    in property <bool> mono: false;
+    in property <bool> enabled: true;
+    in property <bool> embedded: false;
+    out property <bool> focused: input.has-focus;
+    callback edited();
+    callback accepted();
+
+    height: 36px;
+    horizontal-stretch: 1;
+    border-radius: root.embedded ? 0px : 8px;
+    border-width: root.embedded ? 0px : 1px;
+    border-color: root.enabled && input.has-focus ? Theme.primary : Theme.outline_variant;
+    background: root.embedded ? transparent : (root.enabled ? Theme.surface_container_lowest : Theme.surface_container_low);
+    opacity: root.enabled ? 1 : 0.7;
+
+    Text {
+        x: 12px;
+        text: root.text == "" ? root.placeholder : "";
+        width: parent.width - 24px;
+        height: parent.height;
+        color: Theme.outline;
+        font-family: root.mono ? "JetBrains Mono" : "Inter";
+        font-size: 13px;
+        font-weight: 400;
+        letter-spacing: 0px;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+
+    input := TextInput {
+        x: 12px;
+        text <=> root.text;
+        width: parent.width - 24px;
+        height: parent.height;
+        enabled: root.enabled;
+        single-line: true;
+        font-family: root.mono ? "JetBrains Mono" : "Inter";
+        font-size: 13px;
+        font-weight: 400;
+        letter-spacing: 0px;
+        color: Theme.on_surface;
+        selection-background-color: Theme.primary_container;
+        selection-foreground-color: Theme.on_surface;
+        text-cursor-width: root.enabled ? 2px : 0px;
+        vertical-alignment: center;
+        edited => {
+            root.edited();
+        }
+        accepted => {
+            if root.enabled {
+                root.accepted();
+            }
+        }
+    }
+}
+
+component MethodOption inherits Rectangle {
+    in property <string> value;
+    in property <bool> selected;
+    callback picked(string);
+
+    height: 32px;
+    horizontal-stretch: 1;
+    border-radius: 6px;
+    background: root.selected ? Theme.surface_variant : option_touch.has-hover ? Theme.surface_container_high : Theme.surface_container;
+
+    option_touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.picked(root.value);
+        }
+    }
+
+    MethodChip {
+        x: 8px;
+        y: 5px;
+        method: root.value;
+    }
+}
+
+export component BodyModeButton inherits Rectangle {
+    in property <string> mode;
+    in property <string> label;
+    in property <bool> selected;
+    in property <bool> enabled: true;
+    in property <length> button_width: 76px;
+    callback picked(string);
+
+    width: root.button_width;
+    height: 26px;
+    border-radius: 6px;
+    border-width: 1px;
+    border-color: root.selected ? Theme.primary : Theme.outline_variant;
+    background: !root.enabled ? Theme.surface_container_low : root.selected ? Theme.surface_variant : touch.has-hover ? Theme.surface_container_high : Theme.surface_container_low;
+    opacity: root.enabled ? 1 : 0.65;
+
+    touch := TouchArea {
+        enabled: root.enabled;
+        mouse-cursor: root.enabled ? pointer : default;
+        clicked => {
+            root.picked(root.mode);
+        }
+    }
+
+    UiText {
+        text: root.label;
+        width: parent.width;
+        height: parent.height;
+        color: root.selected ? Theme.primary : Theme.on_surface_variant;
+        font-size: 12px;
+        font-weight: root.selected ? 800 : 600;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+}
+
+export component MethodSelector inherits Rectangle {
+    in-out property <string> method;
+    in property <bool> enabled: true;
+
+    width: 100px;
+    height: 38px;
+    background: root.enabled && touch.has-hover ? Theme.surface_container_high : Theme.surface_container_lowest;
+
+    touch := TouchArea {
+        enabled: root.enabled;
+        mouse-cursor: root.enabled ? pointer : default;
+        clicked => {
+            method_popup.show();
+        }
+    }
+
+    MethodChip {
+        x: 12px;
+        y: 8px;
+        method: root.method;
+    }
+
+    UiText {
+        x: parent.width - 26px;
+        text: "v";
+        width: 14px;
+        height: parent.height;
+        color: Theme.outline;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+    }
+
+    Rectangle {
+        x: parent.width - 1px;
+        width: 1px;
+        height: parent.height;
+        background: Theme.outline_variant;
+    }
+
+    method_popup := PopupWindow {
+        x: 0px;
+        y: root.height + 6px;
+        width: root.width;
+        height: 236px;
+        close-policy: close-on-click-outside;
+
+        Rectangle {
+            width: parent.width;
+            height: parent.height;
+            background: Theme.surface_container;
+            border-radius: 8px;
+            border-width: 1px;
+            border-color: Theme.outline_variant;
+            clip: true;
+
+            VerticalLayout {
+                padding: 6px;
+                spacing: 2px;
+
+                for name in ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"]: MethodOption {
+                    value: name;
+                    selected: root.method == name;
+                    picked(value) => {
+                        root.method = value;
+                        method_popup.close();
+                    }
+                }
+            }
+        }
+    }
+}
+
+export component CodePane inherits Rectangle {
+    in-out property <string> text;
+    in property <bool> read_only;
+
+    horizontal-stretch: 1;
+    vertical-stretch: 1;
+    border-radius: 8px;
+    border-width: 1px;
+    border-color: Theme.outline_variant;
+    background: Theme.surface_container_lowest;
+
+    ScrollView {
+        x: 1px;
+        y: 1px;
+        width: parent.width - 2px;
+        height: parent.height - 2px;
+        viewport-width: max(self.visible-width, code_input.preferred-width + 28px);
+        viewport-height: max(self.visible-height, code_input.preferred-height + 24px);
+        vertical-scrollbar-policy: ScrollBarPolicy.always-off;
+        horizontal-scrollbar-policy: ScrollBarPolicy.always-off;
+
+        code_input := TextInput {
+            x: 14px;
+            y: 12px;
+            width: max(parent.visible-width - 28px, self.preferred-width);
+            height: max(parent.visible-height - 24px, self.preferred-height);
+            text <=> root.text;
+            read-only: root.read_only;
+            single-line: false;
+            wrap: word-wrap;
+            font-family: "JetBrains Mono";
+            font-size: 13px;
+            font-weight: 400;
+            letter-spacing: 0px;
+            color: Theme.on_surface;
+            selection-background-color: Theme.primary_container;
+            selection-foreground-color: Theme.on_surface;
+            text-cursor-width: root.read_only ? 0px : 2px;
+        }
+    }
+}
+
+export component LabeledEditor inherits Rectangle {
+    in-out property <string> text;
+    in property <string> label;
+    in property <bool> read_only: false;
+
+    horizontal-stretch: 1;
+    vertical-stretch: 1;
+    background: transparent;
+
+    VerticalLayout {
+        padding: 0px;
+        spacing: 6px;
+
+        UiText {
+            text: root.label;
+            height: 20px;
+            horizontal-stretch: 1;
+            color: Theme.on_surface_variant;
+            font-size: 12px;
+            font-weight: 800;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+
+        CodePane {
+            text <=> root.text;
+            read_only: root.read_only;
+        }
+    }
+}
+
+export component TabHeader inherits Rectangle {
+    in property <string> label;
+    in property <string> status: "";
+    in property <string> tone: "neutral";
+
+    height: 36px;
+    horizontal-stretch: 1;
+    background: Theme.surface_container_low;
+
+    Rectangle {
+        y: parent.height - 1px;
+        width: parent.width;
+        height: 1px;
+        background: Theme.outline_variant;
+    }
+
+    UiText {
+        x: 14px;
+        text: root.label;
+        width: 220px;
+        height: parent.height;
+        color: Theme.primary;
+        font-size: 13px;
+        font-weight: 700;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+
+    Rectangle {
+        x: 14px;
+        y: parent.height - 2px;
+        width: 72px;
+        height: 2px;
+        background: Theme.primary;
+    }
+
+    if root.status != "": UiText {
+        x: parent.width - 328px;
+        text: root.status;
+        width: 312px;
+        height: parent.height;
+        font-family: "JetBrains Mono";
+        font-size: 12px;
+        font-weight: 600;
+        color: ToneStyle.color(root.tone);
+        horizontal-alignment: right;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+}

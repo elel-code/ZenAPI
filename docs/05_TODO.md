@@ -85,8 +85,10 @@
 - [~] Add mock request logs and richer mock manager controls; current Slint
   baseline shows recent mock requests in the sidebar, with filtering/export and
   richer route controls pending.
-- [ ] Split reusable controls from `ui/app.slint` into `ui/widgets/` once two or
-  more screens share them.
+- [~] Split reusable controls from `ui/app.slint` into `ui/widgets/`; current
+  Slint baseline extracts shared styles, buttons, text fields, method controls,
+  tab headers, and editor panes into `ui/widgets.slint`, with larger business
+  panels still pending.
 
 ## Phase 4: Verification And Release
 
