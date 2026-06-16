@@ -3,6 +3,7 @@ pub mod client;
 pub mod codegen;
 pub mod collection_runner;
 pub mod collections;
+pub mod grpc;
 pub mod history;
 pub mod mock_server;
 pub mod openapi;

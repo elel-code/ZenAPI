@@ -116,4 +116,4 @@
 | Assertions/scripts | Domain implemented | Slint baseline edits, saves, restores, and evaluates native scripts/tests |
 | WebSocket/SSE | Client modules restored | Slint baseline supports one-shot WS sends and SSE previews |
 | Mock logs | Core implemented | Slint baseline shows recent mock requests |
-| gRPC | Design documented | Domain and UI pending |
+| gRPC | Domain draft model implemented | Descriptor loading, unary transport, and Slint UI pending |
