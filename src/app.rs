@@ -3,7 +3,10 @@ use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64_STANDARD};
 use serde_json::Value;
 use slint::{ComponentHandle, ModelRc, SharedString, VecModel};
 use std::sync::{Arc, Mutex};
-use std::{fs, path::Path};
+use std::{
+    fs,
+    path::{Path, PathBuf},
+};
 use tokio::runtime::Runtime;
 use zenapi::{
     assertions::{
@@ -26,10 +29,25 @@ use zenapi::{
 
 use crate::ui::{AppWindow, CollectionRow, HistoryRow, MockLogRow, RouteRow, RunnerRow};
 
+const HISTORY_FILE_NAME: &str = ".zenapi-history.json";
+
 pub fn run() -> Result<()> {
     let runtime = Arc::new(Runtime::new()?);
-    let state = Arc::new(Mutex::new(AppState::default()));
+    let mut initial_state = AppState::default();
+    let history_load_error = initial_state.load_history_from_disk().err();
     let app = AppWindow::new().map_err(|err| anyhow!(err.to_string()))?;
+    app.set_history_rows(filtered_history_model(&initial_state.history, ""));
+    if let Some(error) = history_load_error {
+        set_response(
+            &app,
+            "History load failed",
+            HISTORY_FILE_NAME,
+            "error",
+            &error.to_string(),
+        );
+    }
+
+    let state = Arc::new(Mutex::new(initial_state));
 
     wire_import(&app, runtime.clone(), state.clone());
     wire_route_filter(&app, state.clone());
@@ -53,6 +71,7 @@ struct AppState {
     visible_routes: Vec<ApiRoute>,
     collection: ApiCollection,
     history: RequestHistory,
+    history_path: PathBuf,
     mock_logs: Vec<MockRequestLog>,
     server: Option<MockServer>,
 }
@@ -97,6 +116,18 @@ fn request_projection_input(app: &AppWindow) -> RequestProjectionInput {
 }
 
 impl AppState {
+    fn load_history_from_disk(&mut self) -> Result<()> {
+        if !self.history_path.exists() {
+            return Ok(());
+        }
+        self.history = RequestHistory::load_file(&self.history_path)?;
+        Ok(())
+    }
+
+    fn save_history_to_disk(&self) {
+        let _ = self.history.save_file(&self.history_path);
+    }
+
     fn next_server_action(&mut self) -> ServerAction {
         if let Some(server) = self.server.take() {
             ServerAction::Stop(server)
@@ -113,6 +144,7 @@ impl Default for AppState {
             visible_routes: Vec::new(),
             collection: ApiCollection::new("ZenAPI Collection"),
             history: RequestHistory::default(),
+            history_path: PathBuf::from(HISTORY_FILE_NAME),
             mock_logs: Vec::new(),
             server: None,
         }
@@ -321,11 +353,15 @@ fn wire_history_actions(app: &AppWindow, state: Arc<Mutex<AppState>>) {
         }
 
         let result = delete_state.lock().ok().and_then(|mut state| {
-            delete_history_entry(
+            let model = delete_history_entry(
                 &mut state.history,
                 id as u64,
                 app.get_history_filter().as_str(),
-            )
+            );
+            if model.is_some() {
+                state.save_history_to_disk();
+            }
+            model
         });
 
         if let Some(model) = result {
@@ -350,6 +386,7 @@ fn wire_history_actions(app: &AppWindow, state: Arc<Mutex<AppState>>) {
         }
         if let Ok(mut state) = state.lock() {
             state.history.clear();
+            state.save_history_to_disk();
         }
         app.set_history_filter("".into());
         app.set_history_rows(empty_history_model());
@@ -1803,6 +1840,7 @@ fn record_history(
 ) {
     if let Ok(mut state) = state.lock() {
         state.history.record(request, response);
+        state.save_history_to_disk();
     }
 }
 

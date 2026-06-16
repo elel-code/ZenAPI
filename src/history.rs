@@ -1,5 +1,10 @@
+use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::{
+    fs,
+    path::Path,
+    time::{SystemTime, UNIX_EPOCH},
+};
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct HistoryEntry {
@@ -45,6 +50,37 @@ pub struct RequestHistory {
 impl RequestHistory {
     pub fn new() -> Self {
         Self::default()
+    }
+
+    pub fn from_json(input: &str) -> Result<Self> {
+        serde_json::from_str(input).context("failed to parse request history JSON")
+    }
+
+    pub fn load_file(path: impl AsRef<Path>) -> Result<Self> {
+        let path = path.as_ref();
+        let content = fs::read_to_string(path)
+            .with_context(|| format!("failed to read request history {}", path.display()))?;
+        Self::from_json(&content)
+            .with_context(|| format!("failed to parse request history {}", path.display()))
+    }
+
+    pub fn save_file(&self, path: impl AsRef<Path>) -> Result<()> {
+        let path = path.as_ref();
+        if let Some(parent) = path
+            .parent()
+            .filter(|parent| !parent.as_os_str().is_empty())
+        {
+            fs::create_dir_all(parent).with_context(|| {
+                format!(
+                    "failed to create request history directory {}",
+                    parent.display()
+                )
+            })?;
+        }
+        let content = serde_json::to_string_pretty(self)
+            .context("failed to serialize request history JSON")?;
+        fs::write(path, content)
+            .with_context(|| format!("failed to write request history {}", path.display()))
     }
 
     pub fn record(&mut self, request: HistoryRequest, response: HistoryResponse) -> u64 {
@@ -175,5 +211,21 @@ mod tests {
         history.record_at(20, request("GET", "/users"), response("HTTP 200"));
         history.clear();
         assert!(history.entries().is_empty());
+    }
+
+    #[test]
+    fn saves_and_loads_history_json_file() {
+        let path = std::env::temp_dir().join(format!("zenapi-history-{}.json", std::process::id()));
+        let _ = fs::remove_file(&path);
+
+        let mut history = RequestHistory::new();
+        history.record_at(10, request("GET", "/users"), response("HTTP 200"));
+
+        history.save_file(&path).expect("save history");
+        let loaded = RequestHistory::load_file(&path).expect("load history");
+
+        assert_eq!(loaded, history);
+
+        let _ = fs::remove_file(path);
     }
 }

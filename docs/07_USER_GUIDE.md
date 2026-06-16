@@ -268,7 +268,8 @@ duplicate, and drag/drop controls are still future work.
 ## History
 
 Every sent request is recorded automatically with request details and response
-summary. The History sidebar supports:
+summary. History is loaded from and saved to `.zenapi-history.json` in the
+current working directory. The History sidebar supports:
 
 - Search/filter.
 - Restore a request.

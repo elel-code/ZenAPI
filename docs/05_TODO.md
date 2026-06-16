@@ -68,7 +68,7 @@
   and clear; current Slint baseline records recent requests and restores method,
   URL, query params, headers, auth config, body mode, body preview, pre-request
   script, and tests, with filtering, single-entry delete, and clear controls
-  wired; persistent history storage is still pending.
+  wired plus local JSON persistence.
 - [~] Rebuild Codegen UI for cURL, Python, JavaScript, Rust, and Go snippets;
   current Slint baseline generates snippets from the resolved request projection,
   exports snippets to a local path, with clipboard copy still pending.
@@ -116,7 +116,7 @@
 | Mock server | Core implemented | Slint start/stop toggle wired |
 | Variables | Domain implemented | Slint baseline supports global and one active environment editor |
 | Collections | Domain implemented | Slint baseline supports load/save/export and request restore |
-| History | Domain implemented | Slint baseline records, filters, deletes, and restores recent requests |
+| History | Domain implemented | Slint baseline records, filters, deletes, restores, and persists recent requests |
 | Codegen | Domain implemented | Slint baseline generates and exports resolved request snippets |
 | Runner | Domain + CLI implemented | Slint baseline runs active collections and shows result rows |
 | Assertions/scripts | Domain implemented | Slint baseline edits, saves, restores, and evaluates native scripts/tests |
