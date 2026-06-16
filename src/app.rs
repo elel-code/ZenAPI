@@ -808,6 +808,34 @@ fn wire_mock_log_filter(app: &AppWindow, state: Arc<Mutex<AppState>>) {
     });
 
     let weak_app = app.as_weak();
+    let clear_state = state.clone();
+    app.on_clear_mock_logs(move || {
+        let Some(app) = weak_app.upgrade() else {
+            return;
+        };
+        if app.get_busy() {
+            return;
+        }
+
+        let Some(cleared) = clear_state.lock().ok().map(|mut state| {
+            let cleared = clear_mock_logs(&mut state.mock_logs);
+            cleared
+        }) else {
+            return;
+        };
+
+        app.set_mock_log_filter("".into());
+        app.set_mock_logs(mock_log_model(&[]));
+        set_response(
+            &app,
+            "Mock logs cleared",
+            "",
+            "neutral",
+            &format!("{cleared} mock log entries removed."),
+        );
+    });
+
+    let weak_app = app.as_weak();
     app.on_save_mock_logs(move |path| {
         let Some(app) = weak_app.upgrade() else {
             return;
@@ -2644,6 +2672,12 @@ fn push_mock_log(logs: &mut Vec<MockRequestLog>, log: MockRequestLog, limit: usi
     logs.truncate(limit);
 }
 
+fn clear_mock_logs(logs: &mut Vec<MockRequestLog>) -> usize {
+    let cleared = logs.len();
+    logs.clear();
+    cleared
+}
+
 fn save_mock_logs(path: &str, logs: &[MockRequestLog], query: &str) -> Result<usize> {
     let exported = filtered_mock_logs(logs, query);
     let body = serde_json::to_string_pretty(&exported)
@@ -4363,6 +4397,9 @@ mod tests {
         assert_eq!(logs.len(), 2);
         assert_eq!(logs[0].path, "/latest");
         assert_eq!(logs[1].path, "/new");
+
+        assert_eq!(clear_mock_logs(&mut logs), 2);
+        assert!(logs.is_empty());
     }
 
     #[test]

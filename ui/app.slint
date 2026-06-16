@@ -327,6 +327,7 @@ component Sidebar inherits Rectangle {
     callback clear_history();
     callback filter_mock_logs(string);
     callback save_mock_logs(string);
+    callback clear_mock_logs();
     callback filter_routes(string);
 
     width: 240px;
@@ -656,6 +657,16 @@ component Sidebar inherits Rectangle {
                 enabled: !root.busy && root.mock_log_path != "" && root.mock_logs.length > 0;
                 clicked => {
                     root.save_mock_logs(root.mock_log_path);
+                }
+            }
+
+            ActionButton {
+                text: "Clear";
+                button_width: 58px;
+                warning: true;
+                enabled: !root.busy && root.mock_logs.length > 0;
+                clicked => {
+                    root.clear_mock_logs();
                 }
             }
         }
@@ -1932,6 +1943,7 @@ export component AppWindow inherits Window {
     callback clear_history();
     callback filter_mock_logs(string);
     callback save_mock_logs(string);
+    callback clear_mock_logs();
     callback send_request();
     callback toggle_server();
     callback generate_code();
@@ -2038,6 +2050,9 @@ export component AppWindow inherits Window {
                 }
                 save_mock_logs(path) => {
                     root.save_mock_logs(path);
+                }
+                clear_mock_logs => {
+                    root.clear_mock_logs();
                 }
             }
 
