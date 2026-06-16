@@ -274,9 +274,15 @@ fn wire_history_selection(app: &AppWindow, state: Arc<Mutex<AppState>>) {
         if let Some(entry) = entry {
             app.set_method(entry.request.method.into());
             app.set_url(entry.request.url.into());
+            app.set_query_params(format_key_value_preview(&entry.request.query_params).into());
+            app.set_request_headers(format_key_value_preview(&entry.request.headers).into());
+            app.set_auth_mode("none".into());
+            app.set_auth_config("".into());
             app.set_body_mode(entry.request.body_kind.into());
             app.set_request_body(entry.request.body_preview.into());
             app.set_graphql_variables("{}".into());
+            app.set_pre_request_script("".into());
+            app.set_request_tests("".into());
             set_response(
                 &app,
                 "History restored",
@@ -1636,6 +1642,8 @@ fn history_request(request: &CodegenRequest) -> HistoryRequest {
     HistoryRequest {
         method: request.method.clone(),
         url: request.url.clone(),
+        query_params: request.query_params.clone(),
+        headers: request.headers.clone(),
         body_kind,
         body_preview,
     }
@@ -2954,8 +2962,8 @@ mod tests {
         let request = CodegenRequest {
             method: "POST".to_string(),
             url: "https://api.example.com/users".to_string(),
-            headers: Vec::new(),
-            query_params: Vec::new(),
+            headers: vec![("Authorization".to_string(), "Bearer token".to_string())],
+            query_params: vec![("debug".to_string(), "true".to_string())],
             body: RequestBody::FormUrlEncoded(vec![
                 ("name".to_string(), "Zen".to_string()),
                 ("role".to_string(), "admin".to_string()),
@@ -2967,6 +2975,8 @@ mod tests {
             HistoryRequest {
                 method: "POST".to_string(),
                 url: "https://api.example.com/users".to_string(),
+                query_params: vec![("debug".to_string(), "true".to_string())],
+                headers: vec![("Authorization".to_string(), "Bearer token".to_string())],
                 body_kind: "urlenc".to_string(),
                 body_preview: "name=Zen\nrole=admin".to_string(),
             }
@@ -2983,6 +2993,8 @@ mod tests {
             HistoryRequest {
                 method: "GET".to_string(),
                 url: "https://api.example.com/users".to_string(),
+                query_params: Vec::new(),
+                headers: Vec::new(),
                 body_kind: "none".to_string(),
                 body_preview: String::new(),
             },
@@ -2997,6 +3009,8 @@ mod tests {
             HistoryRequest {
                 method: "POST".to_string(),
                 url: "https://api.example.com/sessions".to_string(),
+                query_params: Vec::new(),
+                headers: Vec::new(),
                 body_kind: "raw".to_string(),
                 body_preview: "{}".to_string(),
             },
@@ -3025,6 +3039,8 @@ mod tests {
             HistoryRequest {
                 method: "GET".to_string(),
                 url: "https://api.example.com/users".to_string(),
+                query_params: Vec::new(),
+                headers: Vec::new(),
                 body_kind: "none".to_string(),
                 body_preview: String::new(),
             },
@@ -3039,6 +3055,8 @@ mod tests {
             HistoryRequest {
                 method: "POST".to_string(),
                 url: "https://api.example.com/sessions".to_string(),
+                query_params: Vec::new(),
+                headers: Vec::new(),
                 body_kind: "raw".to_string(),
                 body_preview: "{}".to_string(),
             },

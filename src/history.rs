@@ -13,6 +13,10 @@ pub struct HistoryEntry {
 pub struct HistoryRequest {
     pub method: String,
     pub url: String,
+    #[serde(default)]
+    pub query_params: Vec<(String, String)>,
+    #[serde(default)]
+    pub headers: Vec<(String, String)>,
     pub body_kind: String,
     pub body_preview: String,
 }
@@ -110,6 +114,8 @@ mod tests {
         HistoryRequest {
             method: method.to_string(),
             url: url.to_string(),
+            query_params: Vec::new(),
+            headers: Vec::new(),
             body_kind: "none".to_string(),
             body_preview: String::new(),
         }

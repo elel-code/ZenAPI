@@ -275,6 +275,9 @@ summary. The History sidebar supports:
 - `Del` one entry.
 - Clear all entries.
 
+Restoring a history entry fills method, URL, query params, headers, body mode,
+and body preview from the resolved request snapshot.
+
 ## Local Mock Server
 
 After importing routes, click the mock control in the top bar to start or stop

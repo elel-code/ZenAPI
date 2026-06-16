@@ -65,9 +65,9 @@
   item management still pending.
 - [~] Rebuild History UI for local request history, filtering, restore, delete,
   and clear; current Slint baseline records recent requests and restores method,
-  URL, body mode, and body preview, with filtering and clear controls wired;
-  single-entry delete is wired, while full request state restore is still
-  pending.
+  URL, query params, headers, body mode, and body preview, with filtering,
+  single-entry delete, and clear controls wired; original auth/pre-request/test
+  state restore is still pending.
 - [~] Rebuild Codegen UI for cURL, Python, JavaScript, Rust, and Go snippets;
   current Slint baseline generates snippets from the resolved request projection,
   exports snippets to a local path, with clipboard copy still pending.
