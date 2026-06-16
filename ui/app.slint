@@ -348,6 +348,37 @@ component CodePane inherits Rectangle {
     }
 }
 
+component LabeledEditor inherits Rectangle {
+    in-out property <string> text;
+    in property <string> label;
+    in property <bool> read_only: false;
+
+    horizontal-stretch: 1;
+    vertical-stretch: 1;
+    background: transparent;
+
+    VerticalLayout {
+        padding: 0px;
+        spacing: 6px;
+
+        UiText {
+            text: root.label;
+            height: 20px;
+            horizontal-stretch: 1;
+            color: Theme.on_surface_variant;
+            font-size: 12px;
+            font-weight: 800;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+
+        CodePane {
+            text <=> root.text;
+            read_only: root.read_only;
+        }
+    }
+}
+
 component TabHeader inherits Rectangle {
     in property <string> label;
     in property <string> status: "";
@@ -758,6 +789,8 @@ component AddressBar inherits Rectangle {
 }
 
 component RequestPanel inherits Rectangle {
+    in-out property <string> query_params;
+    in-out property <string> request_headers;
     in-out property <string> request_body;
 
     horizontal-stretch: 1;
@@ -769,7 +802,32 @@ component RequestPanel inherits Rectangle {
         spacing: 0px;
 
         TabHeader {
-            label: "Body";
+            label: "Request";
+        }
+
+        Rectangle {
+            height: 134px;
+            background: Theme.surface;
+
+            HorizontalLayout {
+                padding: 10px;
+                spacing: 10px;
+
+                LabeledEditor {
+                    label: "Params";
+                    text <=> root.query_params;
+                }
+
+                LabeledEditor {
+                    label: "Headers";
+                    text <=> root.request_headers;
+                }
+            }
+        }
+
+        Rectangle {
+            height: 1px;
+            background: Theme.outline_variant;
         }
 
         Rectangle {
@@ -941,6 +999,8 @@ export component AppWindow inherits Window {
     in-out property <bool> spec_loaded: false;
     in-out property <string> method: "GET";
     in-out property <string> url;
+    in-out property <string> query_params;
+    in-out property <string> request_headers: "Accept: application/json";
     in-out property <string> request_body;
     in-out property <string> response_status: "Idle";
     in-out property <string> response_meta: "";
@@ -1027,6 +1087,8 @@ export component AppWindow inherits Window {
                         vertical-stretch: 1;
 
                         RequestPanel {
+                            query_params <=> root.query_params;
+                            request_headers <=> root.request_headers;
                             request_body <=> root.request_body;
                         }
 

@@ -1,4 +1,4 @@
-use anyhow::{Result, anyhow};
+use anyhow::{Result, anyhow, bail};
 use slint::{ComponentHandle, ModelRc, SharedString, VecModel};
 use std::path::Path;
 use std::sync::{Arc, Mutex};
@@ -166,6 +166,8 @@ fn wire_route_selection(app: &AppWindow, state: Arc<Mutex<AppState>>) {
                 "http://127.0.0.1:8080{}",
                 route.path
             )));
+            app.set_query_params("".into());
+            app.set_request_headers("Accept: application/json".into());
             app.set_request_body(default_request_body(&app.get_method()).into());
             set_response(
                 &app,
@@ -190,6 +192,20 @@ fn wire_request_sender(app: &AppWindow, runtime: Arc<Runtime>) {
 
         let method = app.get_method().to_string();
         let url = app.get_url().trim().to_string();
+        let headers = match parse_key_value_lines(&app.get_request_headers(), "header") {
+            Ok(headers) => headers,
+            Err(error) => {
+                set_response(&app, "Bad headers", "", "error", &error.to_string());
+                return;
+            }
+        };
+        let query_params = match parse_key_value_lines(&app.get_query_params(), "query param") {
+            Ok(query_params) => query_params,
+            Err(error) => {
+                set_response(&app, "Bad params", "", "error", &error.to_string());
+                return;
+            }
+        };
         let body = app.get_request_body().to_string();
         if url.is_empty() {
             set_response(
@@ -214,7 +230,9 @@ fn wire_request_sender(app: &AppWindow, runtime: Arc<Runtime>) {
 
         let weak_app = app.as_weak();
         runtime.spawn(async move {
-            let result = client::send_request(&method, &url, &body).await;
+            let result =
+                client::send_request_with_options(&method, &url, &headers, &query_params, &body)
+                    .await;
             let _ = slint::invoke_from_event_loop(move || {
                 let Some(app) = weak_app.upgrade() else {
                     return;
@@ -378,6 +396,31 @@ fn filter_routes(routes: &[ApiRoute], query: &str) -> Vec<ApiRoute> {
         .collect()
 }
 
+fn parse_key_value_lines(input: &str, field_name: &str) -> Result<Vec<(String, String)>> {
+    input
+        .lines()
+        .enumerate()
+        .filter_map(|(index, line)| {
+            let line = line.trim();
+            if line.is_empty() || line.starts_with('#') {
+                None
+            } else {
+                Some((index + 1, line))
+            }
+        })
+        .map(|(line_number, line)| {
+            let Some((key, value)) = line.split_once(':').or_else(|| line.split_once('=')) else {
+                bail!("{field_name} line {line_number} must use key=value or key: value");
+            };
+            let key = key.trim();
+            if key.is_empty() {
+                bail!("{field_name} line {line_number} has an empty name");
+            }
+            Ok((key.to_string(), value.trim().to_string()))
+        })
+        .collect()
+}
+
 fn response_tone(status: u16) -> &'static str {
     if (200..400).contains(&status) {
         "success"
@@ -432,5 +475,29 @@ mod tests {
         assert_eq!(response_tone(302), "success");
         assert_eq!(response_tone(100), "neutral");
         assert_eq!(response_tone(404), "error");
+    }
+
+    #[test]
+    fn parses_query_and_header_text_lines() {
+        assert_eq!(
+            parse_key_value_lines(
+                "Accept: application/json\nsearch = rust slint\n# ignored\n\nlimit=20",
+                "header"
+            )
+            .expect("parse"),
+            vec![
+                ("Accept".to_string(), "application/json".to_string()),
+                ("search".to_string(), "rust slint".to_string()),
+                ("limit".to_string(), "20".to_string()),
+            ]
+        );
+    }
+
+    #[test]
+    fn rejects_malformed_key_value_lines() {
+        let error = parse_key_value_lines("Accept: application/json\nmissing-separator", "header")
+            .expect_err("invalid line");
+
+        assert!(error.to_string().contains("line 2"));
     }
 }

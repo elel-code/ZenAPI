@@ -43,8 +43,9 @@
 
 ## Phase 3: Slint UI Parity Backlog
 
-- [ ] Rebuild Params and Headers editors in Slint and wire them into
-  `send_request_with_options`.
+- [~] Rebuild Params and Headers editors in Slint and wire them into
+  `send_request_with_options`; current Slint baseline supports line-based
+  `key=value` / `key: value` editors, with table controls still pending.
 - [ ] Rebuild Body mode controls for none, form-data, URL-encoded, raw, GraphQL,
   and binary bodies.
 - [ ] Rebuild Auth controls for None, Bearer, Basic, JWT, and API key modes.
