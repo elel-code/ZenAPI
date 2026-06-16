@@ -223,14 +223,15 @@ Supported auth modes:
 
 - None
 - Bearer
-- OAuth
 - Basic
 - JWT
-- API, with Header or Query placement
+- API key header
+- API key query
 
-OAuth mode sends `Authorization: Bearer <token>` from a token you
-paste manually. Token acquisition, redirect handling, refresh, and secure state
-storage remain future work.
+Bearer and JWT modes send `Authorization: Bearer <token>`. Basic auth expects
+`username:password`. API key modes expect line-based `key=value` input and place
+the values in headers or query params. OAuth token acquisition, redirect
+handling, refresh, and secure state storage remain future work.
 
 ## Vars And Envs
 

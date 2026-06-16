@@ -52,8 +52,8 @@
   including GraphQL query/variables payload building, with dedicated form file
   controls and GraphQL introspection/schema helpers still pending.
 - [~] Rebuild Auth controls for None, Bearer, Basic, JWT, and API key modes;
-  current Slint baseline supports mode buttons plus one config field, with
-  dedicated per-mode forms still pending.
+  current Slint baseline supports mode buttons plus one config field with
+  mode-specific format hints, with dedicated per-mode forms still pending.
 - [~] Rebuild Environments and Variables UI on top of `variables::VariableStore`;
   current Slint baseline supports one active environment with dev/test/prod
   quick selectors plus line-based global and environment variable editors, with

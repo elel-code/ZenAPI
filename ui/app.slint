@@ -36,6 +36,12 @@ export struct MockLogRow {
     status: string,
 }
 
+global AuthText {
+    public pure function hint(mode: string) -> string {
+        return mode == "none" ? "disabled" : mode == "basic" ? "username:password" : mode == "api-header" ? "header key=value" : mode == "api-query" ? "query key=value" : "token";
+    }
+}
+
 component RouteListItem inherits Rectangle {
     in property <string> method;
     in property <string> path;
@@ -993,7 +999,7 @@ component RequestPanel inherits Rectangle {
                 }
 
                 LabeledEditor {
-                    label: "Auth / " + root.auth_mode;
+                    label: "Auth / " + root.auth_mode + " / " + AuthText.hint(root.auth_mode);
                     text <=> root.auth_config;
                     read_only: root.auth_mode == "none";
                 }
