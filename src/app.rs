@@ -7,7 +7,7 @@ use std::{
     fs,
     path::{Path, PathBuf},
 };
-use tokio::runtime::Runtime;
+use tokio::{runtime::Runtime, sync::mpsc};
 use zenapi::{
     assertions::{
         ResponseAssertion, ResponseAssertionKind, ResponseAssertionResult,
@@ -1042,8 +1042,106 @@ fn wire_collection_runner(app: &AppWindow, runtime: Arc<Runtime>, state: Arc<Mut
 }
 
 fn wire_realtime_actions(app: &AppWindow, runtime: Arc<Runtime>) {
+    let websocket_session = Arc::new(Mutex::new(
+        None::<mpsc::UnboundedSender<client::WebSocketSessionCommand>>,
+    ));
+
+    let weak_app = app.as_weak();
+    let open_runtime = runtime.clone();
+    let open_session = websocket_session.clone();
+    app.on_open_websocket(move || {
+        let Some(app) = weak_app.upgrade() else {
+            return;
+        };
+        if app.get_busy() {
+            return;
+        }
+
+        let url = app.get_url().to_string();
+        let headers = match parse_key_value_lines(&app.get_request_headers(), "WebSocket header") {
+            Ok(headers) => headers,
+            Err(error) => {
+                set_response(
+                    &app,
+                    "WebSocket open failed",
+                    "",
+                    "error",
+                    &error.to_string(),
+                );
+                return;
+            }
+        };
+        let options = client::WebSocketSessionOptions {
+            headers,
+            protocols: Vec::new(),
+        };
+
+        let (command_tx, command_rx) = mpsc::unbounded_channel();
+        let (event_tx, mut event_rx) = mpsc::unbounded_channel();
+        let Ok(mut session) = open_session.lock() else {
+            return;
+        };
+        if session.is_some() {
+            set_response(
+                &app,
+                "WebSocket already open",
+                "",
+                "neutral",
+                "Close the current WebSocket session before opening another.",
+            );
+            return;
+        }
+        *session = Some(command_tx);
+        drop(session);
+
+        app.set_activity("Opening WebSocket session".into());
+        set_response(
+            &app,
+            "WebSocket opening",
+            "",
+            "busy",
+            &format!("Connecting\n\n{url}"),
+        );
+
+        let weak_app = app.as_weak();
+        let session_state = open_session.clone();
+        open_runtime.spawn(async move {
+            let session_task = tokio::spawn(client::run_websocket_session_with_options(
+                url, options, command_rx, event_tx,
+            ));
+            let mut events = Vec::new();
+
+            while let Some(event) = event_rx.recv().await {
+                let done = websocket_session_event_done(&event);
+                events.push(event);
+                let body = format_websocket_session_events(&events);
+                let status = websocket_session_status(events.last().expect("session event"));
+                let tone = websocket_session_tone(events.last().expect("session event"));
+                let meta = format!("{} events", events.len());
+                let weak_app = weak_app.clone();
+                let session_state = session_state.clone();
+                let _ = slint::invoke_from_event_loop(move || {
+                    if let Some(app) = weak_app.upgrade() {
+                        set_response(&app, status, &meta, tone, &body);
+                        if done {
+                            app.set_activity("".into());
+                            if let Ok(mut session) = session_state.lock() {
+                                *session = None;
+                            }
+                        } else {
+                            app.set_activity("WebSocket session open".into());
+                        }
+                    }
+                });
+            }
+
+            let _ = session_task.await;
+        });
+    });
+
     let weak_app = app.as_weak();
     let websocket_runtime = runtime.clone();
+    let send_session = websocket_session.clone();
     app.on_run_websocket(move || {
         let Some(app) = weak_app.upgrade() else {
             return;
@@ -1054,6 +1152,30 @@ fn wire_realtime_actions(app: &AppWindow, runtime: Arc<Runtime>) {
 
         let url = app.get_url().to_string();
         let message = app.get_realtime_message().to_string();
+        if let Some(sender) = send_session.lock().ok().and_then(|session| session.clone()) {
+            match sender.send(client::WebSocketSessionCommand::SendText(message.clone())) {
+                Ok(()) => {
+                    set_response(
+                        &app,
+                        "WebSocket queued",
+                        "",
+                        "busy",
+                        &format!("Queued session message\n\n{message}"),
+                    );
+                }
+                Err(error) => {
+                    set_response(
+                        &app,
+                        "WebSocket send failed",
+                        "",
+                        "error",
+                        &error.to_string(),
+                    );
+                }
+            }
+            return;
+        }
+
         app.set_busy(true);
         app.set_activity("Sending WebSocket message".into());
         set_response(
@@ -1087,6 +1209,45 @@ fn wire_realtime_actions(app: &AppWindow, runtime: Arc<Runtime>) {
                 app.set_busy(false);
             });
         });
+    });
+
+    let weak_app = app.as_weak();
+    let close_session = websocket_session.clone();
+    app.on_close_websocket(move || {
+        let Some(app) = weak_app.upgrade() else {
+            return;
+        };
+        let Some(sender) = close_session
+            .lock()
+            .ok()
+            .and_then(|mut session| session.take())
+        else {
+            set_response(
+                &app,
+                "WebSocket idle",
+                "",
+                "neutral",
+                "No WebSocket session is open.",
+            );
+            return;
+        };
+
+        match sender.send(client::WebSocketSessionCommand::Close) {
+            Ok(()) => {
+                app.set_activity("Closing WebSocket session".into());
+                set_response(&app, "WebSocket closing", "", "busy", "Close command sent.");
+            }
+            Err(error) => {
+                app.set_activity("".into());
+                set_response(
+                    &app,
+                    "WebSocket close failed",
+                    "",
+                    "error",
+                    &error.to_string(),
+                );
+            }
+        }
     });
 
     let weak_app = app.as_weak();
@@ -1770,6 +1931,62 @@ fn format_websocket_exchange(exchange: &client::WebSocketExchange) -> String {
         ));
     }
     lines.join("\n")
+}
+
+fn format_websocket_session_events(events: &[client::WebSocketSessionEvent]) -> String {
+    events
+        .iter()
+        .enumerate()
+        .map(|(index, event)| format_websocket_session_event(index + 1, event))
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+fn format_websocket_session_event(index: usize, event: &client::WebSocketSessionEvent) -> String {
+    match event {
+        client::WebSocketSessionEvent::Connected { url } => format!("{index}. connected {url}"),
+        client::WebSocketSessionEvent::Sent(message) => {
+            format!(
+                "{index}. sent [{}]: {}",
+                websocket_message_kind(&message.kind),
+                message.data
+            )
+        }
+        client::WebSocketSessionEvent::Received(message) => {
+            format!(
+                "{index}. received [{}]: {}",
+                websocket_message_kind(&message.kind),
+                message.data
+            )
+        }
+        client::WebSocketSessionEvent::Closed(reason) => format!("{index}. closed {reason}"),
+        client::WebSocketSessionEvent::Error(error) => format!("{index}. error {error}"),
+    }
+}
+
+fn websocket_session_event_done(event: &client::WebSocketSessionEvent) -> bool {
+    matches!(
+        event,
+        client::WebSocketSessionEvent::Closed(_) | client::WebSocketSessionEvent::Error(_)
+    )
+}
+
+fn websocket_session_status(event: &client::WebSocketSessionEvent) -> &'static str {
+    match event {
+        client::WebSocketSessionEvent::Connected { .. } => "WebSocket open",
+        client::WebSocketSessionEvent::Sent(_) => "WebSocket sent",
+        client::WebSocketSessionEvent::Received(_) => "WebSocket received",
+        client::WebSocketSessionEvent::Closed(_) => "WebSocket closed",
+        client::WebSocketSessionEvent::Error(_) => "WebSocket failed",
+    }
+}
+
+fn websocket_session_tone(event: &client::WebSocketSessionEvent) -> &'static str {
+    match event {
+        client::WebSocketSessionEvent::Error(_) => "error",
+        client::WebSocketSessionEvent::Closed(_) => "neutral",
+        _ => "success",
+    }
 }
 
 fn websocket_message_kind(kind: &client::WebSocketMessageKind) -> &'static str {
@@ -3266,6 +3483,27 @@ mod tests {
         assert_eq!(
             format_websocket_exchange(&websocket),
             "URL: ws://localhost/socket\nSent: hello\nReceived 1 [text]: echo:hello"
+        );
+        let session_events = vec![
+            client::WebSocketSessionEvent::Connected {
+                url: "ws://localhost/socket".to_string(),
+            },
+            client::WebSocketSessionEvent::Sent(client::WebSocketMessage {
+                kind: client::WebSocketMessageKind::Text,
+                data: "hello".to_string(),
+            }),
+            client::WebSocketSessionEvent::Received(client::WebSocketMessage {
+                kind: client::WebSocketMessageKind::Text,
+                data: "echo:hello".to_string(),
+            }),
+        ];
+        assert_eq!(
+            format_websocket_session_events(&session_events),
+            "1. connected ws://localhost/socket\n2. sent [text]: hello\n3. received [text]: echo:hello"
+        );
+        assert_eq!(
+            websocket_session_status(session_events.last().expect("event")),
+            "WebSocket received"
         );
 
         let sse = client::SseExchange {

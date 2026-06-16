@@ -196,13 +196,9 @@ Form-data file fields use an `@path` prefix.
 
 The WS panel opens a persistent `ws://` or `wss://` session. Use `Open` to
 establish the session, `Send` to send messages repeatedly, and `End` to close
-the connection. WS headers and comma-separated protocols are sent during the
-handshake. The message editor supports `Text` and `Hex` modes; `Hex` accepts
-byte input such as `00 ff 7a`. Sent and received messages are recorded in the
-panel, and the latest event is mirrored in the response viewer. `Open` is
-enabled only for `ws://` or `wss://` URLs.
-`Copy` copies the current message history as text, and `Clear` clears the panel
-history.
+the connection. Request headers are sent during the handshake. Sent and
+received text messages are mirrored in the response viewer. Subprotocol entry,
+binary message controls, and copy/clear history actions are still future work.
 
 ## SSE
 

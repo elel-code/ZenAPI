@@ -907,7 +907,9 @@ component RequestPanel inherits Rectangle {
     in-out property <string> grpc_metadata;
     in-out property <string> grpc_message;
     in property <bool> busy;
+    callback open_websocket();
     callback run_websocket();
+    callback close_websocket();
     callback run_sse();
     callback build_grpc_draft();
 
@@ -1183,7 +1185,7 @@ component RequestPanel inherits Rectangle {
                                         text <=> root.sse_max_events;
                                         placeholder: "events";
                                         mono: true;
-                                        enabled: !root.busy;
+                                        enabled: !root.busy && root.realtime_mode == "sse";
                                         height: 26px;
                                     }
                                 }
@@ -1201,9 +1203,19 @@ component RequestPanel inherits Rectangle {
                                     spacing: 8px;
 
                                     ActionButton {
-                                        text: "WS Send";
-                                        button_width: 82px;
-                                        enabled: !root.busy;
+                                        text: "Open";
+                                        button_width: 54px;
+                                        enabled: !root.busy && root.realtime_mode == "ws";
+                                        primary: root.realtime_mode == "ws";
+                                        clicked => {
+                                            root.open_websocket();
+                                        }
+                                    }
+
+                                    ActionButton {
+                                        text: "Send";
+                                        button_width: 54px;
+                                        enabled: !root.busy && root.realtime_mode == "ws";
                                         primary: root.realtime_mode == "ws";
                                         clicked => {
                                             root.run_websocket();
@@ -1211,9 +1223,19 @@ component RequestPanel inherits Rectangle {
                                     }
 
                                     ActionButton {
-                                        text: "SSE Once";
-                                        button_width: 82px;
-                                        enabled: !root.busy;
+                                        text: "End";
+                                        button_width: 46px;
+                                        warning: true;
+                                        enabled: !root.busy && root.realtime_mode == "ws";
+                                        clicked => {
+                                            root.close_websocket();
+                                        }
+                                    }
+
+                                    ActionButton {
+                                        text: "SSE";
+                                        button_width: 54px;
+                                        enabled: !root.busy && root.realtime_mode == "sse";
                                         primary: root.realtime_mode == "sse";
                                         clicked => {
                                             root.run_sse();
@@ -1765,7 +1787,9 @@ export component AppWindow inherits Window {
     callback generate_code();
     callback save_codegen(string);
     callback run_collection();
+    callback open_websocket();
     callback run_websocket();
+    callback close_websocket();
     callback run_sse();
     callback build_grpc_draft();
 
@@ -1906,8 +1930,14 @@ export component AppWindow inherits Window {
                             grpc_metadata <=> root.grpc_metadata;
                             grpc_message <=> root.grpc_message;
                             busy: root.busy;
+                            open_websocket => {
+                                root.open_websocket();
+                            }
                             run_websocket => {
                                 root.run_websocket();
+                            }
+                            close_websocket => {
+                                root.close_websocket();
                             }
                             run_sse => {
                                 root.run_sse();
