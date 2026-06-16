@@ -2,8 +2,8 @@ use anyhow::{Result, anyhow, bail};
 use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64_STANDARD};
 use serde_json::Value;
 use slint::{ComponentHandle, ModelRc, SharedString, VecModel};
-use std::path::Path;
 use std::sync::{Arc, Mutex};
+use std::{fs, path::Path};
 use tokio::runtime::Runtime;
 use zenapi::{
     assertions::{
@@ -734,6 +734,48 @@ fn wire_codegen(app: &AppWindow) {
             "success",
             "Snippet generated.",
         );
+    });
+
+    let weak_app = app.as_weak();
+    app.on_save_codegen(move |path| {
+        let Some(app) = weak_app.upgrade() else {
+            return;
+        };
+        if app.get_busy() {
+            return;
+        }
+
+        let request = match build_codegen_request_projection(&request_projection_input(&app)) {
+            Ok(request) => request,
+            Err(error) => {
+                set_response(&app, "Codegen save failed", "", "error", &error.to_string());
+                return;
+            }
+        };
+        let language = snippet_language(&app.get_codegen_language());
+        let snippet = generate_snippet(&request, language);
+
+        match save_codegen_snippet(path.as_str(), &snippet) {
+            Ok(()) => {
+                app.set_codegen_output(snippet.into());
+                set_response(
+                    &app,
+                    "Codegen saved",
+                    path.as_str(),
+                    "success",
+                    "Snippet exported to disk.",
+                );
+            }
+            Err(error) => {
+                set_response(
+                    &app,
+                    "Codegen save failed",
+                    path.as_str(),
+                    "error",
+                    &error.to_string(),
+                );
+            }
+        }
     });
 }
 
@@ -2133,6 +2175,28 @@ fn snippet_language(language: &str) -> SnippetLanguage {
     }
 }
 
+fn save_codegen_snippet(path: &str, snippet: &str) -> Result<()> {
+    let path = path.trim();
+    if path.is_empty() {
+        bail!("snippet export path is required");
+    }
+
+    let output_path = Path::new(path);
+    if let Some(parent) = output_path
+        .parent()
+        .filter(|parent| !parent.as_os_str().is_empty())
+    {
+        fs::create_dir_all(parent).map_err(|err| {
+            anyhow!(
+                "create snippet export directory {}: {err}",
+                parent.display()
+            )
+        })?;
+    }
+    fs::write(output_path, snippet)
+        .map_err(|err| anyhow!("write snippet export {}: {err}", output_path.display()))
+}
+
 fn pretty_json(value: &serde_json::Value) -> String {
     serde_json::to_string_pretty(value).unwrap_or_else(|_| value.to_string())
 }
@@ -2557,6 +2621,24 @@ mod tests {
         assert_eq!(snippet_language("rust"), SnippetLanguage::RustReqwest);
         assert_eq!(snippet_language("go"), SnippetLanguage::GoNetHttp);
         assert_eq!(snippet_language("unknown"), SnippetLanguage::Curl);
+    }
+
+    #[test]
+    fn saves_codegen_snippet_to_disk() {
+        let path =
+            std::env::temp_dir().join(format!("zenapi-codegen-snippet-{}.txt", std::process::id()));
+        let _ = fs::remove_file(&path);
+
+        save_codegen_snippet(path.to_str().expect("utf-8 temp path"), "curl example")
+            .expect("save snippet");
+
+        assert_eq!(
+            fs::read_to_string(&path).expect("saved snippet"),
+            "curl example"
+        );
+        assert!(save_codegen_snippet("   ", "curl example").is_err());
+
+        let _ = fs::remove_file(path);
     }
 
     #[test]

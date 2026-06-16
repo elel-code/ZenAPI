@@ -1262,6 +1262,7 @@ component ResponsePanel inherits Rectangle {
     in-out property <string> response_headers;
     in-out property <string> codegen_language;
     in-out property <string> codegen_output;
+    in-out property <string> codegen_path;
     in-out property <[RunnerRow]> runner_rows;
     in-out property <string> runner_summary;
     in-out property <string> runner_delay_ms;
@@ -1271,6 +1272,7 @@ component ResponsePanel inherits Rectangle {
     in property <string> response_tone;
     in property <bool> busy;
     callback generate_code();
+    callback save_codegen(string);
     callback run_collection();
 
     width: 420px;
@@ -1435,7 +1437,7 @@ component ResponsePanel inherits Rectangle {
                 }
 
                 Rectangle {
-                    height: 150px;
+                    height: 190px;
                     horizontal-stretch: 1;
                     background: transparent;
 
@@ -1472,6 +1474,29 @@ component ResponsePanel inherits Rectangle {
                                 enabled: !root.busy;
                                 clicked => {
                                     root.generate_code();
+                                }
+                            }
+                        }
+
+                        HorizontalLayout {
+                            height: 32px;
+                            spacing: 8px;
+                            alignment: center;
+
+                            TextField {
+                                text <=> root.codegen_path;
+                                placeholder: "Snippet path";
+                                mono: true;
+                                enabled: !root.busy;
+                                height: 32px;
+                            }
+
+                            ActionButton {
+                                text: "Save";
+                                button_width: 64px;
+                                enabled: !root.busy && root.codegen_path != "";
+                                clicked => {
+                                    root.save_codegen(root.codegen_path);
                                 }
                             }
                         }
@@ -1606,6 +1631,7 @@ export component AppWindow inherits Window {
     in-out property <string> response_headers: "";
     in-out property <string> codegen_language: "curl";
     in-out property <string> codegen_output: "";
+    in-out property <string> codegen_path: "zenapi-snippet.txt";
     in-out property <string> runner_summary: "";
     in-out property <string> runner_delay_ms: "0";
     in-out property <bool> runner_stop_on_failure: false;
@@ -1632,6 +1658,7 @@ export component AppWindow inherits Window {
     callback send_request();
     callback toggle_server();
     callback generate_code();
+    callback save_codegen(string);
     callback run_collection();
     callback run_websocket();
     callback run_sse();
@@ -1781,6 +1808,7 @@ export component AppWindow inherits Window {
                             response_headers <=> root.response_headers;
                             codegen_language <=> root.codegen_language;
                             codegen_output <=> root.codegen_output;
+                            codegen_path <=> root.codegen_path;
                             runner_rows <=> root.runner_rows;
                             runner_summary <=> root.runner_summary;
                             runner_delay_ms <=> root.runner_delay_ms;
@@ -1791,6 +1819,9 @@ export component AppWindow inherits Window {
                             busy: root.busy;
                             generate_code => {
                                 root.generate_code();
+                            }
+                            save_codegen(path) => {
+                                root.save_codegen(path);
                             }
                             run_collection => {
                                 root.run_collection();

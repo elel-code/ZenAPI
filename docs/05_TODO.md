@@ -70,7 +70,7 @@
   pending.
 - [~] Rebuild Codegen UI for cURL, Python, JavaScript, Rust, and Go snippets;
   current Slint baseline generates snippets from the resolved request projection,
-  with copy/export actions still pending.
+  exports snippets to a local path, with clipboard copy still pending.
 - [~] Rebuild Collection Runner UI while keeping `zenapi run` as the stable CLI;
   current Slint baseline runs the active collection with delay and stop-on-fail
   controls and shows summary/result rows, with richer reports and cancellation
@@ -116,7 +116,7 @@
 | Variables | Domain implemented | Slint baseline supports global and one active environment editor |
 | Collections | Domain implemented | Slint baseline supports load/save/export and request restore |
 | History | Domain implemented | Slint baseline records, filters, deletes, and restores recent requests |
-| Codegen | Domain implemented | Slint baseline generates resolved request snippets |
+| Codegen | Domain implemented | Slint baseline generates and exports resolved request snippets |
 | Runner | Domain + CLI implemented | Slint baseline runs active collections and shows result rows |
 | Assertions/scripts | Domain implemented | Slint baseline edits, saves, restores, and evaluates native scripts/tests |
 | WebSocket/SSE | Client modules restored | Slint baseline supports one-shot WS sends and SSE previews |

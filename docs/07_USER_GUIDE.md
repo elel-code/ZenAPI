@@ -307,7 +307,8 @@ The Code panel generates snippets for:
 - `Rust` for Rust reqwest
 - `Go` for Go net/http
 
-Use the language selector and `Copy` to copy the current snippet.
+Use the language selector and `Generate` to preview the current snippet. Enter
+a local path and click `Save` to export the snippet to disk.
 
 ## Collection Runner
 
