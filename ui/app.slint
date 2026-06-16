@@ -931,7 +931,28 @@ component RequestPanel inherits Rectangle {
                             text <=> root.environment_name;
                             placeholder: "dev";
                             mono: true;
+                            enabled: !root.busy;
                             height: 34px;
+                        }
+
+                        HorizontalLayout {
+                            height: 28px;
+                            spacing: 4px;
+
+                            for item in [
+                                { mode: "dev", label: "dev" },
+                                { mode: "test", label: "test" },
+                                { mode: "prod", label: "prod" },
+                            ]: BodyModeButton {
+                                mode: item.mode;
+                                label: item.label;
+                                button_width: 38px;
+                                selected: root.environment_name == item.mode;
+                                enabled: !root.busy;
+                                picked(mode) => {
+                                    root.environment_name = mode;
+                                }
+                            }
                         }
                     }
                 }

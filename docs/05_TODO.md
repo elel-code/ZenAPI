@@ -55,8 +55,9 @@
   current Slint baseline supports mode buttons plus one config field, with
   dedicated per-mode forms still pending.
 - [~] Rebuild Environments and Variables UI on top of `variables::VariableStore`;
-  current Slint baseline supports one active environment plus line-based global
-  and environment variable editors, with full environment list management pending.
+  current Slint baseline supports one active environment with dev/test/prod
+  quick selectors plus line-based global and environment variable editors, with
+  full environment list management pending.
 - [~] Rebuild Collections UI for native JSON/Postman import/export, saving
   current requests, nested folders, rename/delete/copy, and drag/drop; current
   Slint baseline loads native/Postman JSON, saves the current editor request,

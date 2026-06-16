@@ -242,10 +242,10 @@ Var scopes:
 - `Global`.
 - `Env` for the active env.
 
-Seed envs are `dev`, `test`, and `prod`. Use `+ Env` to create a custom env,
-`No Env` to clear the active env, and `Del` to delete it. Use `+` in either
-variable table to add a row, and `x` to remove one. Env variables override
-globals with the same name.
+Use the `dev`, `test`, and `prod` chips to switch the active environment quickly,
+or edit the env name field directly. Global and env vars are edited as
+line-based `key=value` text. Env variables override globals with the same name.
+Full environment list management is still future work.
 
 ## Collections
 
