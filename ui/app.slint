@@ -306,12 +306,15 @@ component Sidebar inherits Rectangle {
     in-out property <string> mock_log_filter;
     in-out property <string> mock_log_path;
     in-out property <string> collection_path;
+    in-out property <int> selected_collection_request;
+    in-out property <string> collection_request_name;
     in-out property <string> collection_name;
     in-out property <string> collection_status;
     in property <int> total_route_count;
     in property <bool> busy;
     callback select_route(int);
     callback select_collection_request(int);
+    callback rename_collection_request(int, string);
     callback duplicate_collection_request(int);
     callback delete_collection_request(int);
     callback import_collection(string);
@@ -454,6 +457,35 @@ component Sidebar inherits Rectangle {
             }
         }
 
+        if root.collection_rows.length != 0: Rectangle {
+            height: 32px;
+            horizontal-stretch: 1;
+
+            HorizontalLayout {
+                padding: 0px;
+                spacing: 6px;
+
+                TextField {
+                    text <=> root.collection_request_name;
+                    placeholder: "Request name";
+                    enabled: !root.busy && root.selected_collection_request >= 0;
+                    height: 32px;
+                    accepted => {
+                        root.rename_collection_request(root.selected_collection_request, root.collection_request_name);
+                    }
+                }
+
+                ActionButton {
+                    text: "Ren";
+                    button_width: 46px;
+                    enabled: !root.busy && root.selected_collection_request >= 0 && root.collection_request_name != "";
+                    clicked => {
+                        root.rename_collection_request(root.selected_collection_request, root.collection_request_name);
+                    }
+                }
+            }
+        }
+
         UiText {
             text: root.collection_status != "" ? root.collection_status : root.collection_name;
             height: 18px;
@@ -495,9 +527,11 @@ component Sidebar inherits Rectangle {
                 url: entry.url;
                 enabled: !root.busy;
                 picked(id) => {
+                    root.selected_collection_request = id;
                     root.select_collection_request(id);
                 }
                 duplicate_requested(id) => {
+                    root.selected_collection_request = id;
                     root.duplicate_collection_request(id);
                 }
                 delete_requested(id) => {
@@ -1814,6 +1848,8 @@ export component AppWindow inherits Window {
     in-out property <string> mock_log_filter;
     in-out property <string> mock_log_path: "mock-logs.json";
     in-out property <int> total_route_count: 0;
+    in-out property <int> selected_collection_request: -1;
+    in-out property <string> collection_request_name: "";
     in-out property <string> server_status: "Stopped";
     in-out property <bool> server_running: false;
     in-out property <bool> busy: false;
@@ -1823,6 +1859,7 @@ export component AppWindow inherits Window {
     callback filter_routes(string);
     callback select_route(int);
     callback select_collection_request(int);
+    callback rename_collection_request(int, string);
     callback duplicate_collection_request(int);
     callback delete_collection_request(int);
     callback import_collection(string);
@@ -1886,6 +1923,8 @@ export component AppWindow inherits Window {
                 mock_log_filter <=> root.mock_log_filter;
                 mock_log_path <=> root.mock_log_path;
                 collection_path <=> root.collection_path;
+                selected_collection_request <=> root.selected_collection_request;
+                collection_request_name <=> root.collection_request_name;
                 collection_name <=> root.collection_name;
                 collection_status <=> root.collection_status;
                 total_route_count: root.total_route_count;
@@ -1898,6 +1937,9 @@ export component AppWindow inherits Window {
                 }
                 select_collection_request(id) => {
                     root.select_collection_request(id);
+                }
+                rename_collection_request(id, name) => {
+                    root.rename_collection_request(id, name);
                 }
                 duplicate_collection_request(id) => {
                     root.duplicate_collection_request(id);

@@ -436,6 +436,8 @@ fn wire_collection_actions(app: &AppWindow, state: Arc<Mutex<AppState>>) {
                 app.set_collection_name(name.clone().into());
                 app.set_collection_rows(rows);
                 app.set_collection_status(format!("Loaded {request_count} requests").into());
+                app.set_selected_collection_request(-1);
+                app.set_collection_request_name("".into());
                 set_response(
                     &app,
                     "Collection loaded",
@@ -616,6 +618,8 @@ fn wire_collection_actions(app: &AppWindow, state: Arc<Mutex<AppState>>) {
         app.set_collection_name(collection_name.into());
         app.set_collection_rows(rows);
         app.set_collection_status(format!("Saved {request_count} requests").into());
+        app.set_selected_collection_request(request_count.saturating_sub(1) as i32);
+        app.set_collection_request_name(request_name.clone().into());
         set_response(
             &app,
             "Request saved to collection",
@@ -649,6 +653,8 @@ fn wire_collection_actions(app: &AppWindow, state: Arc<Mutex<AppState>>) {
 
         app.set_collection_rows(rows);
         app.set_collection_status(format!("Saved {request_count} requests").into());
+        app.set_selected_collection_request(id + 1);
+        app.set_collection_request_name(duplicate.name.clone().into());
         set_response(
             &app,
             "Collection request duplicated",
@@ -682,12 +688,76 @@ fn wire_collection_actions(app: &AppWindow, state: Arc<Mutex<AppState>>) {
 
         app.set_collection_rows(rows);
         app.set_collection_status(format!("Deleted {request_count} requests").into());
+        let selected = app.get_selected_collection_request();
+        if selected == id {
+            app.set_selected_collection_request(-1);
+            app.set_collection_request_name("".into());
+        } else if selected > id {
+            app.set_selected_collection_request(selected - 1);
+        }
         set_response(
             &app,
             "Collection request deleted",
             &removed.name,
             "neutral",
             &removed.url,
+        );
+    });
+
+    let weak_app = app.as_weak();
+    let rename_state = state.clone();
+    app.on_rename_collection_request(move |id, name| {
+        let Some(app) = weak_app.upgrade() else {
+            return;
+        };
+        if app.get_busy() || id < 0 {
+            return;
+        }
+
+        let name = name.trim();
+        if name.is_empty() {
+            app.set_collection_status("Rename failed".into());
+            set_response(
+                &app,
+                "Collection rename failed",
+                "",
+                "error",
+                "Enter a request name before renaming.",
+            );
+            return;
+        }
+
+        let Some((renamed, request_count, rows)) =
+            rename_state.lock().ok().and_then(|mut state| {
+                rename_collection_request_at(&mut state.collection, id as usize, name).map(
+                    |request| {
+                        let request_count = count_collection_requests(&state.collection.items);
+                        let rows = collection_model(&state.collection);
+                        (request, request_count, rows)
+                    },
+                )
+            })
+        else {
+            app.set_collection_status("Rename failed".into());
+            set_response(
+                &app,
+                "Collection rename failed",
+                "",
+                "error",
+                "Select a saved request to rename.",
+            );
+            return;
+        };
+
+        app.set_collection_rows(rows);
+        app.set_collection_status(format!("Renamed {request_count} requests").into());
+        app.set_collection_request_name(renamed.name.clone().into());
+        set_response(
+            &app,
+            "Collection request renamed",
+            &renamed.name,
+            "success",
+            &renamed.url,
         );
     });
 
@@ -707,6 +777,8 @@ fn wire_collection_actions(app: &AppWindow, state: Arc<Mutex<AppState>>) {
             .and_then(|state| collection_request_at(&state.collection, id as usize).cloned());
 
         if let Some(request) = request {
+            app.set_selected_collection_request(id);
+            app.set_collection_request_name(request.name.clone().into());
             restore_collection_request(&app, &request);
         }
     });
@@ -1831,6 +1903,47 @@ fn duplicate_collection_request_at_items(
             }
         }
         position += 1;
+    }
+    None
+}
+
+fn rename_collection_request_at(
+    collection: &mut ApiCollection,
+    index: usize,
+    name: &str,
+) -> Option<CollectionRequest> {
+    let name = name.trim();
+    if name.is_empty() {
+        return None;
+    }
+
+    let mut current = 0;
+    rename_collection_request_at_items(&mut collection.items, index, &mut current, name)
+}
+
+fn rename_collection_request_at_items(
+    items: &mut [CollectionItem],
+    target: usize,
+    current: &mut usize,
+    name: &str,
+) -> Option<CollectionRequest> {
+    for item in items {
+        match item {
+            CollectionItem::Request(request) => {
+                if *current == target {
+                    request.name = name.to_string();
+                    return Some(request.clone());
+                }
+                *current += 1;
+            }
+            CollectionItem::Folder(folder) => {
+                if let Some(request) =
+                    rename_collection_request_at_items(&mut folder.items, target, current, name)
+                {
+                    return Some(request);
+                }
+            }
+        }
     }
     None
 }
@@ -3678,6 +3791,52 @@ mod tests {
             Some("Health")
         );
         assert!(duplicate_collection_request_at(&mut collection, 9).is_none());
+    }
+
+    #[test]
+    fn renames_nested_collection_requests_by_flattened_row_id() {
+        let mut collection = ApiCollection {
+            name: "Demo".to_string(),
+            description: String::new(),
+            items: vec![
+                CollectionItem::Folder(zenapi::collections::CollectionFolder {
+                    name: "Users".to_string(),
+                    description: String::new(),
+                    items: vec![
+                        CollectionItem::Request(saved_request(
+                            "List users",
+                            "GET",
+                            "https://api.example.com/users",
+                        )),
+                        CollectionItem::Request(saved_request(
+                            "Create user",
+                            "POST",
+                            "https://api.example.com/users",
+                        )),
+                    ],
+                }),
+                CollectionItem::Request(saved_request(
+                    "Health",
+                    "GET",
+                    "https://api.example.com/health",
+                )),
+            ],
+        };
+
+        let renamed =
+            rename_collection_request_at(&mut collection, 1, "Create team").expect("renamed");
+
+        assert_eq!(renamed.name, "Create team");
+        assert_eq!(
+            collection_request_at(&collection, 1).map(|request| request.name.as_str()),
+            Some("Create team")
+        );
+        assert_eq!(
+            collection_request_at(&collection, 2).map(|request| request.name.as_str()),
+            Some("Health")
+        );
+        assert!(rename_collection_request_at(&mut collection, 9, "Missing").is_none());
+        assert!(rename_collection_request_at(&mut collection, 1, "   ").is_none());
     }
 
     #[test]

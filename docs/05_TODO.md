@@ -63,7 +63,8 @@
   Slint baseline loads native/Postman JSON, saves the current editor request,
   saves native JSON, exports Postman JSON, and restores saved requests from a
   flat sidebar list, including pre-request/tests text, and duplicates/deletes
-  flat saved requests, with tree editing plus rename/drag/drop still pending.
+  flat saved requests, with flat request rename wired and tree editing plus
+  drag/drop still pending.
 - [~] Rebuild History UI for local request history, filtering, restore, delete,
   and clear; current Slint baseline records recent requests and restores method,
   URL, query params, headers, auth config, body mode, body preview, pre-request
@@ -116,7 +117,7 @@
 | HTTP client | Core implemented | Slint wires method, URL, params, headers, auth, variables, and body modes |
 | Mock server | Core implemented | Slint start/stop toggle wired |
 | Variables | Domain implemented | Slint baseline supports global and one active environment editor |
-| Collections | Domain implemented | Slint baseline supports load/save/export and request restore |
+| Collections | Domain implemented | Slint baseline supports load/save/export plus flat request restore/rename/duplicate/delete |
 | History | Domain implemented | Slint baseline records, filters, deletes, restores, and persists recent requests |
 | Codegen | Domain implemented | Slint baseline generates and exports resolved request snippets |
 | Runner | Domain + CLI implemented | Slint baseline runs and cancels active collections with result rows |
