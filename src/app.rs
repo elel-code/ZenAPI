@@ -7,6 +7,9 @@ use tokio::runtime::Runtime;
 use zenapi::{
     client::{self, ClientResponse, RequestBody},
     codegen::{CodegenRequest, SnippetLanguage, generate_snippet},
+    collection_runner::{
+        CollectionRunResult, CollectionRunSummary, FailureStrategy, RunnerOptions, run_collection,
+    },
     collections::{ApiCollection, CollectionBody, CollectionItem, CollectionRequest, NameValue},
     history::{HistoryRequest, HistoryResponse, RequestHistory},
     mock_server::MockServer,
@@ -14,7 +17,7 @@ use zenapi::{
     variables::{Variable, VariableStore, replace_variables},
 };
 
-use crate::ui::{AppWindow, CollectionRow, HistoryRow, RouteRow};
+use crate::ui::{AppWindow, CollectionRow, HistoryRow, RouteRow, RunnerRow};
 
 pub fn run() -> Result<()> {
     let runtime = Arc::new(Runtime::new()?);
@@ -28,6 +31,7 @@ pub fn run() -> Result<()> {
     wire_collection_actions(&app, state.clone());
     wire_request_sender(&app, runtime.clone(), state.clone());
     wire_codegen(&app);
+    wire_collection_runner(&app, runtime.clone(), state.clone());
     wire_mock_server(&app, runtime, state);
 
     app.run().map_err(|err| anyhow!(err.to_string()))
@@ -612,6 +616,98 @@ fn wire_codegen(app: &AppWindow) {
     });
 }
 
+fn wire_collection_runner(app: &AppWindow, runtime: Arc<Runtime>, state: Arc<Mutex<AppState>>) {
+    let weak_app = app.as_weak();
+    app.on_run_collection(move || {
+        let Some(app) = weak_app.upgrade() else {
+            return;
+        };
+        if app.get_busy() {
+            return;
+        }
+
+        let options =
+            match runner_options(&app.get_runner_delay_ms(), app.get_runner_stop_on_failure()) {
+                Ok(options) => options,
+                Err(error) => {
+                    set_response(&app, "Runner failed", "", "error", &error.to_string());
+                    return;
+                }
+            };
+        let (variables, active_environment) = match build_variable_store(
+            &app.get_global_variables(),
+            &app.get_environment_name(),
+            &app.get_environment_variables(),
+        ) {
+            Ok(variables) => variables,
+            Err(error) => {
+                set_response(&app, "Runner failed", "", "error", &error.to_string());
+                return;
+            }
+        };
+
+        let Some(collection) = state.lock().ok().map(|state| state.collection.clone()) else {
+            return;
+        };
+        let request_count = count_collection_requests(&collection.items);
+        if request_count == 0 {
+            app.set_runner_summary("No requests to run".into());
+            app.set_runner_rows(empty_runner_model());
+            set_response(
+                &app,
+                "Runner idle",
+                &collection.name,
+                "neutral",
+                "Save or load collection requests before running.",
+            );
+            return;
+        }
+
+        app.set_busy(true);
+        app.set_activity("Running collection".into());
+        app.set_runner_summary(format!("Running {request_count} requests").into());
+        app.set_runner_rows(empty_runner_model());
+        set_response(
+            &app,
+            "Runner running",
+            &collection.name,
+            "busy",
+            &format!("Running {request_count} requests"),
+        );
+
+        let weak_app = app.as_weak();
+        runtime.spawn(async move {
+            let summary = run_collection(
+                &collection,
+                &variables,
+                active_environment.as_deref(),
+                options,
+            )
+            .await;
+            let _ = slint::invoke_from_event_loop(move || {
+                let Some(app) = weak_app.upgrade() else {
+                    return;
+                };
+
+                let response_tone = runner_response_tone(&summary);
+                let response_status = runner_response_status(&summary);
+                let response_meta = format!("{} ms", summary.elapsed_ms);
+                app.set_runner_rows(runner_model(&summary.results));
+                app.set_runner_summary(runner_summary_line(&summary).into());
+                set_response(
+                    &app,
+                    &response_status,
+                    &response_meta,
+                    response_tone,
+                    &format_runner_summary(&summary),
+                );
+                app.set_activity("".into());
+                app.set_busy(false);
+            });
+        });
+    });
+}
+
 fn wire_mock_server(app: &AppWindow, runtime: Arc<Runtime>, state: Arc<Mutex<AppState>>) {
     let weak_app = app.as_weak();
     app.on_toggle_server(move || {
@@ -896,6 +992,142 @@ fn format_name_values(values: &[NameValue]) -> String {
         .map(|value| format!("{}={}", value.name, value.value))
         .collect::<Vec<_>>()
         .join("\n")
+}
+
+fn empty_runner_model() -> ModelRc<RunnerRow> {
+    ModelRc::new(VecModel::from_iter(Vec::<RunnerRow>::new()))
+}
+
+fn runner_model(results: &[CollectionRunResult]) -> ModelRc<RunnerRow> {
+    ModelRc::new(VecModel::from_iter(results.iter().map(|result| {
+        RunnerRow {
+            method: result.method.clone().into(),
+            name: result.path.join(" / ").into(),
+            status: runner_result_status(result).into(),
+            detail: runner_result_detail(result).into(),
+            tone: if result.success { "success" } else { "error" }.into(),
+        }
+    })))
+}
+
+fn runner_options(delay_ms: &str, stop_on_failure: bool) -> Result<RunnerOptions> {
+    let delay_ms = delay_ms.trim();
+    let delay_ms = if delay_ms.is_empty() {
+        0
+    } else {
+        delay_ms
+            .parse::<u64>()
+            .map_err(|_| anyhow!("runner delay must be a non-negative integer"))?
+    };
+    Ok(RunnerOptions {
+        delay_ms,
+        failure_strategy: if stop_on_failure {
+            FailureStrategy::StopOnFailure
+        } else {
+            FailureStrategy::Continue
+        },
+    })
+}
+
+fn runner_response_tone(summary: &CollectionRunSummary) -> &'static str {
+    if summary.total == 0 {
+        "neutral"
+    } else if summary.failed == 0 {
+        "success"
+    } else {
+        "error"
+    }
+}
+
+fn runner_response_status(summary: &CollectionRunSummary) -> String {
+    if summary.failed == 0 {
+        "Runner passed".to_string()
+    } else {
+        "Runner failed".to_string()
+    }
+}
+
+fn runner_summary_line(summary: &CollectionRunSummary) -> String {
+    let stop = if summary.stopped_early {
+        " / stopped"
+    } else {
+        ""
+    };
+    format!(
+        "{}: {} passed, {} failed, {} total / {} ms{stop}",
+        summary.collection_name, summary.passed, summary.failed, summary.total, summary.elapsed_ms
+    )
+}
+
+fn format_runner_summary(summary: &CollectionRunSummary) -> String {
+    let mut lines = vec![runner_summary_line(summary)];
+    for result in &summary.results {
+        lines.push(format_runner_result(result));
+    }
+    lines.join("\n")
+}
+
+fn format_runner_result(result: &CollectionRunResult) -> String {
+    let path = result.path.join(" / ");
+    let mut line = format!(
+        "[{}] {} {} {} ({path})",
+        runner_result_status(result),
+        result_status_label(result),
+        result.method,
+        result.url
+    );
+    if let Some(error) = &result.error {
+        line.push_str(&format!(" - {error}"));
+    }
+    if !result.pre_request_actions.is_empty() {
+        line.push_str(&format!(
+            " - pre-request {}",
+            result.pre_request_actions.len()
+        ));
+    }
+    if !result.assertions.is_empty() {
+        let passed = result
+            .assertions
+            .iter()
+            .filter(|assertion| assertion.passed)
+            .count();
+        line.push_str(&format!(" - tests {passed}/{}", result.assertions.len()));
+    }
+    line
+}
+
+fn runner_result_status(result: &CollectionRunResult) -> &'static str {
+    if result.success { "PASS" } else { "FAIL" }
+}
+
+fn runner_result_detail(result: &CollectionRunResult) -> String {
+    let mut parts = vec![
+        result_status_label(result),
+        format!("{} ms", result.elapsed_ms),
+        format!("{} B", result.body_bytes),
+    ];
+    if !result.assertions.is_empty() {
+        let passed = result
+            .assertions
+            .iter()
+            .filter(|assertion| assertion.passed)
+            .count();
+        parts.push(format!("tests {passed}/{}", result.assertions.len()));
+    }
+    if !result.pre_request_actions.is_empty() {
+        parts.push(format!("pre {}", result.pre_request_actions.len()));
+    }
+    if let Some(error) = &result.error {
+        parts.push(error.clone());
+    }
+    parts.join(" / ")
+}
+
+fn result_status_label(result: &CollectionRunResult) -> String {
+    result
+        .status
+        .map(|status| format!("HTTP {status}"))
+        .unwrap_or_else(|| "ERR".to_string())
 }
 
 fn history_model(entries: &[zenapi::history::HistoryEntry]) -> ModelRc<HistoryRow> {
@@ -1652,6 +1884,93 @@ mod tests {
                 content_type: "application/octet-stream".to_string(),
             }),
             ("binary".to_string(), "/tmp/body.bin".to_string())
+        );
+    }
+
+    #[test]
+    fn parses_runner_options_from_slint_controls() {
+        assert_eq!(
+            runner_options("25", true).unwrap(),
+            RunnerOptions {
+                delay_ms: 25,
+                failure_strategy: FailureStrategy::StopOnFailure,
+            }
+        );
+        assert_eq!(
+            runner_options(" ", false).unwrap(),
+            RunnerOptions {
+                delay_ms: 0,
+                failure_strategy: FailureStrategy::Continue,
+            }
+        );
+
+        let error = runner_options("soon", false).expect_err("invalid delay");
+        assert!(error.to_string().contains("non-negative integer"));
+    }
+
+    #[test]
+    fn formats_runner_summary_for_response_panel() {
+        let result = CollectionRunResult {
+            index: 0,
+            path: vec!["Demo".to_string(), "Health".to_string()],
+            name: "Health".to_string(),
+            method: "GET".to_string(),
+            url: "https://api.example.com/health".to_string(),
+            status: Some(200),
+            success: true,
+            elapsed_ms: 12,
+            body_bytes: 42,
+            pre_request_actions: Vec::new(),
+            assertions: Vec::new(),
+            error: None,
+        };
+        let summary = CollectionRunSummary {
+            collection_name: "Demo".to_string(),
+            total: 1,
+            passed: 1,
+            failed: 0,
+            stopped_early: false,
+            elapsed_ms: 15,
+            results: vec![result],
+        };
+
+        assert_eq!(runner_response_tone(&summary), "success");
+        assert_eq!(runner_response_status(&summary), "Runner passed");
+        assert_eq!(
+            runner_summary_line(&summary),
+            "Demo: 1 passed, 0 failed, 1 total / 15 ms"
+        );
+        assert_eq!(
+            format_runner_summary(&summary),
+            "Demo: 1 passed, 0 failed, 1 total / 15 ms\n[PASS] HTTP 200 GET https://api.example.com/health (Demo / Health)"
+        );
+    }
+
+    #[test]
+    fn formats_failed_runner_result_details() {
+        let result = CollectionRunResult {
+            index: 0,
+            path: vec!["Demo".to_string(), "Create".to_string()],
+            name: "Create".to_string(),
+            method: "POST".to_string(),
+            url: "https://api.example.com/users".to_string(),
+            status: None,
+            success: false,
+            elapsed_ms: 0,
+            body_bytes: 0,
+            pre_request_actions: vec!["set header X-Debug".to_string()],
+            assertions: Vec::new(),
+            error: Some("connection refused".to_string()),
+        };
+
+        assert_eq!(runner_result_status(&result), "FAIL");
+        assert_eq!(
+            runner_result_detail(&result),
+            "ERR / 0 ms / 0 B / pre 1 / connection refused"
+        );
+        assert_eq!(
+            format_runner_result(&result),
+            "[FAIL] ERR POST https://api.example.com/users (Demo / Create) - connection refused - pre-request 1"
         );
     }
 

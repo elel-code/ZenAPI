@@ -68,7 +68,10 @@
 - [~] Rebuild Codegen UI for cURL, Python, JavaScript, Rust, and Go snippets;
   current Slint baseline generates snippets from the resolved request projection,
   with copy/export actions still pending.
-- [ ] Rebuild Collection Runner UI while keeping `zenapi run` as the stable CLI.
+- [~] Rebuild Collection Runner UI while keeping `zenapi run` as the stable CLI;
+  current Slint baseline runs the active collection with delay and stop-on-fail
+  controls and shows summary/result rows, with richer reports and cancellation
+  controls still pending.
 - [ ] Rebuild Pre-request script-lite and native Tests panels.
 - [ ] Rebuild WebSocket and SSE panels using the restored client modules.
 - [ ] Add GraphQL and gRPC UI surfaces after REST parity is stable.
@@ -98,7 +101,7 @@
 | Collections | Domain implemented | Slint baseline supports load/save/export and request restore |
 | History | Domain implemented | Slint baseline records and restores recent requests |
 | Codegen | Domain implemented | Slint baseline generates resolved request snippets |
-| Runner | Domain + CLI implemented | Slint UI parity pending |
+| Runner | Domain + CLI implemented | Slint baseline runs active collections and shows result rows |
 | Assertions/scripts | Domain implemented | Slint UI parity pending |
 | WebSocket/SSE | Client modules restored | Slint UI parity pending |
 | gRPC | Design documented | Domain and UI pending |
