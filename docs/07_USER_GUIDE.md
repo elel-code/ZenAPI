@@ -279,8 +279,9 @@ snapshot.
 
 ## Local Mock Server
 
-After importing routes, click the mock control in the top bar to start or stop
-the local mock server.
+The mock server transport and log storage are available in the Rust domain
+layer. The reference-layout pass removed the previous top-bar mock control from
+the Request Builder first screen; a dedicated Mock Manager page is pending.
 
 Behavior:
 
@@ -304,7 +305,9 @@ panel status.
 
 ## Code Generation
 
-The Code panel generates snippets for:
+Code generation is implemented in the domain layer, but its Slint controls are
+pending a dedicated page after the Request Builder reference-layout pass. The
+supported snippet targets are:
 
 - `cURL`
 - `Py` for Python requests
@@ -312,26 +315,16 @@ The Code panel generates snippets for:
 - `Rust` for Rust reqwest
 - `Go` for Go net/http
 
-Use the language selector and `Generate` to preview the current snippet. Enter
-a local path and click `Save` to export the snippet to disk.
-
 ## Collection Runner
 
-The Runner panel executes every request in the current collection sequentially.
+The command-line runner executes every request in the current collection
+sequentially. Dedicated Slint runner controls are pending a separate Test Runner
+page after the Request Builder reference-layout pass.
 
-Controls:
-
-- `Run`: run the current collection.
-- `Stop Fail`: stop after the first failed request.
-- `Cancel`: abort the active collection run.
-- Runner report path + `Save`: export the latest completed runner summary and
-  result rows as text.
-
-Results appear in the Runner panel and the response pane summary. HTTP 2xx and
-3xx responses are treated as passing when no tests are defined. Native ZenAPI
-collection JSON can include response assertions; when assertions exist, all of
-them must pass for the request to pass. Assertion results are shown in runner
-summaries. `pm.test` compatibility is still future work.
+HTTP 2xx and 3xx responses are treated as passing when no tests are defined.
+Native ZenAPI collection JSON can include response assertions; when assertions
+exist, all of them must pass for the request to pass. Assertion results are
+shown in runner summaries. `pm.test` compatibility is still future work.
 
 The same runner is available from the command line:
 

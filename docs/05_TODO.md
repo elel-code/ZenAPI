@@ -74,12 +74,13 @@
   script, and tests, with filtering, single-entry delete, and clear controls
   wired plus local JSON persistence.
 - [~] Rebuild Codegen UI for cURL, Python, JavaScript, Rust, and Go snippets;
-  current Slint baseline generates snippets from the resolved request projection,
-  exports snippets to a local path, with clipboard copy still pending.
+  domain wiring still generates snippets from the resolved request projection,
+  while the reference-layout pass moved the controls out of the Request Builder
+  first screen; a dedicated Codegen page plus clipboard copy are pending.
 - [~] Rebuild Collection Runner UI while keeping `zenapi run` as the stable CLI;
-  current Slint baseline runs the active collection with delay and stop-on-fail
-  controls, cancellation, summary/result rows, and text report export, with
-  richer report formats still pending.
+  domain wiring and CLI execution are in place, while the reference-layout pass
+  moved runner controls out of the Request Builder first screen; a dedicated
+  Runner page with report export and richer formats is pending.
 - [~] Rebuild Pre-request script-lite and native Tests panels; current Slint
   baseline provides line-based editors, applies pre-request actions during
   send/codegen, evaluates native tests after single sends, and saves/restores
@@ -122,8 +123,8 @@
 | Variables | Domain implemented | Slint baseline supports global and one active environment editor |
 | Collections | Domain implemented | Slint baseline supports load/save/export plus flat request restore/rename/duplicate/delete |
 | History | Domain implemented | Slint baseline records, filters, deletes, restores, and persists recent requests |
-| Codegen | Domain implemented | Slint baseline generates and exports resolved request snippets |
-| Runner | Domain + CLI implemented | Slint baseline runs/cancels active collections and exports text reports |
+| Codegen | Domain implemented | Slint page placement pending after Request Builder reference-layout pass |
+| Runner | Domain + CLI implemented | Dedicated Slint runner page pending; CLI remains stable |
 | Assertions/scripts | Domain implemented | Slint baseline edits, saves, restores, and evaluates native scripts/tests |
 | WebSocket/SSE | Client modules restored | Slint baseline supports one-shot and persistent WS text sends plus SSE previews and persistent SSE streams |
 | Mock logs | Core implemented | Slint baseline shows, filters, clears, and exports recent mock requests |
