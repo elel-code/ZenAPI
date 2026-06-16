@@ -47,8 +47,9 @@
 - [~] Rebuild Params and Headers editors in Slint and wire them into
   `send_request_with_options`; current Slint baseline supports line-based
   `key=value` / `key: value` editors, with table controls still pending.
-- [ ] Rebuild Body mode controls for none, form-data, URL-encoded, raw, GraphQL,
-  and binary bodies.
+- [~] Rebuild Body mode controls for none, form-data, URL-encoded, raw, GraphQL,
+  and binary bodies; current Slint baseline maps one body text area into these
+  transport modes, with dedicated GraphQL/form controls still pending.
 - [ ] Rebuild Auth controls for None, Bearer, Basic, JWT, and API key modes.
 - [ ] Rebuild Environments and Variables UI on top of `variables::VariableStore`.
 - [ ] Rebuild Collections UI for native JSON/Postman import/export, saving

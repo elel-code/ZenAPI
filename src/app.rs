@@ -4,7 +4,7 @@ use std::path::Path;
 use std::sync::{Arc, Mutex};
 use tokio::runtime::Runtime;
 use zenapi::{
-    client,
+    client::{self, RequestBody},
     mock_server::MockServer,
     openapi::{ApiRoute, ApiSpec, load_openapi_file},
 };
@@ -168,6 +168,7 @@ fn wire_route_selection(app: &AppWindow, state: Arc<Mutex<AppState>>) {
             )));
             app.set_query_params("".into());
             app.set_request_headers("Accept: application/json".into());
+            app.set_body_mode(default_body_mode(&app.get_method()).into());
             app.set_request_body(default_request_body(&app.get_method()).into());
             set_response(
                 &app,
@@ -206,7 +207,13 @@ fn wire_request_sender(app: &AppWindow, runtime: Arc<Runtime>) {
                 return;
             }
         };
-        let body = app.get_request_body().to_string();
+        let body = match build_request_body(&app.get_body_mode(), app.get_request_body().as_str()) {
+            Ok(body) => body,
+            Err(error) => {
+                set_response(&app, "Bad body", "", "error", &error.to_string());
+                return;
+            }
+        };
         if url.is_empty() {
             set_response(
                 &app,
@@ -231,8 +238,7 @@ fn wire_request_sender(app: &AppWindow, runtime: Arc<Runtime>) {
         let weak_app = app.as_weak();
         runtime.spawn(async move {
             let result =
-                client::send_request_with_options(&method, &url, &headers, &query_params, &body)
-                    .await;
+                client::send_request_with_body(&method, &url, &headers, &query_params, body).await;
             let _ = slint::invoke_from_event_loop(move || {
                 let Some(app) = weak_app.upgrade() else {
                     return;
@@ -424,6 +430,38 @@ fn parse_key_value_lines(input: &str, field_name: &str) -> Result<Vec<(String, S
         .collect()
 }
 
+fn build_request_body(mode: &str, input: &str) -> Result<RequestBody> {
+    match mode {
+        "none" => Ok(RequestBody::None),
+        "form" => Ok(RequestBody::Multipart(parse_key_value_lines(
+            input,
+            "form field",
+        )?)),
+        "urlenc" => Ok(RequestBody::FormUrlEncoded(parse_key_value_lines(
+            input,
+            "urlencoded field",
+        )?)),
+        "binary" => {
+            let path = input.trim();
+            if path.is_empty() {
+                bail!("binary body path is empty");
+            }
+            Ok(RequestBody::BinaryFile {
+                path: path.to_string(),
+                content_type: None,
+            })
+        }
+        "graphql" => Ok(RequestBody::Raw {
+            content_type: Some("application/json".to_string()),
+            body: input.to_string(),
+        }),
+        _ => Ok(RequestBody::Raw {
+            content_type: Some("application/json".to_string()),
+            body: input.to_string(),
+        }),
+    }
+}
+
 fn format_headers(headers: &[(String, String)]) -> String {
     if headers.is_empty() {
         return "No headers".to_string();
@@ -450,6 +488,13 @@ fn default_request_body(method: &str) -> &'static str {
     match method {
         "POST" | "PUT" | "PATCH" => "{\n  \n}",
         _ => "",
+    }
+}
+
+fn default_body_mode(method: &str) -> &'static str {
+    match method {
+        "POST" | "PUT" | "PATCH" => "raw",
+        _ => "none",
     }
 }
 
@@ -526,5 +571,45 @@ mod tests {
             "content-type: application/json\nx-request-id: abc"
         );
         assert_eq!(format_headers(&[]), "No headers");
+    }
+
+    #[test]
+    fn builds_request_body_from_slint_mode() {
+        assert_eq!(
+            build_request_body("none", "ignored").unwrap(),
+            RequestBody::None
+        );
+        assert_eq!(
+            build_request_body("raw", "{\"name\":\"Zen\"}").unwrap(),
+            RequestBody::Raw {
+                content_type: Some("application/json".to_string()),
+                body: "{\"name\":\"Zen\"}".to_string(),
+            }
+        );
+        assert_eq!(
+            build_request_body("urlenc", "search=rust slint\nlimit: 20").unwrap(),
+            RequestBody::FormUrlEncoded(vec![
+                ("search".to_string(), "rust slint".to_string()),
+                ("limit".to_string(), "20".to_string())
+            ])
+        );
+        assert_eq!(
+            build_request_body("form", "file=@/tmp/upload.txt").unwrap(),
+            RequestBody::Multipart(vec![("file".to_string(), "@/tmp/upload.txt".to_string())])
+        );
+        assert_eq!(
+            build_request_body("binary", "/tmp/body.bin").unwrap(),
+            RequestBody::BinaryFile {
+                path: "/tmp/body.bin".to_string(),
+                content_type: None,
+            }
+        );
+    }
+
+    #[test]
+    fn rejects_empty_binary_body_path() {
+        let error = build_request_body("binary", "  ").expect_err("empty path");
+
+        assert!(error.to_string().contains("path is empty"));
     }
 }
