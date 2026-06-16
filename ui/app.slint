@@ -1,6 +1,6 @@
 import { ListView } from "std-widgets.slint";
 import { Theme } from "theme.slint";
-import { ActionButton, BodyModeButton, CodePane, CollectionListItem, HistoryListItem, LabeledEditor, MethodSelector, MockLogItem, RouteListItem, RunnerResultItem, SectionTitle, StatusDot, TabHeader, TextField, UiText } from "widgets.slint";
+import { ActionButton, BodyModeButton, CodePane, CollectionListItem, HistoryListItem, LabeledEditor, MethodSelector, MockLogItem, RouteListItem, RunnerResultItem, SectionTitle, TabHeader, TextField, UiText } from "widgets.slint";
 
 export struct RouteRow {
     method: string,
@@ -636,10 +636,6 @@ component TopBar inherits Rectangle {
             HorizontalLayout {
                 spacing: 8px;
                 alignment: center;
-
-                StatusDot {
-                    tone: root.server_running ? "active" : "inactive";
-                }
 
                 UiText {
                     text: root.server_running ? root.server_status : "Mock stopped";
