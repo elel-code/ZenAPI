@@ -170,7 +170,9 @@ component CollectionListItem inherits Rectangle {
     in property <string> method;
     in property <string> name;
     in property <string> url;
+    in property <bool> enabled: true;
     callback picked(int);
+    callback delete_requested(int);
 
     height: 54px;
     horizontal-stretch: 1;
@@ -194,7 +196,7 @@ component CollectionListItem inherits Rectangle {
         x: 82px;
         y: 6px;
         text: root.name;
-        width: parent.width - 92px;
+        width: parent.width - 142px;
         height: 20px;
         font-size: 12px;
         font-weight: 700;
@@ -207,13 +209,25 @@ component CollectionListItem inherits Rectangle {
         x: 82px;
         y: 29px;
         text: root.url;
-        width: parent.width - 92px;
+        width: parent.width - 142px;
         height: 16px;
         font-family: "JetBrains Mono";
         font-size: 11px;
         color: Theme.on_surface_variant;
         overflow: elide;
         vertical-alignment: center;
+    }
+
+    ActionButton {
+        x: parent.width - 52px;
+        y: 10px;
+        text: "Del";
+        button_width: 42px;
+        warning: true;
+        enabled: root.enabled;
+        clicked => {
+            root.delete_requested(root.entry_id);
+        }
     }
 }
 
@@ -280,6 +294,7 @@ component Sidebar inherits Rectangle {
     in property <bool> busy;
     callback select_route(int);
     callback select_collection_request(int);
+    callback delete_collection_request(int);
     callback import_collection(string);
     callback save_current_request();
     callback save_collection(string);
@@ -459,8 +474,12 @@ component Sidebar inherits Rectangle {
                 method: entry.method;
                 name: entry.name;
                 url: entry.url;
+                enabled: !root.busy;
                 picked(id) => {
                     root.select_collection_request(id);
+                }
+                delete_requested(id) => {
+                    root.delete_collection_request(id);
                 }
             }
         }
@@ -1686,6 +1705,7 @@ export component AppWindow inherits Window {
     callback filter_routes(string);
     callback select_route(int);
     callback select_collection_request(int);
+    callback delete_collection_request(int);
     callback import_collection(string);
     callback save_current_request();
     callback save_collection(string);
@@ -1754,6 +1774,9 @@ export component AppWindow inherits Window {
                 }
                 select_collection_request(id) => {
                     root.select_collection_request(id);
+                }
+                delete_collection_request(id) => {
+                    root.delete_collection_request(id);
                 }
                 import_collection(path) => {
                     root.import_collection(path);

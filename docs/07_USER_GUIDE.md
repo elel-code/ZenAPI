@@ -257,13 +257,12 @@ Supported actions:
 - Export native ZenAPI JSON.
 - Export Postman Collection v2.1 JSON with `PM`.
 - Save the current request to the collection.
-- Add folders and requests.
-- Rename, duplicate, and delete collection items.
-- Drag and drop collection items.
 - Restore a collection request into the request builder.
+- Delete a saved request from the flat sidebar list with `Del`.
 
 Native JSON is the current default storage format. Bru-style text export is
-planned as a future Git-friendly option.
+planned as a future Git-friendly option. Folder tree editing, rename,
+duplicate, and drag/drop controls are still future work.
 
 ## History
 

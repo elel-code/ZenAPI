@@ -588,6 +588,39 @@ fn wire_collection_actions(app: &AppWindow, state: Arc<Mutex<AppState>>) {
     });
 
     let weak_app = app.as_weak();
+    let delete_state = state.clone();
+    app.on_delete_collection_request(move |id| {
+        let Some(app) = weak_app.upgrade() else {
+            return;
+        };
+        if app.get_busy() || id < 0 {
+            return;
+        }
+
+        let Some((removed, request_count, rows)) =
+            delete_state.lock().ok().and_then(|mut state| {
+                remove_collection_request_at(&mut state.collection, id as usize).map(|request| {
+                    let request_count = count_collection_requests(&state.collection.items);
+                    let rows = collection_model(&state.collection);
+                    (request, request_count, rows)
+                })
+            })
+        else {
+            return;
+        };
+
+        app.set_collection_rows(rows);
+        app.set_collection_status(format!("Deleted {request_count} requests").into());
+        set_response(
+            &app,
+            "Collection request deleted",
+            &removed.name,
+            "neutral",
+            &removed.url,
+        );
+    });
+
+    let weak_app = app.as_weak();
     let select_state = state;
     app.on_select_collection_request(move |id| {
         let Some(app) = weak_app.upgrade() else {
@@ -1299,6 +1332,45 @@ fn collection_request_at_items<'a>(
                 *current += 1;
             }
         }
+    }
+    None
+}
+
+fn remove_collection_request_at(
+    collection: &mut ApiCollection,
+    index: usize,
+) -> Option<CollectionRequest> {
+    let mut current = 0;
+    remove_collection_request_at_items(&mut collection.items, index, &mut current)
+}
+
+fn remove_collection_request_at_items(
+    items: &mut Vec<CollectionItem>,
+    target: usize,
+    current: &mut usize,
+) -> Option<CollectionRequest> {
+    let mut position = 0;
+    while position < items.len() {
+        if matches!(&items[position], CollectionItem::Request(_)) {
+            if *current == target {
+                let CollectionItem::Request(request) = items.remove(position) else {
+                    unreachable!("collection item kind checked before removal");
+                };
+                return Some(request);
+            }
+            *current += 1;
+            position += 1;
+            continue;
+        }
+
+        if let CollectionItem::Folder(folder) = &mut items[position] {
+            if let Some(request) =
+                remove_collection_request_at_items(&mut folder.items, target, current)
+            {
+                return Some(request);
+            }
+        }
+        position += 1;
     }
     None
 }
@@ -2824,6 +2896,48 @@ mod tests {
             Some("Health")
         );
         assert!(collection_request_at(&collection, 3).is_none());
+    }
+
+    #[test]
+    fn removes_nested_collection_requests_by_flattened_row_id() {
+        let mut collection = ApiCollection {
+            name: "Demo".to_string(),
+            description: String::new(),
+            items: vec![
+                CollectionItem::Folder(zenapi::collections::CollectionFolder {
+                    name: "Users".to_string(),
+                    description: String::new(),
+                    items: vec![
+                        CollectionItem::Request(saved_request(
+                            "List users",
+                            "GET",
+                            "https://api.example.com/users",
+                        )),
+                        CollectionItem::Request(saved_request(
+                            "Create user",
+                            "POST",
+                            "https://api.example.com/users",
+                        )),
+                    ],
+                }),
+                CollectionItem::Request(saved_request(
+                    "Health",
+                    "GET",
+                    "https://api.example.com/health",
+                )),
+            ],
+        };
+
+        let removed = remove_collection_request_at(&mut collection, 1).expect("removed request");
+
+        assert_eq!(removed.name, "Create user");
+        assert_eq!(count_collection_requests(&collection.items), 2);
+        assert_eq!(
+            collection_request_at(&collection, 1).map(|request| request.name.as_str()),
+            Some("Health")
+        );
+        assert!(remove_collection_request_at(&mut collection, 5).is_none());
+        assert_eq!(count_collection_requests(&collection.items), 2);
     }
 
     #[test]
