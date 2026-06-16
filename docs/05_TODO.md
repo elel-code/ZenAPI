@@ -82,9 +82,9 @@
   both fields with collection requests, with row-based test controls pending.
 - [~] Rebuild WebSocket and SSE panels using the restored client modules;
   current Slint baseline provides WebSocket one-shot send, persistent
-  open/send/close text sessions, and SSE event preview controls that reuse the
-  request URL/headers and show output in the response panel, with richer
-  WebSocket binary/protocol controls and SSE streaming/resume UI still pending.
+  open/send/close text sessions, plus SSE bounded previews and persistent
+  stream/stop controls with Last-Event-ID resume, with richer WebSocket
+  binary/protocol controls and SSE copy/clear/history actions still pending.
 - [~] Add GraphQL and gRPC UI surfaces after REST parity is stable; current
   Slint baseline has GraphQL query/variables editing plus a gRPC draft surface
   backed by the domain model, with gRPC descriptor loading/transport and GraphQL
@@ -121,7 +121,7 @@
 | Codegen | Domain implemented | Slint baseline generates and exports resolved request snippets |
 | Runner | Domain + CLI implemented | Slint baseline runs and cancels active collections with result rows |
 | Assertions/scripts | Domain implemented | Slint baseline edits, saves, restores, and evaluates native scripts/tests |
-| WebSocket/SSE | Client modules restored | Slint baseline supports one-shot and persistent WS text sends plus SSE previews |
+| WebSocket/SSE | Client modules restored | Slint baseline supports one-shot and persistent WS text sends plus SSE previews and persistent SSE streams |
 | Mock logs | Core implemented | Slint baseline shows, filters, and exports recent mock requests |
 | GraphQL | Payload builder implemented | Slint baseline edits query and variables |
 | gRPC | Domain draft model implemented | Slint draft surface wired; descriptor loading and unary transport pending |

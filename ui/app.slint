@@ -902,6 +902,8 @@ component RequestPanel inherits Rectangle {
     in-out property <string> realtime_mode;
     in-out property <string> realtime_message;
     in-out property <string> sse_max_events;
+    in-out property <string> sse_last_event_id;
+    in-out property <bool> sse_streaming;
     in-out property <string> grpc_endpoint;
     in-out property <string> grpc_method;
     in-out property <string> grpc_metadata;
@@ -911,6 +913,8 @@ component RequestPanel inherits Rectangle {
     callback run_websocket();
     callback close_websocket();
     callback run_sse();
+    callback open_sse_stream();
+    callback close_sse_stream();
     callback build_grpc_draft();
 
     horizontal-stretch: 1;
@@ -1185,7 +1189,15 @@ component RequestPanel inherits Rectangle {
                                         text <=> root.sse_max_events;
                                         placeholder: "events";
                                         mono: true;
-                                        enabled: !root.busy && root.realtime_mode == "sse";
+                                        enabled: !root.busy && root.realtime_mode == "sse" && !root.sse_streaming;
+                                        height: 26px;
+                                    }
+
+                                    TextField {
+                                        text <=> root.sse_last_event_id;
+                                        placeholder: "Last-Event-ID";
+                                        mono: true;
+                                        enabled: !root.busy && root.realtime_mode == "sse" && !root.sse_streaming;
                                         height: 26px;
                                     }
                                 }
@@ -1194,7 +1206,7 @@ component RequestPanel inherits Rectangle {
                                     text <=> root.realtime_message;
                                     placeholder: "WebSocket message";
                                     mono: true;
-                                    enabled: !root.busy;
+                                    enabled: !root.busy && root.realtime_mode == "ws";
                                     height: 28px;
                                 }
 
@@ -1205,6 +1217,7 @@ component RequestPanel inherits Rectangle {
                                     ActionButton {
                                         text: "Open";
                                         button_width: 54px;
+                                        visible: root.realtime_mode == "ws";
                                         enabled: !root.busy && root.realtime_mode == "ws";
                                         primary: root.realtime_mode == "ws";
                                         clicked => {
@@ -1215,6 +1228,7 @@ component RequestPanel inherits Rectangle {
                                     ActionButton {
                                         text: "Send";
                                         button_width: 54px;
+                                        visible: root.realtime_mode == "ws";
                                         enabled: !root.busy && root.realtime_mode == "ws";
                                         primary: root.realtime_mode == "ws";
                                         clicked => {
@@ -1226,6 +1240,7 @@ component RequestPanel inherits Rectangle {
                                         text: "End";
                                         button_width: 46px;
                                         warning: true;
+                                        visible: root.realtime_mode == "ws";
                                         enabled: !root.busy && root.realtime_mode == "ws";
                                         clicked => {
                                             root.close_websocket();
@@ -1233,12 +1248,35 @@ component RequestPanel inherits Rectangle {
                                     }
 
                                     ActionButton {
-                                        text: "SSE";
-                                        button_width: 54px;
-                                        enabled: !root.busy && root.realtime_mode == "sse";
+                                        text: "Once";
+                                        button_width: 56px;
+                                        visible: root.realtime_mode == "sse";
+                                        enabled: !root.busy && root.realtime_mode == "sse" && !root.sse_streaming;
                                         primary: root.realtime_mode == "sse";
                                         clicked => {
                                             root.run_sse();
+                                        }
+                                    }
+
+                                    ActionButton {
+                                        text: "Stream";
+                                        button_width: 68px;
+                                        visible: root.realtime_mode == "sse";
+                                        enabled: !root.busy && root.realtime_mode == "sse" && !root.sse_streaming;
+                                        primary: root.realtime_mode == "sse";
+                                        clicked => {
+                                            root.open_sse_stream();
+                                        }
+                                    }
+
+                                    ActionButton {
+                                        text: "Stop";
+                                        button_width: 54px;
+                                        warning: true;
+                                        visible: root.realtime_mode == "sse";
+                                        enabled: root.realtime_mode == "sse" && root.sse_streaming;
+                                        clicked => {
+                                            root.close_sse_stream();
                                         }
                                     }
                                 }
@@ -1753,6 +1791,8 @@ export component AppWindow inherits Window {
     in-out property <string> realtime_mode: "ws";
     in-out property <string> realtime_message: "hello";
     in-out property <string> sse_max_events: "3";
+    in-out property <string> sse_last_event_id: "";
+    in-out property <bool> sse_streaming: false;
     in-out property <string> grpc_endpoint: "http://localhost:50051";
     in-out property <string> grpc_method: "package.Service/Method";
     in-out property <string> grpc_metadata: "";
@@ -1805,6 +1845,8 @@ export component AppWindow inherits Window {
     callback run_websocket();
     callback close_websocket();
     callback run_sse();
+    callback open_sse_stream();
+    callback close_sse_stream();
     callback build_grpc_draft();
 
     background: Theme.background;
@@ -1939,6 +1981,8 @@ export component AppWindow inherits Window {
                             realtime_mode <=> root.realtime_mode;
                             realtime_message <=> root.realtime_message;
                             sse_max_events <=> root.sse_max_events;
+                            sse_last_event_id <=> root.sse_last_event_id;
+                            sse_streaming <=> root.sse_streaming;
                             grpc_endpoint <=> root.grpc_endpoint;
                             grpc_method <=> root.grpc_method;
                             grpc_metadata <=> root.grpc_metadata;
@@ -1955,6 +1999,12 @@ export component AppWindow inherits Window {
                             }
                             run_sse => {
                                 root.run_sse();
+                            }
+                            open_sse_stream => {
+                                root.open_sse_stream();
+                            }
+                            close_sse_stream => {
+                                root.close_sse_stream();
                             }
                             build_grpc_draft => {
                                 root.build_grpc_draft();

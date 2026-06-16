@@ -204,14 +204,13 @@ binary message controls, and copy/clear history actions are still future work.
 
 The SSE panel works with `http://` or `https://` `text/event-stream` endpoints.
 Use `Once` for a bounded preview, `Stream` for a background stream, and `Stop`
-to cancel the active subscription. `Once` and `Stream` are enabled only for
-`http://` or `https://` URLs. SSE headers are sent on both preview fetches and
-subscriptions. Event names, ids, and data are recorded in the panel and mirrored
-in the response viewer. `Copy` copies the current event history
-as text, and `Clear` clears the panel history and resume cursor. When an event
-id is seen, reconnect attempts resume with `Last-Event-ID`. Subscriptions
-reconnect automatically with backoff until
-stopped.
+to cancel the active subscription. SSE headers are sent on both preview fetches
+and subscriptions. Event names, ids, reconnect attempts, close reasons, and
+errors are mirrored in the response viewer. The `Last-Event-ID` field is sent
+when starting a stream, and it is updated when incoming events include an id so
+the next subscription can resume from that cursor. Subscriptions reconnect
+automatically with backoff until stopped. Dedicated copy/clear history controls
+are still future work.
 
 ## Authorization
 
@@ -347,8 +346,8 @@ zenapi run collection.json --delay-ms 100
   implemented yet.
 - GraphQL query and variables payload editing is available; introspection query
   fill, `Schema`, `Fields`, and `Templates` are future work. WebSocket one-shot
-  sends and SSE `Once` previews are available; persistent WS sessions, SSE
-  stream controls, and reconnect/resume UI are future work. gRPC has a draft
+  sends, persistent WS text sessions, SSE `Once` previews, and persistent SSE
+  stream/resume controls are available. gRPC has a draft
   domain model and an implementation plan in `docs/09_GRPC.md`, but transport/UI
   support is future work.
 - Plugin APIs are future work.

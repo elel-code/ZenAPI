@@ -30,6 +30,7 @@ use zenapi::{
 use crate::ui::{AppWindow, CollectionRow, HistoryRow, MockLogRow, RouteRow, RunnerRow};
 
 const HISTORY_FILE_NAME: &str = ".zenapi-history.json";
+const MAX_SSE_STREAM_EVENTS: usize = 200;
 
 pub fn run() -> Result<()> {
     let runtime = Arc::new(Runtime::new()?);
@@ -1104,6 +1105,7 @@ fn wire_realtime_actions(app: &AppWindow, runtime: Arc<Runtime>) {
     let websocket_session = Arc::new(Mutex::new(
         None::<mpsc::UnboundedSender<client::WebSocketSessionCommand>>,
     ));
+    let sse_stream = Arc::new(Mutex::new(None::<JoinHandle<()>>));
 
     let weak_app = app.as_weak();
     let open_runtime = runtime.clone();
@@ -1310,12 +1312,22 @@ fn wire_realtime_actions(app: &AppWindow, runtime: Arc<Runtime>) {
     });
 
     let weak_app = app.as_weak();
-    let sse_runtime = runtime;
+    let sse_runtime = runtime.clone();
     app.on_run_sse(move || {
         let Some(app) = weak_app.upgrade() else {
             return;
         };
         if app.get_busy() {
+            return;
+        }
+        if app.get_sse_streaming() {
+            set_response(
+                &app,
+                "SSE stream active",
+                "",
+                "neutral",
+                "Stop the active SSE stream before running a bounded preview.",
+            );
             return;
         }
 
@@ -1353,23 +1365,175 @@ fn wire_realtime_actions(app: &AppWindow, runtime: Arc<Runtime>) {
                     return;
                 };
                 match result {
-                    Ok(exchange) => set_response(
-                        &app,
-                        "SSE complete",
-                        &format!(
-                            "{} ms / {} events",
-                            exchange.elapsed_ms,
-                            exchange.events.len()
-                        ),
-                        "success",
-                        &format_sse_exchange(&exchange),
-                    ),
+                    Ok(exchange) => {
+                        if let Some(last_event_id) = latest_sse_event_id(&exchange.events) {
+                            app.set_sse_last_event_id(last_event_id.into());
+                        }
+                        set_response(
+                            &app,
+                            "SSE complete",
+                            &format!(
+                                "{} ms / {} events",
+                                exchange.elapsed_ms,
+                                exchange.events.len()
+                            ),
+                            "success",
+                            &format_sse_exchange(&exchange),
+                        );
+                    }
                     Err(error) => set_response(&app, "SSE failed", "", "error", &error.to_string()),
                 }
                 app.set_activity("".into());
                 app.set_busy(false);
             });
         });
+    });
+
+    let weak_app = app.as_weak();
+    let open_sse_runtime = runtime;
+    let open_sse_stream = sse_stream.clone();
+    app.on_open_sse_stream(move || {
+        let Some(app) = weak_app.upgrade() else {
+            return;
+        };
+        if app.get_busy() {
+            return;
+        }
+
+        let url = app.get_url().to_string();
+        let headers = match parse_key_value_lines(&app.get_request_headers(), "SSE header") {
+            Ok(headers) => headers,
+            Err(error) => {
+                set_response(&app, "SSE stream failed", "", "error", &error.to_string());
+                return;
+            }
+        };
+        let last_event_id = app.get_sse_last_event_id().to_string();
+        let last_event_id = if last_event_id.trim().is_empty() {
+            None
+        } else {
+            Some(last_event_id.trim().to_string())
+        };
+        let options = client::SseSubscriptionOptions {
+            last_event_id,
+            headers,
+            ..Default::default()
+        };
+
+        let Ok(mut stream) = open_sse_stream.lock() else {
+            return;
+        };
+        if stream.is_some() {
+            set_response(
+                &app,
+                "SSE stream active",
+                "",
+                "neutral",
+                "Stop the current SSE stream before opening another.",
+            );
+            return;
+        }
+
+        let (event_tx, mut event_rx) = mpsc::unbounded_channel();
+        app.set_sse_streaming(true);
+        app.set_activity("SSE stream active".into());
+        set_response(
+            &app,
+            "SSE streaming",
+            "",
+            "busy",
+            &format!("Connecting\n\n{url}"),
+        );
+
+        let weak_app = app.as_weak();
+        let stream_state = open_sse_stream.clone();
+        let handle = open_sse_runtime.spawn(async move {
+            let subscription = client::run_sse_subscription_with_options(url, options, event_tx);
+            tokio::pin!(subscription);
+
+            let mut stream_events = Vec::new();
+            let mut terminal_seen = false;
+
+            loop {
+                tokio::select! {
+                    () = &mut subscription => {
+                        break;
+                    }
+                    event = event_rx.recv() => {
+                        let Some(event) = event else {
+                            break;
+                        };
+                        if publish_sse_stream_event(
+                            &weak_app,
+                            &stream_state,
+                            &mut stream_events,
+                            event,
+                        ) {
+                            terminal_seen = true;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            while let Some(event) = event_rx.recv().await {
+                if publish_sse_stream_event(&weak_app, &stream_state, &mut stream_events, event) {
+                    terminal_seen = true;
+                }
+            }
+
+            if !terminal_seen {
+                let weak_app = weak_app.clone();
+                let stream_state = stream_state.clone();
+                let _ = slint::invoke_from_event_loop(move || {
+                    if let Some(app) = weak_app.upgrade() {
+                        if app.get_sse_streaming() {
+                            set_response(
+                                &app,
+                                "SSE stopped",
+                                "",
+                                "neutral",
+                                "SSE subscription ended.",
+                            );
+                        }
+                        app.set_activity("".into());
+                        app.set_sse_streaming(false);
+                        if let Ok(mut stream) = stream_state.lock() {
+                            *stream = None;
+                        }
+                    }
+                });
+            }
+        });
+        *stream = Some(handle);
+    });
+
+    let weak_app = app.as_weak();
+    let close_sse_stream = sse_stream;
+    app.on_close_sse_stream(move || {
+        let Some(app) = weak_app.upgrade() else {
+            return;
+        };
+        let Some(handle) = close_sse_stream
+            .lock()
+            .ok()
+            .and_then(|mut stream| stream.take())
+        else {
+            app.set_sse_streaming(false);
+            set_response(&app, "SSE idle", "", "neutral", "No SSE stream is active.");
+            return;
+        };
+
+        handle.abort();
+        app.set_activity("".into());
+        app.set_sse_streaming(false);
+        set_response(
+            &app,
+            "SSE stopped",
+            "",
+            "neutral",
+            "SSE subscription stopped.",
+        );
     });
 }
 
@@ -2056,6 +2220,131 @@ fn websocket_message_kind(kind: &client::WebSocketMessageKind) -> &'static str {
         client::WebSocketMessageKind::Pong => "pong",
         client::WebSocketMessageKind::Close => "close",
     }
+}
+
+fn publish_sse_stream_event(
+    weak_app: &slint::Weak<AppWindow>,
+    stream_state: &Arc<Mutex<Option<JoinHandle<()>>>>,
+    stream_events: &mut Vec<client::SseStreamEvent>,
+    event: client::SseStreamEvent,
+) -> bool {
+    let done = sse_stream_event_done(&event);
+    let last_event_id = sse_stream_event_last_id(&event).map(str::to_string);
+    let status = sse_stream_status(&event);
+    let tone = sse_stream_tone(&event);
+    push_bounded_sse_stream_event(stream_events, event);
+    let body = format_sse_stream_events(stream_events);
+    let meta = sse_stream_meta(stream_events.len());
+    let weak_app = weak_app.clone();
+    let stream_state = stream_state.clone();
+    let _ = slint::invoke_from_event_loop(move || {
+        if let Some(app) = weak_app.upgrade() {
+            set_response(&app, status, &meta, tone, &body);
+            if let Some(last_event_id) = last_event_id {
+                app.set_sse_last_event_id(last_event_id.into());
+            }
+            if done {
+                app.set_activity("".into());
+                app.set_sse_streaming(false);
+                if let Ok(mut stream) = stream_state.lock() {
+                    *stream = None;
+                }
+            } else {
+                app.set_activity("SSE stream active".into());
+                app.set_sse_streaming(true);
+            }
+        }
+    });
+    done
+}
+
+fn push_bounded_sse_stream_event(
+    events: &mut Vec<client::SseStreamEvent>,
+    event: client::SseStreamEvent,
+) {
+    events.push(event);
+    if events.len() > MAX_SSE_STREAM_EVENTS {
+        let overflow = events.len() - MAX_SSE_STREAM_EVENTS;
+        drop(events.drain(..overflow));
+    }
+}
+
+fn sse_stream_meta(event_count: usize) -> String {
+    if event_count == MAX_SSE_STREAM_EVENTS {
+        format!("latest {event_count} events")
+    } else {
+        format!("{event_count} events")
+    }
+}
+
+fn sse_stream_event_done(event: &client::SseStreamEvent) -> bool {
+    matches!(
+        event,
+        client::SseStreamEvent::Closed(_) | client::SseStreamEvent::Error(_)
+    )
+}
+
+fn sse_stream_event_last_id(event: &client::SseStreamEvent) -> Option<&str> {
+    match event {
+        client::SseStreamEvent::Event(event) => event
+            .id
+            .as_deref()
+            .map(str::trim)
+            .filter(|id| !id.is_empty()),
+        _ => None,
+    }
+}
+
+fn sse_stream_status(event: &client::SseStreamEvent) -> &'static str {
+    match event {
+        client::SseStreamEvent::Connected { .. } => "SSE stream open",
+        client::SseStreamEvent::Event(_) => "SSE event",
+        client::SseStreamEvent::Reconnecting { .. } => "SSE reconnecting",
+        client::SseStreamEvent::Closed(_) => "SSE closed",
+        client::SseStreamEvent::Error(_) => "SSE failed",
+    }
+}
+
+fn sse_stream_tone(event: &client::SseStreamEvent) -> &'static str {
+    match event {
+        client::SseStreamEvent::Error(_) => "error",
+        client::SseStreamEvent::Closed(_) => "neutral",
+        client::SseStreamEvent::Reconnecting { .. } => "busy",
+        _ => "success",
+    }
+}
+
+fn format_sse_stream_events(events: &[client::SseStreamEvent]) -> String {
+    events
+        .iter()
+        .enumerate()
+        .map(|(index, event)| format_sse_stream_event(index + 1, event))
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+fn format_sse_stream_event(index: usize, event: &client::SseStreamEvent) -> String {
+    match event {
+        client::SseStreamEvent::Connected { url } => format!("{index}. connected {url}"),
+        client::SseStreamEvent::Event(event) => format_sse_event(index, event),
+        client::SseStreamEvent::Reconnecting {
+            attempt,
+            delay_ms,
+            reason,
+        } => format!("{index}. reconnecting attempt {attempt} in {delay_ms} ms\n{reason}"),
+        client::SseStreamEvent::Closed(reason) => format!("{index}. closed\n{reason}"),
+        client::SseStreamEvent::Error(error) => format!("{index}. error\n{error}"),
+    }
+}
+
+fn latest_sse_event_id(events: &[client::SseEvent]) -> Option<&str> {
+    events.iter().rev().find_map(|event| {
+        event
+            .id
+            .as_deref()
+            .map(str::trim)
+            .filter(|id| !id.is_empty())
+    })
 }
 
 fn format_sse_exchange(exchange: &client::SseExchange) -> String {
@@ -3579,6 +3868,53 @@ mod tests {
             format_sse_exchange(&sse),
             "URL: http://localhost/events\n1. update / id 42\n{\"ok\":true}"
         );
+        assert_eq!(latest_sse_event_id(&sse.events), Some("42"));
+
+        let stream_events = vec![
+            client::SseStreamEvent::Connected {
+                url: "http://localhost/events".to_string(),
+            },
+            client::SseStreamEvent::Event(client::SseEvent {
+                event: Some("update".to_string()),
+                data: "{\"ok\":true}".to_string(),
+                id: Some("42".to_string()),
+                retry: None,
+            }),
+            client::SseStreamEvent::Reconnecting {
+                attempt: 1,
+                delay_ms: 500,
+                reason: "stream ended".to_string(),
+            },
+            client::SseStreamEvent::Closed("stream ended".to_string()),
+        ];
+        assert_eq!(
+            format_sse_stream_events(&stream_events),
+            "1. connected http://localhost/events\n2. update / id 42\n{\"ok\":true}\n3. reconnecting attempt 1 in 500 ms\nstream ended\n4. closed\nstream ended"
+        );
+        assert_eq!(sse_stream_event_last_id(&stream_events[1]), Some("42"));
+        assert_eq!(sse_stream_status(&stream_events[2]), "SSE reconnecting");
+        assert_eq!(sse_stream_tone(&stream_events[2]), "busy");
+        assert!(sse_stream_event_done(&stream_events[3]));
+    }
+
+    #[test]
+    fn bounds_sse_stream_event_history() {
+        let mut events = Vec::new();
+        for index in 0..(MAX_SSE_STREAM_EVENTS + 3) {
+            push_bounded_sse_stream_event(
+                &mut events,
+                client::SseStreamEvent::Event(client::SseEvent {
+                    event: None,
+                    data: format!("event {index}"),
+                    id: Some(index.to_string()),
+                    retry: None,
+                }),
+            );
+        }
+
+        assert_eq!(events.len(), MAX_SSE_STREAM_EVENTS);
+        assert_eq!(sse_stream_event_last_id(&events[0]), Some("3"));
+        assert_eq!(sse_stream_meta(events.len()), "latest 200 events");
     }
 
     #[test]
