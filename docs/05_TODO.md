@@ -92,12 +92,12 @@
 |------|--------|-------|
 | App shell | Slint MVP restored | `ui/app.slint`, `ui/theme.slint`, `src/app.rs` |
 | OpenAPI import | Implemented | JSON/YAML parser and Slint route list wired |
-| HTTP client | Core implemented | Slint currently wires method, URL, and raw body |
+| HTTP client | Core implemented | Slint wires method, URL, params, headers, auth, variables, and body modes |
 | Mock server | Core implemented | Slint start/stop toggle wired |
-| Variables | Domain implemented | Slint UI parity pending |
+| Variables | Domain implemented | Slint baseline supports global and one active environment editor |
 | Collections | Domain implemented | Slint baseline supports load/save/export and request restore |
 | History | Domain implemented | Slint baseline records and restores recent requests |
-| Codegen | Domain implemented | Slint UI parity pending |
+| Codegen | Domain implemented | Slint baseline generates resolved request snippets |
 | Runner | Domain + CLI implemented | Slint UI parity pending |
 | Assertions/scripts | Domain implemented | Slint UI parity pending |
 | WebSocket/SSE | Client modules restored | Slint UI parity pending |
