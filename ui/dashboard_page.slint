@@ -1,0 +1,166 @@
+import { Theme } from "theme.slint";
+import { ActionButton, DataPanel, MetricCard, UiText } from "widgets.slint";
+
+component DashboardPageTitle inherits Rectangle {
+    in property <string> title;
+    in property <string> subtitle;
+
+    height: 62px;
+    horizontal-stretch: 1;
+    background: transparent;
+
+    UiText {
+        text: root.title;
+        x: 0px;
+        y: 0px;
+        width: parent.width;
+        height: 34px;
+        color: Theme.on_surface;
+        font-size: 26px;
+        font-weight: 800;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+
+    UiText {
+        text: root.subtitle;
+        x: 0px;
+        y: 36px;
+        width: parent.width;
+        height: 22px;
+        color: Theme.on_surface_variant;
+        font-size: 13px;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+}
+
+export component DashboardPage inherits Rectangle {
+    in property <int> route_count;
+    in property <int> history_count;
+    in property <int> mock_count;
+    in property <string> runner_summary;
+    in property <bool> server_running;
+    in property <string> server_status;
+    in property <string> response_status;
+    callback open_page(int);
+
+    horizontal-stretch: 1;
+    vertical-stretch: 1;
+    background: Theme.background;
+
+    HorizontalLayout {
+        padding: 20px;
+        spacing: 20px;
+
+        Rectangle {
+            horizontal-stretch: 1;
+            vertical-stretch: 1;
+            background: transparent;
+
+            VerticalLayout {
+                padding: 0px;
+                spacing: 18px;
+
+                DashboardPageTitle {
+                    title: "System Overview";
+                    subtitle: "Real-time metrics for the local API workspace.";
+                }
+
+                HorizontalLayout {
+                    height: 104px;
+                    spacing: 16px;
+
+                    MetricCard {
+                        label: "ROUTES";
+                        value: root.route_count + "";
+                        detail: "Imported endpoints";
+                    }
+
+                    MetricCard {
+                        label: "HISTORY";
+                        value: root.history_count + "";
+                        detail: "Local requests";
+                    }
+
+                    MetricCard {
+                        label: "MOCK LOGS";
+                        value: root.mock_count + "";
+                        detail: root.server_running ? root.server_status : "Mock stopped";
+                    }
+                }
+
+                DataPanel {
+                    title: "Traffic Volume";
+                    body: "▂▃▅▇█▇▅▃▂▃▅▇█\n\n" + (root.response_status == "" ? "No response yet" : root.response_status);
+                }
+
+                DataPanel {
+                    title: "Top Endpoints";
+                    body: root.route_count == 0 ? "Import an OpenAPI document to populate endpoint metrics." : "Endpoint metrics will follow imported route traffic.";
+                }
+            }
+        }
+
+        Rectangle {
+            width: 320px;
+            vertical-stretch: 1;
+            background: Theme.surface_container_low;
+            border-radius: 8px;
+            border-width: 1px;
+            border-color: Theme.outline_variant;
+
+            VerticalLayout {
+                padding: 16px;
+                spacing: 14px;
+
+                UiText {
+                    text: "QUICK ACTIONS";
+                    height: 20px;
+                    horizontal-stretch: 1;
+                    color: Theme.on_surface_variant;
+                    font-size: 12px;
+                    font-weight: 800;
+                    vertical-alignment: center;
+                    overflow: elide;
+                }
+
+                ActionButton {
+                    text: "Requests";
+                    primary: true;
+                    button_width: 288px;
+                    clicked => {
+                        root.open_page(1);
+                    }
+                }
+
+                ActionButton {
+                    text: "Mocks";
+                    button_width: 288px;
+                    clicked => {
+                        root.open_page(2);
+                    }
+                }
+
+                ActionButton {
+                    text: "Runner";
+                    button_width: 288px;
+                    clicked => {
+                        root.open_page(3);
+                    }
+                }
+
+                Rectangle {
+                    height: 1px;
+                    horizontal-stretch: 1;
+                    background: Theme.outline_variant;
+                }
+
+                DataPanel {
+                    title: "Live Activity";
+                    body: root.runner_summary == "" ? "No collection run results yet." : root.runner_summary;
+                }
+            }
+        }
+    }
+}
