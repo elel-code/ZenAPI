@@ -50,6 +50,7 @@ pub fn run() -> Result<()> {
     refresh_query_param_rows(&app);
     refresh_header_rows(&app);
     refresh_auth_key_rows(&app);
+    refresh_basic_auth_fields(&app);
     refresh_body_field_rows(&app);
     refresh_test_assertion_rows(&app);
     app.set_history_rows(filtered_history_model(&initial_state.history, ""));
@@ -390,6 +391,7 @@ fn wire_history_selection(app: &AppWindow, state: Arc<Mutex<AppState>>) {
             app.set_auth_mode(normalized_history_auth_mode(&entry.request.auth_mode).into());
             app.set_auth_config(entry.request.auth_config.into());
             refresh_auth_key_rows(&app);
+            refresh_basic_auth_fields(&app);
             app.set_body_mode(body_mode.into());
             app.set_raw_body_subtype(raw_body_subtype.into());
             app.set_request_body(entry.request.body_preview.into());
@@ -1091,10 +1093,26 @@ fn wire_query_param_actions(app: &AppWindow) {
 
 fn wire_auth_key_actions(app: &AppWindow) {
     let weak_app = app.as_weak();
-    app.on_auth_mode_changed(move |_mode| {
+    app.on_auth_mode_changed(move |mode| {
         let Some(app) = weak_app.upgrade() else {
             return;
         };
+        if mode.as_str() == "basic" {
+            refresh_basic_auth_fields(&app);
+        }
+        refresh_auth_key_rows(&app);
+    });
+
+    let weak_app = app.as_weak();
+    app.on_update_basic_auth(move |username, password| {
+        let Some(app) = weak_app.upgrade() else {
+            return;
+        };
+        if app.get_busy() {
+            return;
+        }
+
+        app.set_auth_config(format_basic_auth_config(username.as_str(), password.as_str()).into());
         refresh_auth_key_rows(&app);
     });
 
@@ -2899,6 +2917,7 @@ fn restore_collection_request(app: &AppWindow, request: &CollectionRequest) {
     app.set_auth_mode("none".into());
     app.set_auth_config("".into());
     refresh_auth_key_rows(app);
+    refresh_basic_auth_fields(app);
     app.set_body_mode(body_mode.into());
     app.set_raw_body_subtype(raw_body_subtype.into());
     app.set_request_body(request_body.into());
@@ -3610,6 +3629,12 @@ fn refresh_header_rows(app: &AppWindow) {
 
 fn refresh_auth_key_rows(app: &AppWindow) {
     app.set_auth_key_rows(key_value_table_model(app.get_auth_config().as_str()));
+}
+
+fn refresh_basic_auth_fields(app: &AppWindow) {
+    let (username, password) = split_basic_auth_config(app.get_auth_config().as_str());
+    app.set_auth_basic_username(username.into());
+    app.set_auth_basic_password(password.into());
 }
 
 fn refresh_body_field_rows(app: &AppWindow) {
@@ -4339,6 +4364,26 @@ fn build_auth_entries(
     }
 }
 
+fn split_basic_auth_config(input: &str) -> (String, String) {
+    let input = input.trim();
+    if input.is_empty() {
+        return (String::new(), String::new());
+    }
+
+    input
+        .split_once(':')
+        .map(|(username, password)| (username.to_string(), password.to_string()))
+        .unwrap_or_else(|| (input.to_string(), String::new()))
+}
+
+fn format_basic_auth_config(username: &str, password: &str) -> String {
+    if username.is_empty() && password.is_empty() {
+        String::new()
+    } else {
+        format!("{username}:{password}")
+    }
+}
+
 fn build_variable_store(
     global_input: &str,
     environment_name: &str,
@@ -4903,6 +4948,25 @@ mod tests {
                 vec![("api_key".to_string(), "secret".to_string())]
             )
         );
+    }
+
+    #[test]
+    fn splits_and_formats_basic_auth_config_for_ui_fields() {
+        assert_eq!(
+            split_basic_auth_config("user:pass"),
+            ("user".to_string(), "pass".to_string())
+        );
+        assert_eq!(
+            split_basic_auth_config("user:p:a:s:s"),
+            ("user".to_string(), "p:a:s:s".to_string())
+        );
+        assert_eq!(
+            split_basic_auth_config("legacy-user"),
+            ("legacy-user".to_string(), String::new())
+        );
+
+        assert_eq!(format_basic_auth_config("user", "pass"), "user:pass");
+        assert_eq!(format_basic_auth_config("", ""), "");
     }
 
     #[test]

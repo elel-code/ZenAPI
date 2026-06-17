@@ -62,8 +62,9 @@
   current Slint Request Builder has the dedicated Auth tab, mode buttons, and
   mode-specific config panels wired to transport mapping. API key header/query
   modes now use editable add/delete rows backed by the existing `key=value`
-  config storage; split Bearer/Basic credential rows and OAuth flows are still
-  pending.
+  config storage, and Basic auth uses split username/password fields while
+  preserving the existing `username:password` config format. OAuth flows are
+  still pending.
 - [~] Rebuild Environments and Variables UI on top of `variables::VariableStore`;
   current Slint baseline uses the reference three-pane Environments page with
   dev/test/prod/local quick selectors, editable global/env variable rows,
