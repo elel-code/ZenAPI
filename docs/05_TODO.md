@@ -50,10 +50,11 @@
   `key=value` / `key: value` parsing plus common header presets, with row
   add/delete controls and header clipboard copy still pending.
 - [~] Rebuild Body mode controls for none, form-data, URL-encoded, raw, GraphQL,
-  and binary bodies; current Slint baseline maps editors into transport modes,
-  including GraphQL query/variables payload building and helper templates, with
-  dedicated form file controls and GraphQL schema response helpers still
-  pending.
+  and binary bodies; current Slint baseline has dedicated visible panels for
+  no-body, raw text, form-data, URL-encoded, GraphQL query/variables, and
+  binary file paths, all mapped into transport modes, with row add/delete,
+  raw subtype selection, dedicated form file picker controls, and GraphQL
+  schema response helpers still pending.
 - [~] Rebuild Auth controls for None, Bearer, Basic, JWT, and API key modes;
   current Slint Request Builder has the dedicated Auth tab, mode buttons, and
   mode-specific config panels wired to transport mapping, with split

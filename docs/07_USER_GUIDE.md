@@ -178,17 +178,16 @@ Supported body modes:
 - `graphql`
 - `binary`
 
-The Body toolbar uses compact labels: `Form` maps to `form-data`, and
-`URL Enc` maps to `x-www-form-urlencoded`. The field editors use matching
-compact titles, and their table headers include `+` for more fields.
+The Body toolbar exposes `none`, `form-data`, `urlenc`, `raw`, `graphql`, and
+`binary`. Form-data and URL-encoded modes use table-shaped line editors that
+store one `key=value` pair per line. Form-data file fields use an `@path`
+prefix.
 
-Raw mode supports JSON, XML, Text, and HTML content types, with a compact
-`Preview` for structured text. In JSON raw mode, `Format` rewrites the body as
-pretty JSON when the content parses successfully. GraphQL mode builds a
-payload with `query` and `variables`. Use `Intro`, `Query`, and `Mutation` to
-fill starter GraphQL documents and matching variables. Schema and field panels
-for introspection responses are still future work. Form-data file fields use an
-`@path` prefix.
+Raw mode uses the code editor. GraphQL mode builds a payload with `query` and
+`variables`; use `Query` and `Mutation` to fill starter GraphQL documents and
+matching variables. Binary mode accepts a local file path. Row add/delete, raw
+subtype selection, dedicated form file picker controls, and GraphQL schema
+response helpers are still future work.
 
 ## WebSocket
 

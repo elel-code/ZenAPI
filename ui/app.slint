@@ -1831,11 +1831,80 @@ component RequestPanel inherits Rectangle {
                 }
             }
 
-            if root.active_tab == "body" && root.body_mode != "graphql": CodePane {
+            if root.active_tab == "body" && root.body_mode == "form": KeyValueEditorPanel {
+                x: 16px;
+                y: 16px;
+                width: parent.width - 32px;
+                height: parent.height - 32px;
+                text <=> root.request_body;
+                title: "Form Data";
+                key_header: "Field";
+                value_header: "Value";
+                helper: "One field per line. Prefix file values with @path, for example avatar=@/tmp/avatar.png.";
+            }
+
+            if root.active_tab == "body" && root.body_mode == "urlenc": KeyValueEditorPanel {
+                x: 16px;
+                y: 16px;
+                width: parent.width - 32px;
+                height: parent.height - 32px;
+                text <=> root.request_body;
+                title: "URL Encoded";
+                key_header: "Field";
+                value_header: "Value";
+                helper: "One x-www-form-urlencoded field per line, formatted as key=value.";
+            }
+
+            if root.active_tab == "body" && root.body_mode == "binary": Rectangle {
+                x: 16px;
+                y: 16px;
+                width: parent.width - 32px;
+                height: parent.height - 32px;
+                background: transparent;
+
+                VerticalLayout {
+                    padding: 0px;
+                    spacing: 10px;
+
+                    UiText {
+                        text: "Binary File";
+                        height: 20px;
+                        horizontal-stretch: 1;
+                        color: Theme.on_surface_variant;
+                        font-size: 12px;
+                        font-weight: 800;
+                        vertical-alignment: center;
+                        overflow: elide;
+                    }
+
+                    TextField {
+                        text <=> root.request_body;
+                        placeholder: "/absolute/path/to/body.bin";
+                        mono: true;
+                        enabled: !root.busy;
+                    }
+
+                    DataPanel {
+                        title: "Binary Upload";
+                        body: "The file at this path is streamed as the request body. Content-Type auto-detection is still future work.";
+                    }
+                }
+            }
+
+            if root.active_tab == "body" && root.body_mode == "none": DataPanel {
+                x: 16px;
+                y: 16px;
+                width: parent.width - 32px;
+                height: parent.height - 32px;
+                title: "No Body";
+                body: "This request will be sent without a body.";
+            }
+
+            if root.active_tab == "body" && root.body_mode == "raw": CodePane {
                 width: parent.width;
                 height: parent.height;
                 text <=> root.request_body;
-                read_only: root.body_mode == "none";
+                read_only: false;
             }
 
             if root.active_tab == "auth": AuthEditorPanel {
