@@ -5927,7 +5927,7 @@ fn build_request_body(
             }
             Ok(RequestBody::BinaryFile {
                 path: path.to_string(),
-                content_type: None,
+                content_type: Some(binary_body_content_type(path).to_string()),
             })
         }
         "graphql" => build_graphql_request_body(input, graphql_variables),
@@ -5951,6 +5951,38 @@ fn raw_body_content_type(subtype: &str) -> &'static str {
         "text" => "text/plain",
         "xml" => "application/xml",
         _ => "application/json",
+    }
+}
+
+fn binary_body_content_type(path: &str) -> &'static str {
+    let extension = Path::new(path)
+        .extension()
+        .and_then(|extension| extension.to_str())
+        .unwrap_or_default()
+        .to_lowercase();
+    match extension.as_str() {
+        "json" | "map" => "application/json",
+        "txt" | "log" => "text/plain",
+        "csv" => "text/csv",
+        "xml" => "application/xml",
+        "html" | "htm" => "text/html",
+        "css" => "text/css",
+        "js" | "mjs" => "text/javascript",
+        "pdf" => "application/pdf",
+        "zip" => "application/zip",
+        "gz" => "application/gzip",
+        "tar" => "application/x-tar",
+        "wasm" => "application/wasm",
+        "png" => "image/png",
+        "jpg" | "jpeg" => "image/jpeg",
+        "gif" => "image/gif",
+        "webp" => "image/webp",
+        "svg" => "image/svg+xml",
+        "mp3" => "audio/mpeg",
+        "wav" => "audio/wav",
+        "mp4" => "video/mp4",
+        "webm" => "video/webm",
+        _ => "application/octet-stream",
     }
 }
 
@@ -7143,8 +7175,26 @@ mod tests {
             build_request_body("binary", "/tmp/body.bin", "", "").unwrap(),
             RequestBody::BinaryFile {
                 path: "/tmp/body.bin".to_string(),
-                content_type: None,
+                content_type: Some("application/octet-stream".to_string()),
             }
+        );
+    }
+
+    #[test]
+    fn infers_binary_body_content_types_from_extensions() {
+        assert_eq!(
+            binary_body_content_type("/tmp/payload.JSON"),
+            "application/json"
+        );
+        assert_eq!(binary_body_content_type("/tmp/report.csv"), "text/csv");
+        assert_eq!(binary_body_content_type("/tmp/image.jpeg"), "image/jpeg");
+        assert_eq!(
+            binary_body_content_type("/tmp/archive.tar"),
+            "application/x-tar"
+        );
+        assert_eq!(
+            binary_body_content_type("/tmp/unknown.custom"),
+            "application/octet-stream"
         );
     }
 

@@ -61,9 +61,10 @@
   binary file paths, all mapped into transport modes, with editable rows for
   form-data and URL-encoded fields. Raw JSON/Text/XML subtype selection is
   wired through transport, collection restore, and history restore. Dedicated
-  form file attach controls now add validated local files as multipart
-  `@path` rows; GraphQL introspection responses can be summarized from the
-  response pane, while native file picker dialogs are still pending.
+  form file attach controls now add validated local files as multipart `@path`
+  rows, and binary file paths infer common Content-Type values from extensions.
+  GraphQL introspection responses can be summarized from the response pane,
+  while native file picker dialogs are still pending.
 - [~] Rebuild Auth controls for None, Bearer, Basic, JWT, and API key modes;
   current Slint Request Builder has the dedicated Auth tab, mode buttons, and
   mode-specific config panels wired to transport mapping. API key header/query

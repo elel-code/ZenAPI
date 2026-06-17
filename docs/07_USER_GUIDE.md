@@ -194,10 +194,11 @@ buttons. They send raw bodies as `application/json`, `text/plain`, and
 subtype. GraphQL mode builds a payload with `query` and `variables`; use
 `Query`, `Mutation`, and `Intro` to fill starter GraphQL documents,
 introspection query text, and matching variables. Binary mode accepts a local
-file path. After running an introspection request, use `Schema` in the response
-pane on Pretty or Raw JSON to render a readable schema summary while keeping
-the original Raw response available. Native file picker dialogs are still
-future work.
+file path and infers Content-Type from common file extensions unless an
+explicit request header overrides it. After running an introspection request,
+use `Schema` in the response pane on Pretty or Raw JSON to render a readable
+schema summary while keeping the original Raw response available. Native file
+picker dialogs are still future work.
 
 ## WebSocket
 

@@ -2716,7 +2716,7 @@ component RequestPanel inherits Rectangle {
 
                     DataPanel {
                         title: "Binary Upload";
-                        body: "The file at this path is streamed as the request body. Content-Type auto-detection is still future work.";
+                        body: "The file at this path is streamed as the request body. Common file extensions set Content-Type automatically; a request header override wins.";
                     }
                 }
             }
