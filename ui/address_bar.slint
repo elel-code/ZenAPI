@@ -1,0 +1,166 @@
+import { Theme } from "theme.slint";
+import { MethodSelector, TextField, UiText } from "widgets.slint";
+
+component SendRequestButton inherits Rectangle {
+    in property <bool> enabled: true;
+    callback clicked();
+
+    width: 112px;
+    height: 40px;
+    border-radius: 6px;
+    border-width: 1px;
+    border-color: root.enabled ? Theme.primary_container : Theme.outline_variant;
+    background: !root.enabled ? Theme.surface_container_low : send_touch.pressed ? #3d3fba : send_touch.has-hover ? #5557df : Theme.inverse_primary;
+    opacity: root.enabled ? 1 : 0.62;
+
+    send_touch := TouchArea {
+        enabled: root.enabled;
+        mouse-cursor: root.enabled ? pointer : default;
+        clicked => {
+            root.clicked();
+        }
+    }
+
+    UiText {
+        x: 22px;
+        text: "Send";
+        width: 50px;
+        height: parent.height;
+        color: Theme.on_surface;
+        font-size: 13px;
+        font-weight: 800;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+
+    UiText {
+        x: parent.width - 34px;
+        text: ">";
+        width: 16px;
+        height: parent.height;
+        color: Theme.on_surface;
+        font-size: 16px;
+        font-weight: 800;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+}
+
+export component AddressBar inherits Rectangle {
+    in-out property <string> method;
+    in-out property <string> url;
+    in property <string> request_name;
+    in property <string> collection_name;
+    in property <bool> busy;
+    callback send_request();
+
+    property <string> request_label: root.request_name != "" ? root.request_name : root.url == "" ? "New Request" : root.method + " Request";
+
+    height: 104px;
+    horizontal-stretch: 1;
+    background: Theme.surface_container_low;
+
+    Rectangle {
+        y: parent.height - 1px;
+        width: parent.width;
+        height: 1px;
+        background: Theme.outline_variant;
+    }
+
+    VerticalLayout {
+        padding: 16px;
+        spacing: 8px;
+
+        HorizontalLayout {
+            height: 22px;
+            spacing: 8px;
+            alignment: center;
+
+            UiText {
+                text: root.collection_name == "" ? "Collection" : root.collection_name;
+                width: 108px;
+                height: parent.height;
+                color: Theme.on_surface_variant;
+                font-size: 14px;
+                vertical-alignment: center;
+                overflow: elide;
+            }
+
+            UiText {
+                text: ">";
+                width: 10px;
+                height: parent.height;
+                color: Theme.on_surface_variant;
+                font-size: 14px;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+            }
+
+            UiText {
+                text: root.request_label;
+                horizontal-stretch: 1;
+                height: parent.height;
+                color: Theme.on_surface;
+                font-size: 14px;
+                vertical-alignment: center;
+                overflow: elide;
+            }
+        }
+
+        HorizontalLayout {
+            height: 40px;
+            spacing: 8px;
+            alignment: center;
+
+            Rectangle {
+                height: 40px;
+                horizontal-stretch: 1;
+                background: Theme.surface_container;
+                border-radius: 6px;
+                border-width: 1px;
+                border-color: !root.busy && url_field.focused ? Theme.primary : Theme.outline_variant;
+                clip: true;
+
+                HorizontalLayout {
+                    spacing: 0px;
+                    alignment: center;
+
+                    MethodSelector {
+                        method <=> root.method;
+                        enabled: !root.busy;
+                    }
+
+                    Rectangle {
+                        width: 1px;
+                        height: parent.height - 10px;
+                        background: Theme.outline_variant;
+                    }
+
+                    url_field := TextField {
+                        text <=> root.url;
+                        placeholder: "Enter request URL";
+                        embedded: true;
+                        mono: true;
+                        enabled: !root.busy;
+                        height: 40px;
+                        horizontal-stretch: 1;
+                        accepted => {
+                            if !root.busy {
+                                root.send_request();
+                            }
+                        }
+                    }
+                }
+            }
+
+            SendRequestButton {
+                enabled: !root.busy;
+                clicked => {
+                    root.send_request();
+                }
+            }
+        }
+    }
+}
