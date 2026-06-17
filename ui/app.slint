@@ -146,6 +146,34 @@ export component AppWindow inherits Window {
     property <bool> settings_page_mounted: false;
     property <bool> codegen_page_mounted: false;
 
+    function open_page_index(page_index: int) {
+        if (page_index == 0) {
+            root.dashboard_page_mounted = true;
+        } else if (page_index == 2) {
+            root.mock_page_mounted = true;
+        } else if (page_index == 3) {
+            root.runner_page_mounted = true;
+        } else if (page_index == 4) {
+            root.environment_page_mounted = true;
+        } else if (page_index == 5) {
+            root.analytics_page_mounted = true;
+        } else if (page_index == 6) {
+            root.documentation_page_mounted = true;
+        } else if (page_index == 7) {
+            root.api_keys_page_mounted = true;
+        } else if (page_index == 8) {
+            root.team_page_mounted = true;
+        } else if (page_index == 9) {
+            root.settings_page_mounted = true;
+        } else if (page_index == 10) {
+            root.codegen_page_mounted = true;
+        }
+
+        if (root.active_page_index != page_index) {
+            root.active_page_index = page_index;
+        }
+    }
+
     callback import_openapi(string);
     callback pick_openapi_file();
     callback filter_routes(string);
@@ -270,31 +298,7 @@ export component AppWindow inherits Window {
                 spec_label: root.spec_label;
                 spec_loaded: root.spec_loaded;
                 open_page(page_index) => {
-                    if page_index == 0 {
-                        root.dashboard_page_mounted = true;
-                    } else if page_index == 2 {
-                        root.mock_page_mounted = true;
-                    } else if page_index == 3 {
-                        root.runner_page_mounted = true;
-                    } else if page_index == 4 {
-                        root.environment_page_mounted = true;
-                    } else if page_index == 5 {
-                        root.analytics_page_mounted = true;
-                    } else if page_index == 6 {
-                        root.documentation_page_mounted = true;
-                    } else if page_index == 7 {
-                        root.api_keys_page_mounted = true;
-                    } else if page_index == 8 {
-                        root.team_page_mounted = true;
-                    } else if page_index == 9 {
-                        root.settings_page_mounted = true;
-                    } else if page_index == 10 {
-                        root.codegen_page_mounted = true;
-                    }
-
-                    if root.active_page_index != page_index {
-                        root.active_page_index = page_index;
-                    }
+                    root.open_page_index(page_index);
                 }
             }
 
@@ -715,31 +719,7 @@ export component AppWindow inherits Window {
                         server_status: root.server_status;
                         response_status: root.response_status;
                         open_page(page_index) => {
-                            if page_index == 0 {
-                                root.dashboard_page_mounted = true;
-                            } else if page_index == 2 {
-                                root.mock_page_mounted = true;
-                            } else if page_index == 3 {
-                                root.runner_page_mounted = true;
-                            } else if page_index == 4 {
-                                root.environment_page_mounted = true;
-                            } else if page_index == 5 {
-                                root.analytics_page_mounted = true;
-                            } else if page_index == 6 {
-                                root.documentation_page_mounted = true;
-                            } else if page_index == 7 {
-                                root.api_keys_page_mounted = true;
-                            } else if page_index == 8 {
-                                root.team_page_mounted = true;
-                            } else if page_index == 9 {
-                                root.settings_page_mounted = true;
-                            } else if page_index == 10 {
-                                root.codegen_page_mounted = true;
-                            }
-
-                            if root.active_page_index != page_index {
-                                root.active_page_index = page_index;
-                            }
+                            root.open_page_index(page_index);
                         }
                     }
                 }
@@ -1045,31 +1025,7 @@ export component AppWindow inherits Window {
                 visible: root.compact_mode;
                 active_page_index <=> root.active_page_index;
                 open_page(page_index) => {
-                    if page_index == 0 {
-                        root.dashboard_page_mounted = true;
-                    } else if page_index == 2 {
-                        root.mock_page_mounted = true;
-                    } else if page_index == 3 {
-                        root.runner_page_mounted = true;
-                    } else if page_index == 4 {
-                        root.environment_page_mounted = true;
-                    } else if page_index == 5 {
-                        root.analytics_page_mounted = true;
-                    } else if page_index == 6 {
-                        root.documentation_page_mounted = true;
-                    } else if page_index == 7 {
-                        root.api_keys_page_mounted = true;
-                    } else if page_index == 8 {
-                        root.team_page_mounted = true;
-                    } else if page_index == 9 {
-                        root.settings_page_mounted = true;
-                    } else if page_index == 10 {
-                        root.codegen_page_mounted = true;
-                    }
-
-                    if root.active_page_index != page_index {
-                        root.active_page_index = page_index;
-                    }
+                    root.open_page_index(page_index);
                 }
             }
         }
