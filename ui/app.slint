@@ -5781,13 +5781,13 @@ export component AppWindow inherits Window {
                 if root.active_page == "requests": ScrollView {
                     width: parent.width;
                     height: parent.height;
-                    viewport-width: max(self.visible-width, 1040px);
+                    viewport-width: max(self.visible-width, 1200px);
                     viewport-height: max(self.visible-height, 560px);
                     vertical-scrollbar-policy: ScrollBarPolicy.as-needed;
                     horizontal-scrollbar-policy: ScrollBarPolicy.as-needed;
 
                     HorizontalLayout {
-                        width: max(parent.visible-width, 1040px);
+                        width: max(parent.visible-width, 1200px);
                         height: max(parent.visible-height, 560px);
                         spacing: 0px;
 
@@ -5869,7 +5869,8 @@ export component AppWindow inherits Window {
                         Rectangle {
                             horizontal-stretch: 1;
                             vertical-stretch: 1;
-                            background: Theme.surface;
+                            background: Theme.surface_container_lowest;
+                            clip: true;
 
                             VerticalLayout {
                                 padding: 0px;
@@ -5885,150 +5886,144 @@ export component AppWindow inherits Window {
                                     }
                                 }
 
-                                HorizontalLayout {
-                                    padding: 0px;
-                                    spacing: 0px;
-                                    vertical-stretch: 1;
-
-                                    RequestPanel {
-                                        global_variables <=> root.global_variables;
-                                        environment_name <=> root.environment_name;
-                                        environment_variables <=> root.environment_variables;
-                                        query_params <=> root.query_params;
-                                        query_param_rows <=> root.query_param_rows;
-                                        request_headers <=> root.request_headers;
-                                        header_rows <=> root.header_rows;
-                                        auth_mode <=> root.auth_mode;
-                                        auth_config <=> root.auth_config;
-                                        auth_key_rows <=> root.auth_key_rows;
-                                        body_mode <=> root.body_mode;
-                                        request_body <=> root.request_body;
-                                        body_field_rows <=> root.body_field_rows;
-                                        graphql_variables <=> root.graphql_variables;
-                                        pre_request_script <=> root.pre_request_script;
-                                        request_tests <=> root.request_tests;
-                                        realtime_mode <=> root.realtime_mode;
-                                        realtime_message <=> root.realtime_message;
-                                        sse_max_events <=> root.sse_max_events;
-                                        sse_last_event_id <=> root.sse_last_event_id;
-                                        sse_streaming <=> root.sse_streaming;
-                                        grpc_endpoint <=> root.grpc_endpoint;
-                                        grpc_method <=> root.grpc_method;
-                                        grpc_metadata <=> root.grpc_metadata;
-                                        grpc_message <=> root.grpc_message;
-                                        busy: root.busy;
-                                        add_query_param => {
-                                            root.add_query_param();
-                                        }
-                                        update_query_param_row(row_id, key, value) => {
-                                            root.update_query_param_row(row_id, key, value);
-                                        }
-                                        delete_query_param_row(row_id) => {
-                                            root.delete_query_param_row(row_id);
-                                        }
-                                        add_header => {
-                                            root.add_header();
-                                        }
-                                        update_header_row(row_id, key, value) => {
-                                            root.update_header_row(row_id, key, value);
-                                        }
-                                        delete_header_row(row_id) => {
-                                            root.delete_header_row(row_id);
-                                        }
-                                        auth_mode_changed(mode) => {
-                                            root.auth_mode_changed(mode);
-                                        }
-                                        add_auth_key => {
-                                            root.add_auth_key();
-                                        }
-                                        update_auth_key_row(row_id, key, value) => {
-                                            root.update_auth_key_row(row_id, key, value);
-                                        }
-                                        delete_auth_key_row(row_id) => {
-                                            root.delete_auth_key_row(row_id);
-                                        }
-                                        body_mode_changed(mode) => {
-                                            root.body_mode_changed(mode);
-                                        }
-                                        add_body_field => {
-                                            root.add_body_field();
-                                        }
-                                        update_body_field_row(row_id, key, value) => {
-                                            root.update_body_field_row(row_id, key, value);
-                                        }
-                                        delete_body_field_row(row_id) => {
-                                            root.delete_body_field_row(row_id);
-                                        }
-                                        open_websocket => {
-                                            root.open_websocket();
-                                        }
-                                        run_websocket => {
-                                            root.run_websocket();
-                                        }
-                                        close_websocket => {
-                                            root.close_websocket();
-                                        }
-                                        run_sse => {
-                                            root.run_sse();
-                                        }
-                                        open_sse_stream => {
-                                            root.open_sse_stream();
-                                        }
-                                        close_sse_stream => {
-                                            root.close_sse_stream();
-                                        }
-                                        apply_graphql_template(template) => {
-                                            root.apply_graphql_template(template);
-                                        }
-                                        apply_header_preset(preset) => {
-                                            root.apply_header_preset(preset);
-                                        }
-                                        build_grpc_draft => {
-                                            root.build_grpc_draft();
-                                        }
+                                RequestPanel {
+                                    global_variables <=> root.global_variables;
+                                    environment_name <=> root.environment_name;
+                                    environment_variables <=> root.environment_variables;
+                                    query_params <=> root.query_params;
+                                    query_param_rows <=> root.query_param_rows;
+                                    request_headers <=> root.request_headers;
+                                    header_rows <=> root.header_rows;
+                                    auth_mode <=> root.auth_mode;
+                                    auth_config <=> root.auth_config;
+                                    auth_key_rows <=> root.auth_key_rows;
+                                    body_mode <=> root.body_mode;
+                                    request_body <=> root.request_body;
+                                    body_field_rows <=> root.body_field_rows;
+                                    graphql_variables <=> root.graphql_variables;
+                                    pre_request_script <=> root.pre_request_script;
+                                    request_tests <=> root.request_tests;
+                                    realtime_mode <=> root.realtime_mode;
+                                    realtime_message <=> root.realtime_message;
+                                    sse_max_events <=> root.sse_max_events;
+                                    sse_last_event_id <=> root.sse_last_event_id;
+                                    sse_streaming <=> root.sse_streaming;
+                                    grpc_endpoint <=> root.grpc_endpoint;
+                                    grpc_method <=> root.grpc_method;
+                                    grpc_metadata <=> root.grpc_metadata;
+                                    grpc_message <=> root.grpc_message;
+                                    busy: root.busy;
+                                    add_query_param => {
+                                        root.add_query_param();
                                     }
-
-                                    Rectangle {
-                                        width: 1px;
-                                        background: Theme.outline_variant;
+                                    update_query_param_row(row_id, key, value) => {
+                                        root.update_query_param_row(row_id, key, value);
                                     }
-
-                                    ResponsePanel {
-                                        response_body <=> root.response_body;
-                                        response_raw_body <=> root.response_raw_body;
-                                        response_headers <=> root.response_headers;
-                                        codegen_language <=> root.codegen_language;
-                                        codegen_output <=> root.codegen_output;
-                                        codegen_path <=> root.codegen_path;
-                                        runner_rows <=> root.runner_rows;
-                                        runner_summary <=> root.runner_summary;
-                                        runner_delay_ms <=> root.runner_delay_ms;
-                                        runner_report_path <=> root.runner_report_path;
-                                        runner_stop_on_failure <=> root.runner_stop_on_failure;
-                                        runner_active <=> root.runner_active;
-                                        response_status: root.response_status;
-                                        response_meta: root.response_meta;
-                                        response_time: root.response_time;
-                                        response_size: root.response_size;
-                                        response_tone: root.response_tone;
-                                        busy: root.busy;
-                                        generate_code => {
-                                            root.generate_code();
-                                        }
-                                        save_codegen(path) => {
-                                            root.save_codegen(path);
-                                        }
-                                        run_collection => {
-                                            root.run_collection();
-                                        }
-                                        cancel_collection_run => {
-                                            root.cancel_collection_run();
-                                        }
-                                        save_runner_report(path) => {
-                                            root.save_runner_report(path);
-                                        }
+                                    delete_query_param_row(row_id) => {
+                                        root.delete_query_param_row(row_id);
+                                    }
+                                    add_header => {
+                                        root.add_header();
+                                    }
+                                    update_header_row(row_id, key, value) => {
+                                        root.update_header_row(row_id, key, value);
+                                    }
+                                    delete_header_row(row_id) => {
+                                        root.delete_header_row(row_id);
+                                    }
+                                    auth_mode_changed(mode) => {
+                                        root.auth_mode_changed(mode);
+                                    }
+                                    add_auth_key => {
+                                        root.add_auth_key();
+                                    }
+                                    update_auth_key_row(row_id, key, value) => {
+                                        root.update_auth_key_row(row_id, key, value);
+                                    }
+                                    delete_auth_key_row(row_id) => {
+                                        root.delete_auth_key_row(row_id);
+                                    }
+                                    body_mode_changed(mode) => {
+                                        root.body_mode_changed(mode);
+                                    }
+                                    add_body_field => {
+                                        root.add_body_field();
+                                    }
+                                    update_body_field_row(row_id, key, value) => {
+                                        root.update_body_field_row(row_id, key, value);
+                                    }
+                                    delete_body_field_row(row_id) => {
+                                        root.delete_body_field_row(row_id);
+                                    }
+                                    open_websocket => {
+                                        root.open_websocket();
+                                    }
+                                    run_websocket => {
+                                        root.run_websocket();
+                                    }
+                                    close_websocket => {
+                                        root.close_websocket();
+                                    }
+                                    run_sse => {
+                                        root.run_sse();
+                                    }
+                                    open_sse_stream => {
+                                        root.open_sse_stream();
+                                    }
+                                    close_sse_stream => {
+                                        root.close_sse_stream();
+                                    }
+                                    apply_graphql_template(template) => {
+                                        root.apply_graphql_template(template);
+                                    }
+                                    apply_header_preset(preset) => {
+                                        root.apply_header_preset(preset);
+                                    }
+                                    build_grpc_draft => {
+                                        root.build_grpc_draft();
                                     }
                                 }
+                            }
+                        }
+
+                        Rectangle {
+                            width: 1px;
+                            background: Theme.outline_variant;
+                        }
+
+                        ResponsePanel {
+                            response_body <=> root.response_body;
+                            response_raw_body <=> root.response_raw_body;
+                            response_headers <=> root.response_headers;
+                            codegen_language <=> root.codegen_language;
+                            codegen_output <=> root.codegen_output;
+                            codegen_path <=> root.codegen_path;
+                            runner_rows <=> root.runner_rows;
+                            runner_summary <=> root.runner_summary;
+                            runner_delay_ms <=> root.runner_delay_ms;
+                            runner_report_path <=> root.runner_report_path;
+                            runner_stop_on_failure <=> root.runner_stop_on_failure;
+                            runner_active <=> root.runner_active;
+                            response_status: root.response_status;
+                            response_meta: root.response_meta;
+                            response_time: root.response_time;
+                            response_size: root.response_size;
+                            response_tone: root.response_tone;
+                            busy: root.busy;
+                            generate_code => {
+                                root.generate_code();
+                            }
+                            save_codegen(path) => {
+                                root.save_codegen(path);
+                            }
+                            run_collection => {
+                                root.run_collection();
+                            }
+                            cancel_collection_run => {
+                                root.cancel_collection_run();
+                            }
+                            save_runner_report(path) => {
+                                root.save_runner_report(path);
                             }
                         }
                     }
