@@ -240,6 +240,32 @@ impl EnvironmentProfiles {
             .unwrap_or_default();
         Some((self.active_name.clone(), values))
     }
+
+    fn rename(
+        &mut self,
+        old_name: &str,
+        new_name: &str,
+        current_values: &str,
+    ) -> Option<(String, String)> {
+        let old_name = old_name.trim();
+        let new_name = new_name.trim();
+        if old_name.is_empty() || new_name.is_empty() || old_name == new_name {
+            return None;
+        }
+        if self.values_by_name.contains_key(new_name) {
+            return None;
+        }
+
+        self.save_active(current_values);
+        let values = self.values_by_name.remove(old_name)?;
+        self.values_by_name
+            .insert(new_name.to_string(), values.clone());
+        if self.active_name == old_name {
+            self.active_name = new_name.to_string();
+        }
+
+        Some((new_name.to_string(), values))
+    }
 }
 
 impl EnvironmentWorkspace {
@@ -274,6 +300,7 @@ fn save_environment_workspace(path: &Path, workspace: &EnvironmentWorkspace) -> 
 fn apply_environment_workspace(app: &AppWindow, workspace: &EnvironmentWorkspace) {
     app.set_global_variables(workspace.global_variables.clone().into());
     app.set_environment_name(workspace.active_name.clone().into());
+    app.set_environment_draft_name(workspace.active_name.clone().into());
     app.set_environment_variables(
         workspace
             .values_by_name
@@ -1839,6 +1866,7 @@ fn wire_environment_actions(app: &AppWindow, initial_workspace: Option<Environme
             })
             .unwrap_or_default();
         app.set_environment_name(environment);
+        app.set_environment_draft_name(app.get_environment_name());
         app.set_environment_variables(variables.into());
         refresh_variable_table(&app);
         persist_environment_workspace(&app, &profiles, path.as_path());
@@ -1866,6 +1894,7 @@ fn wire_environment_actions(app: &AppWindow, initial_workspace: Option<Environme
             })
             .unwrap_or_default();
         app.set_environment_name(environment);
+        app.set_environment_draft_name(app.get_environment_name());
         app.set_environment_variables(variables.into());
         refresh_variable_table(&app);
         persist_environment_workspace(&app, &profiles, path.as_path());
@@ -1896,7 +1925,40 @@ fn wire_environment_actions(app: &AppWindow, initial_workspace: Option<Environme
             })
             .unwrap_or_default();
         app.set_environment_name(environment.into());
+        app.set_environment_draft_name(app.get_environment_name());
         app.set_environment_variables(variables.into());
+        refresh_variable_table(&app);
+        persist_environment_workspace(&app, &profiles, path.as_path());
+        refresh_environment_rows(&app, &profiles);
+    });
+
+    let weak_app = app.as_weak();
+    let profiles = environment_profiles.clone();
+    let path = environment_path.clone();
+    app.on_rename_environment(move |old_name, new_name| {
+        let Some(app) = weak_app.upgrade() else {
+            return;
+        };
+        if app.get_busy() {
+            return;
+        }
+
+        let Some((renamed_name, values)) = profiles.lock().ok().and_then(|mut profiles| {
+            profiles.rename(
+                old_name.as_str(),
+                new_name.as_str(),
+                app.get_environment_variables().as_str(),
+            )
+        }) else {
+            app.set_activity(
+                "Rename requires a selected environment and a new unused name.".into(),
+            );
+            return;
+        };
+
+        app.set_environment_name(renamed_name.into());
+        app.set_environment_draft_name(app.get_environment_name());
+        app.set_environment_variables(values.into());
         refresh_variable_table(&app);
         persist_environment_workspace(&app, &profiles, path.as_path());
         refresh_environment_rows(&app, &profiles);
@@ -1924,6 +1986,7 @@ fn wire_environment_actions(app: &AppWindow, initial_workspace: Option<Environme
         };
 
         app.set_environment_name(next_name.into());
+        app.set_environment_draft_name(app.get_environment_name());
         app.set_environment_variables(next_values.into());
         refresh_variable_table(&app);
         persist_environment_workspace(&app, &profiles, path.as_path());
@@ -1980,6 +2043,7 @@ fn wire_environment_actions(app: &AppWindow, initial_workspace: Option<Environme
         } else {
             if app.get_environment_name().trim().is_empty() {
                 app.set_environment_name("dev".into());
+                app.set_environment_draft_name("dev".into());
                 if let Ok(mut profiles) = profiles.lock() {
                     profiles.set_active_name("dev");
                 }
@@ -6341,6 +6405,46 @@ mod tests {
         assert!(!profiles.values_by_name.contains_key("dev"));
         assert_eq!(profiles.active_name, "prod");
         assert!(profiles.delete("missing", "").is_none());
+    }
+
+    #[test]
+    fn renames_environment_profiles_without_overwriting_existing_values() {
+        let mut values_by_name = BTreeMap::new();
+        values_by_name.insert(
+            "dev".to_string(),
+            "baseUrl=http://127.0.0.1:8080".to_string(),
+        );
+        values_by_name.insert(
+            "prod".to_string(),
+            "baseUrl=https://api.example.com".to_string(),
+        );
+        let mut profiles = EnvironmentProfiles {
+            active_name: "dev".to_string(),
+            values_by_name,
+        };
+
+        assert_eq!(
+            profiles.rename("dev", "local", "baseUrl=http://127.0.0.1:8081"),
+            Some((
+                "local".to_string(),
+                "baseUrl=http://127.0.0.1:8081".to_string()
+            ))
+        );
+        assert_eq!(profiles.active_name, "local");
+        assert!(!profiles.values_by_name.contains_key("dev"));
+        assert_eq!(
+            profiles.values_by_name.get("local").map(String::as_str),
+            Some("baseUrl=http://127.0.0.1:8081")
+        );
+        assert!(
+            profiles
+                .rename("local", "prod", "baseUrl=http://127.0.0.1:8082")
+                .is_none()
+        );
+        assert_eq!(
+            profiles.values_by_name.get("local").map(String::as_str),
+            Some("baseUrl=http://127.0.0.1:8081")
+        );
     }
 
     #[test]

@@ -3964,9 +3964,11 @@ component EnvironmentVariableRow inherits Rectangle {
 component EnvironmentVariableTable inherits Rectangle {
     in-out property <[VariableTableRow]> variable_rows;
     in-out property <string> environment_name;
+    in-out property <string> environment_draft_name;
     in property <bool> busy;
     callback environment_name_changed(string);
     callback add_environment(string);
+    callback rename_environment(string, string);
     callback delete_environment(string);
     callback update_variable_row(int, string, string, string);
     callback add_variable(string);
@@ -4025,38 +4027,47 @@ component EnvironmentVariableTable inherits Rectangle {
                 }
 
                 TextField {
-                    width: 150px;
+                    width: 132px;
                     height: 34px;
-                    text <=> root.environment_name;
+                    text <=> root.environment_draft_name;
                     placeholder: "env name";
                     mono: true;
                     enabled: !root.busy;
                     accepted => {
-                        root.environment_name_changed(root.environment_name);
+                        root.environment_name_changed(root.environment_draft_name);
                     }
                 }
 
                 ActionButton {
                     text: "Use";
-                    button_width: 52px;
-                    enabled: !root.busy;
+                    button_width: 48px;
+                    enabled: !root.busy && root.environment_draft_name != "";
                     clicked => {
-                        root.environment_name_changed(root.environment_name);
+                        root.environment_name_changed(root.environment_draft_name);
                     }
                 }
 
                 ActionButton {
                     text: "Add";
-                    button_width: 54px;
-                    enabled: !root.busy && root.environment_name != "";
+                    button_width: 48px;
+                    enabled: !root.busy && root.environment_draft_name != "";
                     clicked => {
-                        root.add_environment(root.environment_name);
+                        root.add_environment(root.environment_draft_name);
+                    }
+                }
+
+                ActionButton {
+                    text: "Ren";
+                    button_width: 48px;
+                    enabled: !root.busy && root.environment_name != "" && root.environment_draft_name != "" && root.environment_draft_name != root.environment_name;
+                    clicked => {
+                        root.rename_environment(root.environment_name, root.environment_draft_name);
                     }
                 }
 
                 ActionButton {
                     text: "Del";
-                    button_width: 54px;
+                    button_width: 48px;
                     warning: true;
                     enabled: !root.busy && root.environment_name != "";
                     clicked => {
@@ -4324,12 +4335,14 @@ component EnvironmentPage inherits Rectangle {
     in-out property <[VariableTableRow]> variable_rows;
     in-out property <string> global_variables;
     in-out property <string> environment_name;
+    in-out property <string> environment_draft_name;
     in-out property <string> environment_variables;
     in-out property <string> variables_json_preview;
     in property <bool> busy;
     callback select_environment(string);
     callback environment_name_changed(string);
     callback add_environment(string);
+    callback rename_environment(string, string);
     callback delete_environment(string);
     callback update_variable_row(int, string, string, string);
     callback add_variable(string);
@@ -4425,12 +4438,16 @@ component EnvironmentPage inherits Rectangle {
         EnvironmentVariableTable {
             variable_rows <=> root.variable_rows;
             environment_name <=> root.environment_name;
+            environment_draft_name <=> root.environment_draft_name;
             busy: root.busy;
             environment_name_changed(name) => {
                 root.environment_name_changed(name);
             }
             add_environment(name) => {
                 root.add_environment(name);
+            }
+            rename_environment(old_name, new_name) => {
+                root.rename_environment(old_name, new_name);
             }
             delete_environment(name) => {
                 root.delete_environment(name);
@@ -5817,6 +5834,7 @@ export component AppWindow inherits Window {
     in-out property <string> url;
     in-out property <string> global_variables: "baseUrl=https://api.example.com";
     in-out property <string> environment_name: "dev";
+    in-out property <string> environment_draft_name: "dev";
     in-out property <string> environment_variables: "baseUrl=http://127.0.0.1:8080";
     in-out property <[EnvironmentRow]> environment_rows;
     in-out property <[VariableTableRow]> variable_rows;
@@ -5968,6 +5986,7 @@ export component AppWindow inherits Window {
     callback select_environment(string);
     callback environment_name_changed(string);
     callback add_environment(string);
+    callback rename_environment(string, string);
     callback delete_environment(string);
     callback update_variable_row(int, string, string, string);
     callback add_variable(string);
@@ -6436,6 +6455,7 @@ export component AppWindow inherits Window {
                         variable_rows <=> root.variable_rows;
                         global_variables <=> root.global_variables;
                         environment_name <=> root.environment_name;
+                        environment_draft_name <=> root.environment_draft_name;
                         environment_variables <=> root.environment_variables;
                         variables_json_preview <=> root.variables_json_preview;
                         busy: root.busy;
@@ -6447,6 +6467,9 @@ export component AppWindow inherits Window {
                         }
                         add_environment(name) => {
                             root.add_environment(name);
+                        }
+                        rename_environment(old_name, new_name) => {
+                            root.rename_environment(old_name, new_name);
                         }
                         delete_environment(name) => {
                             root.delete_environment(name);
