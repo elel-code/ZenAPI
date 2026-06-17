@@ -32,6 +32,7 @@ export component RealtimeEditorPanel inherits Rectangle {
     callback build_grpc_draft();
     callback load_grpc_descriptor_set(string);
     callback load_grpc_proto_file(string, string);
+    callback load_grpc_reflection();
 
     horizontal-stretch: 1;
     vertical-stretch: 1;
@@ -469,6 +470,15 @@ export component RealtimeEditorPanel inherits Rectangle {
                         enabled: !root.busy;
                         clicked => {
                             root.build_grpc_draft();
+                        }
+                    }
+
+                    ActionButton {
+                        text: "Reflect";
+                        button_width: 162px;
+                        enabled: !root.busy && root.grpc_endpoint != "";
+                        clicked => {
+                            root.load_grpc_reflection();
                         }
                     }
 

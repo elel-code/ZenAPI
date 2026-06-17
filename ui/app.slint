@@ -222,6 +222,7 @@ export component AppWindow inherits Window {
     callback build_grpc_draft();
     callback load_grpc_descriptor_set(string);
     callback load_grpc_proto_file(string, string);
+    callback load_grpc_reflection();
 
     background: Theme.background;
 
@@ -519,6 +520,9 @@ export component AppWindow inherits Window {
                                     }
                                     load_grpc_proto_file(path, protoc_path) => {
                                         root.load_grpc_proto_file(path, protoc_path);
+                                    }
+                                    load_grpc_reflection => {
+                                        root.load_grpc_reflection();
                                     }
                                 }
                             }

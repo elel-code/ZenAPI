@@ -27,7 +27,7 @@ use zenapi::{
     },
     grpc::{
         GrpcRequestDraft, build_grpc_request_draft, format_grpc_method_catalog,
-        load_grpc_file_descriptor_set, load_grpc_proto_file,
+        load_grpc_file_descriptor_set, load_grpc_proto_file, load_grpc_reflection_descriptors,
     },
     history::{HistoryRequest, HistoryResponse, RequestHistory},
     mock_server::{MockRequestLog, MockServer},
@@ -111,7 +111,7 @@ pub fn run() -> Result<()> {
     wire_codegen(&app);
     wire_collection_runner(&app, runtime.clone(), state.clone());
     wire_realtime_actions(&app, runtime.clone());
-    wire_grpc_draft(&app);
+    wire_grpc_draft(&app, runtime.clone());
     wire_mock_server(&app, runtime, state);
 
     app.run().map_err(|err| anyhow!(err.to_string()))
@@ -3520,7 +3520,7 @@ fn wire_realtime_actions(app: &AppWindow, runtime: Arc<Runtime>) {
     });
 }
 
-fn wire_grpc_draft(app: &AppWindow) {
+fn wire_grpc_draft(app: &AppWindow, runtime: Arc<Runtime>) {
     let weak_app = app.as_weak();
     app.on_load_grpc_descriptor_set(move |path| {
         let Some(app) = weak_app.upgrade() else {
@@ -3587,6 +3587,51 @@ fn wire_grpc_draft(app: &AppWindow) {
                 &error.to_string(),
             ),
         }
+    });
+
+    let weak_app = app.as_weak();
+    app.on_load_grpc_reflection(move || {
+        let Some(app) = weak_app.upgrade() else {
+            return;
+        };
+        if app.get_busy() {
+            return;
+        }
+
+        app.set_busy(true);
+        app.set_activity("Loading gRPC reflection".into());
+        let endpoint = app.get_grpc_endpoint().to_string();
+        let weak_app = app.as_weak();
+        runtime.spawn(async move {
+            let result = load_grpc_reflection_descriptors(&endpoint).await;
+            if let Some(app) = weak_app.upgrade() {
+                app.set_busy(false);
+                match result {
+                    Ok(descriptors) => {
+                        let catalog = format_grpc_method_catalog(&descriptors);
+                        set_response(
+                            &app,
+                            "gRPC reflection loaded",
+                            &format!("{} methods", descriptors.len()),
+                            "success",
+                            &catalog,
+                        );
+                        app.set_grpc_method_catalog(catalog.into());
+                        app.set_activity("gRPC reflection loaded".into());
+                    }
+                    Err(error) => {
+                        set_response(
+                            &app,
+                            "gRPC reflection failed",
+                            &endpoint,
+                            "error",
+                            &error.to_string(),
+                        );
+                        app.set_activity(format!("gRPC reflection failed: {error}").into());
+                    }
+                }
+            }
+        });
     });
 
     let weak_app = app.as_weak();
