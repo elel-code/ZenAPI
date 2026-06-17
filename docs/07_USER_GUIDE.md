@@ -78,7 +78,7 @@ The response pane shows:
 - Pretty body.
 - Raw body.
 - Response headers.
-- Cookies tab placeholder.
+- Cookies derived from `Set-Cookie` response headers.
 
 Pretty JSON responses use the formatted body from the transport layer. Raw
 responses preserve the original response text. Response text is read-only but

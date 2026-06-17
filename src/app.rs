@@ -1408,6 +1408,7 @@ fn wire_request_sender(app: &AppWindow, runtime: Arc<Runtime>, state: Arc<Mutex<
                 match result {
                     Ok(response) => {
                         let response_headers = format_headers(&response.headers);
+                        let response_cookies = format_cookies(&response.headers);
                         let assertion_results =
                             evaluate_response_assertions(&response, &assertions);
                         let response_status =
@@ -1440,6 +1441,7 @@ fn wire_request_sender(app: &AppWindow, runtime: Arc<Runtime>, state: Arc<Mutex<
                         );
                         app.set_response_raw_body(response_raw_body.into());
                         app.set_response_headers(response_headers.into());
+                        app.set_response_cookies(response_cookies.into());
                     }
                     Err(error) => {
                         let body = error.to_string();
@@ -2571,6 +2573,7 @@ fn set_response(app: &AppWindow, status: &str, meta: &str, tone: &str, body: &st
     app.set_response_body(body.into());
     app.set_response_raw_body(body.into());
     app.set_response_headers("".into());
+    app.set_response_cookies("No cookies".into());
 }
 
 fn copy_text_to_clipboard(text: &str) -> Result<()> {
@@ -4507,6 +4510,26 @@ fn format_headers(headers: &[(String, String)]) -> String {
         .join("\n")
 }
 
+fn format_cookies(headers: &[(String, String)]) -> String {
+    let cookies = headers
+        .iter()
+        .filter(|(name, _)| name.eq_ignore_ascii_case("set-cookie"))
+        .map(|(_, value)| value.trim())
+        .filter(|value| !value.is_empty())
+        .collect::<Vec<_>>();
+
+    if cookies.is_empty() {
+        "No cookies".to_string()
+    } else {
+        cookies
+            .iter()
+            .enumerate()
+            .map(|(index, value)| format!("{} {}", index + 1, value))
+            .collect::<Vec<_>>()
+            .join("\n")
+    }
+}
+
 fn parse_response_assertions(input: &str) -> Result<Vec<ResponseAssertion>> {
     input
         .lines()
@@ -4904,6 +4927,29 @@ mod tests {
             "content-type: application/json\nx-request-id: abc"
         );
         assert_eq!(format_headers(&[]), "No headers");
+    }
+
+    #[test]
+    fn formats_response_cookies_for_display() {
+        assert_eq!(
+            format_cookies(&[
+                ("content-type".to_string(), "application/json".to_string()),
+                (
+                    "Set-Cookie".to_string(),
+                    "session=abc; Path=/; HttpOnly".to_string()
+                ),
+                (
+                    "set-cookie".to_string(),
+                    "theme=dark; Max-Age=3600".to_string()
+                )
+            ]),
+            "1 session=abc; Path=/; HttpOnly\n2 theme=dark; Max-Age=3600"
+        );
+        assert_eq!(format_cookies(&[]), "No cookies");
+        assert_eq!(
+            format_cookies(&[("content-type".to_string(), "application/json".to_string())]),
+            "No cookies"
+        );
     }
 
     #[test]

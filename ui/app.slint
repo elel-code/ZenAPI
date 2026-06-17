@@ -2724,6 +2724,7 @@ component ResponsePanel inherits Rectangle {
     in-out property <string> response_body;
     in-out property <string> response_raw_body;
     in-out property <string> response_headers;
+    in-out property <string> response_cookies;
     in-out property <string> codegen_language;
     in-out property <string> codegen_output;
     in-out property <string> codegen_path;
@@ -2749,7 +2750,7 @@ component ResponsePanel inherits Rectangle {
     callback format_response(string);
     property <string> active_tab: "pretty";
     property <bool> response_folded: false;
-    property <string> active_response_text: root.active_tab == "pretty" ? root.response_body : root.active_tab == "raw" ? root.response_raw_body : root.active_tab == "headers" ? root.response_headers : "No cookies";
+    property <string> active_response_text: root.active_tab == "pretty" ? root.response_body : root.active_tab == "raw" ? root.response_raw_body : root.active_tab == "headers" ? root.response_headers : root.response_cookies;
     property <bool> response_ready: root.response_status != "Idle" || root.response_headers != "" || root.response_time != "" || root.response_size != "" || root.response_raw_body != root.response_body;
 
     width: 400px;
@@ -2989,8 +2990,8 @@ component ResponsePanel inherits Rectangle {
                 read_only: true;
             }
 
-            if !root.response_folded && root.active_tab == "cookies": UiText {
-                text: "No cookies";
+            if !root.response_folded && root.active_tab == "cookies" && root.response_cookies == "No cookies": UiText {
+                text: root.response_cookies;
                 width: parent.width;
                 height: parent.height;
                 color: Theme.outline;
@@ -2998,6 +2999,13 @@ component ResponsePanel inherits Rectangle {
                 horizontal-alignment: center;
                 vertical-alignment: center;
                 overflow: elide;
+            }
+
+            if !root.response_folded && root.active_tab == "cookies" && root.response_cookies != "No cookies": CodePane {
+                width: parent.width;
+                height: parent.height;
+                text <=> root.response_cookies;
+                read_only: true;
             }
         }
     }
@@ -6117,6 +6125,7 @@ export component AppWindow inherits Window {
     in-out property <string> response_body: "Import an OpenAPI or Swagger document to begin.";
     in-out property <string> response_raw_body: "Import an OpenAPI or Swagger document to begin.";
     in-out property <string> response_headers: "";
+    in-out property <string> response_cookies: "No cookies";
     in-out property <string> codegen_language: "curl";
     in-out property <string> codegen_output: "";
     in-out property <string> codegen_metadata: "No snippet generated";
@@ -6517,6 +6526,7 @@ export component AppWindow inherits Window {
                             response_body <=> root.response_body;
                             response_raw_body <=> root.response_raw_body;
                             response_headers <=> root.response_headers;
+                            response_cookies <=> root.response_cookies;
                             codegen_language <=> root.codegen_language;
                             codegen_output <=> root.codegen_output;
                             codegen_path <=> root.codegen_path;

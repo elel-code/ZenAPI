@@ -39,8 +39,9 @@
 - [x] Show response status, timing, size, and formatted body.
 - [x] Start/stop the local Axum mock server from the Slint shell.
 - [~] Keep the request body editor and response viewer usable as Slint text
-  controls; response Pretty, Raw, Headers, and Cookies tabs are visible, and
-  the response toolbar now wires Copy, JSON Format, and Fold/Open actions.
+  controls; response Pretty, Raw, Headers, and Set-Cookie-derived Cookies tabs
+  are visible, and the response toolbar now wires Copy, JSON Format, and
+  Fold/Open actions.
   Richer fold controls and selection-aware copy still need parity work.
 
 ## Phase 3: Slint UI Parity Backlog
