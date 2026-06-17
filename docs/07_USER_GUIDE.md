@@ -298,7 +298,8 @@ Supported actions:
   `Load`.
 - Export native ZenAPI JSON with `Save`.
 - Export Postman Collection v2.1 JSON with `PM`.
-- Save the current request to the collection.
+- Save the current request to the selected folder, or to the collection root
+  when no folder is selected.
 - Create a root-level folder with the folder name field and `Folder`.
 - Select a folder row, then use the folder name field and `Folder` to create a
   nested child folder.

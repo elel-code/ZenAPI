@@ -1181,34 +1181,49 @@ fn wire_collection_actions(app: &AppWindow, state: Arc<Mutex<AppState>>) {
         };
         let request_name = collection_request.name.clone();
         let request_url = collection_request.url.clone();
+        let selected_folder = app.get_selected_collection_folder().to_string();
 
-        let Some((collection_name, request_count, rows)) =
-            add_state.lock().ok().map(|mut state| {
-                state
-                    .collection
-                    .items
-                    .push(CollectionItem::Request(collection_request));
-                (
+        let Some((collection_name, target_label, request_count, selected_id, rows)) =
+            add_state.lock().ok().and_then(|mut state| {
+                let selected_id = add_collection_request_in(
+                    &mut state.collection,
+                    &selected_folder,
+                    collection_request,
+                )?;
+                let target_label = collection_folder_label(&selected_folder);
+                let request_count = count_collection_requests(&state.collection.items);
+                let rows = collection_model(&state.collection);
+                Some((
                     state.collection.name.clone(),
-                    count_collection_requests(&state.collection.items),
-                    collection_model(&state.collection),
-                )
+                    target_label,
+                    request_count,
+                    selected_id,
+                    rows,
+                ))
             })
         else {
+            app.set_collection_status("Add failed".into());
+            set_response(
+                &app,
+                "Collection add failed",
+                "",
+                "error",
+                "Select the collection root or a valid folder before saving.",
+            );
             return;
         };
 
         app.set_collection_name(collection_name.into());
         app.set_collection_rows(rows);
         app.set_collection_status(format!("Saved {request_count} requests").into());
-        app.set_selected_collection_request(request_count.saturating_sub(1) as i32);
+        app.set_selected_collection_request(selected_id);
         app.set_collection_request_name(request_name.clone().into());
         set_response(
             &app,
             "Request saved to collection",
             &request_name,
             "success",
-            &request_url,
+            &format!("{request_url}\nSaved under {target_label}."),
         );
     });
 
@@ -4905,6 +4920,61 @@ fn collection_folder_label(folder_path_key: &str) -> String {
     } else {
         path.join(" / ")
     }
+}
+
+fn add_collection_request_in(
+    collection: &mut ApiCollection,
+    folder_path_key: &str,
+    request: CollectionRequest,
+) -> Option<i32> {
+    let folder_path = parse_collection_folder_path_key(folder_path_key)?;
+    if folder_path.is_empty() {
+        let row_id = count_collection_requests(&collection.items) as i32;
+        collection.items.push(CollectionItem::Request(request));
+        return Some(row_id);
+    }
+
+    let mut current = 0usize;
+    let mut request = Some(request);
+    add_collection_request_to_folder_items(
+        &mut collection.items,
+        &folder_path,
+        &mut current,
+        &mut request,
+    )
+}
+
+fn add_collection_request_to_folder_items(
+    items: &mut Vec<CollectionItem>,
+    folder_path: &[String],
+    current: &mut usize,
+    request: &mut Option<CollectionRequest>,
+) -> Option<i32> {
+    let (target, rest) = folder_path.split_first()?;
+    for item in items {
+        match item {
+            CollectionItem::Folder(folder) if folder.name.as_str() == target.as_str() => {
+                if rest.is_empty() {
+                    let row_id = *current + count_collection_requests(&folder.items);
+                    folder.items.push(CollectionItem::Request(request.take()?));
+                    return Some(row_id as i32);
+                }
+                return add_collection_request_to_folder_items(
+                    &mut folder.items,
+                    rest,
+                    current,
+                    request,
+                );
+            }
+            CollectionItem::Folder(folder) => {
+                *current += count_collection_requests(&folder.items);
+            }
+            CollectionItem::Request(_) => {
+                *current += 1;
+            }
+        }
+    }
+    None
 }
 
 fn count_collection_requests(items: &[CollectionItem]) -> usize {
@@ -9143,6 +9213,70 @@ mod tests {
             collection_folder_label(r#"["Users","Admin"]"#),
             "Users / Admin"
         );
+    }
+
+    #[test]
+    fn saves_collection_requests_under_selected_folder() {
+        let mut collection = ApiCollection {
+            name: "Demo".to_string(),
+            description: String::new(),
+            items: vec![
+                CollectionItem::Folder(zenapi::collections::CollectionFolder {
+                    name: "Users".to_string(),
+                    description: String::new(),
+                    items: vec![CollectionItem::Request(saved_request(
+                        "List users",
+                        "GET",
+                        "https://api.example.com/users",
+                    ))],
+                }),
+                CollectionItem::Request(saved_request(
+                    "Health",
+                    "GET",
+                    "https://api.example.com/health",
+                )),
+            ],
+        };
+
+        let nested_id = add_collection_request_in(
+            &mut collection,
+            r#"["Users"]"#,
+            saved_request("Create user", "POST", "https://api.example.com/users"),
+        )
+        .expect("nested save");
+
+        assert_eq!(nested_id, 1);
+        assert_eq!(
+            collection_request_at(&collection, 0).map(|request| request.name.as_str()),
+            Some("List users")
+        );
+        assert_eq!(
+            collection_request_at(&collection, 1).map(|request| request.name.as_str()),
+            Some("Create user")
+        );
+        assert_eq!(
+            collection_request_at(&collection, 2).map(|request| request.name.as_str()),
+            Some("Health")
+        );
+
+        let root_id =
+            add_collection_request_in(&mut collection, "", saved_request("Ping", "GET", "/ping"))
+                .expect("root save");
+
+        assert_eq!(root_id, 3);
+        assert_eq!(
+            collection_request_at(&collection, 3).map(|request| request.name.as_str()),
+            Some("Ping")
+        );
+        assert!(
+            add_collection_request_in(
+                &mut collection,
+                r#"["Missing"]"#,
+                saved_request("Nope", "GET", "/nope"),
+            )
+            .is_none()
+        );
+        assert_eq!(count_collection_requests(&collection.items), 4);
     }
 
     #[test]

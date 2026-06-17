@@ -92,6 +92,7 @@
   collection import/save/Postman export, and restores saved requests from a
   sidebar list with imported folder rows visible, selects folder rows, creates
   root-level and nested folders, includes pre-request/tests text, and
+  saves current requests into the selected folder or collection root,
   duplicates/deletes saved requests, with request rename and folder reparenting
   wired; drag/drop remains pending.
 - [~] Rebuild History UI for local request history, filtering, restore, delete,
