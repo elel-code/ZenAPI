@@ -38,6 +38,14 @@ export struct MockLogRow {
     status: string,
 }
 
+export struct MockRuleRow {
+    row_id: int,
+    source: string,
+    name: string,
+    value: string,
+    body_preview: string,
+}
+
 export struct VariableTableRow {
     row_id: int,
     scope: string,
@@ -3328,25 +3336,36 @@ component MockConfigField inherits Rectangle {
     }
 }
 
-component MockRuleCard inherits Rectangle {
-    in property <string> kind;
-    in property <string> expression;
-    in property <string> result;
+component MockRuleLine inherits Rectangle {
+    in property <int> row_id;
+    in property <string> source;
+    in property <string> name;
+    in property <string> value;
+    in property <string> body_preview;
+    in property <bool> selected;
+    callback picked(int);
 
-    height: 92px;
+    height: 54px;
     horizontal-stretch: 1;
-    border-radius: 8px;
+    border-radius: 6px;
     border-width: 1px;
-    border-color: Theme.outline_variant;
-    background: Theme.surface;
+    border-color: root.selected ? Theme.primary : Theme.outline_variant;
+    background: root.selected ? Theme.surface_variant : touch.has-hover ? Theme.surface_container_high : Theme.surface;
+
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.picked(root.row_id);
+        }
+    }
 
     UiText {
         x: 12px;
-        y: 10px;
-        text: root.kind;
-        width: 96px;
-        height: 22px;
-        color: Theme.on_surface;
+        y: 7px;
+        text: root.source;
+        width: 48px;
+        height: 18px;
+        color: root.selected ? Theme.primary : Theme.on_surface_variant;
         font-family: "JetBrains Mono";
         font-size: 11px;
         font-weight: 800;
@@ -3355,32 +3374,25 @@ component MockRuleCard inherits Rectangle {
     }
 
     UiText {
-        x: 12px;
-        y: 36px;
-        text: root.expression;
-        width: parent.width - 24px;
-        height: 20px;
-        color: Theme.tertiary;
+        x: 66px;
+        y: 7px;
+        text: root.name + "=" + root.value;
+        width: parent.width - 78px;
+        height: 18px;
+        color: Theme.on_surface;
         font-family: "JetBrains Mono";
         font-size: 12px;
+        font-weight: 700;
         vertical-alignment: center;
         overflow: elide;
     }
 
-    Rectangle {
-        x: 12px;
-        y: 62px;
-        width: parent.width - 24px;
-        height: 1px;
-        background: Theme.outline_variant;
-    }
-
     UiText {
         x: 12px;
-        y: 66px;
-        text: "Return " + root.result;
+        y: 29px;
         width: parent.width - 24px;
-        height: 20px;
+        height: 18px;
+        text: root.body_preview;
         color: Theme.on_surface_variant;
         font-size: 12px;
         vertical-alignment: center;
@@ -3391,19 +3403,29 @@ component MockRuleCard inherits Rectangle {
 component MockManagerPage inherits Rectangle {
     in-out property <[RouteRow]> routes;
     in-out property <[MockLogRow]> mock_logs;
+    in-out property <[MockRuleRow]> mock_rule_rows;
     in-out property <int> selected_route;
+    in-out property <int> selected_mock_rule;
     in-out property <string> mock_log_filter;
     in-out property <string> mock_log_path;
     in property <string> selected_mock_method;
     in property <string> selected_mock_path;
     in property <string> selected_mock_summary;
     in-out property <string> selected_mock_body;
+    in-out property <string> selected_mock_rule_source;
+    in-out property <string> selected_mock_rule_name;
+    in-out property <string> selected_mock_rule_value;
+    in-out property <string> selected_mock_rule_body;
     in property <bool> busy;
     in property <bool> server_running;
     in property <string> server_status;
     callback select_route(int);
     callback toggle_server();
     callback save_mock_response(string);
+    callback select_mock_rule(int);
+    callback add_mock_rule(string);
+    callback save_mock_rule(int, string, string, string, string);
+    callback delete_mock_rule(int);
     callback filter_mock_logs(string);
     callback save_mock_logs(string);
     callback clear_mock_logs();
@@ -3671,7 +3693,7 @@ component MockManagerPage inherits Rectangle {
                 spacing: 0px;
 
                 Rectangle {
-                    height: 250px;
+                    height: 430px;
                     horizontal-stretch: 1;
                     background: Theme.surface_container_low;
 
@@ -3679,27 +3701,179 @@ component MockManagerPage inherits Rectangle {
                         padding: 14px;
                         spacing: 10px;
 
-                        UiText {
-                            text: "ROUTING RULES";
-                            height: 20px;
+                        HorizontalLayout {
+                            height: 30px;
+                            spacing: 8px;
+                            alignment: center;
+
+                            UiText {
+                                text: "ROUTING RULES";
+                                height: parent.height;
+                                horizontal-stretch: 1;
+                                color: Theme.on_surface;
+                                font-size: 12px;
+                                font-weight: 800;
+                                vertical-alignment: center;
+                                overflow: elide;
+                            }
+
+                            ActionButton {
+                                text: "+H";
+                                button_width: 42px;
+                                enabled: !root.busy && root.selected_mock_path != "";
+                                clicked => {
+                                    root.add_mock_rule("header");
+                                }
+                            }
+
+                            ActionButton {
+                                text: "+Q";
+                                button_width: 42px;
+                                enabled: !root.busy && root.selected_mock_path != "";
+                                clicked => {
+                                    root.add_mock_rule("query");
+                                }
+                            }
+                        }
+
+                        Rectangle {
+                            height: 112px;
                             horizontal-stretch: 1;
-                            color: Theme.on_surface;
-                            font-size: 12px;
-                            font-weight: 800;
-                            vertical-alignment: center;
-                            overflow: elide;
+                            background: Theme.surface_container_lowest;
+                            border-radius: 6px;
+                            border-width: 1px;
+                            border-color: Theme.outline_variant;
+                            clip: true;
+
+                            if root.mock_rule_rows.length == 0: UiText {
+                                x: 12px;
+                                width: parent.width - 24px;
+                                height: parent.height;
+                                text: root.selected_mock_path == "" ? "Select an endpoint to add conditional responses." : "No conditional rules for this endpoint.";
+                                color: Theme.outline;
+                                font-size: 12px;
+                                horizontal-alignment: center;
+                                vertical-alignment: center;
+                                overflow: elide;
+                            }
+
+                            if root.mock_rule_rows.length != 0: ListView {
+                                width: parent.width;
+                                height: parent.height;
+                                vertical-scrollbar-policy: ScrollBarPolicy.as-needed;
+                                horizontal-scrollbar-policy: ScrollBarPolicy.as-needed;
+
+                                for rule in root.mock_rule_rows: MockRuleLine {
+                                    row_id: rule.row_id;
+                                    source: rule.source;
+                                    name: rule.name;
+                                    value: rule.value;
+                                    body_preview: rule.body_preview;
+                                    selected: root.selected_mock_rule == rule.row_id;
+                                    picked(row_id) => {
+                                        root.selected_mock_rule = row_id;
+                                        root.select_mock_rule(row_id);
+                                    }
+                                }
+                            }
                         }
 
-                        MockRuleCard {
-                            kind: "Default";
-                            expression: root.selected_mock_path == "" ? "method + path match" : root.selected_mock_method + " " + root.selected_mock_path;
-                            result: "OpenAPI mock response";
+                        HorizontalLayout {
+                            height: 28px;
+                            spacing: 8px;
+
+                            BodyModeButton {
+                                mode: "header";
+                                label: "Header";
+                                button_width: 74px;
+                                selected: root.selected_mock_rule_source == "header";
+                                enabled: !root.busy && root.selected_mock_rule >= 0;
+                                picked(mode) => {
+                                    root.selected_mock_rule_source = mode;
+                                }
+                            }
+
+                            BodyModeButton {
+                                mode: "query";
+                                label: "Query";
+                                button_width: 66px;
+                                selected: root.selected_mock_rule_source == "query";
+                                enabled: !root.busy && root.selected_mock_rule >= 0;
+                                picked(mode) => {
+                                    root.selected_mock_rule_source = mode;
+                                }
+                            }
+
+                            Rectangle {
+                                horizontal-stretch: 1;
+                            }
+
+                            ActionButton {
+                                text: "Del";
+                                button_width: 48px;
+                                warning: true;
+                                enabled: !root.busy && root.selected_mock_rule >= 0;
+                                clicked => {
+                                    root.delete_mock_rule(root.selected_mock_rule);
+                                }
+                            }
                         }
 
-                        MockRuleCard {
-                            kind: "Fallback";
-                            expression: "unmatched request";
-                            result: "404 Not Found";
+                        HorizontalLayout {
+                            height: 34px;
+                            spacing: 8px;
+
+                            TextField {
+                                text <=> root.selected_mock_rule_name;
+                                placeholder: root.selected_mock_rule_source == "query" ? "query key" : "header name";
+                                mono: true;
+                                enabled: !root.busy && root.selected_mock_rule >= 0;
+                            }
+
+                            TextField {
+                                text <=> root.selected_mock_rule_value;
+                                placeholder: "match value";
+                                mono: true;
+                                enabled: !root.busy && root.selected_mock_rule >= 0;
+                            }
+                        }
+
+                        Rectangle {
+                            horizontal-stretch: 1;
+                            vertical-stretch: 1;
+                            background: Theme.surface_container_lowest;
+                            border-radius: 6px;
+                            border-width: 1px;
+                            border-color: Theme.outline_variant;
+                            clip: true;
+
+                            if root.selected_mock_rule < 0: UiText {
+                                x: 12px;
+                                width: parent.width - 24px;
+                                height: parent.height;
+                                text: "Select or add a rule to edit its JSON response.";
+                                color: Theme.outline;
+                                font-size: 12px;
+                                horizontal-alignment: center;
+                                vertical-alignment: center;
+                                overflow: elide;
+                            }
+
+                            if root.selected_mock_rule >= 0: CodePane {
+                                width: parent.width;
+                                height: parent.height;
+                                text <=> root.selected_mock_rule_body;
+                                read_only: false;
+                            }
+                        }
+
+                        ActionButton {
+                            text: "Save Rule";
+                            button_width: 332px;
+                            enabled: !root.busy && root.selected_mock_rule >= 0 && root.selected_mock_rule_name != "" && root.selected_mock_rule_value != "" && root.selected_mock_rule_body != "";
+                            clicked => {
+                                root.save_mock_rule(root.selected_mock_rule, root.selected_mock_rule_source, root.selected_mock_rule_name, root.selected_mock_rule_value, root.selected_mock_rule_body);
+                            }
                         }
                     }
                 }
@@ -5823,7 +5997,9 @@ export component AppWindow inherits Window {
     in-out property <[HistoryRow]> history_rows;
     in-out property <[RunnerRow]> runner_rows;
     in-out property <[MockLogRow]> mock_logs;
+    in-out property <[MockRuleRow]> mock_rule_rows;
     in-out property <int> selected_route: -1;
+    in-out property <int> selected_mock_rule: -1;
     in-out property <string> file_path;
     in-out property <string> spec_label: "";
     in-out property <bool> spec_loaded: false;
@@ -5903,6 +6079,10 @@ export component AppWindow inherits Window {
     in-out property <string> selected_mock_path: "";
     in-out property <string> selected_mock_summary: "";
     in-out property <string> selected_mock_body: "";
+    in-out property <string> selected_mock_rule_source: "header";
+    in-out property <string> selected_mock_rule_name: "";
+    in-out property <string> selected_mock_rule_value: "";
+    in-out property <string> selected_mock_rule_body: "{\n  \n}";
     in-out property <[KeyValueTableRow]> query_param_rows;
     in-out property <[KeyValueTableRow]> header_rows;
     in-out property <int> total_route_count: 0;
@@ -5937,6 +6117,10 @@ export component AppWindow inherits Window {
     callback save_mock_logs(string);
     callback clear_mock_logs();
     callback save_mock_response(string);
+    callback select_mock_rule(int);
+    callback add_mock_rule(string);
+    callback save_mock_rule(int, string, string, string, string);
+    callback delete_mock_rule(int);
     callback add_query_param();
     callback paste_query_params();
     callback import_query_params(string);
@@ -6412,13 +6596,19 @@ export component AppWindow inherits Window {
                         height: max(parent.visible-height, 620px);
                         routes <=> root.routes;
                         mock_logs <=> root.mock_logs;
+                        mock_rule_rows <=> root.mock_rule_rows;
                         selected_route <=> root.selected_route;
+                        selected_mock_rule <=> root.selected_mock_rule;
                         mock_log_filter <=> root.mock_log_filter;
                         mock_log_path <=> root.mock_log_path;
                         selected_mock_method: root.selected_mock_method;
                         selected_mock_path: root.selected_mock_path;
                         selected_mock_summary: root.selected_mock_summary;
                         selected_mock_body <=> root.selected_mock_body;
+                        selected_mock_rule_source <=> root.selected_mock_rule_source;
+                        selected_mock_rule_name <=> root.selected_mock_rule_name;
+                        selected_mock_rule_value <=> root.selected_mock_rule_value;
+                        selected_mock_rule_body <=> root.selected_mock_rule_body;
                         busy: root.busy;
                         server_running: root.server_running;
                         server_status: root.server_status;
@@ -6430,6 +6620,18 @@ export component AppWindow inherits Window {
                         }
                         save_mock_response(body) => {
                             root.save_mock_response(body);
+                        }
+                        select_mock_rule(row_id) => {
+                            root.select_mock_rule(row_id);
+                        }
+                        add_mock_rule(source) => {
+                            root.add_mock_rule(source);
+                        }
+                        save_mock_rule(row_id, source, name, value, body) => {
+                            root.save_mock_rule(row_id, source, name, value, body);
+                        }
+                        delete_mock_rule(row_id) => {
+                            root.delete_mock_rule(row_id);
                         }
                         filter_mock_logs(query) => {
                             root.filter_mock_logs(query);

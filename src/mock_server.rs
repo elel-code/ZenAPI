@@ -8,7 +8,7 @@ pub use server::MockServer;
 mod tests {
     use super::*;
     use crate::client::send_request;
-    use crate::openapi::ApiRoute;
+    use crate::openapi::{ApiRoute, MockRule, MockRuleSource};
     use serde_json::json;
 
     #[tokio::test]
@@ -19,6 +19,7 @@ mod tests {
                 path: "/health".to_string(),
                 summary: String::new(),
                 mock_body: json!({ "ok": true }),
+                mock_rules: Vec::new(),
             }],
             0,
         )
@@ -43,6 +44,7 @@ mod tests {
                 path: "/health".to_string(),
                 summary: String::new(),
                 mock_body: json!({ "ok": true }),
+                mock_rules: Vec::new(),
             }],
             0,
         )
@@ -90,6 +92,7 @@ mod tests {
                 path: "/health".to_string(),
                 summary: String::new(),
                 mock_body: json!({ "ok": true }),
+                mock_rules: Vec::new(),
             }],
             0,
             log_tx,
@@ -115,6 +118,71 @@ mod tests {
                 status: 200,
             }
         );
+
+        server.stop().await;
+    }
+
+    #[tokio::test]
+    async fn serves_conditional_mock_rule_responses() {
+        let server = MockServer::start(
+            vec![ApiRoute {
+                method: "GET".to_string(),
+                path: "/profile".to_string(),
+                summary: String::new(),
+                mock_body: json!({ "role": "default" }),
+                mock_rules: vec![
+                    MockRule {
+                        source: MockRuleSource::Header,
+                        name: "x-mock-scenario".to_string(),
+                        value: "admin".to_string(),
+                        mock_body: json!({ "role": "admin" }),
+                    },
+                    MockRule {
+                        source: MockRuleSource::Query,
+                        name: "scenario".to_string(),
+                        value: "guest".to_string(),
+                        mock_body: json!({ "role": "guest" }),
+                    },
+                ],
+            }],
+            0,
+        )
+        .await
+        .expect("start server");
+
+        let client = reqwest::Client::new();
+        let base_url = format!("http://{}/profile", server.addr());
+
+        let header_response = client
+            .get(&base_url)
+            .header("x-mock-scenario", "admin")
+            .send()
+            .await
+            .expect("header request")
+            .text()
+            .await
+            .expect("header body");
+        assert!(header_response.contains("\"role\":\"admin\""));
+
+        let query_response = client
+            .get(format!("{base_url}?scenario=guest"))
+            .send()
+            .await
+            .expect("query request")
+            .text()
+            .await
+            .expect("query body");
+        assert!(query_response.contains("\"role\":\"guest\""));
+
+        let default_response = client
+            .get(&base_url)
+            .send()
+            .await
+            .expect("default request")
+            .text()
+            .await
+            .expect("default body");
+        assert!(default_response.contains("\"role\":\"default\""));
 
         server.stop().await;
     }

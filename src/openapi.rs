@@ -4,7 +4,7 @@ mod parser;
 mod schema;
 mod yaml;
 
-pub use model::{ApiRoute, ApiSpec};
+pub use model::{ApiRoute, ApiSpec, MockRule, MockRuleSource};
 pub use parser::{load_openapi_file, parse_openapi};
 
 #[cfg(test)]

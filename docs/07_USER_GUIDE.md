@@ -319,8 +319,11 @@ Behavior:
   page. Edit the response JSON and use `Save` to persist it to the selected
   route. If the server is already running, restart it before expecting the
   running mock route to use the new body.
-- Shows default and fallback routing cards; editing conditional rules is still
-  future work.
+- Adds per-route conditional response rules with `+H` for header matches and
+  `+Q` for query-string matches. Each rule has a source, name, exact match
+  value, and JSON response body. Rules are evaluated before the route's default
+  mock body. If the server is already running, restart it before expecting saved
+  rule changes to apply.
 - Records recent mock requests in the Mock Log panel.
 - Filters mock logs by method, path, or status.
 - Clears the current in-memory mock log list with `Clear`.

@@ -28,14 +28,14 @@ use zenapi::{
     grpc::{GrpcRequestDraft, build_grpc_request_draft},
     history::{HistoryRequest, HistoryResponse, RequestHistory},
     mock_server::{MockRequestLog, MockServer},
-    openapi::{ApiRoute, ApiSpec, load_openapi_file},
+    openapi::{ApiRoute, ApiSpec, MockRule, MockRuleSource, load_openapi_file},
     pre_request::{execute_pre_request_actions, resolve_codegen_request_templates},
     variables::{Variable, VariableStore, replace_variables},
 };
 
 use crate::ui::{
-    AppWindow, CollectionRow, EnvironmentRow, HistoryRow, KeyValueTableRow, MockLogRow, RouteRow,
-    RunnerRow, TestAssertionRow, VariableTableRow,
+    AppWindow, CollectionRow, EnvironmentRow, HistoryRow, KeyValueTableRow, MockLogRow,
+    MockRuleRow, RouteRow, RunnerRow, TestAssertionRow, VariableTableRow,
 };
 
 const HISTORY_FILE_NAME: &str = ".zenapi-history.json";
@@ -95,6 +95,7 @@ pub fn run() -> Result<()> {
     wire_collection_actions(&app, state.clone());
     wire_mock_log_filter(&app, state.clone());
     wire_mock_response_actions(&app, state.clone());
+    wire_mock_rule_actions(&app, state.clone());
     wire_header_helpers(&app);
     wire_query_param_actions(&app);
     wire_auth_key_actions(&app);
@@ -1257,6 +1258,156 @@ fn wire_mock_response_actions(app: &AppWindow, state: Arc<Mutex<AppState>>) {
                 set_response(
                     &app,
                     "Mock response save failed",
+                    "",
+                    "error",
+                    &error.to_string(),
+                );
+            }
+        }
+    });
+}
+
+fn wire_mock_rule_actions(app: &AppWindow, state: Arc<Mutex<AppState>>) {
+    let weak_app = app.as_weak();
+    let state_for_select = state.clone();
+    app.on_select_mock_rule(move |row_id| {
+        let Some(app) = weak_app.upgrade() else {
+            return;
+        };
+
+        let rule = state_for_select.lock().ok().and_then(|state| {
+            selected_route(&state, app.get_selected_route())
+                .ok()
+                .and_then(|route| route.mock_rules.get(row_id as usize).cloned())
+        });
+
+        if let Some(rule) = rule {
+            set_selected_mock_rule(&app, row_id, &rule);
+        } else {
+            clear_selected_mock_rule(&app);
+        }
+    });
+
+    let weak_app = app.as_weak();
+    let state_for_add = state.clone();
+    app.on_add_mock_rule(move |source| {
+        let Some(app) = weak_app.upgrade() else {
+            return;
+        };
+        if app.get_busy() {
+            return;
+        }
+
+        let result = state_for_add
+            .lock()
+            .map_err(|_| anyhow!("mock route state is unavailable"))
+            .and_then(|mut state| {
+                add_selected_mock_rule(&mut state, app.get_selected_route(), source.as_str())
+            });
+
+        match result {
+            Ok((route, row_id)) => {
+                refresh_mock_rule_rows(&app, &route);
+                if let Some(rule) = route.mock_rules.get(row_id as usize) {
+                    set_selected_mock_rule(&app, row_id, rule);
+                }
+                app.set_activity(
+                    "Mock rule added; restart server to apply if it is running.".into(),
+                );
+            }
+            Err(error) => {
+                set_response(
+                    &app,
+                    "Mock rule add failed",
+                    "",
+                    "error",
+                    &error.to_string(),
+                );
+            }
+        }
+    });
+
+    let weak_app = app.as_weak();
+    let state_for_save = state.clone();
+    app.on_save_mock_rule(move |row_id, source, name, value, body| {
+        let Some(app) = weak_app.upgrade() else {
+            return;
+        };
+        if app.get_busy() {
+            return;
+        }
+
+        let result = state_for_save
+            .lock()
+            .map_err(|_| anyhow!("mock route state is unavailable"))
+            .and_then(|mut state| {
+                save_selected_mock_rule(
+                    &mut state,
+                    app.get_selected_route(),
+                    row_id,
+                    source.as_str(),
+                    name.as_str(),
+                    value.as_str(),
+                    body.as_str(),
+                )
+            });
+
+        match result {
+            Ok(route) => {
+                refresh_mock_rule_rows(&app, &route);
+                if let Some(rule) = route.mock_rules.get(row_id as usize) {
+                    set_selected_mock_rule(&app, row_id, rule);
+                }
+                app.set_activity(
+                    "Mock rule saved; restart server to apply if it is running.".into(),
+                );
+            }
+            Err(error) => {
+                set_response(
+                    &app,
+                    "Mock rule save failed",
+                    "",
+                    "error",
+                    &error.to_string(),
+                );
+            }
+        }
+    });
+
+    let weak_app = app.as_weak();
+    app.on_delete_mock_rule(move |row_id| {
+        let Some(app) = weak_app.upgrade() else {
+            return;
+        };
+        if app.get_busy() {
+            return;
+        }
+
+        let result = state
+            .lock()
+            .map_err(|_| anyhow!("mock route state is unavailable"))
+            .and_then(|mut state| {
+                delete_selected_mock_rule(&mut state, app.get_selected_route(), row_id)
+            });
+
+        match result {
+            Ok((route, next_row)) => {
+                refresh_mock_rule_rows(&app, &route);
+                if let Some(row_id) = next_row {
+                    if let Some(rule) = route.mock_rules.get(row_id as usize) {
+                        set_selected_mock_rule(&app, row_id, rule);
+                    }
+                } else {
+                    clear_selected_mock_rule(&app);
+                }
+                app.set_activity(
+                    "Mock rule deleted; restart server to apply if it is running.".into(),
+                );
+            }
+            Err(error) => {
+                set_response(
+                    &app,
+                    "Mock rule delete failed",
                     "",
                     "error",
                     &error.to_string(),
@@ -3527,6 +3678,12 @@ fn set_selected_mock_route(app: &AppWindow, route: &ApiRoute) {
     app.set_selected_mock_path(route.path.clone().into());
     app.set_selected_mock_summary(route.summary.clone().into());
     app.set_selected_mock_body(pretty_json(&route.mock_body).into());
+    refresh_mock_rule_rows(app, route);
+    if let Some(rule) = route.mock_rules.first() {
+        set_selected_mock_rule(app, 0, rule);
+    } else {
+        clear_selected_mock_rule(app);
+    }
 }
 
 fn clear_selected_mock_route(app: &AppWindow) {
@@ -3534,6 +3691,28 @@ fn clear_selected_mock_route(app: &AppWindow) {
     app.set_selected_mock_path("".into());
     app.set_selected_mock_summary("".into());
     app.set_selected_mock_body("".into());
+    app.set_mock_rule_rows(empty_mock_rule_model());
+    clear_selected_mock_rule(app);
+}
+
+fn refresh_mock_rule_rows(app: &AppWindow, route: &ApiRoute) {
+    app.set_mock_rule_rows(mock_rule_model(&route.mock_rules));
+}
+
+fn set_selected_mock_rule(app: &AppWindow, row_id: i32, rule: &MockRule) {
+    app.set_selected_mock_rule(row_id);
+    app.set_selected_mock_rule_source(mock_rule_source_key(rule.source).into());
+    app.set_selected_mock_rule_name(rule.name.clone().into());
+    app.set_selected_mock_rule_value(rule.value.clone().into());
+    app.set_selected_mock_rule_body(pretty_json(&rule.mock_body).into());
+}
+
+fn clear_selected_mock_rule(app: &AppWindow) {
+    app.set_selected_mock_rule(-1);
+    app.set_selected_mock_rule_source("header".into());
+    app.set_selected_mock_rule_name("".into());
+    app.set_selected_mock_rule_value("".into());
+    app.set_selected_mock_rule_body("{\n  \n}".into());
 }
 
 fn update_selected_mock_response(
@@ -3565,6 +3744,147 @@ fn update_selected_mock_response(
     }
 
     Ok(updated)
+}
+
+fn selected_route(state: &AppState, selected_route: i32) -> Result<ApiRoute> {
+    let selected_route: usize = selected_route
+        .try_into()
+        .map_err(|_| anyhow!("select a mock route first"))?;
+    state
+        .visible_routes
+        .get(selected_route)
+        .cloned()
+        .ok_or_else(|| anyhow!("select a mock route first"))
+}
+
+fn selected_route_indices(state: &AppState, selected_route: i32) -> Result<(usize, usize)> {
+    let visible_index: usize = selected_route
+        .try_into()
+        .map_err(|_| anyhow!("select a mock route first"))?;
+    let selected = state
+        .visible_routes
+        .get(visible_index)
+        .ok_or_else(|| anyhow!("select a mock route first"))?;
+    let route_index = state
+        .routes
+        .iter()
+        .position(|route| route.method == selected.method && route.path == selected.path)
+        .ok_or_else(|| anyhow!("selected mock route is no longer available"))?;
+    Ok((route_index, visible_index))
+}
+
+fn add_selected_mock_rule(
+    state: &mut AppState,
+    selected_route: i32,
+    source: &str,
+) -> Result<(ApiRoute, i32)> {
+    let (route_index, visible_index) = selected_route_indices(state, selected_route)?;
+    let source = parse_mock_rule_source(source)?;
+    let mock_body = state.routes[route_index].mock_body.clone();
+    let rule = MockRule {
+        source,
+        name: default_mock_rule_name(source).to_string(),
+        value: "success".to_string(),
+        mock_body,
+    };
+
+    state.routes[route_index].mock_rules.push(rule);
+    let row_id = (state.routes[route_index].mock_rules.len() - 1) as i32;
+    let updated = state.routes[route_index].clone();
+    state.visible_routes[visible_index] = updated.clone();
+    Ok((updated, row_id))
+}
+
+fn save_selected_mock_rule(
+    state: &mut AppState,
+    selected_route: i32,
+    row_id: i32,
+    source: &str,
+    name: &str,
+    value: &str,
+    body: &str,
+) -> Result<ApiRoute> {
+    let (route_index, visible_index) = selected_route_indices(state, selected_route)?;
+    let row_index: usize = row_id
+        .try_into()
+        .map_err(|_| anyhow!("select a mock rule before saving"))?;
+    if row_index >= state.routes[route_index].mock_rules.len() {
+        bail!("select a mock rule before saving");
+    }
+
+    let name = name.trim();
+    let value = value.trim();
+    if name.is_empty() {
+        bail!("mock rule name is required");
+    }
+    if value.is_empty() {
+        bail!("mock rule match value is required");
+    }
+    let mock_body = serde_json::from_str::<Value>(body.trim())
+        .map_err(|err| anyhow!("mock rule response body must be valid JSON: {err}"))?;
+
+    state.routes[route_index].mock_rules[row_index] = MockRule {
+        source: parse_mock_rule_source(source)?,
+        name: name.to_string(),
+        value: value.to_string(),
+        mock_body,
+    };
+    let updated = state.routes[route_index].clone();
+    state.visible_routes[visible_index] = updated.clone();
+    Ok(updated)
+}
+
+fn delete_selected_mock_rule(
+    state: &mut AppState,
+    selected_route: i32,
+    row_id: i32,
+) -> Result<(ApiRoute, Option<i32>)> {
+    let (route_index, visible_index) = selected_route_indices(state, selected_route)?;
+    let row_index: usize = row_id
+        .try_into()
+        .map_err(|_| anyhow!("select a mock rule before deleting"))?;
+    if row_index >= state.routes[route_index].mock_rules.len() {
+        bail!("select a mock rule before deleting");
+    }
+
+    state.routes[route_index].mock_rules.remove(row_index);
+    let next_row = if state.routes[route_index].mock_rules.is_empty() {
+        None
+    } else {
+        Some(row_index.min(state.routes[route_index].mock_rules.len() - 1) as i32)
+    };
+    let updated = state.routes[route_index].clone();
+    state.visible_routes[visible_index] = updated.clone();
+    Ok((updated, next_row))
+}
+
+fn parse_mock_rule_source(source: &str) -> Result<MockRuleSource> {
+    match source.trim().to_lowercase().as_str() {
+        "header" => Ok(MockRuleSource::Header),
+        "query" => Ok(MockRuleSource::Query),
+        _ => bail!("mock rule source must be header or query"),
+    }
+}
+
+fn default_mock_rule_name(source: MockRuleSource) -> &'static str {
+    match source {
+        MockRuleSource::Header => "x-mock-scenario",
+        MockRuleSource::Query => "scenario",
+    }
+}
+
+fn mock_rule_source_key(source: MockRuleSource) -> &'static str {
+    match source {
+        MockRuleSource::Header => "header",
+        MockRuleSource::Query => "query",
+    }
+}
+
+fn mock_rule_source_label(source: MockRuleSource) -> &'static str {
+    match source {
+        MockRuleSource::Header => "Header",
+        MockRuleSource::Query => "Query",
+    }
 }
 
 fn collection_model(collection: &ApiCollection) -> ModelRc<CollectionRow> {
@@ -4487,6 +4807,22 @@ fn format_grpc_draft(draft: &GrpcRequestDraft) -> String {
 
 fn mock_log_model(logs: &[MockRequestLog]) -> ModelRc<MockLogRow> {
     mock_log_model_from_iter(logs.iter())
+}
+
+fn empty_mock_rule_model() -> ModelRc<MockRuleRow> {
+    mock_rule_model(&[])
+}
+
+fn mock_rule_model(rules: &[MockRule]) -> ModelRc<MockRuleRow> {
+    ModelRc::new(VecModel::from_iter(rules.iter().enumerate().map(
+        |(index, rule)| MockRuleRow {
+            row_id: index as i32,
+            source: mock_rule_source_label(rule.source).into(),
+            name: rule.name.clone().into(),
+            value: rule.value.clone().into(),
+            body_preview: truncate_summary_line(&json_value(&rule.mock_body), 96).into(),
+        },
+    )))
 }
 
 fn filtered_mock_log_model(logs: &[MockRequestLog], query: &str) -> ModelRc<MockLogRow> {
@@ -5915,6 +6251,7 @@ mod tests {
             path: path.to_string(),
             summary: summary.to_string(),
             mock_body: json!({}),
+            mock_rules: Vec::new(),
         }
     }
 
@@ -5979,6 +6316,56 @@ mod tests {
             state.routes[1].mock_body,
             json!({ "token": "abc", "ok": true })
         );
+    }
+
+    #[test]
+    fn adds_saves_and_deletes_selected_mock_rules() {
+        let routes = vec![route("GET", "/profile", "Profile")];
+        let mut state = AppState {
+            routes: routes.clone(),
+            visible_routes: routes,
+            ..AppState::default()
+        };
+
+        let (route, row_id) =
+            add_selected_mock_rule(&mut state, 0, "header").expect("add mock rule");
+        assert_eq!(row_id, 0);
+        assert_eq!(route.mock_rules[0].source, MockRuleSource::Header);
+        assert_eq!(route.mock_rules[0].name, "x-mock-scenario");
+        assert_eq!(state.visible_routes[0].mock_rules.len(), 1);
+
+        let route = save_selected_mock_rule(
+            &mut state,
+            0,
+            row_id,
+            "query",
+            "scenario",
+            "admin",
+            r#"{ "role": "admin" }"#,
+        )
+        .expect("save mock rule");
+        assert_eq!(route.mock_rules[0].source, MockRuleSource::Query);
+        assert_eq!(route.mock_rules[0].name, "scenario");
+        assert_eq!(route.mock_rules[0].value, "admin");
+        assert_eq!(route.mock_rules[0].mock_body, json!({ "role": "admin" }));
+        assert_eq!(
+            state.routes[0].mock_rules,
+            state.visible_routes[0].mock_rules
+        );
+
+        assert!(
+            save_selected_mock_rule(&mut state, 0, row_id, "query", "", "admin", "{}").is_err()
+        );
+        assert!(
+            save_selected_mock_rule(&mut state, 0, row_id, "header", "x-mode", "admin", "{ nope")
+                .is_err()
+        );
+
+        let (route, next_row) =
+            delete_selected_mock_rule(&mut state, 0, row_id).expect("delete mock rule");
+        assert!(route.mock_rules.is_empty());
+        assert_eq!(next_row, None);
+        assert!(state.visible_routes[0].mock_rules.is_empty());
     }
 
     #[test]

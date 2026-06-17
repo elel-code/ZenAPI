@@ -7,6 +7,23 @@ pub struct ApiRoute {
     pub path: String,
     pub summary: String,
     pub mock_body: Value,
+    #[serde(default)]
+    pub mock_rules: Vec<MockRule>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MockRule {
+    pub source: MockRuleSource,
+    pub name: String,
+    pub value: String,
+    pub mock_body: Value,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum MockRuleSource {
+    Header,
+    Query,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]

@@ -47,6 +47,7 @@ pub(crate) fn parse_json_value(root: &Value) -> Result<ApiSpec> {
                 path: path.to_string(),
                 summary,
                 mock_body: operation_mock_body(operation),
+                mock_rules: Vec::new(),
             });
         }
     }

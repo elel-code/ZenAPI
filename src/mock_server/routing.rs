@@ -1,4 +1,4 @@
-use crate::openapi::ApiRoute;
+use crate::openapi::{ApiRoute, MockRule, MockRuleSource};
 use axum::{
     Router,
     body::Body,
@@ -12,7 +12,13 @@ use serde_json::{Value, json};
 use std::{collections::HashMap, sync::Arc};
 use tokio::sync::mpsc;
 
-type RouteMap = HashMap<(Method, String), Value>;
+#[derive(Clone)]
+struct MockRouteResponse {
+    default_body: Value,
+    rules: Vec<MockRule>,
+}
+
+type RouteMap = HashMap<(Method, String), MockRouteResponse>;
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MockRequestLog {
@@ -42,7 +48,13 @@ fn build_route_map(routes: Vec<ApiRoute>) -> RouteMap {
         .into_iter()
         .filter_map(|route| {
             let method = route.method.parse::<Method>().ok()?;
-            Some(((method, route.path), route.mock_body))
+            Some((
+                (method, route.path),
+                MockRouteResponse {
+                    default_body: route.mock_body,
+                    rules: route.mock_rules,
+                },
+            ))
         })
         .collect()
 }
@@ -57,15 +69,18 @@ async fn mock_handler(State(state): State<Arc<MockState>>, request: Request<Body
     }
 
     let key = (method.clone(), path.clone());
-    let body = state.routes.get(&key).cloned().unwrap_or_else(|| {
-        json!({
-            "error": "mock route not found",
-            "method": method.as_str(),
-            "path": path,
-        })
-    });
+    let matched = state.routes.get(&key);
+    let body = matched
+        .map(|route| resolve_mock_body(route, &request))
+        .unwrap_or_else(|| {
+            json!({
+                "error": "mock route not found",
+                "method": method.as_str(),
+                "path": path,
+            })
+        });
 
-    let status = if state.routes.contains_key(&key) {
+    let status = if matched.is_some() {
         StatusCode::OK
     } else {
         StatusCode::NOT_FOUND
@@ -79,6 +94,42 @@ async fn mock_handler(State(state): State<Arc<MockState>>, request: Request<Body
     )
         .into_response();
     with_cors(response)
+}
+
+fn resolve_mock_body(route: &MockRouteResponse, request: &Request<Body>) -> Value {
+    route
+        .rules
+        .iter()
+        .find(|rule| mock_rule_matches(rule, request))
+        .map(|rule| rule.mock_body.clone())
+        .unwrap_or_else(|| route.default_body.clone())
+}
+
+fn mock_rule_matches(rule: &MockRule, request: &Request<Body>) -> bool {
+    let name = rule.name.trim();
+    let value = rule.value.trim();
+    if name.is_empty() || value.is_empty() {
+        return false;
+    }
+
+    match rule.source {
+        MockRuleSource::Header => request
+            .headers()
+            .get(name)
+            .and_then(|header| header.to_str().ok())
+            .is_some_and(|header| header == value),
+        MockRuleSource::Query => request
+            .uri()
+            .query()
+            .is_some_and(|query| query_param_matches(query, name, value)),
+    }
+}
+
+fn query_param_matches(query: &str, name: &str, value: &str) -> bool {
+    query.split('&').any(|pair| {
+        let (key, pair_value) = pair.split_once('=').unwrap_or((pair, ""));
+        key == name && pair_value == value
+    })
 }
 
 impl MockState {
