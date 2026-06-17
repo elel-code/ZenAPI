@@ -5113,6 +5113,13 @@ component DocumentationPage inherits Rectangle {
     in property <bool> busy;
     callback select_route(int);
     callback send_request();
+    property <string> sample_language: "curl";
+    property <string> sample_url: root.url == "" ? "https://api.example.com/v1/users/usr_12345" : root.url;
+    property <string> sample_code: root.sample_language == "python"
+        ? "import requests\n\nresponse = requests.get(\n    \"" + root.sample_url + "\",\n    headers={\"Authorization\": \"Bearer sk_test_...\"},\n)\nprint(response.text)"
+        : root.sample_language == "node"
+            ? "const response = await fetch(\"" + root.sample_url + "\", {\n  headers: {\n    Authorization: \"Bearer sk_test_...\"\n  }\n});\n\nconsole.log(await response.text());"
+            : "curl \"" + root.sample_url + "\" \\\n  -H \"Authorization: Bearer sk_test_...\"";
 
     horizontal-stretch: 1;
     vertical-stretch: 1;
@@ -5129,12 +5136,6 @@ component DocumentationPage inherits Rectangle {
             VerticalLayout {
                 padding: 16px;
                 spacing: 12px;
-
-                TextField {
-                    text: "";
-                    placeholder: "Search docs...";
-                    mono: false;
-                }
 
                 UiText {
                     text: "GETTING STARTED";
@@ -5246,14 +5247,39 @@ component DocumentationPage inherits Rectangle {
                     height: 30px;
                     spacing: 8px;
 
-                    BodyModeButton { mode: "curl"; label: "cURL"; selected: true; }
-                    BodyModeButton { mode: "python"; label: "Python"; selected: false; button_width: 84px; }
-                    BodyModeButton { mode: "node"; label: "Node.js"; selected: false; button_width: 84px; }
+                    BodyModeButton {
+                        mode: "curl";
+                        label: "cURL";
+                        selected: root.sample_language == "curl";
+                        picked(mode) => {
+                            root.sample_language = mode;
+                        }
+                    }
+
+                    BodyModeButton {
+                        mode: "python";
+                        label: "Python";
+                        selected: root.sample_language == "python";
+                        button_width: 84px;
+                        picked(mode) => {
+                            root.sample_language = mode;
+                        }
+                    }
+
+                    BodyModeButton {
+                        mode: "node";
+                        label: "Node.js";
+                        selected: root.sample_language == "node";
+                        button_width: 84px;
+                        picked(mode) => {
+                            root.sample_language = mode;
+                        }
+                    }
                 }
 
                 ReadOnlyCodeBlock {
                     height: 144px;
-                    text: "curl \"" + (root.url == "" ? "https://api.example.com/v1/users/usr_12345" : root.url) + "\" \\\n  -H \"Authorization: Bearer sk_test_...\"";
+                    text: root.sample_code;
                 }
 
                 DataPanel {
@@ -5270,13 +5296,6 @@ component DocumentationPage inherits Rectangle {
                     font-weight: 800;
                     vertical-alignment: center;
                     overflow: elide;
-                }
-
-                TextField {
-                    text: "";
-                    placeholder: "Bearer token";
-                    mono: true;
-                    enabled: !root.busy;
                 }
 
                 TextField {
@@ -5322,8 +5341,6 @@ component ApiKeysPage inherits Rectangle {
                     subtitle: "Scoped credentials";
                 }
 
-                TextField { text: ""; placeholder: "Search keys..."; }
-
                 KeyCard {
                     title: "Production Key";
                     token: "sk_prod_8f92a...";
@@ -5336,11 +5353,6 @@ component ApiKeysPage inherits Rectangle {
                     token: "sk_test_4b21c...";
                     meta: "Last used: 1d ago";
                     selected: false;
-                }
-
-                ActionButton {
-                    text: "Create New Key";
-                    button_width: 248px;
                 }
             }
         }
@@ -5496,15 +5508,7 @@ component TeamPage inherits Rectangle {
                         vertical-alignment: center;
                         overflow: elide;
                     }
-
-                    ActionButton {
-                        text: "Invite";
-                        button_width: 82px;
-                        primary: true;
-                    }
                 }
-
-                TextField { text: ""; placeholder: "Search members..."; }
 
                 TeamMemberLine { name: "Alex Chen"; initial: "A"; email: "alex.chen@api.arch"; role: "Admin"; selected: true; }
                 TeamMemberLine { name: "Sarah Jenkins"; initial: "S"; email: "s.jenkins@api.arch"; role: "Editor"; selected: false; }
@@ -5532,9 +5536,6 @@ component TeamPage inherits Rectangle {
                         title: "Alex Chen";
                         subtitle: "Backend Core / Global Admin";
                     }
-
-                    ActionButton { text: "Cancel"; button_width: 76px; }
-                    ActionButton { text: "Save Changes"; button_width: 122px; primary: true; }
                 }
 
                 DataPanel {
@@ -5621,14 +5622,6 @@ component SettingsPage inherits Rectangle {
                     body: "Transfer Ownership\nDelete Project\nBoth actions require confirmation.";
                 }
 
-                HorizontalLayout {
-                    height: 38px;
-                    spacing: 10px;
-
-                    Rectangle { horizontal-stretch: 1; }
-                    ActionButton { text: "Cancel"; button_width: 76px; }
-                    ActionButton { text: "Save Changes"; button_width: 122px; primary: true; }
-                }
             }
         }
 
@@ -5688,9 +5681,6 @@ component AnalyticsPage inherits Rectangle {
                         title: "System Telemetry";
                         subtitle: "Global aggregate metrics across all active regions.";
                     }
-
-                    ActionButton { text: "Last 15m"; button_width: 92px; }
-                    ActionButton { text: "Filter"; button_width: 72px; }
                 }
 
                 HorizontalLayout {

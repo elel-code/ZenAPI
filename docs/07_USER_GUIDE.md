@@ -25,6 +25,8 @@ bottom navigation for the primary pages.
 The Requests page keeps the three-pane request builder: collection/history
 sidebar, request editor, and response viewer. Long lists, code panes, and
 narrow-window page content use Slint scrollbars instead of clipping overflow.
+Reference pages only expose controls that perform a visible action; API Docs
+snippet language buttons switch the displayed sample locally.
 
 ## Keyboard Shortcuts
 
