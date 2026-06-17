@@ -164,7 +164,7 @@
 
 | Area | Status | Notes |
 |------|--------|-------|
-| App shell | Multi-page Slint shell restored | Responsive persistent page mounting with visibility switching, lightweight read-only code blocks, global navigation, compact navigation, request-sidebar OpenAPI import, and overflow scrollbars |
+| App shell | Multi-page Slint shell restored | Responsive lazy page mounting with first-visit caching, lightweight read-only code blocks, global navigation, compact navigation, request-sidebar OpenAPI import, and overflow scrollbars |
 | OpenAPI import | Implemented | JSON/YAML parser and Slint route list wired |
 | HTTP client | Core implemented | Slint wires method, URL, params, headers, auth, variables, and body modes |
 | Mock server | Core implemented | Slint start/stop toggle wired |
