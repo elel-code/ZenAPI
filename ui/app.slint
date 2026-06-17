@@ -134,40 +134,8 @@ export component AppWindow inherits Window {
     in-out property <string> activity: "";
     in-out property <int> active_page_index: 1;
     property <bool> compact_mode: root.width < 900px;
-    property <bool> dashboard_page_mounted: false;
-    property <bool> mock_page_mounted: false;
-    property <bool> runner_page_mounted: false;
-    property <bool> environment_page_mounted: false;
-    property <bool> analytics_page_mounted: false;
-    property <bool> documentation_page_mounted: false;
-    property <bool> api_keys_page_mounted: false;
-    property <bool> team_page_mounted: false;
-    property <bool> settings_page_mounted: false;
-    property <bool> codegen_page_mounted: false;
 
     function open_page_index(page_index: int) {
-        if (page_index == 0) {
-            root.dashboard_page_mounted = true;
-        } else if (page_index == 2) {
-            root.mock_page_mounted = true;
-        } else if (page_index == 3) {
-            root.runner_page_mounted = true;
-        } else if (page_index == 4) {
-            root.environment_page_mounted = true;
-        } else if (page_index == 5) {
-            root.analytics_page_mounted = true;
-        } else if (page_index == 6) {
-            root.documentation_page_mounted = true;
-        } else if (page_index == 7) {
-            root.api_keys_page_mounted = true;
-        } else if (page_index == 8) {
-            root.team_page_mounted = true;
-        } else if (page_index == 9) {
-            root.settings_page_mounted = true;
-        } else if (page_index == 10) {
-            root.codegen_page_mounted = true;
-        }
-
         if (root.active_page_index != page_index) {
             root.active_page_index = page_index;
         }
@@ -684,7 +652,7 @@ export component AppWindow inherits Window {
                     }
                 }
 
-                if root.dashboard_page_mounted: ScrollView {
+                ScrollView {
                     visible: root.active_page_index == 0;
                     width: parent.width;
                     height: parent.height;
@@ -709,7 +677,7 @@ export component AppWindow inherits Window {
                     }
                 }
 
-                if root.mock_page_mounted: ScrollView {
+                ScrollView {
                     visible: root.active_page_index == 2;
                     width: parent.width;
                     height: parent.height;
@@ -775,7 +743,7 @@ export component AppWindow inherits Window {
                     }
                 }
 
-                if root.environment_page_mounted: ScrollView {
+                ScrollView {
                     visible: root.active_page_index == 4;
                     width: parent.width;
                     height: parent.height;
@@ -825,7 +793,7 @@ export component AppWindow inherits Window {
                     }
                 }
 
-                if root.runner_page_mounted: ScrollView {
+                ScrollView {
                     visible: root.active_page_index == 3;
                     width: parent.width;
                     height: parent.height;
@@ -861,7 +829,7 @@ export component AppWindow inherits Window {
                     }
                 }
 
-                if root.codegen_page_mounted: ScrollView {
+                ScrollView {
                     visible: root.active_page_index == 10;
                     width: parent.width;
                     height: parent.height;
@@ -893,7 +861,7 @@ export component AppWindow inherits Window {
                     }
                 }
 
-                if root.analytics_page_mounted: ScrollView {
+                ScrollView {
                     visible: root.active_page_index == 5;
                     width: parent.width;
                     height: parent.height;
@@ -914,7 +882,7 @@ export component AppWindow inherits Window {
                     }
                 }
 
-                if root.documentation_page_mounted: ScrollView {
+                ScrollView {
                     visible: root.active_page_index == 6;
                     width: parent.width;
                     height: parent.height;
@@ -941,7 +909,7 @@ export component AppWindow inherits Window {
                     }
                 }
 
-                if root.api_keys_page_mounted: ScrollView {
+                ScrollView {
                     visible: root.active_page_index == 7;
                     width: parent.width;
                     height: parent.height;
@@ -961,7 +929,7 @@ export component AppWindow inherits Window {
                     }
                 }
 
-                if root.team_page_mounted: ScrollView {
+                ScrollView {
                     visible: root.active_page_index == 8;
                     width: parent.width;
                     height: parent.height;
@@ -980,7 +948,7 @@ export component AppWindow inherits Window {
                     }
                 }
 
-                if root.settings_page_mounted: ScrollView {
+                ScrollView {
                     visible: root.active_page_index == 9;
                     width: parent.width;
                     height: parent.height;
