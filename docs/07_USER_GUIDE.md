@@ -319,6 +319,13 @@ Behavior:
 - Clears the current in-memory mock log list with `Clear`.
 - Saves the currently filtered mock log view to a local JSON file.
 
+## Traffic Analytics
+
+The Traffic Analytics page summarizes the current local session: imported route
+count, request history count, mock log count, and the latest response status,
+time, and size. Its traffic stream is backed by the same in-memory mock request
+log model used by the Mocks page.
+
 ## Error Feedback
 
 Import, collection import/export, request build, request send, test
