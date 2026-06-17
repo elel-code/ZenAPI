@@ -85,6 +85,7 @@ export component AppWindow inherits Window {
     in-out property <string> grpc_method_catalog: "unary package.Service/Method package.Request package.Response";
     in-out property <string> grpc_descriptor_path: "";
     in-out property <string> grpc_protoc_path: "protoc";
+    in-out property <bool> grpc_streaming: false;
     in-out property <string> response_status: "Idle";
     in-out property <string> response_meta: "";
     in-out property <string> response_time: "";
@@ -221,6 +222,7 @@ export component AppWindow inherits Window {
     callback apply_header_preset(string);
     callback invoke_grpc_unary();
     callback invoke_grpc_server_streaming();
+    callback stop_grpc_stream();
     callback build_grpc_draft();
     callback load_grpc_descriptor_set(string);
     callback load_grpc_proto_file(string, string);
@@ -396,6 +398,7 @@ export component AppWindow inherits Window {
                                     grpc_method_catalog <=> root.grpc_method_catalog;
                                     grpc_descriptor_path <=> root.grpc_descriptor_path;
                                     grpc_protoc_path <=> root.grpc_protoc_path;
+                                    grpc_streaming <=> root.grpc_streaming;
                                     busy: root.busy;
                                     add_query_param => {
                                         root.add_query_param();
@@ -513,6 +516,9 @@ export component AppWindow inherits Window {
                                     }
                                     invoke_grpc_server_streaming => {
                                         root.invoke_grpc_server_streaming();
+                                    }
+                                    stop_grpc_stream => {
+                                        root.stop_grpc_stream();
                                     }
                                     apply_graphql_template(template) => {
                                         root.apply_graphql_template(template);

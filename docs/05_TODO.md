@@ -126,8 +126,8 @@
   display plus grpcurl command previews, unary gRPC transport with dynamic
   protobuf JSON mapping, local tonic service coverage, and a Slint Invoke action
   wired to real unary calls; server streaming transport has local tonic service
-  coverage and a Slint Stream action, with persistent Stop lifecycle still
-  pending. GraphQL schema response summaries are wired.
+  coverage, incremental stream events, and Slint Stream/Stop actions. GraphQL
+  schema response summaries are wired.
 - [~] Add mock request logs and richer mock manager controls; current Slint
   baseline has a dedicated Mock Manager page with endpoint selection,
   start/stop, editable selected route response JSON, real per-route header/query
@@ -169,5 +169,5 @@
 | WebSocket/SSE | Client modules restored | Realtime tab supports one-shot WS text, persistent WS text/binary sends with subprotocols, WebSocket history copy/clear, plus SSE previews, streams, history copy, and clear |
 | Mock logs | Core implemented | Slint baseline shows, filters, clears, and exports recent mock requests |
 | GraphQL | Payload builder implemented | Slint baseline edits query/variables, applies query/mutation/introspection templates, and summarizes introspection responses from the response pane |
-| gRPC | Domain draft + descriptor catalog + unary invoke + server-stream action implemented | Realtime tab validates endpoint, method, metadata, message JSON, optional method catalog entries, FileDescriptorSet/protoset extraction, Slint protoset/proto source/reflection loading into the method catalog, grpcurl command previews, real unary calls, and a real server-stream action from the Slint gRPC pane; persistent stream stop lifecycle pending |
+| gRPC | Domain draft + descriptor catalog + unary invoke + server-stream action implemented | Realtime tab validates endpoint, method, metadata, message JSON, optional method catalog entries, FileDescriptorSet/protoset extraction, Slint protoset/proto source/reflection loading into the method catalog, grpcurl command previews, real unary calls, incremental server-stream events, and real Stream/Stop actions from the Slint gRPC pane |
 | Reference pages | Slint baseline implemented | Dashboard, Request Builder, Mock Manager, Environments, Test Runner, API Docs, API Keys, Team, Project Settings, and Traffic Analytics now have routed reference-aligned page layouts; unwired reference-page action buttons were removed, API Docs snippets use the active request URL/auth state, API Keys mirrors active request auth, Team/Settings show local-only workspace state, and Traffic Analytics reads local session/mock-log data instead of static samples |

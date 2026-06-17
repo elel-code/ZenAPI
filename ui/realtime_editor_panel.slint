@@ -18,6 +18,7 @@ export component RealtimeEditorPanel inherits Rectangle {
     in-out property <string> grpc_method_catalog;
     in-out property <string> grpc_descriptor_path;
     in-out property <string> grpc_protoc_path;
+    in-out property <bool> grpc_streaming;
     in property <bool> busy;
     callback open_websocket();
     callback run_websocket();
@@ -31,6 +32,7 @@ export component RealtimeEditorPanel inherits Rectangle {
     callback clear_sse_events();
     callback invoke_grpc_unary();
     callback invoke_grpc_server_streaming();
+    callback stop_grpc_stream();
     callback build_grpc_draft();
     callback load_grpc_descriptor_set(string);
     callback load_grpc_proto_file(string, string);
@@ -469,7 +471,7 @@ export component RealtimeEditorPanel inherits Rectangle {
                         text: "Invoke";
                         button_width: 162px;
                         primary: true;
-                        enabled: !root.busy && root.grpc_endpoint != "" && root.grpc_method != "";
+                        enabled: !root.busy && !root.grpc_streaming && root.grpc_endpoint != "" && root.grpc_method != "";
                         clicked => {
                             root.invoke_grpc_unary();
                         }
@@ -478,16 +480,26 @@ export component RealtimeEditorPanel inherits Rectangle {
                     ActionButton {
                         text: "Stream";
                         button_width: 162px;
-                        enabled: !root.busy && root.grpc_endpoint != "" && root.grpc_method != "";
+                        enabled: !root.busy && !root.grpc_streaming && root.grpc_endpoint != "" && root.grpc_method != "";
                         clicked => {
                             root.invoke_grpc_server_streaming();
                         }
                     }
 
                     ActionButton {
+                        text: "Stop";
+                        button_width: 162px;
+                        warning: true;
+                        enabled: root.grpc_streaming;
+                        clicked => {
+                            root.stop_grpc_stream();
+                        }
+                    }
+
+                    ActionButton {
                         text: "Build";
                         button_width: 162px;
-                        enabled: !root.busy;
+                        enabled: !root.busy && !root.grpc_streaming;
                         clicked => {
                             root.build_grpc_draft();
                         }
@@ -496,7 +508,7 @@ export component RealtimeEditorPanel inherits Rectangle {
                     ActionButton {
                         text: "Reflect";
                         button_width: 162px;
-                        enabled: !root.busy && root.grpc_endpoint != "";
+                        enabled: !root.busy && !root.grpc_streaming && root.grpc_endpoint != "";
                         clicked => {
                             root.load_grpc_reflection();
                         }
