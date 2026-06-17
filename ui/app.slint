@@ -738,19 +738,11 @@ component SidebarProfile inherits Rectangle {
 component SidebarFolderRow inherits Rectangle {
     in property <string> label;
     in property <bool> selected: false;
-    callback picked();
 
     height: 36px;
     horizontal-stretch: 1;
     border-radius: 8px;
-    background: root.selected ? #00a572 : touch.has-hover ? Theme.surface_variant : transparent;
-
-    touch := TouchArea {
-        mouse-cursor: pointer;
-        clicked => {
-            root.picked();
-        }
-    }
+    background: root.selected ? #00a572 : transparent;
 
     Rectangle {
         x: 10px;
@@ -1006,11 +998,6 @@ component Sidebar inherits Rectangle {
                 }
 
                 SidebarFolderRow {
-                    label: "Auth";
-                    selected: false;
-                }
-
-                SidebarFolderRow {
                     label: root.collection_name == "" ? "Users" : root.collection_name;
                     selected: true;
                 }
@@ -1075,10 +1062,6 @@ component Sidebar inherits Rectangle {
                     }
                 }
 
-                SidebarFolderRow {
-                    label: "Billing";
-                    selected: false;
-                }
             }
         }
 
