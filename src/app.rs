@@ -1240,6 +1240,27 @@ fn wire_test_assertion_actions(app: &AppWindow) {
     });
 
     let weak_app = app.as_weak();
+    app.on_cycle_test_assertion_kind(move |row_id, kind| {
+        let Some(app) = weak_app.upgrade() else {
+            return;
+        };
+        if app.get_busy() {
+            return;
+        }
+
+        let (next_kind, target, expected) = next_test_assertion_template(kind.as_str());
+        let updated = update_test_assertion_text(
+            app.get_request_tests().as_str(),
+            row_id,
+            next_kind,
+            target,
+            expected,
+        );
+        app.set_request_tests(updated.into());
+        refresh_test_assertion_rows(&app);
+    });
+
+    let weak_app = app.as_weak();
     app.on_delete_test_assertion_row(move |row_id| {
         let Some(app) = weak_app.upgrade() else {
             return;
@@ -3840,6 +3861,20 @@ fn add_test_assertion_text(input: &str) -> String {
     }
 }
 
+fn next_test_assertion_template(kind: &str) -> (&'static str, &'static str, &'static str) {
+    match kind.trim().to_ascii_lowercase().as_str() {
+        "status" | "status_equals" | "status=" => ("status_in_range", "200", "299"),
+        "range" | "status_in_range" => ("header_exists", "content-type", ""),
+        "header" | "header_exists" | "header?" => {
+            ("header_equals", "content-type", "application/json")
+        }
+        "header_equals" | "header=" => ("body_contains", "ok", ""),
+        "body" | "body_contains" | "body?" => ("json_path_equals", "data.id", "1"),
+        "json" | "json_path_equals" | "json=" => ("status_equals", "200", ""),
+        _ => ("status_equals", "200", ""),
+    }
+}
+
 fn delete_test_assertion_text(input: &str, row_id: i32) -> String {
     let mut lines = input.lines().map(str::to_string).collect::<Vec<_>>();
     let entries = test_assertion_ui_entries(input);
@@ -5282,6 +5317,19 @@ mod tests {
         assert_eq!(
             update_test_assertion_text(input, 1, "json_path_equals", "data.id", "1"),
             "# keep\nstatus_equals 200\njson_path_equals data.id 1\nbody_contains ok"
+        );
+        assert_eq!(
+            next_test_assertion_template("status_equals"),
+            ("status_in_range", "200", "299")
+        );
+        let (kind, target, expected) = next_test_assertion_template("header_exists");
+        assert_eq!(
+            update_test_assertion_text(input, 1, kind, target, expected),
+            "# keep\nstatus_equals 200\nheader_equals content-type application/json\nbody_contains ok"
+        );
+        assert_eq!(
+            next_test_assertion_template("json_path_equals"),
+            ("status_equals", "200", "")
         );
         assert_eq!(
             add_test_assertion_text("status_equals 200"),

@@ -139,7 +139,8 @@ Slint panel uses editable rows with `Kind`, `Target`, and `Expect` fields plus
 
 For `json_path_equals` assertions, use dot paths such as `data.items.0.id`;
 expected values can be JSON literals such as `true`, `42`, or `"name"`. Kind
-cycling and richer assertion builders are still future work.
+cycling fills the next supported assertion template. Richer assertion builders
+are still future work.
 
 Tests run when a request is sent and when a collection is run. Tests are saved
 with collection requests and restored with them.

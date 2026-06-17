@@ -97,8 +97,8 @@
   baseline provides a pre-request editor plus editable Tests assertion rows
   with Kind/Target/Expect fields and add/delete controls, applies pre-request
   actions during send/codegen, evaluates native tests after single sends, and
-  saves/restores both fields with collection requests. Kind cycling and richer
-  assertion builders are still pending.
+  saves/restores both fields with collection requests. Kind cycling is wired;
+  richer assertion builders are still pending.
 - [~] Rebuild WebSocket and SSE panels using the restored client modules;
   current Slint Request Builder has a visible Realtime tab with WebSocket
   one-shot text send, persistent open/send/close text and binary sessions with

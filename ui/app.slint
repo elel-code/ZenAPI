@@ -256,6 +256,7 @@ component TestAssertionLine inherits Rectangle {
     in-out property <string> expected;
     in property <bool> enabled: true;
     callback edited(int, string, string, string);
+    callback cycle_kind_requested(int, string);
     callback delete_requested(int);
 
     height: 44px;
@@ -267,8 +268,19 @@ component TestAssertionLine inherits Rectangle {
 
     row_touch := TouchArea {}
 
-    TextField {
+    ActionButton {
         x: 10px;
+        y: 5px;
+        text: "Kind";
+        button_width: 52px;
+        enabled: root.enabled;
+        clicked => {
+            root.cycle_kind_requested(root.row_id, root.kind);
+        }
+    }
+
+    TextField {
+        x: 70px;
         y: 5px;
         width: 116px;
         height: 34px;
@@ -282,7 +294,7 @@ component TestAssertionLine inherits Rectangle {
     }
 
     TextField {
-        x: 138px;
+        x: 198px;
         y: 5px;
         width: 118px;
         height: 34px;
@@ -296,9 +308,9 @@ component TestAssertionLine inherits Rectangle {
     }
 
     TextField {
-        x: 268px;
+        x: 328px;
         y: 5px;
-        width: parent.width - 332px;
+        width: parent.width - 392px;
         height: 34px;
         text <=> root.expected;
         placeholder: "expected";
@@ -327,6 +339,7 @@ component TestAssertionEditorPanel inherits Rectangle {
     in property <bool> busy: false;
     callback add_row();
     callback update_row(int, string, string, string);
+    callback cycle_kind_row(int, string);
     callback delete_row(int);
 
     horizontal-stretch: 1;
@@ -374,7 +387,7 @@ component TestAssertionEditorPanel inherits Rectangle {
             UiText {
                 x: 12px;
                 text: "Kind";
-                width: 96px;
+                width: 180px;
                 height: parent.height;
                 color: Theme.on_surface_variant;
                 font-size: 12px;
@@ -384,7 +397,7 @@ component TestAssertionEditorPanel inherits Rectangle {
             }
 
             Rectangle {
-                x: 116px;
+                x: 204px;
                 y: 6px;
                 width: 1px;
                 height: parent.height - 12px;
@@ -392,7 +405,7 @@ component TestAssertionEditorPanel inherits Rectangle {
             }
 
             UiText {
-                x: 128px;
+                x: 216px;
                 text: "Target";
                 width: 126px;
                 height: parent.height;
@@ -404,7 +417,7 @@ component TestAssertionEditorPanel inherits Rectangle {
             }
 
             Rectangle {
-                x: 266px;
+                x: 346px;
                 y: 6px;
                 width: 1px;
                 height: parent.height - 12px;
@@ -412,9 +425,9 @@ component TestAssertionEditorPanel inherits Rectangle {
             }
 
             UiText {
-                x: 278px;
+                x: 358px;
                 text: "Expect";
-                width: parent.width - 290px;
+                width: parent.width - 370px;
                 height: parent.height;
                 color: Theme.on_surface_variant;
                 font-size: 12px;
@@ -453,6 +466,9 @@ component TestAssertionEditorPanel inherits Rectangle {
                     enabled: !root.busy;
                     edited(row_id, kind, target, expected) => {
                         root.update_row(row_id, kind, target, expected);
+                    }
+                    cycle_kind_requested(row_id, kind) => {
+                        root.cycle_kind_row(row_id, kind);
                     }
                     delete_requested(row_id) => {
                         root.delete_row(row_id);
@@ -2277,6 +2293,7 @@ component RequestPanel inherits Rectangle {
     callback delete_body_field_row(int);
     callback add_test_assertion();
     callback update_test_assertion_row(int, string, string, string);
+    callback cycle_test_assertion_kind(int, string);
     callback delete_test_assertion_row(int);
     callback apply_graphql_template(string);
     callback apply_header_preset(string);
@@ -2682,6 +2699,9 @@ component RequestPanel inherits Rectangle {
                     }
                     update_row(row_id, kind, target, expected) => {
                         root.update_test_assertion_row(row_id, kind, target, expected);
+                    }
+                    cycle_kind_row(row_id, kind) => {
+                        root.cycle_test_assertion_kind(row_id, kind);
                     }
                     delete_row(row_id) => {
                         root.delete_test_assertion_row(row_id);
@@ -6205,6 +6225,7 @@ export component AppWindow inherits Window {
     callback delete_body_field_row(int);
     callback add_test_assertion();
     callback update_test_assertion_row(int, string, string, string);
+    callback cycle_test_assertion_kind(int, string);
     callback delete_test_assertion_row(int);
     callback send_request();
     callback toggle_server();
@@ -6481,6 +6502,9 @@ export component AppWindow inherits Window {
                                     }
                                     update_test_assertion_row(row_id, kind, target, expected) => {
                                         root.update_test_assertion_row(row_id, kind, target, expected);
+                                    }
+                                    cycle_test_assertion_kind(row_id, kind) => {
+                                        root.cycle_test_assertion_kind(row_id, kind);
                                     }
                                     delete_test_assertion_row(row_id) => {
                                         root.delete_test_assertion_row(row_id);
