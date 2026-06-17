@@ -3,7 +3,12 @@ use prost::Message;
 use prost_types::FileDescriptorSet;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use std::{fs, path::Path};
+use std::{
+    fs,
+    path::{Path, PathBuf},
+    process::Command,
+    time::{SystemTime, UNIX_EPOCH},
+};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum GrpcMethodKind {
@@ -198,6 +203,54 @@ pub fn load_grpc_file_descriptor_set(path: impl AsRef<Path>) -> Result<Vec<GrpcM
     decode_grpc_file_descriptor_set(&bytes)
 }
 
+pub fn load_grpc_proto_file(
+    proto_path: impl AsRef<Path>,
+    include_paths: &[PathBuf],
+    protoc_path: impl AsRef<Path>,
+) -> Result<Vec<GrpcMethodDescriptor>> {
+    let proto_path = proto_path.as_ref();
+    let protoc_path = protoc_path.as_ref();
+    if !proto_path.exists() {
+        bail!("gRPC proto file does not exist: {}", proto_path.display());
+    }
+
+    let descriptor_path = temporary_grpc_descriptor_path();
+    let mut command = Command::new(protoc_path);
+    command.arg("--include_imports").arg(format!(
+        "--descriptor_set_out={}",
+        descriptor_path.to_string_lossy()
+    ));
+
+    if let Some(parent) = proto_path.parent() {
+        command.arg(format!("-I{}", parent.to_string_lossy()));
+    }
+    for include_path in include_paths {
+        command.arg(format!("-I{}", include_path.to_string_lossy()));
+    }
+    command.arg(proto_path);
+
+    let output = command.output().map_err(|error| {
+        anyhow!(
+            "failed to run protoc {}: {error}",
+            protoc_path.to_string_lossy()
+        )
+    })?;
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+        let detail = if stderr.is_empty() {
+            output.status.to_string()
+        } else {
+            stderr
+        };
+        let _ = fs::remove_file(&descriptor_path);
+        bail!("protoc failed for {}: {detail}", proto_path.display());
+    }
+
+    let result = load_grpc_file_descriptor_set(&descriptor_path);
+    let _ = fs::remove_file(&descriptor_path);
+    result
+}
+
 pub fn grpc_method_descriptors_from_file_descriptor_set(
     descriptor_set: &FileDescriptorSet,
 ) -> Result<Vec<GrpcMethodDescriptor>> {
@@ -327,6 +380,17 @@ fn grpc_method_kind_catalog_token(kind: GrpcMethodKind) -> &'static str {
 
 fn normalize_grpc_type_name(input: &str) -> String {
     input.trim_start_matches('.').to_string()
+}
+
+fn temporary_grpc_descriptor_path() -> PathBuf {
+    let nanos = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|duration| duration.as_nanos())
+        .unwrap_or_default();
+    std::env::temp_dir().join(format!(
+        "zenapi-grpc-{}-{nanos}.protoset",
+        std::process::id()
+    ))
 }
 
 fn split_grpc_package_service(service_path: &str) -> (String, String) {
@@ -581,6 +645,55 @@ unary demo.v1.Health/Check demo.v1.HealthCheckRequest demo.v1.HealthCheckRespons
         assert_eq!(
             format_grpc_method_catalog(&descriptors),
             "unary admin.Audit/ListEvents admin.ListEventsRequest admin.ListEventsResponse"
+        );
+    }
+
+    #[test]
+    fn loads_method_catalog_from_proto_source_file() {
+        let temp_dir = TempDir::new().expect("temp dir");
+        let proto_path = temp_dir.path().join("users.proto");
+        std::fs::write(
+            &proto_path,
+            r#"
+syntax = "proto3";
+package demo.v1;
+
+service Users {
+  rpc GetUser (GetUserRequest) returns (User);
+  rpc WatchUsers (WatchUsersRequest) returns (stream User);
+}
+
+message GetUserRequest {
+  string id = 1;
+}
+
+message WatchUsersRequest {
+  string group = 1;
+}
+
+message User {
+  string id = 1;
+}
+"#,
+        )
+        .expect("write proto");
+
+        let descriptors =
+            load_grpc_proto_file(&proto_path, &[], "protoc").expect("proto descriptor");
+
+        assert_eq!(descriptors.len(), 2);
+        assert_eq!(descriptors[0].full_method_name(), "demo.v1.Users/GetUser");
+        assert_eq!(descriptors[0].kind, GrpcMethodKind::Unary);
+        assert_eq!(
+            descriptors[1].full_method_name(),
+            "demo.v1.Users/WatchUsers"
+        );
+        assert_eq!(descriptors[1].kind, GrpcMethodKind::ServerStreaming);
+        assert_eq!(
+            format_grpc_method_catalog(&descriptors),
+            "\
+unary demo.v1.Users/GetUser demo.v1.GetUserRequest demo.v1.User
+server-streaming demo.v1.Users/WatchUsers demo.v1.WatchUsersRequest demo.v1.User"
         );
     }
 }
