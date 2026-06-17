@@ -70,6 +70,7 @@ pub fn run() -> Result<()> {
     wire_history_actions(&app, state.clone());
     wire_collection_actions(&app, state.clone());
     wire_mock_log_filter(&app, state.clone());
+    wire_mock_response_actions(&app, state.clone());
     wire_header_helpers(&app);
     wire_query_param_actions(&app);
     wire_auth_key_actions(&app);
@@ -929,6 +930,53 @@ fn wire_mock_log_filter(app: &AppWindow, state: Arc<Mutex<AppState>>) {
                     &app,
                     "Mock log save failed",
                     path.as_str(),
+                    "error",
+                    &error.to_string(),
+                );
+            }
+        }
+    });
+}
+
+fn wire_mock_response_actions(app: &AppWindow, state: Arc<Mutex<AppState>>) {
+    let weak_app = app.as_weak();
+    app.on_save_mock_response(move |body| {
+        let Some(app) = weak_app.upgrade() else {
+            return;
+        };
+        if app.get_busy() {
+            return;
+        }
+
+        let selected_route = app.get_selected_route();
+        let result = state
+            .lock()
+            .map_err(|_| anyhow!("mock route state is unavailable"))
+            .and_then(|mut state| {
+                update_selected_mock_response(&mut state, selected_route, body.as_str())
+            });
+
+        match result {
+            Ok(route) => {
+                set_selected_mock_route(&app, &route);
+                set_response(
+                    &app,
+                    "Mock response saved",
+                    route.path.as_str(),
+                    "success",
+                    &pretty_json(&route.mock_body),
+                );
+                app.set_activity(if app.get_server_running() {
+                    "Mock response saved; restart server to apply".into()
+                } else {
+                    "Mock response saved".into()
+                });
+            }
+            Err(error) => {
+                set_response(
+                    &app,
+                    "Mock response save failed",
+                    "",
                     "error",
                     &error.to_string(),
                 );
@@ -2876,6 +2924,37 @@ fn clear_selected_mock_route(app: &AppWindow) {
     app.set_selected_mock_path("".into());
     app.set_selected_mock_summary("".into());
     app.set_selected_mock_body("".into());
+}
+
+fn update_selected_mock_response(
+    state: &mut AppState,
+    selected_route: i32,
+    body: &str,
+) -> Result<ApiRoute> {
+    let selected_route: usize = selected_route
+        .try_into()
+        .map_err(|_| anyhow!("select a mock route before saving a response"))?;
+    let selected = state
+        .visible_routes
+        .get(selected_route)
+        .cloned()
+        .ok_or_else(|| anyhow!("select a mock route before saving a response"))?;
+    let mock_body = serde_json::from_str::<Value>(body.trim())
+        .map_err(|err| anyhow!("mock response body must be valid JSON: {err}"))?;
+
+    let route = state
+        .routes
+        .iter_mut()
+        .find(|route| route.method == selected.method && route.path == selected.path)
+        .ok_or_else(|| anyhow!("selected mock route is no longer available"))?;
+    route.mock_body = mock_body.clone();
+    let updated = route.clone();
+
+    if let Some(visible_route) = state.visible_routes.get_mut(selected_route) {
+        visible_route.mock_body = mock_body;
+    }
+
+    Ok(updated)
 }
 
 fn collection_model(collection: &ApiCollection) -> ModelRc<CollectionRow> {
@@ -5159,6 +5238,43 @@ mod tests {
         assert_eq!(filter_routes(&routes, "post"), vec![routes[1].clone()]);
         assert_eq!(filter_routes(&routes, "sessions"), vec![routes[1].clone()]);
         assert_eq!(filter_routes(&routes, "remove"), vec![routes[2].clone()]);
+    }
+
+    #[test]
+    fn updates_selected_mock_response_body() {
+        let routes = vec![
+            route("GET", "/users", "List accounts"),
+            route("POST", "/sessions", "Create login session"),
+        ];
+        let mut state = AppState {
+            routes: routes.clone(),
+            visible_routes: vec![routes[1].clone()],
+            ..AppState::default()
+        };
+
+        let updated =
+            update_selected_mock_response(&mut state, 0, r#"{ "token": "abc", "ok": true }"#)
+                .expect("mock body update");
+
+        assert_eq!(updated.method, "POST");
+        assert_eq!(updated.path, "/sessions");
+        assert_eq!(updated.mock_body, json!({ "token": "abc", "ok": true }));
+        assert_eq!(state.routes[0].mock_body, json!({}));
+        assert_eq!(
+            state.routes[1].mock_body,
+            json!({ "token": "abc", "ok": true })
+        );
+        assert_eq!(
+            state.visible_routes[0].mock_body,
+            json!({ "token": "abc", "ok": true })
+        );
+
+        assert!(update_selected_mock_response(&mut state, -1, "{}").is_err());
+        assert!(update_selected_mock_response(&mut state, 0, "{ nope").is_err());
+        assert_eq!(
+            state.routes[1].mock_body,
+            json!({ "token": "abc", "ok": true })
+        );
     }
 
     #[test]
