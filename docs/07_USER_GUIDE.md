@@ -418,6 +418,7 @@ zenapi run collection.json --delay-ms 100
   available.
 - gRPC Realtime draft validation is available for endpoint, method, metadata,
   JSON message, and optional manual method catalog entries such as
-  `unary demo.Users/GetUser demo.GetUserRequest demo.GetUserResponse`.
-  Reflection/proto descriptor loading and unary transport are future work.
+  `unary demo.Users/GetUser demo.GetUserRequest demo.GetUserResponse`; the
+  draft output also includes a `grpcurl` command preview. Reflection/proto
+  descriptor loading and unary transport are future work.
 - Plugin APIs are future work.

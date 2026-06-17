@@ -5064,15 +5064,53 @@ fn format_grpc_draft(draft: &GrpcRequestDraft) -> String {
         .unwrap_or_else(|| "No method catalog".to_string());
     let message =
         serde_json::to_string_pretty(&draft.message).unwrap_or_else(|_| draft.message.to_string());
+    let command = format_grpcurl_command(draft, &message);
 
     format!(
-        "Endpoint: {}\nMethod: {}\n\nDescriptor\n{}\n\nMetadata\n{}\n\nMessage\n{}",
+        "Endpoint: {}\nMethod: {}\n\nDescriptor\n{}\n\nMetadata\n{}\n\nMessage\n{}\n\nCommand\n{}",
         draft.endpoint,
         draft.method_path(),
         descriptor,
         metadata,
-        message
+        message,
+        command
     )
+}
+
+fn format_grpcurl_command(draft: &GrpcRequestDraft, message: &str) -> String {
+    let (target, plaintext) = grpcurl_target(&draft.endpoint);
+    let mut lines = vec!["grpcurl".to_string()];
+    if plaintext {
+        lines.push("  -plaintext".to_string());
+    }
+    for entry in &draft.metadata {
+        lines.push(format!(
+            "  -H {}",
+            shell_single_quote(&format!("{}: {}", entry.name, entry.value))
+        ));
+    }
+    lines.push(format!("  -d {}", shell_single_quote(message)));
+    lines.push(format!("  {}", shell_single_quote(&target)));
+    lines.push(format!(
+        "  {}",
+        shell_single_quote(draft.method_path().trim_start_matches('/'))
+    ));
+    lines.join(" \\\n")
+}
+
+fn grpcurl_target(endpoint: &str) -> (String, bool) {
+    let endpoint = endpoint.trim();
+    if let Some(target) = endpoint.strip_prefix("http://") {
+        return (target.trim_end_matches('/').to_string(), true);
+    }
+    if let Some(target) = endpoint.strip_prefix("https://") {
+        return (target.trim_end_matches('/').to_string(), false);
+    }
+    (endpoint.trim_end_matches('/').to_string(), false)
+}
+
+fn shell_single_quote(value: &str) -> String {
+    format!("'{}'", value.replace('\'', "'\\''"))
 }
 
 fn mock_log_model(logs: &[MockRequestLog]) -> ModelRc<MockLogRow> {
@@ -8913,7 +8951,25 @@ mod tests {
 
         assert_eq!(
             format_grpc_draft(&draft),
-            "Endpoint: http://localhost:50051\nMethod: /demo.Users/GetUser\n\nDescriptor\nKind: unary\nRequest: demo.GetUserRequest\nResponse: demo.GetUserResponse\n\nMetadata\nauthorization: Bearer token\n\nMessage\n{\n  \"id\": \"u_123\"\n}"
+            "Endpoint: http://localhost:50051\nMethod: /demo.Users/GetUser\n\nDescriptor\nKind: unary\nRequest: demo.GetUserRequest\nResponse: demo.GetUserResponse\n\nMetadata\nauthorization: Bearer token\n\nMessage\n{\n  \"id\": \"u_123\"\n}\n\nCommand\ngrpcurl \\\n  -plaintext \\\n  -H 'authorization: Bearer token' \\\n  -d '{\n  \"id\": \"u_123\"\n}' \\\n  'localhost:50051' \\\n  'demo.Users/GetUser'"
+        );
+    }
+
+    #[test]
+    fn formats_grpcurl_command_for_secure_endpoint_and_quoted_metadata() {
+        let draft = build_grpc_request_draft(
+            "https://grpc.example.com",
+            "demo.Users/GetUser",
+            "x-note=owner's token",
+            r#"{"name":"Ada"}"#,
+            "",
+        )
+        .expect("draft");
+        let message = serde_json::to_string_pretty(&draft.message).expect("message");
+
+        assert_eq!(
+            format_grpcurl_command(&draft, &message),
+            "grpcurl \\\n  -H 'x-note: owner'\\''s token' \\\n  -d '{\n  \"name\": \"Ada\"\n}' \\\n  'grpc.example.com' \\\n  'demo.Users/GetUser'"
         );
     }
 
