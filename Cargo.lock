@@ -6820,6 +6820,7 @@ dependencies = [
  "anyhow",
  "axum",
  "base64",
+ "copypasta",
  "futures-util",
  "reqwest",
  "serde",

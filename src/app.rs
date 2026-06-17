@@ -1,5 +1,6 @@
 use anyhow::{Result, anyhow, bail};
 use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64_STANDARD};
+use copypasta::{ClipboardContext, ClipboardProvider};
 use serde_json::Value;
 use slint::{ComponentHandle, ModelRc, SharedString, VecModel};
 use std::sync::{Arc, Mutex};
@@ -71,6 +72,7 @@ pub fn run() -> Result<()> {
     wire_body_field_actions(&app);
     wire_environment_actions(&app);
     wire_request_sender(&app, runtime.clone(), state.clone());
+    wire_response_actions(&app);
     wire_graphql_helpers(&app);
     wire_codegen(&app);
     wire_collection_runner(&app, runtime.clone(), state.clone());
@@ -1360,6 +1362,53 @@ fn wire_request_sender(app: &AppWindow, runtime: Arc<Runtime>, state: Arc<Mutex<
     });
 }
 
+fn wire_response_actions(app: &AppWindow) {
+    let weak_app = app.as_weak();
+    app.on_copy_response(move |tab, text| {
+        let Some(app) = weak_app.upgrade() else {
+            return;
+        };
+
+        match copy_text_to_clipboard(text.as_str()) {
+            Ok(()) => {
+                app.set_activity(format!("Copied {} response", response_tab_label(&tab)).into())
+            }
+            Err(error) => app.set_activity(format!("Copy failed: {error}").into()),
+        }
+    });
+
+    let weak_app = app.as_weak();
+    app.on_format_response(move |tab| {
+        let Some(app) = weak_app.upgrade() else {
+            return;
+        };
+        if app.get_busy() {
+            return;
+        }
+
+        let current = match tab.as_str() {
+            "pretty" => app.get_response_body().to_string(),
+            "raw" => app.get_response_raw_body().to_string(),
+            _ => {
+                app.set_activity("Format is available for Pretty and Raw responses".into());
+                return;
+            }
+        };
+
+        match format_json_response_text(&current) {
+            Ok(formatted) => {
+                match tab.as_str() {
+                    "pretty" => app.set_response_body(formatted.into()),
+                    "raw" => app.set_response_raw_body(formatted.into()),
+                    _ => {}
+                }
+                app.set_activity(format!("Formatted {} response", response_tab_label(&tab)).into());
+            }
+            Err(error) => app.set_activity(format!("Format failed: {error}").into()),
+        }
+    });
+}
+
 fn wire_codegen(app: &AppWindow) {
     let weak_app = app.as_weak();
     app.on_generate_code(move || {
@@ -2267,6 +2316,35 @@ fn set_response(app: &AppWindow, status: &str, meta: &str, tone: &str, body: &st
     app.set_response_body(body.into());
     app.set_response_raw_body(body.into());
     app.set_response_headers("".into());
+}
+
+fn copy_text_to_clipboard(text: &str) -> Result<()> {
+    let mut clipboard =
+        ClipboardContext::new().map_err(|error| anyhow!("failed to access clipboard: {error}"))?;
+    clipboard
+        .set_contents(text.to_string())
+        .map_err(|error| anyhow!("failed to write clipboard: {error}"))
+}
+
+fn format_json_response_text(text: &str) -> Result<String> {
+    let trimmed = text.trim();
+    if trimmed.is_empty() {
+        bail!("response is empty");
+    }
+
+    let value: Value = serde_json::from_str(trimmed)
+        .map_err(|error| anyhow!("response is not valid JSON: {error}"))?;
+    serde_json::to_string_pretty(&value).map_err(|error| anyhow!("failed to format JSON: {error}"))
+}
+
+fn response_tab_label(tab: &str) -> &'static str {
+    match tab {
+        "pretty" => "Pretty",
+        "raw" => "Raw",
+        "headers" => "Headers",
+        "cookies" => "Cookies",
+        _ => "active",
+    }
 }
 
 fn split_response_meta(meta: &str) -> (String, String) {
@@ -4164,6 +4242,16 @@ mod tests {
             ("17 ms".to_string(), String::new())
         );
         assert_eq!(split_response_meta(""), (String::new(), String::new()));
+    }
+
+    #[test]
+    fn formats_json_response_text_for_viewer() {
+        assert_eq!(
+            format_json_response_text("{\"ok\":true,\"items\":[1,2]}").expect("format"),
+            "{\n  \"items\": [\n    1,\n    2\n  ],\n  \"ok\": true\n}"
+        );
+        assert!(format_json_response_text("not json").is_err());
+        assert!(format_json_response_text("").is_err());
     }
 
     #[test]

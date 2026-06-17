@@ -2416,7 +2416,11 @@ component ResponsePanel inherits Rectangle {
     callback run_collection();
     callback cancel_collection_run();
     callback save_runner_report(string);
+    callback copy_response(string, string);
+    callback format_response(string);
     property <string> active_tab: "pretty";
+    property <bool> response_folded: false;
+    property <string> active_response_text: root.active_tab == "pretty" ? root.response_body : root.active_tab == "raw" ? root.response_raw_body : root.active_tab == "headers" ? root.response_headers : "No cookies";
 
     width: 400px;
     vertical-stretch: 1;
@@ -2559,32 +2563,91 @@ component ResponsePanel inherits Rectangle {
         }
 
         Rectangle {
+            height: 36px;
+            horizontal-stretch: 1;
+            background: Theme.surface_container;
+
+            HorizontalLayout {
+                padding-left: 8px;
+                padding-right: 8px;
+                spacing: 6px;
+                alignment: center;
+
+                Rectangle {
+                    horizontal-stretch: 1;
+                }
+
+                ActionButton {
+                    text: "Format";
+                    button_width: 70px;
+                    enabled: !root.busy && (root.active_tab == "pretty" || root.active_tab == "raw");
+                    clicked => {
+                        root.format_response(root.active_tab);
+                    }
+                }
+
+                ActionButton {
+                    text: "Copy";
+                    button_width: 58px;
+                    enabled: root.active_response_text != "";
+                    clicked => {
+                        root.copy_response(root.active_tab, root.active_response_text);
+                    }
+                }
+
+                ActionButton {
+                    text: root.response_folded ? "Open" : "Fold";
+                    button_width: 58px;
+                    clicked => {
+                        root.response_folded = !root.response_folded;
+                    }
+                }
+            }
+        }
+
+        Rectangle {
+            height: 1px;
+            background: Theme.outline_variant;
+        }
+
+        Rectangle {
             vertical-stretch: 1;
             horizontal-stretch: 1;
             background: Theme.surface_container_lowest;
 
-            if root.active_tab == "pretty": CodePane {
+            if root.response_folded: UiText {
+                text: root.active_tab == "headers" ? "Headers folded" : root.active_tab == "cookies" ? "Cookies folded" : "Response body folded";
+                width: parent.width;
+                height: parent.height;
+                color: Theme.outline;
+                font-size: 12px;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+                overflow: elide;
+            }
+
+            if !root.response_folded && root.active_tab == "pretty": CodePane {
                 width: parent.width;
                 height: parent.height;
                 text <=> root.response_body;
                 read_only: true;
             }
 
-            if root.active_tab == "raw": CodePane {
+            if !root.response_folded && root.active_tab == "raw": CodePane {
                 width: parent.width;
                 height: parent.height;
                 text <=> root.response_raw_body;
                 read_only: true;
             }
 
-            if root.active_tab == "headers": CodePane {
+            if !root.response_folded && root.active_tab == "headers": CodePane {
                 width: parent.width;
                 height: parent.height;
                 text <=> root.response_headers;
                 read_only: true;
             }
 
-            if root.active_tab == "cookies": UiText {
+            if !root.response_folded && root.active_tab == "cookies": UiText {
                 text: "No cookies";
                 width: parent.width;
                 height: parent.height;
@@ -5718,6 +5781,8 @@ export component AppWindow inherits Window {
     callback run_collection();
     callback cancel_collection_run();
     callback save_runner_report(string);
+    callback copy_response(string, string);
+    callback format_response(string);
     callback open_websocket();
     callback run_websocket();
     callback close_websocket();
@@ -6026,6 +6091,12 @@ export component AppWindow inherits Window {
                             }
                             save_runner_report(path) => {
                                 root.save_runner_report(path);
+                            }
+                            copy_response(tab, text) => {
+                                root.copy_response(tab, text);
+                            }
+                            format_response(tab) => {
+                                root.format_response(tab);
                             }
                         }
                     }
