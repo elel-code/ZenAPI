@@ -1556,6 +1556,9 @@ fn wire_codegen(app: &AppWindow) {
         };
         let language = snippet_language(&app.get_codegen_language());
         let snippet = generate_snippet(&request, language);
+        app.set_codegen_metadata(
+            codegen_metadata(&request, codegen_language_label(language), &snippet).into(),
+        );
         app.set_codegen_output(snippet.into());
         set_response(
             &app,
@@ -1605,10 +1608,12 @@ fn wire_codegen(app: &AppWindow) {
         };
         let language = snippet_language(&app.get_codegen_language());
         let snippet = generate_snippet(&request, language);
+        let metadata = codegen_metadata(&request, codegen_language_label(language), &snippet);
 
         match save_codegen_snippet(path.as_str(), &snippet) {
             Ok(()) => {
                 app.set_codegen_output(snippet.into());
+                app.set_codegen_metadata(metadata.into());
                 set_response(
                     &app,
                     "Codegen saved",
@@ -4669,6 +4674,39 @@ fn snippet_language(language: &str) -> SnippetLanguage {
     }
 }
 
+fn codegen_language_label(language: SnippetLanguage) -> &'static str {
+    match language {
+        SnippetLanguage::Curl => "cURL",
+        SnippetLanguage::PythonRequests => "Python requests",
+        SnippetLanguage::JavaScriptFetch => "JavaScript fetch",
+        SnippetLanguage::RustReqwest => "Rust reqwest",
+        SnippetLanguage::GoNetHttp => "Go net/http",
+    }
+}
+
+fn codegen_body_label(body: &RequestBody) -> &'static str {
+    match body {
+        RequestBody::None => "none",
+        RequestBody::Raw { .. } => "raw",
+        RequestBody::FormUrlEncoded(_) => "urlencoded",
+        RequestBody::Multipart(_) => "multipart",
+        RequestBody::BinaryFile { .. } => "binary",
+    }
+}
+
+fn codegen_metadata(request: &CodegenRequest, language_label: &str, snippet: &str) -> String {
+    let line_count = snippet.lines().count();
+    let byte_count = snippet.len();
+    format!(
+        "Language: {language_label}\nRequest: {} {}\nLines: {line_count} / Bytes: {byte_count}\nHeaders: {} / Query params: {} / Body: {}",
+        request.method,
+        request.url,
+        request.headers.len(),
+        request.query_params.len(),
+        codegen_body_label(&request.body)
+    )
+}
+
 fn save_codegen_snippet(path: &str, snippet: &str) -> Result<()> {
     write_text_file(path, snippet, "snippet export")
 }
@@ -5354,6 +5392,31 @@ mod tests {
         assert_eq!(snippet_language("rust"), SnippetLanguage::RustReqwest);
         assert_eq!(snippet_language("go"), SnippetLanguage::GoNetHttp);
         assert_eq!(snippet_language("unknown"), SnippetLanguage::Curl);
+    }
+
+    #[test]
+    fn formats_codegen_metadata_for_generated_snippets() {
+        let request = CodegenRequest {
+            method: "POST".to_string(),
+            url: "https://api.example.com/users".to_string(),
+            headers: vec![("Accept".to_string(), "application/json".to_string())],
+            query_params: vec![("debug".to_string(), "true".to_string())],
+            body: RequestBody::Raw {
+                content_type: Some("application/json".to_string()),
+                body: "{\"ok\":true}".to_string(),
+            },
+        };
+
+        let metadata = codegen_metadata(
+            &request,
+            codegen_language_label(SnippetLanguage::Curl),
+            "a\nb",
+        );
+
+        assert!(metadata.contains("Language: cURL"));
+        assert!(metadata.contains("Request: POST https://api.example.com/users"));
+        assert!(metadata.contains("Lines: 2 / Bytes: 3"));
+        assert!(metadata.contains("Headers: 1 / Query params: 1 / Body: raw"));
     }
 
     #[test]

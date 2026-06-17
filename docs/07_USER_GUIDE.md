@@ -333,7 +333,9 @@ Codegen page. The supported snippet targets are:
 
 Use `Generate` to refresh the snippet from the current request, `Copy` to place
 the generated snippet on the clipboard, and `Save` to write it to the configured
-path.
+path. The Codegen page also shows generated snippet metadata: target language,
+request method and URL, line/byte counts, header count, query parameter count,
+and body mode.
 
 ## Collection Runner
 

@@ -4601,6 +4601,7 @@ component RunnerPage inherits Rectangle {
 component CodegenPage inherits Rectangle {
     in-out property <string> codegen_language;
     in-out property <string> codegen_output;
+    in property <string> codegen_metadata;
     in-out property <string> codegen_path;
     in property <bool> busy;
     callback generate_code();
@@ -4650,6 +4651,12 @@ component CodegenPage inherits Rectangle {
                     root.generate_code();
                 }
             }
+        }
+
+        DataPanel {
+            height: 92px;
+            title: "Metadata";
+            body: root.codegen_metadata;
         }
 
         if root.codegen_output == "": UiText {
@@ -6068,6 +6075,7 @@ export component AppWindow inherits Window {
     in-out property <string> response_headers: "";
     in-out property <string> codegen_language: "curl";
     in-out property <string> codegen_output: "";
+    in-out property <string> codegen_metadata: "No snippet generated";
     in-out property <string> codegen_path: "zenapi-snippet.txt";
     in-out property <string> runner_summary: "";
     in-out property <string> runner_delay_ms: "0";
@@ -6644,6 +6652,7 @@ export component AppWindow inherits Window {
                         height: max(parent.visible-height, 620px);
                         codegen_language <=> root.codegen_language;
                         codegen_output <=> root.codegen_output;
+                        codegen_metadata: root.codegen_metadata;
                         codegen_path <=> root.codegen_path;
                         busy: root.busy;
                         generate_code => {

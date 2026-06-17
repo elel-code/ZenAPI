@@ -86,7 +86,8 @@
 - [~] Rebuild Codegen UI for cURL, Python, JavaScript, Rust, and Go snippets;
   domain wiring still generates snippets from the resolved request projection,
   and the Slint shell now has a dedicated Codegen page with generate, clipboard
-  copy, and save actions; richer snippet metadata is still pending.
+  copy, save actions, and generated snippet metadata for language, request,
+  size, headers, query params, and body mode.
 - [~] Rebuild Collection Runner UI while keeping `zenapi run` as the stable CLI;
   domain wiring and CLI execution are in place, and the Slint shell now has a
   dedicated Test Runner page with run/cancel/report export controls; richer
