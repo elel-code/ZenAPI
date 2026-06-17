@@ -962,6 +962,7 @@ export component RequestPanel inherits Rectangle {
     in-out property <string> grpc_metadata;
     in-out property <string> grpc_message;
     in-out property <string> grpc_method_catalog;
+    in-out property <string> grpc_descriptor_path;
     in property <bool> busy;
     callback open_websocket();
     callback run_websocket();
@@ -1003,6 +1004,7 @@ export component RequestPanel inherits Rectangle {
     callback apply_graphql_template(string);
     callback apply_header_preset(string);
     callback build_grpc_draft();
+    callback load_grpc_descriptor_set(string);
     property <string> active_tab: "body";
 
     horizontal-stretch: 1;
@@ -1370,6 +1372,7 @@ export component RequestPanel inherits Rectangle {
                 grpc_metadata <=> root.grpc_metadata;
                 grpc_message <=> root.grpc_message;
                 grpc_method_catalog <=> root.grpc_method_catalog;
+                grpc_descriptor_path <=> root.grpc_descriptor_path;
                 busy: root.busy;
                 open_websocket => {
                     root.open_websocket();
@@ -1403,6 +1406,9 @@ export component RequestPanel inherits Rectangle {
                 }
                 build_grpc_draft => {
                     root.build_grpc_draft();
+                }
+                load_grpc_descriptor_set(path) => {
+                    root.load_grpc_descriptor_set(path);
                 }
             }
 

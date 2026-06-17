@@ -25,7 +25,10 @@ use zenapi::{
         ApiCollection, CollectionBody, CollectionFolder, CollectionItem, CollectionRequest,
         NameValue,
     },
-    grpc::{GrpcRequestDraft, build_grpc_request_draft},
+    grpc::{
+        GrpcRequestDraft, build_grpc_request_draft, format_grpc_method_catalog,
+        load_grpc_file_descriptor_set,
+    },
     history::{HistoryRequest, HistoryResponse, RequestHistory},
     mock_server::{MockRequestLog, MockServer},
     openapi::{ApiRoute, ApiSpec, MockRule, MockRuleSource, load_openapi_file},
@@ -3518,6 +3521,37 @@ fn wire_realtime_actions(app: &AppWindow, runtime: Arc<Runtime>) {
 }
 
 fn wire_grpc_draft(app: &AppWindow) {
+    let weak_app = app.as_weak();
+    app.on_load_grpc_descriptor_set(move |path| {
+        let Some(app) = weak_app.upgrade() else {
+            return;
+        };
+        if app.get_busy() {
+            return;
+        }
+
+        match load_grpc_file_descriptor_set(path.as_str()) {
+            Ok(descriptors) => {
+                let catalog = format_grpc_method_catalog(&descriptors);
+                set_response(
+                    &app,
+                    "gRPC descriptors loaded",
+                    &format!("{} methods", descriptors.len()),
+                    "success",
+                    &catalog,
+                );
+                app.set_grpc_method_catalog(catalog.into());
+            }
+            Err(error) => set_response(
+                &app,
+                "gRPC descriptor load failed",
+                path.as_str(),
+                "error",
+                &error.to_string(),
+            ),
+        }
+    });
+
     let weak_app = app.as_weak();
     app.on_build_grpc_draft(move || {
         let Some(app) = weak_app.upgrade() else {

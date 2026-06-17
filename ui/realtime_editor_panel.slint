@@ -16,6 +16,7 @@ export component RealtimeEditorPanel inherits Rectangle {
     in-out property <string> grpc_metadata;
     in-out property <string> grpc_message;
     in-out property <string> grpc_method_catalog;
+    in-out property <string> grpc_descriptor_path;
     in property <bool> busy;
     callback open_websocket();
     callback run_websocket();
@@ -28,6 +29,7 @@ export component RealtimeEditorPanel inherits Rectangle {
     callback copy_sse_events();
     callback clear_sse_events();
     callback build_grpc_draft();
+    callback load_grpc_descriptor_set(string);
 
     horizontal-stretch: 1;
     vertical-stretch: 1;
@@ -376,7 +378,34 @@ export component RealtimeEditorPanel inherits Rectangle {
                     LabeledEditor {
                         label: "Method Catalog";
                         text <=> root.grpc_method_catalog;
-                        height: 118px;
+                        height: 92px;
+                    }
+
+                    HorizontalLayout {
+                        height: 34px;
+                        spacing: 8px;
+
+                        TextField {
+                            text <=> root.grpc_descriptor_path;
+                            placeholder: "/absolute/path/to/schema.protoset";
+                            mono: true;
+                            enabled: !root.busy;
+                            horizontal-stretch: 1;
+                            accepted => {
+                                if !root.busy && root.grpc_descriptor_path != "" {
+                                    root.load_grpc_descriptor_set(root.grpc_descriptor_path);
+                                }
+                            }
+                        }
+
+                        ActionButton {
+                            text: "Load";
+                            button_width: 58px;
+                            enabled: !root.busy && root.grpc_descriptor_path != "";
+                            clicked => {
+                                root.load_grpc_descriptor_set(root.grpc_descriptor_path);
+                            }
+                        }
                     }
                 }
             }
