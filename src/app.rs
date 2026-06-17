@@ -26,10 +26,11 @@ use zenapi::{
         NameValue,
     },
     grpc::{
-        GrpcRequestDraft, GrpcUnaryResponse, build_grpc_request_draft, format_grpc_method_catalog,
-        invoke_grpc_unary, load_grpc_file_descriptor_set, load_grpc_file_descriptor_set_proto,
-        load_grpc_proto_file, load_grpc_proto_file_descriptor_set,
-        load_grpc_reflection_descriptor_set, load_grpc_reflection_descriptors,
+        GrpcRequestDraft, GrpcServerStreamingResponse, GrpcUnaryResponse, build_grpc_request_draft,
+        format_grpc_method_catalog, invoke_grpc_server_streaming, invoke_grpc_unary,
+        load_grpc_file_descriptor_set, load_grpc_file_descriptor_set_proto, load_grpc_proto_file,
+        load_grpc_proto_file_descriptor_set, load_grpc_reflection_descriptor_set,
+        load_grpc_reflection_descriptors,
     },
     history::{HistoryRequest, HistoryResponse, RequestHistory},
     mock_server::{MockRequestLog, MockServer},
@@ -3688,6 +3689,63 @@ fn wire_grpc_draft(app: &AppWindow, runtime: Arc<Runtime>) {
     });
 
     let weak_app = app.as_weak();
+    let runtime_for_stream = runtime.clone();
+    app.on_invoke_grpc_server_streaming(move || {
+        let Some(app) = weak_app.upgrade() else {
+            return;
+        };
+        if app.get_busy() {
+            return;
+        }
+
+        app.set_busy(true);
+        app.set_activity("Invoking gRPC server stream".into());
+        let endpoint = app.get_grpc_endpoint().to_string();
+        let method = app.get_grpc_method().to_string();
+        let metadata = app.get_grpc_metadata().to_string();
+        let message = app.get_grpc_message().to_string();
+        let descriptor_path = app.get_grpc_descriptor_path().to_string();
+        let protoc_path = app.get_grpc_protoc_path().to_string();
+        let weak_app = app.as_weak();
+        runtime_for_stream.spawn(async move {
+            let result = async {
+                let descriptor_set =
+                    grpc_descriptor_set_for_invoke(&endpoint, &descriptor_path, &protoc_path)
+                        .await?;
+                invoke_grpc_server_streaming(
+                    &endpoint,
+                    &method,
+                    &metadata,
+                    &message,
+                    descriptor_set,
+                )
+                .await
+            }
+            .await;
+
+            if let Some(app) = weak_app.upgrade() {
+                app.set_busy(false);
+                match result {
+                    Ok(response) => {
+                        set_grpc_server_streaming_response(&app, &response);
+                        app.set_activity("gRPC server stream complete".into());
+                    }
+                    Err(error) => {
+                        set_response(
+                            &app,
+                            "gRPC stream failed",
+                            &method,
+                            "error",
+                            &error.to_string(),
+                        );
+                        app.set_activity(format!("gRPC stream failed: {error}").into());
+                    }
+                }
+            }
+        });
+    });
+
+    let weak_app = app.as_weak();
     app.on_build_grpc_draft(move || {
         let Some(app) = weak_app.upgrade() else {
             return;
@@ -5251,6 +5309,25 @@ fn set_grpc_unary_response(app: &AppWindow, response: &GrpcUnaryResponse) {
     };
 
     set_response(app, "gRPC OK", &response.method, "success", &body);
+    set_response_payload(app, &body, &body, &metadata, "No cookies");
+}
+
+fn set_grpc_server_streaming_response(app: &AppWindow, response: &GrpcServerStreamingResponse) {
+    let body = serde_json::to_string_pretty(&response.messages)
+        .unwrap_or_else(|_| Value::Array(response.messages.clone()).to_string());
+    let metadata = if response.metadata.is_empty() {
+        "No metadata".to_string()
+    } else {
+        response
+            .metadata
+            .iter()
+            .map(|entry| format!("{}: {}", entry.name, entry.value))
+            .collect::<Vec<_>>()
+            .join("\n")
+    };
+    let meta = format!("{} messages / {}", response.messages.len(), response.method);
+
+    set_response(app, "gRPC Stream OK", &meta, "success", &body);
     set_response_payload(app, &body, &body, &metadata, "No cookies");
 }
 

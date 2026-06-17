@@ -30,6 +30,7 @@ export component RealtimeEditorPanel inherits Rectangle {
     callback copy_sse_events();
     callback clear_sse_events();
     callback invoke_grpc_unary();
+    callback invoke_grpc_server_streaming();
     callback build_grpc_draft();
     callback load_grpc_descriptor_set(string);
     callback load_grpc_proto_file(string, string);
@@ -471,6 +472,15 @@ export component RealtimeEditorPanel inherits Rectangle {
                         enabled: !root.busy && root.grpc_endpoint != "" && root.grpc_method != "";
                         clicked => {
                             root.invoke_grpc_unary();
+                        }
+                    }
+
+                    ActionButton {
+                        text: "Stream";
+                        button_width: 162px;
+                        enabled: !root.busy && root.grpc_endpoint != "" && root.grpc_method != "";
+                        clicked => {
+                            root.invoke_grpc_server_streaming();
                         }
                     }
 
