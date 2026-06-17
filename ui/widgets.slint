@@ -385,43 +385,6 @@ component MethodOption inherits Rectangle {
     }
 }
 
-export component BodyModeButton inherits Rectangle {
-    in property <string> mode;
-    in property <string> label;
-    in property <bool> selected;
-    in property <bool> enabled: true;
-    in property <length> button_width: 76px;
-    callback picked(string);
-
-    width: root.button_width;
-    height: 26px;
-    border-radius: 6px;
-    border-width: 1px;
-    border-color: root.selected ? Theme.primary : Theme.outline_variant;
-    background: !root.enabled ? Theme.surface_container_low : root.selected ? Theme.surface_variant : touch.has-hover ? Theme.surface_container_high : Theme.surface_container_low;
-    opacity: root.enabled ? 1 : 0.65;
-
-    touch := TouchArea {
-        enabled: root.enabled;
-        mouse-cursor: root.enabled ? pointer : default;
-        clicked => {
-            root.picked(root.mode);
-        }
-    }
-
-    UiText {
-        text: root.label;
-        width: parent.width;
-        height: parent.height;
-        color: root.selected ? Theme.primary : Theme.on_surface_variant;
-        font-size: 12px;
-        font-weight: root.selected ? 800 : 600;
-        horizontal-alignment: center;
-        vertical-alignment: center;
-        overflow: elide;
-    }
-}
-
 export component MethodSelector inherits Rectangle {
     in-out property <string> method;
     in property <bool> enabled: true;
