@@ -164,7 +164,7 @@ X-Mode: test
 ```
 
 Header presets add or update common values: `Accept`, `Content`, and `Bearer`.
-Header clipboard copy is still future work.
+Use `Copy` in the Headers toolbar to copy the current header lines.
 
 ## Request Body
 

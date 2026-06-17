@@ -49,8 +49,8 @@
   `send_request_with_options`; current Slint baseline uses real editable row
   controls for Params and Headers backed by line-based text storage, plus
   table-shaped line-based editors for API-key pairs. Parsing supports
-  `key=value` / `key: value` plus common header presets, with API-key row
-  add/delete controls and header clipboard copy still pending.
+  `key=value` / `key: value` plus common header presets and header clipboard
+  copy, with richer bulk paste/import affordances still pending.
 - [~] Rebuild Body mode controls for none, form-data, URL-encoded, raw, GraphQL,
   and binary bodies; current Slint baseline has dedicated visible panels for
   no-body, raw text, form-data, URL-encoded, GraphQL query/variables, and

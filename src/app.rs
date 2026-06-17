@@ -933,6 +933,18 @@ fn wire_header_helpers(app: &AppWindow) {
     });
 
     let weak_app = app.as_weak();
+    app.on_copy_headers(move || {
+        let Some(app) = weak_app.upgrade() else {
+            return;
+        };
+
+        match copy_text_to_clipboard(app.get_request_headers().as_str()) {
+            Ok(()) => app.set_activity("Copied request headers".into()),
+            Err(error) => app.set_activity(format!("Copy headers failed: {error}").into()),
+        }
+    });
+
+    let weak_app = app.as_weak();
     app.on_add_header(move || {
         let Some(app) = weak_app.upgrade() else {
             return;

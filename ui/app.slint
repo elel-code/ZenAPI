@@ -350,6 +350,7 @@ component HeaderEditorPanel inherits Rectangle {
     callback add_header();
     callback update_header_row(int, string, string);
     callback delete_header_row(int);
+    callback copy_headers();
 
     horizontal-stretch: 1;
     vertical-stretch: 1;
@@ -399,6 +400,15 @@ component HeaderEditorPanel inherits Rectangle {
                 enabled: !root.busy;
                 clicked => {
                     root.apply_header_preset("bearer-token");
+                }
+            }
+
+            ActionButton {
+                text: "Copy";
+                button_width: 54px;
+                enabled: root.request_headers != "";
+                clicked => {
+                    root.copy_headers();
                 }
             }
         }
@@ -1997,6 +2007,7 @@ component RequestPanel inherits Rectangle {
     callback add_header();
     callback update_header_row(int, string, string);
     callback delete_header_row(int);
+    callback copy_headers();
     callback auth_mode_changed(string);
     callback add_auth_key();
     callback update_auth_key_row(int, string, string);
@@ -2157,6 +2168,9 @@ component RequestPanel inherits Rectangle {
                 }
                 delete_header_row(row_id) => {
                     root.delete_header_row(row_id);
+                }
+                copy_headers => {
+                    root.copy_headers();
                 }
             }
 
@@ -5766,6 +5780,7 @@ export component AppWindow inherits Window {
     callback add_header();
     callback update_header_row(int, string, string);
     callback delete_header_row(int);
+    callback copy_headers();
     callback auth_mode_changed(string);
     callback add_auth_key();
     callback update_auth_key_row(int, string, string);
@@ -5997,6 +6012,9 @@ export component AppWindow inherits Window {
                                     }
                                     delete_header_row(row_id) => {
                                         root.delete_header_row(row_id);
+                                    }
+                                    copy_headers => {
+                                        root.copy_headers();
                                     }
                                     auth_mode_changed(mode) => {
                                         root.auth_mode_changed(mode);
