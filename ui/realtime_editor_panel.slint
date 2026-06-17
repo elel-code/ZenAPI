@@ -1,8 +1,9 @@
 import { DataPanel } from "cards.slint";
 import { CodePane, LabeledEditor } from "editors.slint";
 import { Theme } from "theme.slint";
+import { TextField } from "text_field.slint";
 import { ActionButton } from "action_button.slint";
-import { BodyModeButton, TextField, UiText } from "widgets.slint";
+import { BodyModeButton, UiText } from "widgets.slint";
 
 export component RealtimeEditorPanel inherits Rectangle {
     in-out property <string> realtime_mode;

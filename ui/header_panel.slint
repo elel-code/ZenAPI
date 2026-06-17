@@ -1,8 +1,9 @@
 import { KeyValueTablePanel } from "key_value_table_panel.slint";
 import { Theme } from "theme.slint";
+import { TextField } from "text_field.slint";
 import { KeyValueTableRow } from "types.slint";
 import { ActionButton } from "action_button.slint";
-import { TextField, UiText } from "widgets.slint";
+import { UiText } from "widgets.slint";
 
 export component HeaderEditorPanel inherits Rectangle {
     in-out property <string> request_headers;

@@ -1,0 +1,60 @@
+import { Theme } from "theme.slint";
+
+export component TextField inherits Rectangle {
+    in-out property <string> text;
+    in property <string> placeholder;
+    in property <bool> mono: false;
+    in property <bool> enabled: true;
+    in property <bool> embedded: false;
+    out property <bool> focused: input.has-focus;
+    callback edited();
+    callback accepted();
+
+    height: 36px;
+    horizontal-stretch: 1;
+    border-radius: root.embedded ? 0px : 8px;
+    border-width: root.embedded ? 0px : 1px;
+    border-color: root.enabled && input.has-focus ? Theme.primary : Theme.outline_variant;
+    background: root.embedded ? transparent : (root.enabled ? Theme.surface_container_lowest : Theme.surface_container_low);
+    opacity: root.enabled ? 1 : 0.7;
+
+    Text {
+        x: 12px;
+        text: root.text == "" ? root.placeholder : "";
+        width: parent.width - 24px;
+        height: parent.height;
+        color: Theme.outline;
+        font-family: root.mono ? "JetBrains Mono" : "Inter";
+        font-size: 13px;
+        font-weight: 400;
+        letter-spacing: 0px;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+
+    input := TextInput {
+        x: 12px;
+        text <=> root.text;
+        width: parent.width - 24px;
+        height: parent.height;
+        enabled: root.enabled;
+        single-line: true;
+        font-family: root.mono ? "JetBrains Mono" : "Inter";
+        font-size: 13px;
+        font-weight: 400;
+        letter-spacing: 0px;
+        color: Theme.on_surface;
+        selection-background-color: Theme.primary_container;
+        selection-foreground-color: Theme.on_surface;
+        text-cursor-width: root.enabled ? 2px : 0px;
+        vertical-alignment: center;
+        edited => {
+            root.edited();
+        }
+        accepted => {
+            if root.enabled {
+                root.accepted();
+            }
+        }
+    }
+}
