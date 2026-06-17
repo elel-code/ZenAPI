@@ -1,0 +1,559 @@
+import { ListView } from "std-widgets.slint";
+import { Theme } from "theme.slint";
+import { CollectionRow, HistoryRow, RouteRow } from "types.slint";
+import { ActionButton, TextField, UiText } from "widgets.slint";
+
+export component SidebarProfile inherits Rectangle {
+    in property <string> title;
+    in property <string> subtitle;
+
+    height: 46px;
+    horizontal-stretch: 1;
+    background: transparent;
+
+    UiText {
+        x: 0px;
+        y: 0px;
+        text: root.title;
+        width: parent.width;
+        height: 24px;
+        color: Theme.primary;
+        font-size: 14px;
+        font-weight: 800;
+        overflow: elide;
+        vertical-alignment: center;
+    }
+
+    UiText {
+        x: 0px;
+        y: 24px;
+        text: root.subtitle;
+        width: parent.width;
+        height: 22px;
+        color: Theme.on_surface_variant;
+        font-size: 12px;
+        overflow: elide;
+        vertical-alignment: center;
+    }
+}
+
+component SidebarFolderRow inherits Rectangle {
+    in property <string> label;
+    in property <bool> selected: false;
+    in property <bool> interactive: false;
+    callback picked();
+
+    height: 36px;
+    horizontal-stretch: 1;
+    border-radius: 8px;
+    background: root.selected ? #00a572 : touch.has-hover && root.interactive ? Theme.surface_container_high : transparent;
+
+    touch := TouchArea {
+        enabled: root.interactive;
+        mouse-cursor: pointer;
+        clicked => {
+            root.picked();
+        }
+    }
+
+    Rectangle {
+        x: 10px;
+        y: 12px;
+        width: 15px;
+        height: 11px;
+        border-radius: 2px;
+        border-width: 1px;
+        border-color: root.selected ? #00311f : Theme.on_surface_variant;
+        background: transparent;
+    }
+
+    Rectangle {
+        x: 10px;
+        y: 9px;
+        width: 8px;
+        height: 4px;
+        border-radius: 1px;
+        background: root.selected ? #00311f : Theme.on_surface_variant;
+    }
+
+    UiText {
+        x: 34px;
+        text: root.label;
+        width: parent.width - 44px;
+        height: parent.height;
+        color: root.selected ? #00311f : Theme.on_surface;
+        font-size: 14px;
+        font-weight: root.selected ? 800 : 500;
+        overflow: elide;
+        vertical-alignment: center;
+    }
+}
+
+component SidebarRequestLink inherits Rectangle {
+    in property <string> method;
+    in property <string> label;
+    in property <bool> selected: false;
+    callback picked();
+
+    height: 30px;
+    horizontal-stretch: 1;
+    border-radius: 6px;
+    border-width: root.selected ? 1px : 0px;
+    border-color: Theme.outline_variant;
+    background: root.selected ? Theme.surface_variant : touch.has-hover ? Theme.surface_container_high : transparent;
+
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.picked();
+        }
+    }
+
+    UiText {
+        x: 10px;
+        text: root.method;
+        width: 34px;
+        height: parent.height;
+        font-family: "JetBrains Mono";
+        font-size: 10px;
+        font-weight: 800;
+        color: root.method == "GET" ? Theme.secondary : root.method == "POST" ? #00a572 : root.method == "PUT" ? Theme.tertiary : root.method == "DELETE" ? Theme.error : Theme.primary;
+        overflow: elide;
+        vertical-alignment: center;
+    }
+
+    UiText {
+        x: 48px;
+        text: root.label;
+        width: parent.width - 58px;
+        height: parent.height;
+        color: Theme.on_surface;
+        font-size: 13px;
+        font-weight: root.selected ? 700 : 500;
+        overflow: elide;
+        vertical-alignment: center;
+    }
+}
+
+component SidebarHistoryLink inherits Rectangle {
+    in property <string> method;
+    in property <string> label;
+    callback picked();
+
+    height: 26px;
+    horizontal-stretch: 1;
+    border-radius: 6px;
+    background: touch.has-hover ? Theme.surface_container_high : transparent;
+
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.picked();
+        }
+    }
+
+    UiText {
+        x: 0px;
+        text: root.method;
+        width: 32px;
+        height: parent.height;
+        font-family: "JetBrains Mono";
+        font-size: 10px;
+        color: root.method == "DELETE" ? Theme.error : root.method == "POST" ? #00a572 : Theme.secondary;
+        overflow: elide;
+        vertical-alignment: center;
+    }
+
+    UiText {
+        x: 38px;
+        text: root.label;
+        width: parent.width - 38px;
+        height: parent.height;
+        color: Theme.on_surface_variant;
+        font-size: 12px;
+        overflow: elide;
+        vertical-alignment: center;
+    }
+}
+
+export component Sidebar inherits Rectangle {
+    in-out property <[RouteRow]> routes;
+    in-out property <[CollectionRow]> collection_rows;
+    in-out property <[HistoryRow]> history_rows;
+    in-out property <int> selected_route;
+    in-out property <int> selected_collection_request;
+    in-out property <string> selected_collection_folder;
+    in-out property <string> collection_move_target_label;
+    in-out property <string> collection_request_name;
+    in-out property <string> collection_folder_name;
+    in-out property <string> collection_name;
+    in-out property <string> file_path;
+    in property <string> spec_label;
+    in property <bool> spec_loaded;
+    in property <int> total_route_count;
+    in property <bool> busy;
+    callback import_openapi(string);
+    callback select_route(int);
+    callback select_collection_request(int);
+    callback rename_collection_request(int, string);
+    callback duplicate_collection_request(int);
+    callback delete_collection_request(int);
+    callback move_collection_request(int, string);
+    callback add_collection_folder(string);
+    callback save_current_request();
+    callback select_history(int);
+    callback clear_history();
+
+    width: 240px;
+    vertical-stretch: 1;
+    background: Theme.surface_container_low;
+
+    VerticalLayout {
+        padding: 16px;
+        spacing: 14px;
+
+        SidebarProfile {
+            title: root.spec_loaded ? root.spec_label : "Workspace";
+            subtitle: root.spec_loaded ? "OpenAPI imported" : "No OpenAPI loaded";
+        }
+
+        Rectangle {
+            height: 72px;
+            horizontal-stretch: 1;
+            background: transparent;
+
+            VerticalLayout {
+                padding: 0px;
+                spacing: 8px;
+
+                UiText {
+                    text: "OPENAPI";
+                    height: 18px;
+                    horizontal-stretch: 1;
+                    color: Theme.on_surface_variant;
+                    font-size: 12px;
+                    font-weight: 800;
+                    vertical-alignment: center;
+                    overflow: elide;
+                }
+
+                HorizontalLayout {
+                    height: 36px;
+                    spacing: 8px;
+                    alignment: center;
+
+                    TextField {
+                        text <=> root.file_path;
+                        placeholder: "spec path";
+                        mono: true;
+                        enabled: !root.busy;
+                        horizontal-stretch: 1;
+                        accepted => {
+                            if !root.busy && root.file_path != "" {
+                                root.import_openapi(root.file_path);
+                            }
+                        }
+                    }
+
+                    ActionButton {
+                        text: "Import";
+                        primary: true;
+                        enabled: !root.busy && root.file_path != "";
+                        button_width: 66px;
+                        clicked => {
+                            root.import_openapi(root.file_path);
+                        }
+                    }
+                }
+            }
+        }
+
+        Rectangle {
+            horizontal-stretch: 1;
+            vertical-stretch: 1;
+            background: transparent;
+
+            VerticalLayout {
+                padding: 0px;
+                spacing: 8px;
+
+                HorizontalLayout {
+                    height: 24px;
+                    spacing: 8px;
+                    alignment: center;
+
+                    UiText {
+                        text: "COLLECTIONS";
+                        horizontal-stretch: 1;
+                        height: parent.height;
+                        color: Theme.on_surface_variant;
+                        font-size: 12px;
+                        font-weight: 800;
+                        vertical-alignment: center;
+                        overflow: elide;
+                    }
+
+                    ActionButton {
+                        text: "+";
+                        button_width: 30px;
+                        enabled: !root.busy;
+                        clicked => {
+                            root.save_current_request();
+                        }
+                    }
+                }
+
+                SidebarFolderRow {
+                    label: root.collection_name == "" ? "Collection" : root.collection_name;
+                    selected: root.selected_collection_folder == "" && root.selected_collection_request < 0;
+                    interactive: true;
+                    picked => {
+                        root.selected_collection_folder = "";
+                        root.collection_move_target_label = root.collection_name == "" ? "Collection" : root.collection_name;
+                        root.selected_collection_request = -1;
+                        root.collection_request_name = "";
+                    }
+                }
+
+                HorizontalLayout {
+                    height: 34px;
+                    spacing: 8px;
+                    alignment: center;
+
+                    TextField {
+                        text <=> root.collection_folder_name;
+                        placeholder: "folder name";
+                        enabled: !root.busy;
+                        horizontal-stretch: 1;
+                        accepted => {
+                            if !root.busy && root.collection_folder_name != "" {
+                                root.add_collection_folder(root.collection_folder_name);
+                            }
+                        }
+                    }
+
+                    ActionButton {
+                        text: "Folder";
+                        button_width: 62px;
+                        enabled: !root.busy && root.collection_folder_name != "";
+                        clicked => {
+                            root.add_collection_folder(root.collection_folder_name);
+                        }
+                    }
+                }
+
+                Rectangle {
+                    height: root.collection_rows.length == 0 && root.routes.length == 0 ? 34px : 170px;
+                    horizontal-stretch: 1;
+                    background: transparent;
+
+                    Rectangle {
+                        x: 19px;
+                        width: 1px;
+                        height: parent.height;
+                        background: Theme.outline_variant;
+                    }
+
+                    if root.collection_rows.length == 0 && root.routes.length == 0: UiText {
+                        x: 32px;
+                        text: root.total_route_count == 0 ? "No requests" : "No matching routes";
+                        width: parent.width - 32px;
+                        height: 30px;
+                        color: Theme.outline;
+                        font-size: 12px;
+                        vertical-alignment: center;
+                        overflow: elide;
+                    }
+
+                    if root.collection_rows.length != 0: ListView {
+                        x: 32px;
+                        width: parent.width - 32px;
+                        height: parent.height;
+                        vertical-scrollbar-policy: ScrollBarPolicy.as-needed;
+                        horizontal-scrollbar-policy: ScrollBarPolicy.as-needed;
+
+                        for entry in root.collection_rows: Rectangle {
+                            height: entry.is_folder ? 36px : 30px;
+                            horizontal-stretch: 1;
+                            background: transparent;
+
+                            if entry.is_folder: SidebarFolderRow {
+                                label: entry.name;
+                                selected: root.selected_collection_folder == entry.folder_path;
+                                interactive: true;
+                                picked => {
+                                    root.selected_collection_folder = entry.folder_path;
+                                    root.collection_move_target_label = entry.name;
+                                    root.selected_collection_request = -1;
+                                    root.collection_request_name = "";
+                                }
+                            }
+
+                            if !entry.is_folder: SidebarRequestLink {
+                                method: entry.method;
+                                label: entry.name;
+                                selected: root.selected_collection_request == entry.id;
+                                picked => {
+                                    root.selected_collection_request = entry.id;
+                                    root.select_collection_request(entry.id);
+                                }
+                            }
+                        }
+                    }
+
+                    if root.collection_rows.length == 0 && root.routes.length != 0: ListView {
+                        x: 32px;
+                        width: parent.width - 32px;
+                        height: parent.height;
+                        vertical-scrollbar-policy: ScrollBarPolicy.as-needed;
+                        horizontal-scrollbar-policy: ScrollBarPolicy.as-needed;
+
+                        for route[i] in root.routes: SidebarRequestLink {
+                            method: route.method;
+                            label: route.summary == "" ? route.path : route.summary;
+                            selected: root.selected_route == i;
+                            picked => {
+                                root.selected_route = i;
+                                root.select_route(i);
+                            }
+                        }
+                    }
+                }
+
+                HorizontalLayout {
+                    height: 34px;
+                    spacing: 6px;
+                    alignment: center;
+
+                    TextField {
+                        text <=> root.collection_request_name;
+                        placeholder: "request name";
+                        enabled: !root.busy && root.selected_collection_request >= 0;
+                        horizontal-stretch: 1;
+                        accepted => {
+                            if !root.busy && root.selected_collection_request >= 0 && root.collection_request_name != "" {
+                                root.rename_collection_request(root.selected_collection_request, root.collection_request_name);
+                            }
+                        }
+                    }
+
+                    ActionButton {
+                        text: "Ren";
+                        button_width: 40px;
+                        enabled: !root.busy && root.selected_collection_request >= 0 && root.collection_request_name != "";
+                        clicked => {
+                            root.rename_collection_request(root.selected_collection_request, root.collection_request_name);
+                        }
+                    }
+                }
+
+                HorizontalLayout {
+                    height: 30px;
+                    spacing: 6px;
+                    alignment: center;
+
+                    UiText {
+                        text: "Target: " + root.collection_move_target_label;
+                        horizontal-stretch: 1;
+                        height: parent.height;
+                        color: Theme.outline;
+                        font-size: 11px;
+                        vertical-alignment: center;
+                        overflow: elide;
+                    }
+
+                    ActionButton {
+                        text: "Move";
+                        button_width: 50px;
+                        enabled: !root.busy && root.selected_collection_request >= 0;
+                        clicked => {
+                            root.move_collection_request(root.selected_collection_request, root.selected_collection_folder);
+                        }
+                    }
+
+                    ActionButton {
+                        text: "Dup";
+                        button_width: 42px;
+                        enabled: !root.busy && root.selected_collection_request >= 0;
+                        clicked => {
+                            root.duplicate_collection_request(root.selected_collection_request);
+                        }
+                    }
+
+                    ActionButton {
+                        text: "Del";
+                        button_width: 40px;
+                        warning: true;
+                        enabled: !root.busy && root.selected_collection_request >= 0;
+                        clicked => {
+                            root.delete_collection_request(root.selected_collection_request);
+                        }
+                    }
+                }
+
+            }
+        }
+
+        Rectangle {
+            height: 112px;
+            horizontal-stretch: 1;
+            background: transparent;
+
+            VerticalLayout {
+                padding: 0px;
+                spacing: 8px;
+
+                HorizontalLayout {
+                    height: 24px;
+                    spacing: 8px;
+                    alignment: center;
+
+                    UiText {
+                        text: "HISTORY";
+                        horizontal-stretch: 1;
+                        height: parent.height;
+                        color: Theme.on_surface_variant;
+                        font-size: 12px;
+                        font-weight: 800;
+                        vertical-alignment: center;
+                        overflow: elide;
+                    }
+
+                    ActionButton {
+                        text: "...";
+                        button_width: 34px;
+                        enabled: !root.busy && root.history_rows.length > 0;
+                        clicked => {
+                            root.clear_history();
+                        }
+                    }
+                }
+
+                if root.history_rows.length == 0: UiText {
+                    text: "No requests yet";
+                    height: 26px;
+                    horizontal-stretch: 1;
+                    color: Theme.outline;
+                    font-size: 12px;
+                    vertical-alignment: center;
+                    overflow: elide;
+                }
+
+                if root.history_rows.length != 0: ListView {
+                    horizontal-stretch: 1;
+                    vertical-stretch: 1;
+                    vertical-scrollbar-policy: ScrollBarPolicy.as-needed;
+                    horizontal-scrollbar-policy: ScrollBarPolicy.as-needed;
+
+                    for entry in root.history_rows: SidebarHistoryLink {
+                        method: entry.method;
+                        label: entry.url;
+                        picked => {
+                            root.select_history(entry.id);
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
