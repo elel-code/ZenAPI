@@ -1,0 +1,217 @@
+import { Theme } from "theme.slint";
+import { DataPanel, UiText } from "widgets.slint";
+
+component TeamPageTitle inherits Rectangle {
+    in property <string> title;
+    in property <string> subtitle;
+
+    height: 62px;
+    horizontal-stretch: 1;
+    background: transparent;
+
+    UiText {
+        text: root.title;
+        x: 0px;
+        y: 0px;
+        width: parent.width;
+        height: 34px;
+        color: Theme.on_surface;
+        font-size: 26px;
+        font-weight: 800;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+
+    UiText {
+        text: root.subtitle;
+        x: 0px;
+        y: 36px;
+        width: parent.width;
+        height: 22px;
+        color: Theme.on_surface_variant;
+        font-size: 13px;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+}
+
+component TeamSidebarFolderRow inherits Rectangle {
+    in property <string> label;
+    in property <bool> selected: false;
+
+    height: 36px;
+    horizontal-stretch: 1;
+    border-radius: 8px;
+    background: root.selected ? #00a572 : transparent;
+
+    Rectangle {
+        x: 10px;
+        y: 12px;
+        width: 15px;
+        height: 11px;
+        border-radius: 2px;
+        border-width: 1px;
+        border-color: root.selected ? #00311f : Theme.on_surface_variant;
+        background: transparent;
+    }
+
+    Rectangle {
+        x: 10px;
+        y: 9px;
+        width: 8px;
+        height: 4px;
+        border-radius: 1px;
+        background: root.selected ? #00311f : Theme.on_surface_variant;
+    }
+
+    UiText {
+        x: 34px;
+        text: root.label;
+        width: parent.width - 44px;
+        height: parent.height;
+        color: root.selected ? #00311f : Theme.on_surface;
+        font-size: 14px;
+        font-weight: root.selected ? 800 : 500;
+        overflow: elide;
+        vertical-alignment: center;
+    }
+}
+
+export component TeamPage inherits Rectangle {
+    in property <string> spec_label;
+    in property <bool> spec_loaded;
+    in property <string> collection_name;
+    in property <int> route_count;
+
+    horizontal-stretch: 1;
+    vertical-stretch: 1;
+    background: Theme.background;
+
+    HorizontalLayout {
+        spacing: 0px;
+
+        Rectangle {
+            width: 260px;
+            vertical-stretch: 1;
+            background: Theme.surface_container_low;
+
+            VerticalLayout {
+                padding: 16px;
+                spacing: 12px;
+
+                TeamPageTitle {
+                    title: "Team";
+                    subtitle: "Local workspace";
+                }
+
+                TeamSidebarFolderRow {
+                    label: "Local Session";
+                    selected: true;
+                }
+
+                DataPanel {
+                    title: "Collaboration";
+                    body: "Team accounts, invites, and shared roles are not implemented in the local Slint app.";
+                }
+            }
+        }
+
+        Rectangle {
+            width: 1px;
+            background: Theme.outline_variant;
+        }
+
+        Rectangle {
+            width: 360px;
+            vertical-stretch: 1;
+            background: Theme.surface;
+
+            VerticalLayout {
+                padding: 16px;
+                spacing: 12px;
+
+                HorizontalLayout {
+                    height: 38px;
+                    spacing: 8px;
+
+                    UiText {
+                        text: root.spec_loaded ? root.spec_label : "No OpenAPI Loaded";
+                        horizontal-stretch: 1;
+                        height: parent.height;
+                        color: Theme.on_surface;
+                        font-size: 20px;
+                        font-weight: 800;
+                        vertical-alignment: center;
+                        overflow: elide;
+                    }
+                }
+
+                DataPanel {
+                    title: "Workspace Access";
+                    body: "This workstation is local-first. Imported specs, collections, variables, request history, and mock logs are stored for the local user only.";
+                }
+
+                DataPanel {
+                    title: "Collection";
+                    body: root.collection_name == "" ? "No collection loaded." : root.collection_name;
+                }
+            }
+        }
+
+        Rectangle {
+            width: 1px;
+            background: Theme.outline_variant;
+        }
+
+        Rectangle {
+            horizontal-stretch: 1;
+            vertical-stretch: 1;
+            background: Theme.surface_container_lowest;
+
+            VerticalLayout {
+                padding: 18px;
+                spacing: 14px;
+
+                HorizontalLayout {
+                    height: 56px;
+                    spacing: 12px;
+
+                    TeamPageTitle {
+                        title: "Access Model";
+                        subtitle: "No remote team backend is connected.";
+                    }
+                }
+
+                DataPanel {
+                    title: "Current Scope";
+                    body: "Routes imported: " + root.route_count + "\nSpec: " + (root.spec_loaded ? root.spec_label : "None") + "\nCollection: " + (root.collection_name == "" ? "None" : root.collection_name);
+                }
+
+                DataPanel {
+                    title: "Roles";
+                    body: "No organization members or role assignments are available. Future collaboration work should add real account and permission storage before exposing controls.";
+                }
+
+                HorizontalLayout {
+                    height: 126px;
+                    spacing: 14px;
+
+                    DataPanel {
+                        title: "Local Files";
+                        body: "Read/write by current OS user.";
+                    }
+
+                    DataPanel {
+                        title: "Remote Sync";
+                        body: "Not configured.";
+                    }
+
+                    DataPanel {
+                        title: "Invites";
+                        body: "Not available.";
+                    }
+                }
+            }
+        }
+    }
+}

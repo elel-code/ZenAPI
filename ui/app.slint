@@ -4,6 +4,7 @@ import { ActionButton, BodyModeButton, CodePane, DataPanel, LabeledEditor, Metho
 import { RealtimeEditorPanel } from "realtime_editor_panel.slint";
 import { CodegenPage } from "codegen_page.slint";
 import { SettingsPage } from "settings_page.slint";
+import { TeamPage } from "team_page.slint";
 
 export struct RouteRow {
     method: string,
@@ -5278,128 +5279,6 @@ component ApiKeysPage inherits Rectangle {
 
                 ReadOnlyCodeBlock {
                     text: root.integration_hint;
-                }
-            }
-        }
-    }
-}
-
-component TeamPage inherits Rectangle {
-    in property <string> spec_label;
-    in property <bool> spec_loaded;
-    in property <string> collection_name;
-    in property <int> route_count;
-
-    horizontal-stretch: 1;
-    vertical-stretch: 1;
-    background: Theme.background;
-
-    HorizontalLayout {
-        spacing: 0px;
-
-        Rectangle {
-            width: 260px;
-            vertical-stretch: 1;
-            background: Theme.surface_container_low;
-
-            VerticalLayout {
-                padding: 16px;
-                spacing: 12px;
-
-                PageTitle {
-                    title: "Team";
-                    subtitle: "Local workspace";
-                }
-
-                SidebarFolderRow {
-                    label: "Local Session";
-                    selected: true;
-                }
-
-                DataPanel {
-                    title: "Collaboration";
-                    body: "Team accounts, invites, and shared roles are not implemented in the local Slint app.";
-                }
-            }
-        }
-
-        Rectangle { width: 1px; background: Theme.outline_variant; }
-
-        Rectangle {
-            width: 360px;
-            vertical-stretch: 1;
-            background: Theme.surface;
-
-            VerticalLayout {
-                padding: 16px;
-                spacing: 12px;
-
-                HorizontalLayout {
-                    height: 38px;
-                    spacing: 8px;
-
-                    UiText {
-                        text: root.spec_loaded ? root.spec_label : "No OpenAPI Loaded";
-                        horizontal-stretch: 1;
-                        height: parent.height;
-                        color: Theme.on_surface;
-                        font-size: 20px;
-                        font-weight: 800;
-                        vertical-alignment: center;
-                        overflow: elide;
-                    }
-                }
-
-                DataPanel {
-                    title: "Workspace Access";
-                    body: "This workstation is local-first. Imported specs, collections, variables, request history, and mock logs are stored for the local user only.";
-                }
-
-                DataPanel {
-                    title: "Collection";
-                    body: root.collection_name == "" ? "No collection loaded." : root.collection_name;
-                }
-            }
-        }
-
-        Rectangle { width: 1px; background: Theme.outline_variant; }
-
-        Rectangle {
-            horizontal-stretch: 1;
-            vertical-stretch: 1;
-            background: Theme.surface_container_lowest;
-
-            VerticalLayout {
-                padding: 18px;
-                spacing: 14px;
-
-                HorizontalLayout {
-                    height: 56px;
-                    spacing: 12px;
-
-                    PageTitle {
-                        title: "Access Model";
-                        subtitle: "No remote team backend is connected.";
-                    }
-                }
-
-                DataPanel {
-                    title: "Current Scope";
-                    body: "Routes imported: " + root.route_count + "\nSpec: " + (root.spec_loaded ? root.spec_label : "None") + "\nCollection: " + (root.collection_name == "" ? "None" : root.collection_name);
-                }
-
-                DataPanel {
-                    title: "Roles";
-                    body: "No organization members or role assignments are available. Future collaboration work should add real account and permission storage before exposing controls.";
-                }
-
-                HorizontalLayout {
-                    height: 126px;
-                    spacing: 14px;
-
-                    DataPanel { title: "Local Files"; body: "Read/write by current OS user."; }
-                    DataPanel { title: "Remote Sync"; body: "Not configured."; }
-                    DataPanel { title: "Invites"; body: "Not available."; }
                 }
             }
         }
