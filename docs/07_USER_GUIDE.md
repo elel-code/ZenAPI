@@ -259,8 +259,10 @@ During the app session, each environment name keeps its own env-variable text
 when you switch away and back. The Environments page shows editable variable
 rows with `Global` and `Env` scopes, row add/delete actions, and a masked JSON
 preview. The backing storage is still line-based `key=value` text, so env
-variables override globals with the same name. Persisted multi-environment list
-management is still future work.
+variables override globals with the same name. Global variables and
+per-environment values are loaded from and saved to `.zenapi-environments.json`
+in the current working directory. Full environment list management is still
+future work.
 
 ## Collections
 

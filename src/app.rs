@@ -1,6 +1,7 @@
 use anyhow::{Result, anyhow, bail};
 use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64_STANDARD};
 use copypasta::{ClipboardContext, ClipboardProvider};
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use slint::{ComponentHandle, ModelRc, SharedString, VecModel};
 use std::{
@@ -38,13 +39,25 @@ use crate::ui::{
 };
 
 const HISTORY_FILE_NAME: &str = ".zenapi-history.json";
+const ENVIRONMENT_FILE_NAME: &str = ".zenapi-environments.json";
 const MAX_SSE_STREAM_EVENTS: usize = 200;
 
 pub fn run() -> Result<()> {
     let runtime = Arc::new(Runtime::new()?);
     let mut initial_state = AppState::default();
     let history_load_error = initial_state.load_history_from_disk().err();
+    let mut environment_load_error = None;
+    let environment_workspace = match load_environment_workspace(Path::new(ENVIRONMENT_FILE_NAME)) {
+        Ok(workspace) => workspace,
+        Err(error) => {
+            environment_load_error = Some(error);
+            None
+        }
+    };
     let app = AppWindow::new().map_err(|err| anyhow!(err.to_string()))?;
+    if let Some(workspace) = environment_workspace {
+        apply_environment_workspace(&app, &workspace);
+    }
     refresh_variable_table(&app);
     refresh_query_param_rows(&app);
     refresh_header_rows(&app);
@@ -58,6 +71,15 @@ pub fn run() -> Result<()> {
             &app,
             "History load failed",
             HISTORY_FILE_NAME,
+            "error",
+            &error.to_string(),
+        );
+    }
+    if let Some(error) = environment_load_error {
+        set_response(
+            &app,
+            "Environment load failed",
+            ENVIRONMENT_FILE_NAME,
             "error",
             &error.to_string(),
         );
@@ -123,9 +145,16 @@ struct RequestProjectionInput {
     environment_variables: String,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Clone, Default, Deserialize, Serialize, PartialEq, Eq)]
 struct EnvironmentProfiles {
     active_name: String,
+    values_by_name: BTreeMap<String, String>,
+}
+
+#[derive(Debug, Clone, Default, Deserialize, Serialize, PartialEq, Eq)]
+struct EnvironmentWorkspace {
+    active_name: String,
+    global_variables: String,
     values_by_name: BTreeMap<String, String>,
 }
 
@@ -158,6 +187,69 @@ impl EnvironmentProfiles {
 
     fn set_active_name(&mut self, active_name: &str) {
         self.active_name = active_name.trim().to_string();
+    }
+}
+
+impl EnvironmentWorkspace {
+    fn from_profiles(global_variables: &str, profiles: &EnvironmentProfiles) -> Self {
+        Self {
+            active_name: profiles.active_name.trim().to_string(),
+            global_variables: global_variables.to_string(),
+            values_by_name: profiles.values_by_name.clone(),
+        }
+    }
+}
+
+fn load_environment_workspace(path: &Path) -> Result<Option<EnvironmentWorkspace>> {
+    if !path.exists() {
+        return Ok(None);
+    }
+
+    let body = fs::read_to_string(path)
+        .map_err(|error| anyhow!("read environment file {}: {error}", path.display()))?;
+    let workspace = serde_json::from_str(&body)
+        .map_err(|error| anyhow!("parse environment file {}: {error}", path.display()))?;
+    Ok(Some(workspace))
+}
+
+fn save_environment_workspace(path: &Path, workspace: &EnvironmentWorkspace) -> Result<()> {
+    let body = serde_json::to_string_pretty(workspace)
+        .map_err(|error| anyhow!("serialize environment workspace: {error}"))?;
+    fs::write(path, body)
+        .map_err(|error| anyhow!("write environment file {}: {error}", path.display()))
+}
+
+fn apply_environment_workspace(app: &AppWindow, workspace: &EnvironmentWorkspace) {
+    app.set_global_variables(workspace.global_variables.clone().into());
+    app.set_environment_name(workspace.active_name.clone().into());
+    app.set_environment_variables(
+        workspace
+            .values_by_name
+            .get(workspace.active_name.trim())
+            .cloned()
+            .unwrap_or_default()
+            .into(),
+    );
+}
+
+fn persist_environment_workspace(
+    app: &AppWindow,
+    profiles: &Arc<Mutex<EnvironmentProfiles>>,
+    path: &Path,
+) {
+    let result = profiles
+        .lock()
+        .map_err(|_| anyhow!("environment profile state is unavailable"))
+        .and_then(|mut profiles| {
+            profiles.set_active_name(app.get_environment_name().as_str());
+            profiles.save_active(app.get_environment_variables().as_str());
+            let workspace =
+                EnvironmentWorkspace::from_profiles(app.get_global_variables().as_str(), &profiles);
+            save_environment_workspace(path, &workspace)
+        });
+
+    if let Err(error) = result {
+        app.set_activity(format!("Environment save failed: {error}").into());
     }
 }
 
@@ -1614,9 +1706,11 @@ fn wire_environment_actions(app: &AppWindow) {
         app.get_environment_name().as_str(),
         app.get_environment_variables().as_str(),
     )));
+    let environment_path = Arc::new(PathBuf::from(ENVIRONMENT_FILE_NAME));
 
     let weak_app = app.as_weak();
     let profiles = environment_profiles.clone();
+    let path = environment_path.clone();
     app.on_select_environment(move |environment| {
         let Some(app) = weak_app.upgrade() else {
             return;
@@ -1637,10 +1731,12 @@ fn wire_environment_actions(app: &AppWindow) {
         app.set_environment_name(environment);
         app.set_environment_variables(variables.into());
         refresh_variable_table(&app);
+        persist_environment_workspace(&app, &profiles, path.as_path());
     });
 
     let weak_app = app.as_weak();
     let profiles = environment_profiles.clone();
+    let path = environment_path.clone();
     app.on_environment_name_changed(move |environment| {
         let Some(app) = weak_app.upgrade() else {
             return;
@@ -1661,10 +1757,12 @@ fn wire_environment_actions(app: &AppWindow) {
         app.set_environment_name(environment);
         app.set_environment_variables(variables.into());
         refresh_variable_table(&app);
+        persist_environment_workspace(&app, &profiles, path.as_path());
     });
 
     let weak_app = app.as_weak();
     let profiles = environment_profiles.clone();
+    let path = environment_path.clone();
     app.on_update_variable_row(move |row_id, scope, name, value| {
         let Some(app) = weak_app.upgrade() else {
             return;
@@ -1689,15 +1787,14 @@ fn wire_environment_actions(app: &AppWindow) {
                 value.as_str(),
             );
             app.set_environment_variables(updated.into());
-            if let Ok(mut profiles) = profiles.lock() {
-                profiles.save_active(app.get_environment_variables().as_str());
-            }
         }
         refresh_variable_table(&app);
+        persist_environment_workspace(&app, &profiles, path.as_path());
     });
 
     let weak_app = app.as_weak();
     let profiles = environment_profiles.clone();
+    let path = environment_path.clone();
     app.on_add_variable(move |scope| {
         let Some(app) = weak_app.upgrade() else {
             return;
@@ -1718,15 +1815,14 @@ fn wire_environment_actions(app: &AppWindow) {
             }
             let updated = add_variable_text(app.get_environment_variables().as_str(), "ENV_VAR");
             app.set_environment_variables(updated.into());
-            if let Ok(mut profiles) = profiles.lock() {
-                profiles.save_active(app.get_environment_variables().as_str());
-            }
         }
         refresh_variable_table(&app);
+        persist_environment_workspace(&app, &profiles, path.as_path());
     });
 
     let weak_app = app.as_weak();
     let profiles = environment_profiles;
+    let path = environment_path;
     app.on_delete_variable_row(move |row_id, scope| {
         let Some(app) = weak_app.upgrade() else {
             return;
@@ -1741,11 +1837,9 @@ fn wire_environment_actions(app: &AppWindow) {
         } else {
             let updated = delete_variable_text(app.get_environment_variables().as_str(), row_id);
             app.set_environment_variables(updated.into());
-            if let Ok(mut profiles) = profiles.lock() {
-                profiles.save_active(app.get_environment_variables().as_str());
-            }
         }
         refresh_variable_table(&app);
+        persist_environment_workspace(&app, &profiles, path.as_path());
     });
 }
 
@@ -5950,6 +6044,46 @@ mod tests {
             profiles.switch_to("local", "baseUrl=https://api.example.com"),
             ""
         );
+    }
+
+    #[test]
+    fn saves_and_loads_environment_workspace_to_disk() {
+        let path = std::env::temp_dir().join(format!(
+            "zenapi-environment-workspace-{}-{}.json",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .expect("system clock")
+                .as_nanos()
+        ));
+        assert!(
+            load_environment_workspace(&path)
+                .expect("missing env")
+                .is_none()
+        );
+
+        let mut values_by_name = BTreeMap::new();
+        values_by_name.insert(
+            "dev".to_string(),
+            "baseUrl=http://127.0.0.1:8080".to_string(),
+        );
+        values_by_name.insert(
+            "prod".to_string(),
+            "baseUrl=https://api.example.com".to_string(),
+        );
+        let workspace = EnvironmentWorkspace {
+            active_name: "prod".to_string(),
+            global_variables: "token=secret".to_string(),
+            values_by_name,
+        };
+
+        save_environment_workspace(&path, &workspace).expect("save env workspace");
+        let loaded = load_environment_workspace(&path)
+            .expect("load env workspace")
+            .expect("workspace");
+
+        assert_eq!(loaded, workspace);
+        let _ = fs::remove_file(path);
     }
 
     #[test]

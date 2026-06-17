@@ -4,3 +4,5 @@
 .agents/
 stitch_nextgen_api_studio/
 .deepseek/state/
+.zenapi-history.json
+.zenapi-environments.json
