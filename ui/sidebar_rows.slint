@@ -1,0 +1,205 @@
+import { Theme } from "theme.slint";
+import { UiText } from "widgets.slint";
+
+export component SidebarProfile inherits Rectangle {
+    in property <string> title;
+    in property <string> subtitle;
+
+    height: 46px;
+    horizontal-stretch: 1;
+    background: transparent;
+
+    UiText {
+        x: 0px;
+        y: 0px;
+        text: root.title;
+        width: parent.width;
+        height: 24px;
+        color: Theme.primary;
+        font-size: 14px;
+        font-weight: 800;
+        overflow: elide;
+        vertical-alignment: center;
+    }
+
+    UiText {
+        x: 0px;
+        y: 24px;
+        text: root.subtitle;
+        width: parent.width;
+        height: 22px;
+        color: Theme.on_surface_variant;
+        font-size: 12px;
+        overflow: elide;
+        vertical-alignment: center;
+    }
+}
+
+export component SidebarFolderRow inherits Rectangle {
+    in property <string> label;
+    in property <bool> selected: false;
+    in property <bool> interactive: false;
+    callback picked();
+
+    height: 36px;
+    horizontal-stretch: 1;
+    border-radius: 8px;
+    background: root.selected ? #00a572 : touch.has-hover && root.interactive ? Theme.surface_container_high : transparent;
+
+    touch := TouchArea {
+        enabled: root.interactive;
+        mouse-cursor: pointer;
+        clicked => {
+            root.picked();
+        }
+    }
+
+    Rectangle {
+        x: 10px;
+        y: 12px;
+        width: 15px;
+        height: 11px;
+        border-radius: 2px;
+        border-width: 1px;
+        border-color: root.selected ? #00311f : Theme.on_surface_variant;
+        background: transparent;
+    }
+
+    Rectangle {
+        x: 10px;
+        y: 9px;
+        width: 8px;
+        height: 4px;
+        border-radius: 1px;
+        background: root.selected ? #00311f : Theme.on_surface_variant;
+    }
+
+    UiText {
+        x: 34px;
+        text: root.label;
+        width: parent.width - 44px;
+        height: parent.height;
+        color: root.selected ? #00311f : Theme.on_surface;
+        font-size: 14px;
+        font-weight: root.selected ? 800 : 500;
+        overflow: elide;
+        vertical-alignment: center;
+    }
+}
+
+export component SidebarRequestLink inherits Rectangle {
+    in property <string> method;
+    in property <string> label;
+    in property <bool> selected: false;
+    callback picked();
+
+    height: 30px;
+    horizontal-stretch: 1;
+    border-radius: 6px;
+    border-width: root.selected ? 1px : 0px;
+    border-color: Theme.outline_variant;
+    background: root.selected ? Theme.surface_variant : touch.has-hover ? Theme.surface_container_high : transparent;
+
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.picked();
+        }
+    }
+
+    UiText {
+        x: 10px;
+        text: root.method;
+        width: 34px;
+        height: parent.height;
+        font-family: "JetBrains Mono";
+        font-size: 10px;
+        font-weight: 800;
+        color: root.method == "GET" ? Theme.secondary : root.method == "POST" ? #00a572 : root.method == "PUT" ? Theme.tertiary : root.method == "DELETE" ? Theme.error : Theme.primary;
+        overflow: elide;
+        vertical-alignment: center;
+    }
+
+    UiText {
+        x: 48px;
+        text: root.label;
+        width: parent.width - 58px;
+        height: parent.height;
+        color: Theme.on_surface;
+        font-size: 13px;
+        font-weight: root.selected ? 700 : 500;
+        overflow: elide;
+        vertical-alignment: center;
+    }
+}
+
+export component SidebarHistoryLink inherits Rectangle {
+    in property <int> row_id;
+    in property <string> method;
+    in property <string> label;
+    callback picked();
+    callback delete_entry(int);
+
+    height: 26px;
+    horizontal-stretch: 1;
+    border-radius: 6px;
+    background: touch.has-hover ? Theme.surface_container_high : transparent;
+
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.picked();
+        }
+    }
+
+    UiText {
+        x: 0px;
+        text: root.method;
+        width: 32px;
+        height: parent.height;
+        font-family: "JetBrains Mono";
+        font-size: 10px;
+        color: root.method == "DELETE" ? Theme.error : root.method == "POST" ? #00a572 : Theme.secondary;
+        overflow: elide;
+        vertical-alignment: center;
+    }
+
+    UiText {
+        x: 38px;
+        text: root.label;
+        width: parent.width - 74px;
+        height: parent.height;
+        color: Theme.on_surface_variant;
+        font-size: 12px;
+        overflow: elide;
+        vertical-alignment: center;
+    }
+
+    Rectangle {
+        x: parent.width - 32px;
+        y: 4px;
+        width: 32px;
+        height: 18px;
+        border-radius: 4px;
+        background: delete_touch.has-hover ? Theme.surface_container_highest : transparent;
+
+        delete_touch := TouchArea {
+            mouse-cursor: pointer;
+            clicked => {
+                root.delete_entry(root.row_id);
+            }
+        }
+
+        UiText {
+            text: "Del";
+            width: parent.width;
+            height: parent.height;
+            color: delete_touch.has-hover ? Theme.error : Theme.outline;
+            font-size: 10px;
+            font-weight: 800;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+    }
+}
