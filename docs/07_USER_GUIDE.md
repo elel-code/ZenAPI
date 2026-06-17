@@ -28,7 +28,7 @@ narrow-window page content use Slint scrollbars instead of clipping overflow.
 OpenAPI import lives inside the request sidebar while the app chrome is reserved
 for a later redesign.
 Reference pages only expose controls that perform a visible action; API Docs
-snippet language buttons switch the displayed sample locally.
+snippet language buttons switch an active request URL/auth-aware sample locally.
 
 ## Keyboard Shortcuts
 
