@@ -150,21 +150,20 @@ with collection requests and restored with them.
 
 ## Params And Headers
 
-Params use editable rows with add/delete controls. Headers still use a
-table-shaped line editor with fixed key/value headers. Values are stored as
-line-based text so they stay compatible with the transport parser.
+Params and headers use editable rows with add/delete controls. Values are
+stored as line-based text so they stay compatible with the transport parser.
 
 Params accept one `key=value` pair per line. Headers accept common formats:
 
 ```text
 Accept: application/json
 Authorization=Bearer token
--H 'X-Trace-Id: abc'
---header "X-Mode: test"
+X-Trace-Id=abc
+X-Mode: test
 ```
 
 Header presets add or update common values: `Accept`, `Content`, and `Bearer`.
-Header row add/delete controls and header clipboard copy are still future work.
+Header clipboard copy is still future work.
 
 ## Request Body
 

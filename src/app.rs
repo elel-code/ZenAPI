@@ -42,6 +42,7 @@ pub fn run() -> Result<()> {
     let app = AppWindow::new().map_err(|err| anyhow!(err.to_string()))?;
     refresh_variable_table(&app);
     refresh_query_param_rows(&app);
+    refresh_header_rows(&app);
     app.set_history_rows(filtered_history_model(&initial_state.history, ""));
     if let Some(error) = history_load_error {
         set_response(
@@ -293,6 +294,7 @@ fn wire_route_selection(app: &AppWindow, state: Arc<Mutex<AppState>>) {
             app.set_query_params("".into());
             refresh_query_param_rows(&app);
             app.set_request_headers("Accept: application/json".into());
+            refresh_header_rows(&app);
             app.set_body_mode(default_body_mode(&app.get_method()).into());
             app.set_request_body(default_request_body(&app.get_method()).into());
             app.set_graphql_variables("{}".into());
@@ -331,6 +333,7 @@ fn wire_history_selection(app: &AppWindow, state: Arc<Mutex<AppState>>) {
             app.set_query_params(format_key_value_preview(&entry.request.query_params).into());
             refresh_query_param_rows(&app);
             app.set_request_headers(format_key_value_preview(&entry.request.headers).into());
+            refresh_header_rows(&app);
             app.set_auth_mode(normalized_history_auth_mode(&entry.request.auth_mode).into());
             app.set_auth_config(entry.request.auth_config.into());
             app.set_body_mode(entry.request.body_kind.into());
@@ -899,6 +902,7 @@ fn wire_header_helpers(app: &AppWindow) {
         match apply_header_preset(&app.get_request_headers(), preset.as_str()) {
             Ok(headers) => {
                 app.set_request_headers(headers.into());
+                refresh_header_rows(&app);
                 set_response(
                     &app,
                     "Header preset applied",
@@ -917,6 +921,53 @@ fn wire_header_helpers(app: &AppWindow) {
                 );
             }
         }
+    });
+
+    let weak_app = app.as_weak();
+    app.on_add_header(move || {
+        let Some(app) = weak_app.upgrade() else {
+            return;
+        };
+        if app.get_busy() {
+            return;
+        }
+
+        let updated = add_key_value_text(app.get_request_headers().as_str(), "Header");
+        app.set_request_headers(updated.into());
+        refresh_header_rows(&app);
+    });
+
+    let weak_app = app.as_weak();
+    app.on_update_header_row(move |row_id, key, value| {
+        let Some(app) = weak_app.upgrade() else {
+            return;
+        };
+        if app.get_busy() {
+            return;
+        }
+
+        let updated = update_key_value_text(
+            app.get_request_headers().as_str(),
+            row_id,
+            key.as_str(),
+            value.as_str(),
+        );
+        app.set_request_headers(updated.into());
+        refresh_header_rows(&app);
+    });
+
+    let weak_app = app.as_weak();
+    app.on_delete_header_row(move |row_id| {
+        let Some(app) = weak_app.upgrade() else {
+            return;
+        };
+        if app.get_busy() {
+            return;
+        }
+
+        let updated = delete_key_value_text(app.get_request_headers().as_str(), row_id);
+        app.set_request_headers(updated.into());
+        refresh_header_rows(&app);
     });
 }
 
@@ -2425,6 +2476,7 @@ fn restore_collection_request(app: &AppWindow, request: &CollectionRequest) {
     app.set_query_params(format_name_values(&request.query_params).into());
     refresh_query_param_rows(app);
     app.set_request_headers(format_name_values(&request.headers).into());
+    refresh_header_rows(app);
     app.set_auth_mode("none".into());
     app.set_auth_config("".into());
     app.set_body_mode(body_mode.into());
@@ -3020,6 +3072,10 @@ fn format_key_value_preview(fields: &[(String, String)]) -> String {
 
 fn refresh_query_param_rows(app: &AppWindow) {
     app.set_query_param_rows(key_value_table_model(app.get_query_params().as_str()));
+}
+
+fn refresh_header_rows(app: &AppWindow) {
+    app.set_header_rows(key_value_table_model(app.get_request_headers().as_str()));
 }
 
 fn key_value_table_model(input: &str) -> ModelRc<KeyValueTableRow> {

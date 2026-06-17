@@ -429,8 +429,12 @@ component TestAssertionEditorPanel inherits Rectangle {
 
 component HeaderEditorPanel inherits Rectangle {
     in-out property <string> request_headers;
+    in-out property <[KeyValueTableRow]> header_rows;
     in property <bool> busy;
     callback apply_header_preset(string);
+    callback add_header();
+    callback update_header_row(int, string, string);
+    callback delete_header_row(int);
 
     horizontal-stretch: 1;
     vertical-stretch: 1;
@@ -484,12 +488,22 @@ component HeaderEditorPanel inherits Rectangle {
             }
         }
 
-        KeyValueEditorPanel {
-            text <=> root.request_headers;
+        KeyValueTablePanel {
+            rows <=> root.header_rows;
             title: "";
             key_header: "Header";
             value_header: "Value";
-            helper: "One header per line. Accepts Header: value, Header=value, -H, and --header forms.";
+            helper: "Stored as Header=value lines; presets update common headers.";
+            busy: root.busy;
+            add_row => {
+                root.add_header();
+            }
+            update_row(row_id, key, value) => {
+                root.update_header_row(row_id, key, value);
+            }
+            delete_row(row_id) => {
+                root.delete_header_row(row_id);
+            }
         }
     }
 }
@@ -2010,6 +2024,7 @@ component RequestPanel inherits Rectangle {
     in-out property <string> query_params;
     in-out property <[KeyValueTableRow]> query_param_rows;
     in-out property <string> request_headers;
+    in-out property <[KeyValueTableRow]> header_rows;
     in-out property <string> auth_mode;
     in-out property <string> auth_config;
     in-out property <string> body_mode;
@@ -2036,6 +2051,9 @@ component RequestPanel inherits Rectangle {
     callback add_query_param();
     callback update_query_param_row(int, string, string);
     callback delete_query_param_row(int);
+    callback add_header();
+    callback update_header_row(int, string, string);
+    callback delete_header_row(int);
     callback apply_graphql_template(string);
     callback apply_header_preset(string);
     callback build_grpc_draft();
@@ -2174,9 +2192,19 @@ component RequestPanel inherits Rectangle {
                 width: parent.width - 32px;
                 height: parent.height - 32px;
                 request_headers <=> root.request_headers;
+                header_rows <=> root.header_rows;
                 busy: root.busy;
                 apply_header_preset(preset) => {
                     root.apply_header_preset(preset);
+                }
+                add_header => {
+                    root.add_header();
+                }
+                update_header_row(row_id, key, value) => {
+                    root.update_header_row(row_id, key, value);
+                }
+                delete_header_row(row_id) => {
+                    root.delete_header_row(row_id);
                 }
             }
 
@@ -5653,6 +5681,7 @@ export component AppWindow inherits Window {
     in-out property <string> selected_mock_summary: "";
     in-out property <string> selected_mock_body: "";
     in-out property <[KeyValueTableRow]> query_param_rows;
+    in-out property <[KeyValueTableRow]> header_rows;
     in-out property <int> total_route_count: 0;
     in-out property <int> selected_collection_request: -1;
     in-out property <string> collection_request_name: "";
@@ -5684,6 +5713,9 @@ export component AppWindow inherits Window {
     callback add_query_param();
     callback update_query_param_row(int, string, string);
     callback delete_query_param_row(int);
+    callback add_header();
+    callback update_header_row(int, string, string);
+    callback delete_header_row(int);
     callback send_request();
     callback toggle_server();
     callback generate_code();
@@ -5870,6 +5902,7 @@ export component AppWindow inherits Window {
                                         query_params <=> root.query_params;
                                         query_param_rows <=> root.query_param_rows;
                                         request_headers <=> root.request_headers;
+                                        header_rows <=> root.header_rows;
                                         auth_mode <=> root.auth_mode;
                                         auth_config <=> root.auth_config;
                                         body_mode <=> root.body_mode;
@@ -5895,6 +5928,15 @@ export component AppWindow inherits Window {
                                         }
                                         delete_query_param_row(row_id) => {
                                             root.delete_query_param_row(row_id);
+                                        }
+                                        add_header => {
+                                            root.add_header();
+                                        }
+                                        update_header_row(row_id, key, value) => {
+                                            root.update_header_row(row_id, key, value);
+                                        }
+                                        delete_header_row(row_id) => {
+                                            root.delete_header_row(row_id);
                                         }
                                         open_websocket => {
                                             root.open_websocket();
