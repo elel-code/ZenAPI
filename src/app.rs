@@ -30,7 +30,7 @@ use zenapi::{
 
 use crate::ui::{
     AppWindow, CollectionRow, HistoryRow, KeyValueTableRow, MockLogRow, RouteRow, RunnerRow,
-    VariableTableRow,
+    TestAssertionRow, VariableTableRow,
 };
 
 const HISTORY_FILE_NAME: &str = ".zenapi-history.json";
@@ -46,6 +46,7 @@ pub fn run() -> Result<()> {
     refresh_header_rows(&app);
     refresh_auth_key_rows(&app);
     refresh_body_field_rows(&app);
+    refresh_test_assertion_rows(&app);
     app.set_history_rows(filtered_history_model(&initial_state.history, ""));
     if let Some(error) = history_load_error {
         set_response(
@@ -70,6 +71,7 @@ pub fn run() -> Result<()> {
     wire_query_param_actions(&app);
     wire_auth_key_actions(&app);
     wire_body_field_actions(&app);
+    wire_test_assertion_actions(&app);
     wire_environment_actions(&app);
     wire_request_sender(&app, runtime.clone(), state.clone());
     wire_response_actions(&app);
@@ -355,6 +357,7 @@ fn wire_history_selection(app: &AppWindow, state: Arc<Mutex<AppState>>) {
             app.set_graphql_variables("{}".into());
             app.set_pre_request_script(entry.request.pre_request_script.into());
             app.set_request_tests(entry.request.request_tests.into());
+            refresh_test_assertion_rows(&app);
             set_response(
                 &app,
                 "History restored",
@@ -1162,6 +1165,56 @@ fn wire_body_field_actions(app: &AppWindow) {
         let updated = delete_key_value_text(app.get_request_body().as_str(), row_id);
         app.set_request_body(updated.into());
         refresh_body_field_rows(&app);
+    });
+}
+
+fn wire_test_assertion_actions(app: &AppWindow) {
+    let weak_app = app.as_weak();
+    app.on_add_test_assertion(move || {
+        let Some(app) = weak_app.upgrade() else {
+            return;
+        };
+        if app.get_busy() {
+            return;
+        }
+
+        let updated = add_test_assertion_text(app.get_request_tests().as_str());
+        app.set_request_tests(updated.into());
+        refresh_test_assertion_rows(&app);
+    });
+
+    let weak_app = app.as_weak();
+    app.on_update_test_assertion_row(move |row_id, kind, target, expected| {
+        let Some(app) = weak_app.upgrade() else {
+            return;
+        };
+        if app.get_busy() {
+            return;
+        }
+
+        let updated = update_test_assertion_text(
+            app.get_request_tests().as_str(),
+            row_id,
+            kind.as_str(),
+            target.as_str(),
+            expected.as_str(),
+        );
+        app.set_request_tests(updated.into());
+        refresh_test_assertion_rows(&app);
+    });
+
+    let weak_app = app.as_weak();
+    app.on_delete_test_assertion_row(move |row_id| {
+        let Some(app) = weak_app.upgrade() else {
+            return;
+        };
+        if app.get_busy() {
+            return;
+        }
+
+        let updated = delete_test_assertion_text(app.get_request_tests().as_str(), row_id);
+        app.set_request_tests(updated.into());
+        refresh_test_assertion_rows(&app);
     });
 }
 
@@ -2735,6 +2788,7 @@ fn restore_collection_request(app: &AppWindow, request: &CollectionRequest) {
     app.set_graphql_variables("{}".into());
     app.set_pre_request_script(request.pre_request_script.clone().into());
     app.set_request_tests(format_response_assertions(&request.tests).into());
+    refresh_test_assertion_rows(app);
     app.set_collection_status(format!("Selected {}", request.name).into());
     set_response(
         app,
@@ -3382,6 +3436,10 @@ fn refresh_body_field_rows(app: &AppWindow) {
     app.set_body_field_rows(key_value_table_model(app.get_request_body().as_str()));
 }
 
+fn refresh_test_assertion_rows(app: &AppWindow) {
+    app.set_test_assertion_rows(test_assertion_table_model(app.get_request_tests().as_str()));
+}
+
 fn key_value_table_model(input: &str) -> ModelRc<KeyValueTableRow> {
     ModelRc::new(VecModel::from_iter(
         key_value_ui_entries(input)
@@ -3446,6 +3504,106 @@ fn delete_key_value_text(input: &str, row_id: i32) -> String {
     }
 
     lines.join("\n")
+}
+
+fn test_assertion_table_model(input: &str) -> ModelRc<TestAssertionRow> {
+    ModelRc::new(VecModel::from_iter(
+        test_assertion_ui_entries(input)
+            .into_iter()
+            .enumerate()
+            .map(|(row_id, (_, kind, target, expected))| TestAssertionRow {
+                row_id: row_id as i32,
+                kind: kind.into(),
+                target: target.into(),
+                expected: expected.into(),
+            }),
+    ))
+}
+
+fn test_assertion_ui_entries(input: &str) -> Vec<(usize, String, String, String)> {
+    input
+        .lines()
+        .enumerate()
+        .filter_map(|(line_index, line)| {
+            let line = line.trim();
+            if line.is_empty() || line.starts_with('#') || line.starts_with("//") {
+                return None;
+            }
+            let (kind, args) = line.split_once(char::is_whitespace).unwrap_or((line, ""));
+            let args = args.trim();
+            let (target, expected) = args.split_once(char::is_whitespace).unwrap_or((args, ""));
+            Some((
+                line_index,
+                kind.trim().to_string(),
+                target.trim().to_string(),
+                expected.trim().to_string(),
+            ))
+        })
+        .collect()
+}
+
+fn update_test_assertion_text(
+    input: &str,
+    row_id: i32,
+    kind: &str,
+    target: &str,
+    expected: &str,
+) -> String {
+    let mut lines = input.lines().map(str::to_string).collect::<Vec<_>>();
+    let entries = test_assertion_ui_entries(input);
+    let new_line = format_test_assertion_line(kind, target, expected);
+
+    if let Some((line_index, _, _, _)) = row_id
+        .try_into()
+        .ok()
+        .and_then(|row_id: usize| entries.get(row_id))
+    {
+        lines[*line_index] = new_line;
+    } else {
+        lines.push(new_line);
+    }
+
+    lines.join("\n")
+}
+
+fn add_test_assertion_text(input: &str) -> String {
+    let new_line = "status_equals 200";
+    if input.trim().is_empty() {
+        new_line.to_string()
+    } else {
+        format!("{}\n{new_line}", input.trim_end())
+    }
+}
+
+fn delete_test_assertion_text(input: &str, row_id: i32) -> String {
+    let mut lines = input.lines().map(str::to_string).collect::<Vec<_>>();
+    let entries = test_assertion_ui_entries(input);
+
+    if let Some((line_index, _, _, _)) = row_id
+        .try_into()
+        .ok()
+        .and_then(|row_id: usize| entries.get(row_id))
+    {
+        lines.remove(*line_index);
+    }
+
+    lines.join("\n")
+}
+
+fn format_test_assertion_line(kind: &str, target: &str, expected: &str) -> String {
+    let kind = kind.trim();
+    let kind = if kind.is_empty() {
+        "status_equals"
+    } else {
+        kind
+    };
+    let target = target.trim();
+    let expected = expected.trim();
+    if expected.is_empty() {
+        format!("{kind} {target}")
+    } else {
+        format!("{kind} {target} {expected}")
+    }
 }
 
 fn append_key_value_line(input: &str, line: &str) -> String {
@@ -4720,6 +4878,39 @@ mod tests {
             "param=one\nparam_2="
         );
         assert_eq!(delete_key_value_text(input, 0), "# keep\nlimit=20");
+    }
+
+    #[test]
+    fn updates_adds_and_deletes_test_assertion_rows() {
+        use slint::Model;
+
+        let input = "# keep\nstatus_equals 200\nheader_equals content-type application/json\nbody_contains ok";
+        let rows = test_assertion_table_model(input);
+        assert_eq!(rows.row_count(), 3);
+
+        let status = rows.row_data(0).expect("status row");
+        assert_eq!(status.row_id, 0);
+        assert_eq!(status.kind.as_str(), "status_equals");
+        assert_eq!(status.target.as_str(), "200");
+        assert_eq!(status.expected.as_str(), "");
+
+        let header = rows.row_data(1).expect("header row");
+        assert_eq!(header.kind.as_str(), "header_equals");
+        assert_eq!(header.target.as_str(), "content-type");
+        assert_eq!(header.expected.as_str(), "application/json");
+
+        assert_eq!(
+            update_test_assertion_text(input, 1, "json_path_equals", "data.id", "1"),
+            "# keep\nstatus_equals 200\njson_path_equals data.id 1\nbody_contains ok"
+        );
+        assert_eq!(
+            add_test_assertion_text("status_equals 200"),
+            "status_equals 200\nstatus_equals 200"
+        );
+        assert_eq!(
+            delete_test_assertion_text(input, 0),
+            "# keep\nheader_equals content-type application/json\nbody_contains ok"
+        );
     }
 
     #[test]

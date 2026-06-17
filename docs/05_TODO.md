@@ -91,10 +91,11 @@
   dedicated Test Runner page with run/cancel/report export controls; richer
   report formats are still pending.
 - [~] Rebuild Pre-request script-lite and native Tests panels; current Slint
-  baseline provides a pre-request editor plus a table-shaped line editor for
-  Tests, applies pre-request actions during send/codegen, evaluates native tests
-  after single sends, and saves/restores both fields with collection requests,
-  with true row add/delete controls still pending.
+  baseline provides a pre-request editor plus editable Tests assertion rows
+  with Kind/Target/Expect fields and add/delete controls, applies pre-request
+  actions during send/codegen, evaluates native tests after single sends, and
+  saves/restores both fields with collection requests. Kind cycling and richer
+  assertion builders are still pending.
 - [~] Rebuild WebSocket and SSE panels using the restored client modules;
   current Slint Request Builder has a visible Realtime tab with WebSocket
   one-shot send, persistent open/send/close text sessions, plus SSE bounded
