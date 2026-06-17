@@ -125,9 +125,13 @@ component KeyValueTablePanel inherits Rectangle {
     in property <bool> show_paste: false;
     in property <bool> show_import: false;
     in-out property <string> import_path;
+    in property <bool> show_file_attach: false;
+    in-out property <string> file_field;
+    in-out property <string> file_path;
     callback add_row();
     callback paste_rows();
     callback import_rows(string);
+    callback add_file_row(string, string);
     callback update_row(int, string, string);
     callback delete_row(int);
 
@@ -191,6 +195,34 @@ component KeyValueTablePanel inherits Rectangle {
                 enabled: !root.busy && root.import_path != "";
                 clicked => {
                     root.import_rows(root.import_path);
+                }
+            }
+        }
+
+        if root.show_file_attach: HorizontalLayout {
+            height: 34px;
+            spacing: 8px;
+
+            TextField {
+                text <=> root.file_field;
+                placeholder: "file field";
+                mono: true;
+                enabled: !root.busy;
+            }
+
+            TextField {
+                text <=> root.file_path;
+                placeholder: "/absolute/path/to/file";
+                mono: true;
+                enabled: !root.busy;
+            }
+
+            ActionButton {
+                text: "Add File";
+                button_width: 76px;
+                enabled: !root.busy && root.file_field != "" && root.file_path != "";
+                clicked => {
+                    root.add_file_row(root.file_field, root.file_path);
                 }
             }
         }
@@ -2331,6 +2363,8 @@ component RequestPanel inherits Rectangle {
     in-out property <string> raw_body_subtype;
     in-out property <string> request_body;
     in-out property <[KeyValueTableRow]> body_field_rows;
+    in-out property <string> form_file_field;
+    in-out property <string> form_file_path;
     in-out property <string> graphql_variables;
     in-out property <string> pre_request_script;
     in-out property <string> request_tests;
@@ -2378,6 +2412,7 @@ component RequestPanel inherits Rectangle {
     callback delete_auth_key_row(int);
     callback body_mode_changed(string);
     callback add_body_field();
+    callback add_body_file_field(string, string);
     callback update_body_field_row(int, string, string);
     callback delete_body_field_row(int);
     callback add_test_assertion();
@@ -2617,8 +2652,14 @@ component RequestPanel inherits Rectangle {
                 value_header: "Value";
                 helper: "Values are stored as key=value lines. Prefix file values with @path.";
                 busy: root.busy;
+                show_file_attach: true;
+                file_field <=> root.form_file_field;
+                file_path <=> root.form_file_path;
                 add_row => {
                     root.add_body_field();
+                }
+                add_file_row(field, path) => {
+                    root.add_body_file_field(field, path);
                 }
                 update_row(row_id, key, value) => {
                     root.update_body_field_row(row_id, key, value);
@@ -6240,6 +6281,8 @@ export component AppWindow inherits Window {
     in-out property <string> raw_body_subtype: "json";
     in-out property <string> request_body;
     in-out property <[KeyValueTableRow]> body_field_rows;
+    in-out property <string> form_file_field: "file";
+    in-out property <string> form_file_path: "";
     in-out property <string> graphql_variables: "{}";
     in-out property <string> pre_request_script;
     in-out property <string> request_tests;
@@ -6337,6 +6380,7 @@ export component AppWindow inherits Window {
     callback delete_auth_key_row(int);
     callback body_mode_changed(string);
     callback add_body_field();
+    callback add_body_file_field(string, string);
     callback update_body_field_row(int, string, string);
     callback delete_body_field_row(int);
     callback add_test_assertion();
@@ -6548,6 +6592,8 @@ export component AppWindow inherits Window {
                                     raw_body_subtype <=> root.raw_body_subtype;
                                     request_body <=> root.request_body;
                                     body_field_rows <=> root.body_field_rows;
+                                    form_file_field <=> root.form_file_field;
+                                    form_file_path <=> root.form_file_path;
                                     graphql_variables <=> root.graphql_variables;
                                     pre_request_script <=> root.pre_request_script;
                                     request_tests <=> root.request_tests;
@@ -6620,6 +6666,9 @@ export component AppWindow inherits Window {
                                     }
                                     add_body_field => {
                                         root.add_body_field();
+                                    }
+                                    add_body_file_field(field, path) => {
+                                        root.add_body_file_field(field, path);
                                     }
                                     update_body_field_row(row_id, key, value) => {
                                         root.update_body_field_row(row_id, key, value);

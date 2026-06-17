@@ -1376,6 +1376,47 @@ fn wire_body_field_actions(app: &AppWindow) {
     });
 
     let weak_app = app.as_weak();
+    app.on_add_body_file_field(move |field, path| {
+        let Some(app) = weak_app.upgrade() else {
+            return;
+        };
+        if app.get_busy() {
+            return;
+        }
+
+        match add_form_file_field_text(
+            app.get_request_body().as_str(),
+            field.as_str(),
+            path.as_str(),
+        ) {
+            Ok(updated) => {
+                app.set_request_body(updated.into());
+                app.set_form_file_field(
+                    unique_key_value_name(app.get_request_body().as_str(), "file").into(),
+                );
+                app.set_form_file_path("".into());
+                refresh_body_field_rows(&app);
+                set_response(
+                    &app,
+                    "Form file added",
+                    field.as_str(),
+                    "success",
+                    "Multipart file field appended.",
+                );
+            }
+            Err(error) => {
+                set_response(
+                    &app,
+                    "Form file failed",
+                    field.as_str(),
+                    "error",
+                    &error.to_string(),
+                );
+            }
+        }
+    });
+
+    let weak_app = app.as_weak();
     app.on_update_body_field_row(move |row_id, key, value| {
         let Some(app) = weak_app.upgrade() else {
             return;
@@ -4055,6 +4096,25 @@ fn add_key_value_text(input: &str, base_key: &str) -> String {
     append_key_value_line(input, &format!("{key}="))
 }
 
+fn add_form_file_field_text(input: &str, field: &str, path: &str) -> Result<String> {
+    let field = field.trim();
+    if field.is_empty() {
+        bail!("form file field name is required");
+    }
+
+    let path = path.trim();
+    if path.is_empty() {
+        bail!("form file path is required");
+    }
+
+    let file_path = Path::new(path);
+    if !file_path.is_file() {
+        bail!("form file path does not exist or is not a file: {path}");
+    }
+
+    Ok(append_key_value_line(input, &format!("{field}=@{path}")))
+}
+
 fn merge_key_value_text(
     input: &str,
     imported: &str,
@@ -5736,6 +5796,27 @@ mod tests {
                 .expect_err("empty import path")
                 .to_string()
                 .contains("query param import path is required")
+        );
+        assert_eq!(
+            add_form_file_field_text(
+                "search=slint",
+                "upload",
+                import_path.to_str().expect("utf-8 import path"),
+            )
+            .expect("add form file"),
+            format!("search=slint\nupload=@{}", import_path.display())
+        );
+        assert!(
+            add_form_file_field_text("search=slint", "", import_path.to_str().unwrap())
+                .expect_err("empty field")
+                .to_string()
+                .contains("field name is required")
+        );
+        assert!(
+            add_form_file_field_text("search=slint", "upload", "/tmp/zenapi-missing-upload")
+                .expect_err("missing file")
+                .to_string()
+                .contains("does not exist")
         );
         let _ = fs::remove_file(import_path);
         assert_eq!(delete_key_value_text(input, 0), "# keep\nlimit=20");
