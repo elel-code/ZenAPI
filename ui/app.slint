@@ -2018,6 +2018,7 @@ component AddressBar inherits Rectangle {
     in-out property <string> method;
     in-out property <string> url;
     in property <string> request_name;
+    in property <string> collection_name;
     in property <bool> busy;
     callback send_request();
 
@@ -2044,8 +2045,8 @@ component AddressBar inherits Rectangle {
             alignment: center;
 
             UiText {
-                text: "Users";
-                width: 48px;
+                text: root.collection_name == "" ? "Collection" : root.collection_name;
+                width: 108px;
                 height: parent.height;
                 color: Theme.on_surface_variant;
                 font-size: 14px;
@@ -6174,13 +6175,13 @@ export component AppWindow inherits Window {
                     visible: root.active_page_index == 1;
                     width: parent.width;
                     height: parent.height;
-                    viewport-width: max(self.visible-width, 1200px);
+                    viewport-width: max(self.visible-width, 1240px);
                     viewport-height: max(self.visible-height, 560px);
                     vertical-scrollbar-policy: ScrollBarPolicy.as-needed;
                     horizontal-scrollbar-policy: ScrollBarPolicy.as-needed;
 
                     HorizontalLayout {
-                        width: max(parent.visible-width, 1200px);
+                        width: max(parent.visible-width, 1240px);
                         height: max(parent.visible-height, 560px);
                         spacing: 0px;
 
@@ -6266,7 +6267,7 @@ export component AppWindow inherits Window {
                         }
 
                         Rectangle {
-                            horizontal-stretch: 1;
+                            width: max(560px, parent.width - 642px);
                             vertical-stretch: 1;
                             background: Theme.surface_container_lowest;
                             clip: true;
@@ -6279,6 +6280,7 @@ export component AppWindow inherits Window {
                                     method <=> root.method;
                                     url <=> root.url;
                                     request_name: root.collection_request_name;
+                                    collection_name: root.collection_name;
                                     busy: root.busy;
                                     send_request => {
                                         root.send_request();
