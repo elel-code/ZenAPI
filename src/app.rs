@@ -7174,9 +7174,9 @@ fn build_auth_entries(
     let input = input.trim();
     match mode {
         "none" => Ok((Vec::new(), Vec::new())),
-        "bearer" | "jwt" => {
+        "bearer" | "oauth2" | "jwt" => {
             if input.is_empty() {
-                bail!("bearer token is empty");
+                bail!("access token is empty");
             }
             Ok((
                 vec![("Authorization".to_string(), format!("Bearer {input}"))],
@@ -8113,6 +8113,16 @@ mod tests {
             build_auth_entries("bearer", "secret").unwrap(),
             (
                 vec![("Authorization".to_string(), "Bearer secret".to_string())],
+                Vec::new()
+            )
+        );
+        assert_eq!(
+            build_auth_entries("oauth2", "access-token").unwrap(),
+            (
+                vec![(
+                    "Authorization".to_string(),
+                    "Bearer access-token".to_string()
+                )],
                 Vec::new()
             )
         );

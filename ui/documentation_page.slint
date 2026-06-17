@@ -97,8 +97,8 @@ export component DocumentationPage inherits Rectangle {
     callback send_request();
     property <string> sample_language: "curl";
     property <string> sample_url: root.url == "" ? "<request-url>" : root.url;
-    property <string> auth_hint: root.auth_mode == "bearer" ? "Authorization: Bearer <configured-token>" : root.auth_mode == "jwt" ? "Authorization: Bearer <configured-jwt>" : root.auth_mode == "basic" ? "Authorization: Basic <base64-credentials>" : root.auth_mode == "api-header" ? "<configured-header>: <configured-value>" : "";
-    property <string> auth_header_pair: root.auth_mode == "bearer" ? "\"Authorization\": \"Bearer <configured-token>\"" : root.auth_mode == "jwt" ? "\"Authorization\": \"Bearer <configured-jwt>\"" : root.auth_mode == "basic" ? "\"Authorization\": \"Basic <base64-credentials>\"" : root.auth_mode == "api-header" ? "\"<configured-header>\": \"<configured-value>\"" : "";
+    property <string> auth_hint: root.auth_mode == "bearer" ? "Authorization: Bearer <configured-token>" : root.auth_mode == "oauth2" ? "Authorization: Bearer <configured-access-token>" : root.auth_mode == "jwt" ? "Authorization: Bearer <configured-jwt>" : root.auth_mode == "basic" ? "Authorization: Basic <base64-credentials>" : root.auth_mode == "api-header" ? "<configured-header>: <configured-value>" : "";
+    property <string> auth_header_pair: root.auth_mode == "bearer" ? "\"Authorization\": \"Bearer <configured-token>\"" : root.auth_mode == "oauth2" ? "\"Authorization\": \"Bearer <configured-access-token>\"" : root.auth_mode == "jwt" ? "\"Authorization\": \"Bearer <configured-jwt>\"" : root.auth_mode == "basic" ? "\"Authorization\": \"Basic <base64-credentials>\"" : root.auth_mode == "api-header" ? "\"<configured-header>\": \"<configured-value>\"" : "";
     property <bool> has_header_auth: root.auth_hint != "";
     property <string> sample_code: root.sample_language == "python"
         ? (root.auth_mode == "api-query"

@@ -72,8 +72,10 @@
   mode-specific config panels wired to transport mapping. API key header/query
   modes now use editable add/delete rows backed by the existing `key=value`
   config storage, and Basic auth uses split username/password fields while
-  preserving the existing `username:password` config format. OAuth flows are
-  still pending.
+  preserving the existing `username:password` config format. Manual OAuth2
+  access-token mode is wired as `Authorization: Bearer <token>`; browser token
+  acquisition, redirect handling, refresh, and secure token storage remain
+  pending.
 - [~] Rebuild Environments and Variables UI on top of `variables::VariableStore`;
   current Slint baseline uses the reference three-pane Environments page with
   a persisted dynamic environment list, editable global/env variable rows,

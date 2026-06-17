@@ -748,12 +748,13 @@ component AuthEditorPanel inherits Rectangle {
             alignment: center;
 
             for item in [
-                { mode: "none", label: "none", width: 64px },
-                { mode: "bearer", label: "bearer", width: 78px },
-                { mode: "basic", label: "basic", width: 72px },
-                { mode: "jwt", label: "jwt", width: 58px },
-                { mode: "api-header", label: "api hdr", width: 88px },
-                { mode: "api-query", label: "api query", width: 96px },
+                { mode: "none", label: "none", width: 54px },
+                { mode: "bearer", label: "bearer", width: 64px },
+                { mode: "oauth2", label: "oauth2", width: 68px },
+                { mode: "basic", label: "basic", width: 58px },
+                { mode: "jwt", label: "jwt", width: 46px },
+                { mode: "api-header", label: "api hdr", width: 70px },
+                { mode: "api-query", label: "api qry", width: 76px },
             ]: BodyModeButton {
                 mode: item.mode;
                 label: item.label;
@@ -844,6 +845,45 @@ component AuthEditorPanel inherits Rectangle {
 
                 UiText {
                     text: "JWT is sent as Authorization: Bearer <token>.";
+                    height: 18px;
+                    horizontal-stretch: 1;
+                    color: Theme.outline;
+                    font-size: 12px;
+                    vertical-alignment: center;
+                    overflow: elide;
+                }
+            }
+        }
+
+        if root.auth_mode == "oauth2": Rectangle {
+            height: 92px;
+            horizontal-stretch: 1;
+            background: transparent;
+
+            VerticalLayout {
+                padding: 0px;
+                spacing: 8px;
+
+                UiText {
+                    text: "OAuth2 Access Token";
+                    height: 20px;
+                    horizontal-stretch: 1;
+                    color: Theme.on_surface_variant;
+                    font-size: 12px;
+                    font-weight: 800;
+                    vertical-alignment: center;
+                    overflow: elide;
+                }
+
+                TextField {
+                    text <=> root.auth_config;
+                    placeholder: "access token or {{oauthToken}}";
+                    mono: true;
+                    enabled: !root.busy;
+                }
+
+                UiText {
+                    text: "Uses an existing OAuth2 access token as Authorization: Bearer <token>.";
                     height: 18px;
                     horizontal-stretch: 1;
                     color: Theme.outline;

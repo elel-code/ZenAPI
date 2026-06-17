@@ -247,12 +247,16 @@ Supported auth modes:
 
 - None
 - Bearer
+- OAuth2 access token
 - Basic
 - JWT
 - API key header
 - API key query
 
-Bearer and JWT modes send `Authorization: Bearer <token>`. Basic auth exposes
+Bearer, OAuth2 access token, and JWT modes send
+`Authorization: Bearer <token>`. OAuth2 mode uses an existing access token that
+you paste or resolve from variables; token acquisition, redirect handling,
+refresh, and secure token storage remain future work. Basic auth exposes
 separate username and password fields, then saves them as the existing
 `username:password` config string. API key modes use editable add/delete rows
 for header or query pairs, while still storing the saved config as line-based
@@ -260,8 +264,7 @@ for header or query pairs, while still storing the saved config as line-based
 helper text for the selected mode while preserving the same saved config
 format. The API Keys page mirrors the active request auth configuration with
 hidden secret values; local key creation, rotation, scopes, and server-side key
-management remain future work. OAuth token acquisition, redirect handling,
-refresh, and secure state storage remain future work.
+management remain future work.
 
 ## Vars And Envs
 
@@ -422,8 +425,8 @@ zenapi run collection.json --delay-ms 100
 
 ## Current Limits
 
-- OAuth2 token acquisition, redirect handling, refresh, and secure state storage
-  are not implemented yet. Manual access token auth is available.
+- OAuth2 manual access token auth is available. Token acquisition, redirect
+  handling, refresh, and secure state storage are not implemented yet.
 - Pre-request script-lite and native response assertions are available in
   collection JSON, but a full script engine and `pm.*` compatibility are not
   implemented yet.
