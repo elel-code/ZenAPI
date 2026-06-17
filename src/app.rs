@@ -3,10 +3,11 @@ use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64_STANDARD};
 use copypasta::{ClipboardContext, ClipboardProvider};
 use serde_json::Value;
 use slint::{ComponentHandle, ModelRc, SharedString, Timer, VecModel};
-use std::sync::{Arc, Mutex};
 use std::{
+    collections::BTreeMap,
     fs,
     path::{Path, PathBuf},
+    sync::{Arc, Mutex},
     time::Duration,
 };
 use tokio::{runtime::Runtime, sync::mpsc, task::JoinHandle};
@@ -146,6 +147,44 @@ struct RequestProjectionInput {
     global_variables: String,
     environment_name: String,
     environment_variables: String,
+}
+
+#[derive(Debug, Default)]
+struct EnvironmentProfiles {
+    active_name: String,
+    values_by_name: BTreeMap<String, String>,
+}
+
+impl EnvironmentProfiles {
+    fn new(active_name: &str, active_values: &str) -> Self {
+        let mut profiles = Self {
+            active_name: active_name.trim().to_string(),
+            values_by_name: BTreeMap::new(),
+        };
+        profiles.save_active(active_values);
+        profiles
+    }
+
+    fn switch_to(&mut self, next_name: &str, current_values: &str) -> String {
+        self.save_active(current_values);
+        self.active_name = next_name.trim().to_string();
+        self.values_by_name
+            .get(&self.active_name)
+            .cloned()
+            .unwrap_or_default()
+    }
+
+    fn save_active(&mut self, values: &str) {
+        let active_name = self.active_name.trim();
+        if !active_name.is_empty() {
+            self.values_by_name
+                .insert(active_name.to_string(), values.to_string());
+        }
+    }
+
+    fn set_active_name(&mut self, active_name: &str) {
+        self.active_name = active_name.trim().to_string();
+    }
 }
 
 #[derive(Clone, Copy)]
@@ -1556,7 +1595,13 @@ fn wire_test_assertion_actions(app: &AppWindow) {
 }
 
 fn wire_environment_actions(app: &AppWindow) {
+    let environment_profiles = Arc::new(Mutex::new(EnvironmentProfiles::new(
+        app.get_environment_name().as_str(),
+        app.get_environment_variables().as_str(),
+    )));
+
     let weak_app = app.as_weak();
+    let profiles = environment_profiles.clone();
     app.on_select_environment(move |environment| {
         let Some(app) = weak_app.upgrade() else {
             return;
@@ -1565,11 +1610,22 @@ fn wire_environment_actions(app: &AppWindow) {
             return;
         }
 
+        let variables = profiles
+            .lock()
+            .map(|mut profiles| {
+                profiles.switch_to(
+                    environment.as_str(),
+                    app.get_environment_variables().as_str(),
+                )
+            })
+            .unwrap_or_default();
         app.set_environment_name(environment);
+        app.set_environment_variables(variables.into());
         refresh_variable_table(&app);
     });
 
     let weak_app = app.as_weak();
+    let profiles = environment_profiles.clone();
     app.on_environment_name_changed(move |environment| {
         let Some(app) = weak_app.upgrade() else {
             return;
@@ -1578,11 +1634,22 @@ fn wire_environment_actions(app: &AppWindow) {
             return;
         }
 
+        let variables = profiles
+            .lock()
+            .map(|mut profiles| {
+                profiles.switch_to(
+                    environment.as_str(),
+                    app.get_environment_variables().as_str(),
+                )
+            })
+            .unwrap_or_default();
         app.set_environment_name(environment);
+        app.set_environment_variables(variables.into());
         refresh_variable_table(&app);
     });
 
     let weak_app = app.as_weak();
+    let profiles = environment_profiles.clone();
     app.on_update_variable_row(move |row_id, scope, name, value| {
         let Some(app) = weak_app.upgrade() else {
             return;
@@ -1607,11 +1674,15 @@ fn wire_environment_actions(app: &AppWindow) {
                 value.as_str(),
             );
             app.set_environment_variables(updated.into());
+            if let Ok(mut profiles) = profiles.lock() {
+                profiles.save_active(app.get_environment_variables().as_str());
+            }
         }
         refresh_variable_table(&app);
     });
 
     let weak_app = app.as_weak();
+    let profiles = environment_profiles.clone();
     app.on_add_variable(move |scope| {
         let Some(app) = weak_app.upgrade() else {
             return;
@@ -1626,14 +1697,21 @@ fn wire_environment_actions(app: &AppWindow) {
         } else {
             if app.get_environment_name().trim().is_empty() {
                 app.set_environment_name("dev".into());
+                if let Ok(mut profiles) = profiles.lock() {
+                    profiles.set_active_name("dev");
+                }
             }
             let updated = add_variable_text(app.get_environment_variables().as_str(), "ENV_VAR");
             app.set_environment_variables(updated.into());
+            if let Ok(mut profiles) = profiles.lock() {
+                profiles.save_active(app.get_environment_variables().as_str());
+            }
         }
         refresh_variable_table(&app);
     });
 
     let weak_app = app.as_weak();
+    let profiles = environment_profiles;
     app.on_delete_variable_row(move |row_id, scope| {
         let Some(app) = weak_app.upgrade() else {
             return;
@@ -1648,6 +1726,9 @@ fn wire_environment_actions(app: &AppWindow) {
         } else {
             let updated = delete_variable_text(app.get_environment_variables().as_str(), row_id);
             app.set_environment_variables(updated.into());
+            if let Ok(mut profiles) = profiles.lock() {
+                profiles.save_active(app.get_environment_variables().as_str());
+            }
         }
         refresh_variable_table(&app);
     });
@@ -5640,6 +5721,29 @@ mod tests {
             )
             .expect("resolve"),
             "Bearer global"
+        );
+    }
+
+    #[test]
+    fn preserves_environment_profile_values_by_name() {
+        let mut profiles = EnvironmentProfiles::new("dev", "baseUrl=http://localhost:8080");
+
+        assert_eq!(
+            profiles.switch_to("prod", "baseUrl=http://localhost:8080"),
+            ""
+        );
+        profiles.save_active("baseUrl=https://api.example.com");
+        assert_eq!(
+            profiles.switch_to("dev", "baseUrl=https://api.example.com"),
+            "baseUrl=http://localhost:8080"
+        );
+        assert_eq!(
+            profiles.switch_to("prod", "baseUrl=http://localhost:8080"),
+            "baseUrl=https://api.example.com"
+        );
+        assert_eq!(
+            profiles.switch_to("local", "baseUrl=https://api.example.com"),
+            ""
         );
     }
 

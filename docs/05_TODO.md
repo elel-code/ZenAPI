@@ -71,8 +71,9 @@
 - [~] Rebuild Environments and Variables UI on top of `variables::VariableStore`;
   current Slint baseline uses the reference three-pane Environments page with
   dev/test/prod/local quick selectors, editable global/env variable rows,
-  add/delete row actions, scope badges, and a masked JSON preview, still backed
-  by the existing `key=value` text storage. Full multi-environment list
+  add/delete row actions, scope badges, per-environment value preservation
+  during session switches, and a masked JSON preview, still backed by the
+  existing `key=value` text storage. Full persisted multi-environment list
   management remains pending.
 - [~] Rebuild Collections UI for native JSON/Postman import/export, saving
   current requests, nested folders, rename/delete/copy, and drag/drop; current

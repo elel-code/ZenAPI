@@ -4013,16 +4013,22 @@ component EnvironmentVariableTable inherits Rectangle {
                 }
 
                 TextField {
-                    width: 170px;
+                    width: 150px;
                     height: 34px;
                     text <=> root.environment_name;
                     placeholder: "env name";
                     mono: true;
                     enabled: !root.busy;
-                    edited => {
+                    accepted => {
                         root.environment_name_changed(root.environment_name);
                     }
-                    accepted => {
+                }
+
+                ActionButton {
+                    text: "Use";
+                    button_width: 52px;
+                    enabled: !root.busy;
+                    clicked => {
                         root.environment_name_changed(root.environment_name);
                     }
                 }

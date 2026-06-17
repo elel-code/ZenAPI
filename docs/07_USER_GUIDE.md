@@ -250,11 +250,13 @@ Var scopes:
 - `Env` for the active env.
 
 Use the `dev`, `test`, `prod`, and `local` rows to switch the active
-environment quickly, or edit the env name field directly. The Environments page
-shows editable variable rows with `Global` and `Env` scopes, row add/delete
-actions, and a masked JSON preview. The backing storage is still line-based
-`key=value` text, so env variables override globals with the same name. Full
-multi-environment list management is still future work.
+environment quickly, or edit the env name field and press Enter or `Use`.
+During the app session, each environment name keeps its own env-variable text
+when you switch away and back. The Environments page shows editable variable
+rows with `Global` and `Env` scopes, row add/delete actions, and a masked JSON
+preview. The backing storage is still line-based `key=value` text, so env
+variables override globals with the same name. Persisted multi-environment list
+management is still future work.
 
 ## Collections
 
