@@ -13,7 +13,7 @@ import { RunnerPage } from "runner_page.slint";
 import { MockManagerPage } from "mock_manager_page.slint";
 import { ResponsePanel } from "response_panel.slint";
 import { RequestEditorPane } from "request_editor_pane.slint";
-import { Sidebar } from "sidebar.slint";
+import { RequestSidebarPane } from "request_sidebar_pane.slint";
 import { AppNavigation, BottomNavigation } from "app_navigation.slint";
 
 export component AppWindow inherits Window {
@@ -332,83 +332,83 @@ export component AppWindow inherits Window {
                         height: max(parent.visible-height, 560px);
                         spacing: 0px;
 
-                        Sidebar {
-                            routes <=> root.routes;
-                            collection_rows <=> root.collection_rows;
-                            history_rows <=> root.history_rows;
-                            selected_route <=> root.selected_route;
-                            selected_collection_request <=> root.selected_collection_request;
-                            selected_collection_folder <=> root.selected_collection_folder;
-                            collection_move_target_label <=> root.collection_move_target_label;
-                            collection_request_name <=> root.collection_request_name;
-                            collection_folder_name <=> root.collection_folder_name;
-                            collection_name <=> root.collection_name;
-                            collection_path <=> root.collection_path;
-                            history_filter <=> root.history_filter;
-                            collection_status: root.collection_status;
-                            file_path <=> root.file_path;
-                            spec_label: root.spec_label;
-                            spec_loaded: root.spec_loaded;
-                            total_route_count: root.total_route_count;
-                            busy: root.busy;
-                            import_openapi(path) => {
+                        RequestSidebarPane {
+                            workspace_routes <=> root.routes;
+                            workspace_collection_rows <=> root.collection_rows;
+                            workspace_history_rows <=> root.history_rows;
+                            workspace_selected_route <=> root.selected_route;
+                            workspace_selected_collection_request <=> root.selected_collection_request;
+                            workspace_selected_collection_folder <=> root.selected_collection_folder;
+                            workspace_collection_move_target_label <=> root.collection_move_target_label;
+                            workspace_collection_request_name <=> root.collection_request_name;
+                            workspace_collection_folder_name <=> root.collection_folder_name;
+                            workspace_collection_name <=> root.collection_name;
+                            workspace_collection_path <=> root.collection_path;
+                            workspace_history_filter <=> root.history_filter;
+                            workspace_file_path <=> root.file_path;
+                            workspace_collection_status: root.collection_status;
+                            workspace_spec_label: root.spec_label;
+                            workspace_spec_loaded: root.spec_loaded;
+                            workspace_total_route_count: root.total_route_count;
+                            workspace_busy: root.busy;
+                            workspace_import_openapi(path) => {
                                 root.import_openapi(path);
                             }
-                            pick_openapi_file => {
+                            workspace_pick_openapi_file => {
                                 root.pick_openapi_file();
                             }
-                            select_route(index) => {
+                            workspace_select_route(index) => {
                                 root.select_route(index);
                             }
-                            select_collection_request(id) => {
+                            workspace_select_collection_request(id) => {
                                 root.select_collection_request(id);
                             }
-                            rename_collection_request(id, name) => {
+                            workspace_rename_collection_request(id, name) => {
                                 root.rename_collection_request(id, name);
                             }
-                            duplicate_collection_request(id) => {
+                            workspace_duplicate_collection_request(id) => {
                                 root.duplicate_collection_request(id);
                             }
-                            delete_collection_request(id) => {
+                            workspace_delete_collection_request(id) => {
                                 root.delete_collection_request(id);
                             }
-                            move_collection_request(id, folder_path) => {
+                            workspace_move_collection_request(id, folder_path) => {
                                 root.move_collection_request(id, folder_path);
                             }
-                            import_collection(path) => {
+                            workspace_import_collection(path) => {
                                 root.import_collection(path);
                             }
-                            add_collection_folder(name) => {
+                            workspace_add_collection_folder(name) => {
                                 root.add_collection_folder(name);
                             }
-                            save_current_request => {
+                            workspace_save_current_request => {
                                 root.save_current_request();
                             }
-                            save_collection(path) => {
+                            workspace_save_collection(path) => {
                                 root.save_collection(path);
                             }
-                            export_postman_collection(path) => {
+                            workspace_export_postman_collection(path) => {
                                 root.export_postman_collection(path);
                             }
-                            pick_collection_import_file => {
+                            workspace_pick_collection_import_file => {
                                 root.pick_collection_import_file();
                             }
-                            pick_collection_save_path => {
+                            workspace_pick_collection_save_path => {
                                 root.pick_collection_save_path();
                             }
-                            pick_postman_collection_path => {
+                            workspace_pick_postman_collection_path => {
                                 root.pick_postman_collection_path();
                             }
-                            select_history(id) => {
+                            workspace_select_history(id) => {
                                 root.select_history(id);
                             }
-                            filter_history(query) => {
+                            workspace_filter_history(query) => {
                                 root.filter_history(query);
                             }
-                            delete_history(id) => {
+                            workspace_delete_history(id) => {
                                 root.delete_history(id);
                             }
-                            clear_history => {
+                            workspace_clear_history => {
                                 root.clear_history();
                             }
                         }
