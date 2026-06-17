@@ -2928,7 +2928,13 @@ component ResponsePanel inherits Rectangle {
     callback copy_response(string, string);
     callback format_response(string);
     property <string> active_tab: "pretty";
-    property <bool> response_folded: false;
+    property <bool> pretty_response_folded: false;
+    property <bool> raw_response_folded: false;
+    property <bool> headers_response_folded: false;
+    property <bool> cookies_response_folded: false;
+    property <bool> active_response_folded: root.active_tab == "pretty" ? root.pretty_response_folded : root.active_tab == "raw" ? root.raw_response_folded : root.active_tab == "headers" ? root.headers_response_folded : root.cookies_response_folded;
+    property <bool> all_responses_folded: root.pretty_response_folded && root.raw_response_folded && root.headers_response_folded && root.cookies_response_folded;
+    property <bool> any_response_folded: root.pretty_response_folded || root.raw_response_folded || root.headers_response_folded || root.cookies_response_folded;
     property <string> active_response_text: root.active_tab == "pretty" ? root.response_body : root.active_tab == "raw" ? root.response_raw_body : root.active_tab == "headers" ? root.response_headers : root.response_cookies;
     property <bool> response_ready: root.response_status != "Idle" || root.response_headers != "" || root.response_time != "" || root.response_size != "" || root.response_raw_body != root.response_body;
 
@@ -3106,10 +3112,37 @@ component ResponsePanel inherits Rectangle {
                 }
 
                 ActionButton {
-                    text: root.response_folded ? "Open" : "Fold";
+                    text: root.active_response_folded ? "Open" : "Fold";
                     button_width: 58px;
                     clicked => {
-                        root.response_folded = !root.response_folded;
+                        root.pretty_response_folded = root.active_tab == "pretty" ? !root.pretty_response_folded : root.pretty_response_folded;
+                        root.raw_response_folded = root.active_tab == "raw" ? !root.raw_response_folded : root.raw_response_folded;
+                        root.headers_response_folded = root.active_tab == "headers" ? !root.headers_response_folded : root.headers_response_folded;
+                        root.cookies_response_folded = root.active_tab == "cookies" ? !root.cookies_response_folded : root.cookies_response_folded;
+                    }
+                }
+
+                ActionButton {
+                    text: "Fold All";
+                    button_width: 72px;
+                    enabled: !root.all_responses_folded;
+                    clicked => {
+                        root.pretty_response_folded = true;
+                        root.raw_response_folded = true;
+                        root.headers_response_folded = true;
+                        root.cookies_response_folded = true;
+                    }
+                }
+
+                ActionButton {
+                    text: "Open All";
+                    button_width: 74px;
+                    enabled: root.any_response_folded;
+                    clicked => {
+                        root.pretty_response_folded = false;
+                        root.raw_response_folded = false;
+                        root.headers_response_folded = false;
+                        root.cookies_response_folded = false;
                     }
                 }
             }
@@ -3125,7 +3158,7 @@ component ResponsePanel inherits Rectangle {
             horizontal-stretch: 1;
             background: Theme.surface_container_lowest;
 
-            if root.response_folded: UiText {
+            if root.active_response_folded: UiText {
                 text: root.active_tab == "headers" ? "Headers folded" : root.active_tab == "cookies" ? "Cookies folded" : "Response body folded";
                 width: parent.width;
                 height: parent.height;
@@ -3136,7 +3169,7 @@ component ResponsePanel inherits Rectangle {
                 overflow: elide;
             }
 
-            if !root.response_folded && !root.response_ready && (root.active_tab == "pretty" || root.active_tab == "raw"): UiText {
+            if !root.active_response_folded && !root.response_ready && (root.active_tab == "pretty" || root.active_tab == "raw"): UiText {
                 text: root.active_tab == "raw" ? root.response_raw_body : root.response_body;
                 width: parent.width - 32px;
                 height: parent.height;
@@ -3148,28 +3181,28 @@ component ResponsePanel inherits Rectangle {
                 overflow: elide;
             }
 
-            if !root.response_folded && root.response_ready && root.active_tab == "pretty": CodePane {
+            if !root.active_response_folded && root.response_ready && root.active_tab == "pretty": CodePane {
                 width: parent.width;
                 height: parent.height;
                 text <=> root.response_body;
                 read_only: true;
             }
 
-            if !root.response_folded && root.response_ready && root.active_tab == "raw": CodePane {
+            if !root.active_response_folded && root.response_ready && root.active_tab == "raw": CodePane {
                 width: parent.width;
                 height: parent.height;
                 text <=> root.response_raw_body;
                 read_only: true;
             }
 
-            if !root.response_folded && root.active_tab == "headers": CodePane {
+            if !root.active_response_folded && root.active_tab == "headers": CodePane {
                 width: parent.width;
                 height: parent.height;
                 text <=> root.response_headers;
                 read_only: true;
             }
 
-            if !root.response_folded && root.active_tab == "cookies" && root.response_cookies == "No cookies": UiText {
+            if !root.active_response_folded && root.active_tab == "cookies" && root.response_cookies == "No cookies": UiText {
                 text: root.response_cookies;
                 width: parent.width;
                 height: parent.height;
@@ -3180,7 +3213,7 @@ component ResponsePanel inherits Rectangle {
                 overflow: elide;
             }
 
-            if !root.response_folded && root.active_tab == "cookies" && root.response_cookies != "No cookies": CodePane {
+            if !root.active_response_folded && root.active_tab == "cookies" && root.response_cookies != "No cookies": CodePane {
                 width: parent.width;
                 height: parent.height;
                 text <=> root.response_cookies;

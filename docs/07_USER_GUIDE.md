@@ -83,8 +83,9 @@ The response pane shows:
 Pretty JSON responses use the formatted body from the transport layer. Raw
 responses preserve the original response text. Response text is read-only but
 selectable and copyable. The response toolbar can copy the active tab, format
-valid JSON in Pretty or Raw, and fold/open the response viewer. Selection-aware
-copy and richer structural folding are still future work.
+valid JSON in Pretty or Raw, fold/open the active tab, and fold/open all
+response tabs together. Selection-aware copy and structural JSON folding are
+still future work.
 
 ## Pre-request
 
