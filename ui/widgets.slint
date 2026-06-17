@@ -810,3 +810,77 @@ export component TabHeader inherits Rectangle {
         overflow: elide;
     }
 }
+
+export component WorkspaceTab inherits Rectangle {
+    in property <string> mode;
+    in property <string> label;
+    in property <bool> selected;
+    callback picked(string);
+
+    width: 88px;
+    height: 44px;
+    background: transparent;
+
+    tab_touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.picked(root.mode);
+        }
+    }
+
+    UiText {
+        text: root.label;
+        width: parent.width;
+        height: parent.height - 2px;
+        color: root.selected ? Theme.primary : (tab_touch.has-hover ? Theme.on_surface : Theme.on_surface_variant);
+        font-size: 14px;
+        font-weight: root.selected ? 800 : 600;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+
+    Rectangle {
+        y: parent.height - 2px;
+        width: parent.width;
+        height: 2px;
+        background: root.selected ? Theme.primary : transparent;
+    }
+}
+
+export component ResponseTab inherits Rectangle {
+    in property <string> mode;
+    in property <string> label;
+    in property <bool> selected;
+    callback picked(string);
+
+    width: 82px;
+    height: 44px;
+    background: transparent;
+
+    tab_touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.picked(root.mode);
+        }
+    }
+
+    UiText {
+        text: root.label;
+        width: parent.width;
+        height: parent.height - 2px;
+        color: root.selected ? Theme.primary : (tab_touch.has-hover ? Theme.on_surface : Theme.on_surface_variant);
+        font-size: 13px;
+        font-weight: root.selected ? 800 : 600;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+
+    Rectangle {
+        y: parent.height - 2px;
+        width: parent.width;
+        height: 2px;
+        background: root.selected ? Theme.primary : transparent;
+    }
+}
