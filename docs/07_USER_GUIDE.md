@@ -198,7 +198,8 @@ file path and infers Content-Type from common file extensions unless an
 explicit request header overrides it. After running an introspection request,
 use `Schema` in the response pane on Pretty or Raw JSON to render a readable
 schema summary while keeping the original Raw response available. Native file
-picker dialogs are still future work.
+pickers are available for OpenAPI files, Params/Headers imports, multipart
+attachments, gRPC schema files, and codegen/runner/mock export paths.
 
 ## WebSocket
 
@@ -225,6 +226,20 @@ the next subscription can resume from that cursor. Subscriptions reconnect
 automatically with backoff until stopped. The SSE panel keeps the latest event
 history, `Copy` places it on the clipboard, and `Clear` removes it when no
 stream is active.
+
+## gRPC
+
+Open the Requests page, select the Realtime tab, and choose `gRPC`. Enter the
+endpoint, full method name, metadata, and JSON message body. The descriptor path
+field accepts FileDescriptorSet/protoset files or `.proto` source files; use
+`Open` to select the file, `Set` to load descriptor sets, `Proto` to load proto
+source with the configured `protoc`, or `Refl` to load descriptors from server
+reflection. `Draft` validates the current inputs and renders request details
+plus a `grpcurl` command preview.
+
+Use `Invoke` for unary methods and `Stream` for server-streaming methods.
+`Stop` cancels an active server stream. Responses and incremental stream events
+are mirrored into the response viewer.
 
 ## Authorization
 
@@ -416,9 +431,7 @@ zenapi run collection.json --delay-ms 100
 - WebSocket one-shot sends, persistent WS text sessions, WebSocket history
   copy/clear, SSE `Once` previews, and persistent SSE stream/resume controls are
   available.
-- gRPC Realtime draft validation is available for endpoint, method, metadata,
-  JSON message, and optional manual method catalog entries such as
-  `unary demo.Users/GetUser demo.GetUserRequest demo.GetUserResponse`; the
-  draft output also includes a `grpcurl` command preview. Reflection/proto
-  descriptor loading and unary transport are future work.
+- gRPC Realtime draft validation, descriptor/proto/reflection loading, unary
+  calls, and server-streaming calls are available from the Realtime panel.
+  Client streaming and bidirectional streaming are not implemented yet.
 - Plugin APIs are future work.
