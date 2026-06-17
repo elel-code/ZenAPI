@@ -428,8 +428,6 @@ export component AppWindow inherits Window {
                                 AddressBar {
                                     method <=> root.method;
                                     url <=> root.url;
-                                    request_name: root.collection_request_name;
-                                    collection_name: root.collection_name;
                                     busy: root.busy;
                                     send_request => {
                                         root.send_request();

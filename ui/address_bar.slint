@@ -5,7 +5,7 @@ component SendRequestButton inherits Rectangle {
     in property <bool> enabled: true;
     callback clicked();
 
-    width: 112px;
+    width: 92px;
     height: 40px;
     border-radius: 6px;
     border-width: 1px;
@@ -22,9 +22,9 @@ component SendRequestButton inherits Rectangle {
     }
 
     UiText {
-        x: 22px;
+        x: 14px;
         text: "Send";
-        width: 50px;
+        width: 48px;
         height: parent.height;
         color: Theme.on_surface;
         font-size: 13px;
@@ -35,7 +35,7 @@ component SendRequestButton inherits Rectangle {
     }
 
     UiText {
-        x: parent.width - 34px;
+        x: parent.width - 28px;
         text: ">";
         width: 16px;
         height: parent.height;
@@ -51,14 +51,10 @@ component SendRequestButton inherits Rectangle {
 export component AddressBar inherits Rectangle {
     in-out property <string> method;
     in-out property <string> url;
-    in property <string> request_name;
-    in property <string> collection_name;
     in property <bool> busy;
     callback send_request();
 
-    property <string> request_label: root.request_name != "" ? root.request_name : root.url == "" ? "New Request" : root.method + " Request";
-
-    height: 104px;
+    height: 54px;
     horizontal-stretch: 1;
     background: Theme.surface_container_low;
 
@@ -70,44 +66,11 @@ export component AddressBar inherits Rectangle {
     }
 
     VerticalLayout {
-        padding: 16px;
-        spacing: 8px;
-
-        HorizontalLayout {
-            height: 22px;
-            spacing: 8px;
-            alignment: center;
-
-            UiText {
-                text: root.collection_name == "" ? "Collection" : root.collection_name;
-                width: 108px;
-                height: parent.height;
-                color: Theme.on_surface_variant;
-                font-size: 14px;
-                vertical-alignment: center;
-                overflow: elide;
-            }
-
-            UiText {
-                text: ">";
-                width: 10px;
-                height: parent.height;
-                color: Theme.on_surface_variant;
-                font-size: 14px;
-                horizontal-alignment: center;
-                vertical-alignment: center;
-            }
-
-            UiText {
-                text: root.request_label;
-                horizontal-stretch: 1;
-                height: parent.height;
-                color: Theme.on_surface;
-                font-size: 14px;
-                vertical-alignment: center;
-                overflow: elide;
-            }
-        }
+        padding-left: 8px;
+        padding-right: 8px;
+        padding-top: 7px;
+        padding-bottom: 7px;
+        spacing: 0px;
 
         HorizontalLayout {
             height: 40px;
