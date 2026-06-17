@@ -145,7 +145,8 @@
   Slint baseline extracts shared styles, buttons, text fields, method controls,
   request/response tab headers and reusable list rows into `ui/widgets.slint`,
   with method/status indicators in `ui/status_components.slint` and action
-  buttons in `ui/action_button.slint`,
+  buttons, text fields, and mode buttons in `ui/action_button.slint`,
+  `ui/text_field.slint`, and `ui/mode_button.slint`,
   moved metric cards, data panels, and mock log rows into `ui/cards.slint`,
   moved code/editor panes into `ui/editors.slint`, and the Realtime editor
   business panel, shared Key/Value table panel, Body editor panel, Header
