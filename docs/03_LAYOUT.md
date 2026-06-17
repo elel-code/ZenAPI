@@ -363,7 +363,8 @@ ZenAPI 采用单窗口多页面架构，全局外壳包含：
 
 ## 页面切换动画
 
-- 侧边栏导航点击 → 主内容区淡入切换（`transition-opacity duration-150`）
+- 侧边栏导航点击 → 只切换常驻页面的 `visible` 状态，避免销毁并重建页面树
+- 页面级 ScrollView 使用 `cache-rendering-hint`，降低复杂页面切换后的重绘成本
 - 不实现页面间滑动动画
 - 移动端底部导航切换同逻辑
 

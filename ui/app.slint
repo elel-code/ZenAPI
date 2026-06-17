@@ -5778,7 +5778,9 @@ export component AppWindow inherits Window {
                 background: Theme.background;
                 clip: true;
 
-                if root.active_page == "requests": ScrollView {
+                ScrollView {
+                    visible: root.active_page == "requests";
+                    cache-rendering-hint: true;
                     width: parent.width;
                     height: parent.height;
                     viewport-width: max(self.visible-width, 1200px);
@@ -6029,7 +6031,9 @@ export component AppWindow inherits Window {
                     }
                 }
 
-                if root.active_page == "dashboard": ScrollView {
+                ScrollView {
+                    visible: root.active_page == "dashboard";
+                    cache-rendering-hint: true;
                     width: parent.width;
                     height: parent.height;
                     viewport-width: max(self.visible-width, 1040px);
@@ -6053,7 +6057,9 @@ export component AppWindow inherits Window {
                     }
                 }
 
-                if root.active_page == "mocks": ScrollView {
+                ScrollView {
+                    visible: root.active_page == "mocks";
+                    cache-rendering-hint: true;
                     width: parent.width;
                     height: parent.height;
                     viewport-width: max(self.visible-width, 1160px);
@@ -6094,7 +6100,9 @@ export component AppWindow inherits Window {
                     }
                 }
 
-                if root.active_page == "environments": ScrollView {
+                ScrollView {
+                    visible: root.active_page == "environments";
+                    cache-rendering-hint: true;
                     width: parent.width;
                     height: parent.height;
                     viewport-width: max(self.visible-width, 1180px);
@@ -6129,7 +6137,9 @@ export component AppWindow inherits Window {
                     }
                 }
 
-                if root.active_page == "runner": ScrollView {
+                ScrollView {
+                    visible: root.active_page == "runner";
+                    cache-rendering-hint: true;
                     width: parent.width;
                     height: parent.height;
                     viewport-width: max(self.visible-width, 1040px);
@@ -6160,7 +6170,9 @@ export component AppWindow inherits Window {
                     }
                 }
 
-                if root.active_page == "codegen": ScrollView {
+                ScrollView {
+                    visible: root.active_page == "codegen";
+                    cache-rendering-hint: true;
                     width: parent.width;
                     height: parent.height;
                     viewport-width: max(self.visible-width, 840px);
@@ -6184,7 +6196,9 @@ export component AppWindow inherits Window {
                     }
                 }
 
-                if root.active_page == "analytics": ScrollView {
+                ScrollView {
+                    visible: root.active_page == "analytics";
+                    cache-rendering-hint: true;
                     width: parent.width;
                     height: parent.height;
                     viewport-width: max(self.visible-width, 1040px);
@@ -6198,7 +6212,9 @@ export component AppWindow inherits Window {
                     }
                 }
 
-                if root.active_page == "docs": ScrollView {
+                ScrollView {
+                    visible: root.active_page == "docs";
+                    cache-rendering-hint: true;
                     width: parent.width;
                     height: parent.height;
                     viewport-width: max(self.visible-width, 1040px);
@@ -6223,7 +6239,9 @@ export component AppWindow inherits Window {
                     }
                 }
 
-                if root.active_page == "keys": ScrollView {
+                ScrollView {
+                    visible: root.active_page == "keys";
+                    cache-rendering-hint: true;
                     width: parent.width;
                     height: parent.height;
                     viewport-width: max(self.visible-width, 1040px);
@@ -6237,7 +6255,9 @@ export component AppWindow inherits Window {
                     }
                 }
 
-                if root.active_page == "team": ScrollView {
+                ScrollView {
+                    visible: root.active_page == "team";
+                    cache-rendering-hint: true;
                     width: parent.width;
                     height: parent.height;
                     viewport-width: max(self.visible-width, 1040px);
@@ -6251,7 +6271,9 @@ export component AppWindow inherits Window {
                     }
                 }
 
-                if root.active_page == "settings": ScrollView {
+                ScrollView {
+                    visible: root.active_page == "settings";
+                    cache-rendering-hint: true;
                     width: parent.width;
                     height: parent.height;
                     viewport-width: max(self.visible-width, 1040px);
