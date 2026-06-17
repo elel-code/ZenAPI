@@ -1620,6 +1620,7 @@ component RealtimeEditorPanel inherits Rectangle {
     in-out property <string> realtime_message;
     in-out property <string> websocket_message_mode;
     in-out property <string> websocket_protocols;
+    in-out property <string> websocket_event_history;
     in-out property <string> sse_max_events;
     in-out property <string> sse_last_event_id;
     in-out property <bool> sse_streaming;
@@ -1632,6 +1633,8 @@ component RealtimeEditorPanel inherits Rectangle {
     callback open_websocket();
     callback run_websocket();
     callback close_websocket();
+    callback copy_websocket_events();
+    callback clear_websocket_events();
     callback run_sse();
     callback open_sse_stream();
     callback close_sse_stream();
@@ -1724,6 +1727,18 @@ component RealtimeEditorPanel inherits Rectangle {
                         label: root.websocket_message_mode == "binary" ? "WebSocket Binary Bytes" : "WebSocket Message";
                         text <=> root.realtime_message;
                     }
+
+                    if root.websocket_event_history == "": DataPanel {
+                        height: 132px;
+                        title: "WebSocket History";
+                        body: "Open a session or send a one-shot message to capture sent and received frames here.";
+                    }
+
+                    if root.websocket_event_history != "": CodePane {
+                        height: 180px;
+                        text: root.websocket_event_history;
+                        read_only: true;
+                    }
                 }
             }
 
@@ -1776,6 +1791,25 @@ component RealtimeEditorPanel inherits Rectangle {
                         enabled: !root.busy;
                         clicked => {
                             root.close_websocket();
+                        }
+                    }
+
+                    ActionButton {
+                        text: "Copy";
+                        button_width: 162px;
+                        enabled: root.websocket_event_history != "";
+                        clicked => {
+                            root.copy_websocket_events();
+                        }
+                    }
+
+                    ActionButton {
+                        text: "Clear";
+                        button_width: 162px;
+                        warning: true;
+                        enabled: root.websocket_event_history != "";
+                        clicked => {
+                            root.clear_websocket_events();
                         }
                     }
 
@@ -2227,6 +2261,7 @@ component RequestPanel inherits Rectangle {
     in-out property <string> realtime_message;
     in-out property <string> websocket_message_mode;
     in-out property <string> websocket_protocols;
+    in-out property <string> websocket_event_history;
     in-out property <string> sse_max_events;
     in-out property <string> sse_last_event_id;
     in-out property <bool> sse_streaming;
@@ -2239,6 +2274,8 @@ component RequestPanel inherits Rectangle {
     callback open_websocket();
     callback run_websocket();
     callback close_websocket();
+    callback copy_websocket_events();
+    callback clear_websocket_events();
     callback run_sse();
     callback open_sse_stream();
     callback close_sse_stream();
@@ -2599,6 +2636,9 @@ component RequestPanel inherits Rectangle {
                 height: parent.height - 32px;
                 realtime_mode <=> root.realtime_mode;
                 realtime_message <=> root.realtime_message;
+                websocket_message_mode <=> root.websocket_message_mode;
+                websocket_protocols <=> root.websocket_protocols;
+                websocket_event_history <=> root.websocket_event_history;
                 sse_max_events <=> root.sse_max_events;
                 sse_last_event_id <=> root.sse_last_event_id;
                 sse_streaming <=> root.sse_streaming;
@@ -2616,6 +2656,12 @@ component RequestPanel inherits Rectangle {
                 }
                 close_websocket => {
                     root.close_websocket();
+                }
+                copy_websocket_events => {
+                    root.copy_websocket_events();
+                }
+                clear_websocket_events => {
+                    root.clear_websocket_events();
                 }
                 run_sse => {
                     root.run_sse();
@@ -6057,6 +6103,7 @@ export component AppWindow inherits Window {
     in-out property <string> realtime_message: "hello";
     in-out property <string> websocket_message_mode: "text";
     in-out property <string> websocket_protocols: "";
+    in-out property <string> websocket_event_history: "";
     in-out property <string> sse_max_events: "3";
     in-out property <string> sse_last_event_id: "";
     in-out property <bool> sse_streaming: false;
@@ -6155,6 +6202,8 @@ export component AppWindow inherits Window {
     callback open_websocket();
     callback run_websocket();
     callback close_websocket();
+    callback copy_websocket_events();
+    callback clear_websocket_events();
     callback run_sse();
     callback open_sse_stream();
     callback close_sse_stream();
@@ -6351,6 +6400,7 @@ export component AppWindow inherits Window {
                                     realtime_message <=> root.realtime_message;
                                     websocket_message_mode <=> root.websocket_message_mode;
                                     websocket_protocols <=> root.websocket_protocols;
+                                    websocket_event_history <=> root.websocket_event_history;
                                     sse_max_events <=> root.sse_max_events;
                                     sse_last_event_id <=> root.sse_last_event_id;
                                     sse_streaming <=> root.sse_streaming;
@@ -6425,6 +6475,12 @@ export component AppWindow inherits Window {
                                     }
                                     close_websocket => {
                                         root.close_websocket();
+                                    }
+                                    copy_websocket_events => {
+                                        root.copy_websocket_events();
+                                    }
+                                    clear_websocket_events => {
+                                        root.clear_websocket_events();
                                     }
                                     run_sse => {
                                         root.run_sse();

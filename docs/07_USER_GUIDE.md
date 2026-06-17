@@ -201,8 +201,9 @@ messages repeatedly, and `End` to close the connection. Request headers are
 sent during the handshake, and comma- or newline-separated subprotocols are
 sent when opening a persistent session. `Text` sends normal text messages.
 `Binary` sends hex bytes such as `00 01 ff` or `0x00,0x01,0xff` over an open
-session. Sent and received messages are mirrored in the response viewer.
-Dedicated WebSocket history actions are still future work.
+session. Sent and received messages are mirrored in the response viewer and in
+the WebSocket history panel. `Copy` places the current WebSocket history on the
+clipboard, and `Clear` removes it from the panel.
 
 ## SSE
 
@@ -366,8 +367,8 @@ zenapi run collection.json --delay-ms 100
 - GraphQL query and variables payload editing plus query, mutation, and
   introspection templates are available; introspection response schema/field
   panels are future work.
-  WebSocket one-shot sends, persistent WS text sessions, SSE `Once` previews,
-  and persistent SSE stream/resume controls are available. gRPC has a draft
-  domain model and an implementation plan in `docs/09_GRPC.md`, but transport/UI
-  support is future work.
+  WebSocket one-shot sends, persistent WS text sessions, WebSocket history
+  copy/clear, SSE `Once` previews, and persistent SSE stream/resume controls are
+  available. gRPC has a draft domain model and an implementation plan in
+  `docs/09_GRPC.md`, but transport/UI support is future work.
 - Plugin APIs are future work.

@@ -101,9 +101,9 @@
 - [~] Rebuild WebSocket and SSE panels using the restored client modules;
   current Slint Request Builder has a visible Realtime tab with WebSocket
   one-shot text send, persistent open/send/close text and binary sessions with
-  subprotocol entry, plus SSE bounded previews and persistent stream/stop
-  controls with Last-Event-ID resume plus SSE event history copy/clear
-  controls. Dedicated WebSocket history actions are still pending.
+  subprotocol entry and WebSocket event history copy/clear controls, plus SSE
+  bounded previews and persistent stream/stop controls with Last-Event-ID resume
+  plus SSE event history copy/clear controls.
 - [~] Add GraphQL and gRPC UI surfaces after REST parity is stable; current
   Slint baseline has GraphQL query/variables editing, query/mutation/
   introspection templates, plus a visible Realtime gRPC draft surface backed by
@@ -143,7 +143,7 @@
 | Codegen | Domain + Slint page implemented | Dedicated page generates, copies, and saves snippets |
 | Runner | Domain + Slint page + CLI implemented | Dedicated page runs/cancels collections and saves reports; CLI remains stable |
 | Assertions/scripts | Domain implemented | Slint baseline edits, saves, restores, and evaluates native scripts/tests |
-| WebSocket/SSE | Client modules restored | Realtime tab supports one-shot WS text, persistent WS text/binary sends with subprotocols, plus SSE previews, streams, history copy, and clear |
+| WebSocket/SSE | Client modules restored | Realtime tab supports one-shot WS text, persistent WS text/binary sends with subprotocols, WebSocket history copy/clear, plus SSE previews, streams, history copy, and clear |
 | Mock logs | Core implemented | Slint baseline shows, filters, clears, and exports recent mock requests |
 | GraphQL | Payload builder implemented | Slint baseline edits query/variables and applies query, mutation, and introspection templates |
 | gRPC | Domain draft model implemented | Realtime tab exposes draft surface; descriptor loading and unary transport pending |

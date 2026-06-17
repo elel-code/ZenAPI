@@ -1936,6 +1936,7 @@ fn wire_realtime_actions(app: &AppWindow, runtime: Arc<Runtime>) {
             "busy",
             &format!("Connecting\n\n{url}"),
         );
+        app.set_websocket_event_history("".into());
 
         let weak_app = app.as_weak();
         let session_state = open_session.clone();
@@ -1957,6 +1958,7 @@ fn wire_realtime_actions(app: &AppWindow, runtime: Arc<Runtime>) {
                 let _ = slint::invoke_from_event_loop(move || {
                     if let Some(app) = weak_app.upgrade() {
                         set_response(&app, status, &meta, tone, &body);
+                        app.set_websocket_event_history(body.into());
                         if done {
                             app.set_activity("".into());
                             if let Ok(mut session) = session_state.lock() {
@@ -2057,6 +2059,7 @@ fn wire_realtime_actions(app: &AppWindow, runtime: Arc<Runtime>) {
             "busy",
             &format!("Connecting\n\n{url}"),
         );
+        app.set_websocket_event_history("".into());
 
         let weak_app = app.as_weak();
         websocket_runtime.spawn(async move {
@@ -2066,13 +2069,17 @@ fn wire_realtime_actions(app: &AppWindow, runtime: Arc<Runtime>) {
                     return;
                 };
                 match result {
-                    Ok(exchange) => set_response(
-                        &app,
-                        "WebSocket complete",
-                        &format!("{} ms", exchange.elapsed_ms),
-                        "success",
-                        &format_websocket_exchange(&exchange),
-                    ),
+                    Ok(exchange) => {
+                        let body = format_websocket_exchange(&exchange);
+                        app.set_websocket_event_history(body.clone().into());
+                        set_response(
+                            &app,
+                            "WebSocket complete",
+                            &format!("{} ms", exchange.elapsed_ms),
+                            "success",
+                            &body,
+                        );
+                    }
                     Err(error) => {
                         set_response(&app, "WebSocket failed", "", "error", &error.to_string())
                     }
@@ -2120,6 +2127,40 @@ fn wire_realtime_actions(app: &AppWindow, runtime: Arc<Runtime>) {
                 );
             }
         }
+    });
+
+    let weak_app = app.as_weak();
+    app.on_copy_websocket_events(move || {
+        let Some(app) = weak_app.upgrade() else {
+            return;
+        };
+
+        let history = app.get_websocket_event_history().to_string();
+        if history.is_empty() {
+            app.set_activity("No WebSocket events to copy".into());
+            return;
+        }
+
+        match copy_text_to_clipboard(&history) {
+            Ok(()) => app.set_activity("Copied WebSocket events".into()),
+            Err(error) => app.set_activity(format!("Copy failed: {error}").into()),
+        }
+    });
+
+    let weak_app = app.as_weak();
+    app.on_clear_websocket_events(move || {
+        let Some(app) = weak_app.upgrade() else {
+            return;
+        };
+
+        app.set_websocket_event_history("".into());
+        set_response(
+            &app,
+            "WebSocket history cleared",
+            "",
+            "neutral",
+            "No WebSocket events.",
+        );
     });
 
     let weak_app = app.as_weak();
