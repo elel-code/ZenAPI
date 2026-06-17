@@ -1,0 +1,307 @@
+import { ListView } from "std-widgets.slint";
+import { Theme } from "theme.slint";
+import { TestAssertionRow } from "types.slint";
+import { ActionButton, TextField, UiText } from "widgets.slint";
+
+component TestAssertionLine inherits Rectangle {
+    in property <int> row_id;
+    in-out property <string> kind;
+    in-out property <string> target;
+    in-out property <string> expected;
+    in property <bool> enabled: true;
+    callback edited(int, string, string, string);
+    callback cycle_kind_requested(int, string);
+    callback delete_requested(int);
+
+    height: 44px;
+    horizontal-stretch: 1;
+    border-radius: 6px;
+    border-width: 1px;
+    border-color: Theme.outline_variant;
+    background: row_touch.has-hover ? Theme.surface_container_high : Theme.surface_container_low;
+
+    row_touch := TouchArea {}
+
+    ActionButton {
+        x: 10px;
+        y: 5px;
+        text: "Kind";
+        button_width: 52px;
+        enabled: root.enabled;
+        clicked => {
+            root.cycle_kind_requested(root.row_id, root.kind);
+        }
+    }
+
+    TextField {
+        x: 70px;
+        y: 5px;
+        width: 116px;
+        height: 34px;
+        text <=> root.kind;
+        placeholder: "status_equals";
+        mono: true;
+        enabled: root.enabled;
+        edited => {
+            root.edited(root.row_id, root.kind, root.target, root.expected);
+        }
+    }
+
+    TextField {
+        x: 198px;
+        y: 5px;
+        width: 118px;
+        height: 34px;
+        text <=> root.target;
+        placeholder: "target";
+        mono: true;
+        enabled: root.enabled;
+        edited => {
+            root.edited(root.row_id, root.kind, root.target, root.expected);
+        }
+    }
+
+    TextField {
+        x: 328px;
+        y: 5px;
+        width: parent.width - 392px;
+        height: 34px;
+        text <=> root.expected;
+        placeholder: "expected";
+        mono: true;
+        enabled: root.enabled;
+        edited => {
+            root.edited(root.row_id, root.kind, root.target, root.expected);
+        }
+    }
+
+    ActionButton {
+        x: parent.width - 54px;
+        y: 5px;
+        text: "Del";
+        button_width: 44px;
+        warning: true;
+        enabled: root.enabled;
+        clicked => {
+            root.delete_requested(root.row_id);
+        }
+    }
+}
+
+export component TestAssertionEditorPanel inherits Rectangle {
+    in-out property <[TestAssertionRow]> rows;
+    in property <bool> busy: false;
+    property <string> custom_kind: "status_equals";
+    property <string> custom_target: "200";
+    property <string> custom_expected: "";
+    callback add_row();
+    callback add_template_row(string);
+    callback add_custom_row(string, string, string);
+    callback update_row(int, string, string, string);
+    callback cycle_kind_row(int, string);
+    callback delete_row(int);
+
+    horizontal-stretch: 1;
+    vertical-stretch: 1;
+    background: transparent;
+
+    VerticalLayout {
+        padding: 0px;
+        spacing: 6px;
+
+        HorizontalLayout {
+            height: 34px;
+            spacing: 8px;
+            alignment: center;
+
+            UiText {
+                text: "Tests";
+                horizontal-stretch: 1;
+                height: parent.height;
+                color: Theme.on_surface_variant;
+                font-size: 12px;
+                font-weight: 800;
+                vertical-alignment: center;
+                overflow: elide;
+            }
+
+            ActionButton {
+                text: "Add";
+                button_width: 58px;
+                enabled: !root.busy;
+                clicked => {
+                    root.add_row();
+                }
+            }
+
+            for template in [
+                { name: "status", label: "Status", width: 62px },
+                { name: "header", label: "Header", width: 62px },
+                { name: "body", label: "Body", width: 54px },
+                { name: "json", label: "JSON", width: 52px },
+            ]: ActionButton {
+                text: template.label;
+                button_width: template.width;
+                enabled: !root.busy;
+                clicked => {
+                    root.add_template_row(template.name);
+                }
+            }
+        }
+
+        HorizontalLayout {
+            height: 34px;
+            spacing: 8px;
+            alignment: center;
+
+            TextField {
+                text <=> root.custom_kind;
+                placeholder: "kind";
+                mono: true;
+                enabled: !root.busy;
+                horizontal-stretch: 1;
+            }
+
+            TextField {
+                text <=> root.custom_target;
+                placeholder: "target";
+                mono: true;
+                enabled: !root.busy;
+                horizontal-stretch: 1;
+            }
+
+            TextField {
+                text <=> root.custom_expected;
+                placeholder: "expected";
+                mono: true;
+                enabled: !root.busy;
+                horizontal-stretch: 1;
+                accepted => {
+                    if !root.busy && root.custom_kind != "" && root.custom_target != "" {
+                        root.add_custom_row(root.custom_kind, root.custom_target, root.custom_expected);
+                    }
+                }
+            }
+
+            ActionButton {
+                text: "Build";
+                button_width: 58px;
+                enabled: !root.busy && root.custom_kind != "" && root.custom_target != "";
+                clicked => {
+                    root.add_custom_row(root.custom_kind, root.custom_target, root.custom_expected);
+                }
+            }
+        }
+
+        Rectangle {
+            height: 30px;
+            horizontal-stretch: 1;
+            border-radius: 6px;
+            border-width: 1px;
+            border-color: Theme.outline_variant;
+            background: Theme.surface_container;
+
+            UiText {
+                x: 12px;
+                text: "Kind";
+                width: 180px;
+                height: parent.height;
+                color: Theme.on_surface_variant;
+                font-size: 12px;
+                font-weight: 800;
+                vertical-alignment: center;
+                overflow: elide;
+            }
+
+            Rectangle {
+                x: 204px;
+                y: 6px;
+                width: 1px;
+                height: parent.height - 12px;
+                background: Theme.outline_variant;
+            }
+
+            UiText {
+                x: 216px;
+                text: "Target";
+                width: 126px;
+                height: parent.height;
+                color: Theme.on_surface_variant;
+                font-size: 12px;
+                font-weight: 800;
+                vertical-alignment: center;
+                overflow: elide;
+            }
+
+            Rectangle {
+                x: 346px;
+                y: 6px;
+                width: 1px;
+                height: parent.height - 12px;
+                background: Theme.outline_variant;
+            }
+
+            UiText {
+                x: 358px;
+                text: "Expect";
+                width: parent.width - 370px;
+                height: parent.height;
+                color: Theme.on_surface_variant;
+                font-size: 12px;
+                font-weight: 800;
+                vertical-alignment: center;
+                overflow: elide;
+            }
+        }
+
+        Rectangle {
+            horizontal-stretch: 1;
+            vertical-stretch: 1;
+            background: transparent;
+
+            if root.rows.length == 0: UiText {
+                text: "No tests";
+                width: parent.width;
+                height: 32px;
+                color: Theme.outline;
+                font-size: 12px;
+                vertical-alignment: center;
+                overflow: elide;
+            }
+
+            if root.rows.length != 0: ListView {
+                width: parent.width;
+                height: parent.height;
+                vertical-scrollbar-policy: ScrollBarPolicy.as-needed;
+                horizontal-scrollbar-policy: ScrollBarPolicy.as-needed;
+
+                for row in root.rows: TestAssertionLine {
+                    row_id: row.row_id;
+                    kind: row.kind;
+                    target: row.target;
+                    expected: row.expected;
+                    enabled: !root.busy;
+                    edited(row_id, kind, target, expected) => {
+                        root.update_row(row_id, kind, target, expected);
+                    }
+                    cycle_kind_requested(row_id, kind) => {
+                        root.cycle_kind_row(row_id, kind);
+                    }
+                    delete_requested(row_id) => {
+                        root.delete_row(row_id);
+                    }
+                }
+            }
+        }
+
+        UiText {
+            text: "Line format: status_equals 200, header_equals content-type application/json, json_path_equals data.id 1.";
+            height: 18px;
+            horizontal-stretch: 1;
+            color: Theme.outline;
+            font-size: 12px;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+    }
+}
