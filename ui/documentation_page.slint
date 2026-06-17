@@ -1,0 +1,299 @@
+import { ListView } from "std-widgets.slint";
+import { Theme } from "theme.slint";
+import { RouteRow } from "types.slint";
+import { ActionButton, BodyModeButton, DataPanel, ReadOnlyCodeBlock, TextField, UiText } from "widgets.slint";
+
+component DocumentationPageTitle inherits Rectangle {
+    in property <string> title;
+    in property <string> subtitle;
+
+    height: 62px;
+    horizontal-stretch: 1;
+    background: transparent;
+
+    UiText {
+        text: root.title;
+        x: 0px;
+        y: 0px;
+        width: parent.width;
+        height: 34px;
+        color: Theme.on_surface;
+        font-size: 26px;
+        font-weight: 800;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+
+    UiText {
+        text: root.subtitle;
+        x: 0px;
+        y: 36px;
+        width: parent.width;
+        height: 22px;
+        color: Theme.on_surface_variant;
+        font-size: 13px;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+}
+
+component DocNavLine inherits Rectangle {
+    in property <string> label;
+    in property <string> method;
+    in property <bool> selected;
+    callback picked();
+
+    height: 34px;
+    horizontal-stretch: 1;
+    border-radius: 6px;
+    border-width: root.selected ? 1px : 0px;
+    border-color: Theme.primary;
+    background: root.selected ? Theme.surface_variant : touch.has-hover ? Theme.surface_container_high : transparent;
+
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.picked();
+        }
+    }
+
+    UiText {
+        x: 10px;
+        text: root.label;
+        width: parent.width - 72px;
+        height: parent.height;
+        color: root.selected ? Theme.primary : Theme.on_surface_variant;
+        font-size: 12px;
+        font-weight: root.selected ? 800 : 600;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+
+    UiText {
+        x: parent.width - 54px;
+        text: root.method;
+        width: 44px;
+        height: parent.height;
+        color: root.method == "POST" ? Theme.secondary : root.method == "DELETE" ? Theme.error : root.method == "PUT" ? Theme.tertiary : Theme.primary;
+        font-family: "JetBrains Mono";
+        font-size: 10px;
+        font-weight: 800;
+        horizontal-alignment: right;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+}
+
+export component DocumentationPage inherits Rectangle {
+    in property <[RouteRow]> routes;
+    in-out property <int> selected_route;
+    in property <string> method;
+    in-out property <string> url;
+    in property <string> auth_mode;
+    in property <bool> busy;
+    callback select_route(int);
+    callback send_request();
+    property <string> sample_language: "curl";
+    property <string> sample_url: root.url == "" ? "<request-url>" : root.url;
+    property <string> auth_hint: root.auth_mode == "bearer" ? "Authorization: Bearer <configured-token>" : root.auth_mode == "jwt" ? "Authorization: Bearer <configured-jwt>" : root.auth_mode == "basic" ? "Authorization: Basic <base64-credentials>" : root.auth_mode == "api-header" ? "<configured-header>: <configured-value>" : "";
+    property <string> auth_header_pair: root.auth_mode == "bearer" ? "\"Authorization\": \"Bearer <configured-token>\"" : root.auth_mode == "jwt" ? "\"Authorization\": \"Bearer <configured-jwt>\"" : root.auth_mode == "basic" ? "\"Authorization\": \"Basic <base64-credentials>\"" : root.auth_mode == "api-header" ? "\"<configured-header>\": \"<configured-value>\"" : "";
+    property <bool> has_header_auth: root.auth_hint != "";
+    property <string> sample_code: root.sample_language == "python"
+        ? (root.auth_mode == "api-query"
+                ? "import requests\n\nresponse = requests.request(\n    \"" + root.method + "\",\n    \"" + root.sample_url + "\",\n    params={\"<configured-key>\": \"<configured-value>\"},\n)\nprint(response.text)"
+            : root.has_header_auth
+                ? "import requests\n\nresponse = requests.request(\n    \"" + root.method + "\",\n    \"" + root.sample_url + "\",\n    headers={" + root.auth_header_pair + "},\n)\nprint(response.text)"
+                : "import requests\n\nresponse = requests.request(\"" + root.method + "\", \"" + root.sample_url + "\")\nprint(response.text)")
+        : root.sample_language == "node"
+            ? (root.auth_mode == "api-query"
+                ? "const response = await fetch(\"" + root.sample_url + "?<configured-key>=<configured-value>\", {\n  method: \"" + root.method + "\"\n});\n\nconsole.log(await response.text());"
+                : root.has_header_auth
+                    ? "const response = await fetch(\"" + root.sample_url + "\", {\n  method: \"" + root.method + "\",\n  headers: { " + root.auth_header_pair + " }\n});\n\nconsole.log(await response.text());"
+                    : "const response = await fetch(\"" + root.sample_url + "\", {\n  method: \"" + root.method + "\"\n});\n\nconsole.log(await response.text());")
+            : root.auth_mode == "api-query"
+                ? "curl -X " + root.method + " \"" + root.sample_url + "?<configured-key>=<configured-value>\""
+                : root.has_header_auth
+                    ? "curl -X " + root.method + " \"" + root.sample_url + "\" \\\n  -H \"" + root.auth_hint + "\""
+                    : "curl -X " + root.method + " \"" + root.sample_url + "\"";
+
+    horizontal-stretch: 1;
+    vertical-stretch: 1;
+    background: Theme.background;
+
+    HorizontalLayout {
+        spacing: 0px;
+
+        Rectangle {
+            width: 280px;
+            vertical-stretch: 1;
+            background: Theme.surface_container_low;
+
+            VerticalLayout {
+                padding: 16px;
+                spacing: 12px;
+
+                UiText {
+                    text: "ENDPOINTS";
+                    height: 20px;
+                    horizontal-stretch: 1;
+                    color: Theme.on_surface_variant;
+                    font-size: 12px;
+                    font-weight: 800;
+                    vertical-alignment: center;
+                    overflow: elide;
+                }
+
+                if root.routes.length == 0: DataPanel {
+                    title: "No Endpoints";
+                    body: "Import an OpenAPI document to populate API Docs.";
+                }
+
+                if root.routes.length != 0: ListView {
+                    horizontal-stretch: 1;
+                    vertical-stretch: 1;
+                    vertical-scrollbar-policy: ScrollBarPolicy.as-needed;
+                    horizontal-scrollbar-policy: ScrollBarPolicy.as-needed;
+
+                    for route[i] in root.routes: DocNavLine {
+                        label: route.summary == "" ? route.path : route.summary;
+                        method: route.method;
+                        selected: root.selected_route == i;
+                        picked => {
+                            root.selected_route = i;
+                            root.select_route(i);
+                        }
+                    }
+                }
+            }
+        }
+
+        Rectangle {
+            width: 1px;
+            background: Theme.outline_variant;
+        }
+
+        Rectangle {
+            horizontal-stretch: 1;
+            vertical-stretch: 1;
+            background: Theme.surface;
+
+            VerticalLayout {
+                padding: 28px;
+                spacing: 18px;
+
+                DocumentationPageTitle {
+                    title: root.method + " Endpoint";
+                    subtitle: "Detailed endpoint reference, parameters, and response shape.";
+                }
+
+                DataPanel {
+                    title: "Endpoint";
+                    body: root.url == "" ? "No request URL selected." : root.method + " " + root.url;
+                }
+
+                HorizontalLayout {
+                    height: 164px;
+                    spacing: 16px;
+
+                    DataPanel {
+                        title: "Path Parameters";
+                        body: root.routes.length == 0 ? "Import an OpenAPI document to inspect endpoint parameters." : "Parameter details are derived from the imported spec when available.";
+                    }
+
+                    DataPanel {
+                        title: "Query Parameters";
+                        body: root.routes.length == 0 ? "No query parameters available." : "Use the Request Params tab to edit query values before executing.";
+                    }
+                }
+
+                DataPanel {
+                    title: "Returns";
+                    body: root.routes.length == 0 ? "No response schema available." : "Response examples and schemas are available in imported route metadata when supported.";
+                }
+            }
+        }
+
+        Rectangle {
+            width: 400px;
+            vertical-stretch: 1;
+            background: Theme.surface_container_lowest;
+
+            VerticalLayout {
+                padding: 16px;
+                spacing: 12px;
+
+                HorizontalLayout {
+                    height: 30px;
+                    spacing: 8px;
+
+                    BodyModeButton {
+                        mode: "curl";
+                        label: "cURL";
+                        selected: root.sample_language == "curl";
+                        picked(mode) => {
+                            root.sample_language = mode;
+                        }
+                    }
+
+                    BodyModeButton {
+                        mode: "python";
+                        label: "Python";
+                        selected: root.sample_language == "python";
+                        button_width: 84px;
+                        picked(mode) => {
+                            root.sample_language = mode;
+                        }
+                    }
+
+                    BodyModeButton {
+                        mode: "node";
+                        label: "Node.js";
+                        selected: root.sample_language == "node";
+                        button_width: 84px;
+                        picked(mode) => {
+                            root.sample_language = mode;
+                        }
+                    }
+                }
+
+                ReadOnlyCodeBlock {
+                    height: 144px;
+                    text: root.sample_code;
+                }
+
+                DataPanel {
+                    title: "Response";
+                    body: root.routes.length == 0 ? "Import an OpenAPI document, then execute a request to inspect responses." : "Execute the selected request to inspect the live response in the Response pane.";
+                }
+
+                UiText {
+                    text: "TRY IT OUT";
+                    height: 20px;
+                    horizontal-stretch: 1;
+                    color: Theme.on_surface_variant;
+                    font-size: 12px;
+                    font-weight: 800;
+                    vertical-alignment: center;
+                    overflow: elide;
+                }
+
+                TextField {
+                    text <=> root.url;
+                    placeholder: "Request URL";
+                    mono: true;
+                    enabled: !root.busy;
+                }
+
+                ActionButton {
+                    text: "Execute Request";
+                    primary: true;
+                    button_width: 368px;
+                    enabled: !root.busy;
+                    clicked => {
+                        root.send_request();
+                    }
+                }
+            }
+        }
+    }
+}
