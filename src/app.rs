@@ -6281,6 +6281,10 @@ fn test_assertion_ui_entries(input: &str) -> Vec<(usize, String, String, String)
             if line.is_empty() || line.starts_with('#') || line.starts_with("//") {
                 return None;
             }
+            if let Ok(assertion) = parse_response_assertion_line(line) {
+                let (kind, target, expected) = response_assertion_ui_fields(&assertion);
+                return Some((line_index, kind, target, expected));
+            }
             let (kind, args) = line.split_once(char::is_whitespace).unwrap_or((line, ""));
             let args = args.trim();
             let (target, expected) = args.split_once(char::is_whitespace).unwrap_or((args, ""));
@@ -6292,6 +6296,35 @@ fn test_assertion_ui_entries(input: &str) -> Vec<(usize, String, String, String)
             ))
         })
         .collect()
+}
+
+fn response_assertion_ui_fields(assertion: &ResponseAssertion) -> (String, String, String) {
+    match &assertion.kind {
+        ResponseAssertionKind::StatusEquals { status } => (
+            "status_equals".to_string(),
+            status.to_string(),
+            String::new(),
+        ),
+        ResponseAssertionKind::StatusInRange { min, max } => (
+            "status_in_range".to_string(),
+            min.to_string(),
+            max.to_string(),
+        ),
+        ResponseAssertionKind::HeaderExists { name } => {
+            ("header_exists".to_string(), name.clone(), String::new())
+        }
+        ResponseAssertionKind::HeaderEquals { name, value } => {
+            ("header_equals".to_string(), name.clone(), value.clone())
+        }
+        ResponseAssertionKind::BodyContains { text } => {
+            ("body_contains".to_string(), text.clone(), String::new())
+        }
+        ResponseAssertionKind::JsonPathEquals { path, value } => (
+            "json_path_equals".to_string(),
+            path.clone(),
+            value.to_string(),
+        ),
+    }
 }
 
 fn update_test_assertion_text(
@@ -7421,6 +7454,10 @@ fn parse_response_assertions(input: &str) -> Result<Vec<ResponseAssertion>> {
 }
 
 fn parse_response_assertion_line(line: &str) -> Result<ResponseAssertion> {
+    if let Some(assertion) = parse_pm_test_assertion_line(line)? {
+        return Ok(assertion);
+    }
+
     let (kind, args) = split_assertion_command(line)?;
     let assertion_kind = match kind {
         "status" | "status_equals" | "status=" => ResponseAssertionKind::StatusEquals {
@@ -7462,6 +7499,185 @@ fn parse_response_assertion_line(line: &str) -> Result<ResponseAssertion> {
         name: format!("{kind} {args}"),
         kind: assertion_kind,
     })
+}
+
+fn parse_pm_test_assertion_line(line: &str) -> Result<Option<ResponseAssertion>> {
+    let trimmed = line.trim();
+    if !trimmed.starts_with("pm.test(") {
+        return Ok(None);
+    }
+
+    let (name, body_start) = parse_pm_test_name(trimmed)?;
+    let body = &trimmed[body_start..];
+    let kind = if let Some(status) = parse_pm_status_assertion(body)? {
+        status
+    } else if let Some(header) = parse_pm_header_assertion(body) {
+        header
+    } else if let Some(body_contains) = parse_pm_body_assertion(body) {
+        body_contains
+    } else if let Some(json) = parse_pm_json_assertion(body) {
+        json
+    } else {
+        bail!("unsupported pm.test assertion");
+    };
+
+    Ok(Some(ResponseAssertion { name, kind }))
+}
+
+fn parse_pm_test_name(line: &str) -> Result<(String, usize)> {
+    let start = "pm.test(".len();
+    let rest = line[start..].trim_start();
+    let skipped = line[start..].len() - rest.len();
+    let quote = rest
+        .chars()
+        .next()
+        .ok_or_else(|| anyhow!("pm.test expects a quoted name"))?;
+    if quote != '"' && quote != '\'' {
+        bail!("pm.test expects a quoted name");
+    }
+    let Some((name, consumed)) = parse_js_string_literal(rest) else {
+        bail!("pm.test name is not closed");
+    };
+    Ok((name, start + skipped + consumed))
+}
+
+fn parse_pm_status_assertion(body: &str) -> Result<Option<ResponseAssertionKind>> {
+    if let Some(value) = call_argument_after(body, "pm.response.to.have.status(") {
+        return Ok(Some(ResponseAssertionKind::StatusEquals {
+            status: parse_status(value, "pm.response.to.have.status")?,
+        }));
+    }
+
+    for subject in ["pm.response.code", "pm.response.status"] {
+        if let Some(value) = expect_equal_argument(body, subject) {
+            return Ok(Some(ResponseAssertionKind::StatusEquals {
+                status: parse_status(value, "pm.expect status")?,
+            }));
+        }
+    }
+
+    Ok(None)
+}
+
+fn parse_pm_header_assertion(body: &str) -> Option<ResponseAssertionKind> {
+    let marker = "pm.response.headers.get(";
+    let start = body.find(marker)? + marker.len();
+    let (name, consumed) = parse_js_string_literal(body[start..].trim_start())?;
+    let after_name_start =
+        start + (body[start..].len() - body[start..].trim_start().len()) + consumed;
+    let after_name = &body[after_name_start..];
+    let value = expect_equal_argument(after_name, "")?;
+    Some(ResponseAssertionKind::HeaderEquals {
+        name,
+        value: strip_js_string_value(value),
+    })
+}
+
+fn parse_pm_body_assertion(body: &str) -> Option<ResponseAssertionKind> {
+    if !body.contains("pm.response.text()") && !body.contains("pm.response.body") {
+        return None;
+    }
+
+    for marker in [".to.include(", ".to.contain("] {
+        if let Some(value) = call_argument_after(body, marker) {
+            return Some(ResponseAssertionKind::BodyContains {
+                text: strip_js_string_value(value),
+            });
+        }
+    }
+
+    None
+}
+
+fn parse_pm_json_assertion(body: &str) -> Option<ResponseAssertionKind> {
+    let marker = "pm.response.json().";
+    let path_start = body.find(marker)? + marker.len();
+    let path = body[path_start..]
+        .chars()
+        .take_while(|character| {
+            character.is_ascii_alphanumeric() || *character == '_' || *character == '.'
+        })
+        .collect::<String>();
+    if path.is_empty() {
+        return None;
+    }
+
+    let value = expect_equal_argument(&body[path_start + path.len()..], "")?;
+    Some(ResponseAssertionKind::JsonPathEquals {
+        path,
+        value: parse_pm_json_assertion_value(value),
+    })
+}
+
+fn expect_equal_argument<'a>(body: &'a str, subject: &str) -> Option<&'a str> {
+    let haystack = if subject.is_empty() {
+        body
+    } else {
+        &body[body.find(subject)? + subject.len()..]
+    };
+
+    for marker in [
+        ".to.equal(",
+        ".to.eql(",
+        ".to.be.equal(",
+        ".to.be.eql(",
+        ".to.deep.equal(",
+        ".to.deep.eql(",
+    ] {
+        if let Some(value) = call_argument_after(haystack, marker) {
+            return Some(value);
+        }
+    }
+
+    None
+}
+
+fn call_argument_after<'a>(body: &'a str, marker: &str) -> Option<&'a str> {
+    let start = body.find(marker)? + marker.len();
+    let end = body[start..].find(')')?;
+    Some(body[start..start + end].trim())
+}
+
+fn parse_js_string_literal(input: &str) -> Option<(String, usize)> {
+    let mut chars = input.char_indices();
+    let (_, quote) = chars.next()?;
+    if quote != '"' && quote != '\'' {
+        return None;
+    }
+
+    let mut value = String::new();
+    let mut escaped = false;
+    for (index, character) in chars {
+        if escaped {
+            value.push(match character {
+                'n' => '\n',
+                'r' => '\r',
+                't' => '\t',
+                other => other,
+            });
+            escaped = false;
+        } else if character == '\\' {
+            escaped = true;
+        } else if character == quote {
+            return Some((value, index + character.len_utf8()));
+        } else {
+            value.push(character);
+        }
+    }
+
+    None
+}
+
+fn strip_js_string_value(value: &str) -> String {
+    parse_js_string_literal(value.trim())
+        .map(|(value, _)| value)
+        .unwrap_or_else(|| value.trim().to_string())
+}
+
+fn parse_pm_json_assertion_value(value: &str) -> Value {
+    parse_js_string_literal(value.trim())
+        .map(|(value, _)| Value::String(value))
+        .unwrap_or_else(|| parse_json_assertion_value(value.trim()))
 }
 
 fn split_assertion_command(line: &str) -> Result<(&str, &str)> {
@@ -8699,6 +8915,14 @@ mod tests {
         assert_eq!(header.target.as_str(), "content-type");
         assert_eq!(header.expected.as_str(), "application/json");
 
+        let pm_rows = test_assertion_table_model(
+            r#"pm.test("status", () => { pm.response.to.have.status(204); })"#,
+        );
+        let pm_status = pm_rows.row_data(0).expect("pm status row");
+        assert_eq!(pm_status.kind.as_str(), "status_equals");
+        assert_eq!(pm_status.target.as_str(), "204");
+        assert_eq!(pm_status.expected.as_str(), "");
+
         assert_eq!(
             update_test_assertion_text(input, 1, "json_path_equals", "data.id", "1"),
             "# keep\nstatus_equals 200\njson_path_equals data.id 1\nbody_contains ok"
@@ -8878,6 +9102,56 @@ mod tests {
         assert_eq!(
             format_response_assertions(&assertions),
             "status_equals 200\nheader_equals Content-Type application/json\njson_path_equals ok true"
+        );
+    }
+
+    #[test]
+    fn parses_common_pm_test_assertions() {
+        let assertions = parse_response_assertions(
+            r#"pm.test("status is 201", () => { pm.response.to.have.status(201); })
+pm.test('content type', function () { pm.expect(pm.response.headers.get("Content-Type")).to.eql("application/json"); })
+pm.test("body has token", () => { pm.expect(pm.response.text()).to.include("token"); })
+pm.test("json id", () => { pm.expect(pm.response.json().data.id).to.eql(42); })"#,
+        )
+        .expect("pm.test assertions");
+
+        assert_eq!(
+            assertions,
+            vec![
+                ResponseAssertion {
+                    name: "status is 201".to_string(),
+                    kind: ResponseAssertionKind::StatusEquals { status: 201 },
+                },
+                ResponseAssertion {
+                    name: "content type".to_string(),
+                    kind: ResponseAssertionKind::HeaderEquals {
+                        name: "Content-Type".to_string(),
+                        value: "application/json".to_string(),
+                    },
+                },
+                ResponseAssertion {
+                    name: "body has token".to_string(),
+                    kind: ResponseAssertionKind::BodyContains {
+                        text: "token".to_string(),
+                    },
+                },
+                ResponseAssertion {
+                    name: "json id".to_string(),
+                    kind: ResponseAssertionKind::JsonPathEquals {
+                        path: "data.id".to_string(),
+                        value: Value::from(42),
+                    },
+                },
+            ]
+        );
+
+        assert!(
+            parse_response_assertions(
+                r#"pm.test("custom", () => { pm.expect(true).to.equal(true); })"#
+            )
+            .expect_err("unsupported pm.test")
+            .to_string()
+            .contains("unsupported pm.test assertion")
         );
     }
 

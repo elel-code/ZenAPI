@@ -148,6 +148,11 @@ For `json_path_equals` assertions, use dot paths such as `data.items.0.id`;
 expected values can be JSON literals such as `true`, `42`, or `"name"`. Kind
 cycling fills the next supported assertion template.
 
+The parser also accepts common single-line Postman-style `pm.test(...)`
+assertions for response status, response headers, response text contains, and
+`pm.response.json().path` equality. These are converted to native assertions;
+arbitrary JavaScript and full `pm.*` compatibility are not implemented.
+
 Tests run when a request is sent and when a collection is run. Tests are saved
 with collection requests and restored with them.
 
@@ -414,7 +419,8 @@ the report panel, enter a target path, and save the latest completed run.
 HTTP 2xx and 3xx responses are treated as passing when no tests are defined.
 Native ZenAPI collection JSON can include response assertions; when assertions
 exist, all of them must pass for the request to pass. Assertion results are
-shown in runner summaries. `pm.test` compatibility is still future work.
+shown in runner summaries. Common single-line `pm.test(...)` assertions are
+mapped into the same native assertion model.
 
 The same runner is available from the command line:
 

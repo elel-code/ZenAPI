@@ -116,6 +116,9 @@
   saves/restores both fields with collection requests. Kind cycling and Status,
   Header, Body, and JSON assertion template builders are wired, plus a custom
   Kind/Target/Expect builder that validates against the native assertion parser.
+  Common single-line `pm.test(...)` status, header, body, and JSON expectations
+  are mapped into native assertions; full JavaScript `pm.*` compatibility
+  remains pending.
 - [~] Rebuild WebSocket and SSE panels using the restored client modules;
   current Slint Request Builder has a visible Realtime tab with WebSocket
   one-shot text send, persistent open/send/close text and binary sessions with

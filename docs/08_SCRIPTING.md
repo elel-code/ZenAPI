@@ -62,7 +62,8 @@ The host should expose a narrow context:
 | `test(name, fn)` | Record a named assertion |
 | `expect(value)` | Assertion helper |
 
-For JavaScript compatibility later, these can be mapped to a `pm` facade:
+ZenAPI now includes a narrow parser that maps common single-line
+Postman-style `pm.test(...)` checks into the native assertion model:
 
 ```js
 pm.test("status is 200", () => {
@@ -70,8 +71,9 @@ pm.test("status is 200", () => {
 })
 ```
 
-The first implementation does not need to promise exact Postman compatibility.
-Exact compatibility should only be claimed after dedicated compatibility tests.
+The parser is not a JavaScript runtime. It accepts common status, header, body
+contains, and JSON dot-path equality checks, while full Postman compatibility
+still requires a dedicated sandboxed scripting engine and compatibility tests.
 
 ## Result Model
 
@@ -163,6 +165,8 @@ Runner behavior:
 - Assertion failures appear in runner summaries and response summary text.
 - The Slint request editor includes a native Tests panel that configures these
   assertions without a script engine.
+- Common single-line `pm.test(...)` status, header, body contains, and JSON
+  equality checks are converted to the same native assertions.
 - Saving a request to a collection preserves configured assertions, and
   restoring a collection request brings them back into the Tests panel.
 
