@@ -1,13 +1,20 @@
 use anyhow::{Result, anyhow, bail};
+use futures_util::StreamExt;
 use prost::Message;
-use prost_types::FileDescriptorSet;
+use prost_types::{FileDescriptorProto, FileDescriptorSet};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::{
+    collections::BTreeMap,
     fs,
     path::{Path, PathBuf},
     process::Command,
     time::{SystemTime, UNIX_EPOCH},
+};
+use tonic::{Request, transport::Endpoint};
+use tonic_reflection::pb::v1::{
+    ServerReflectionRequest, server_reflection_client::ServerReflectionClient,
+    server_reflection_request::MessageRequest, server_reflection_response::MessageResponse,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -251,6 +258,37 @@ pub fn load_grpc_proto_file(
     result
 }
 
+pub async fn load_grpc_reflection_descriptors(endpoint: &str) -> Result<Vec<GrpcMethodDescriptor>> {
+    let endpoint = parse_grpc_endpoint(endpoint)?;
+    let channel = Endpoint::from_shared(endpoint.clone())
+        .map_err(|error| anyhow!("invalid gRPC reflection endpoint {endpoint}: {error}"))?
+        .connect()
+        .await
+        .map_err(|error| {
+            anyhow!("failed to connect to gRPC reflection endpoint {endpoint}: {error}")
+        })?;
+    let mut client = ServerReflectionClient::new(channel);
+
+    let services = request_grpc_reflection_services(&mut client).await?;
+    if services.is_empty() {
+        bail!("gRPC reflection endpoint did not report any services");
+    }
+
+    let mut files = BTreeMap::new();
+    for service in services {
+        let descriptors =
+            request_grpc_reflection_file_containing_symbol(&mut client, &service).await?;
+        for descriptor in descriptors {
+            let name = descriptor.name.clone().unwrap_or_default();
+            files.entry(name).or_insert(descriptor);
+        }
+    }
+
+    grpc_method_descriptors_from_file_descriptor_set(&FileDescriptorSet {
+        file: files.into_values().collect(),
+    })
+}
+
 pub fn grpc_method_descriptors_from_file_descriptor_set(
     descriptor_set: &FileDescriptorSet,
 ) -> Result<Vec<GrpcMethodDescriptor>> {
@@ -296,6 +334,105 @@ pub fn grpc_method_descriptors_from_file_descriptor_set(
     }
 
     Ok(descriptors)
+}
+
+async fn request_grpc_reflection_services<T>(
+    client: &mut ServerReflectionClient<T>,
+) -> Result<Vec<String>>
+where
+    T: tonic::client::GrpcService<tonic::body::Body>,
+    T::Error: Into<tonic::codegen::StdError>,
+    T::ResponseBody: tonic::codegen::Body<Data = tonic::codegen::Bytes> + Send + 'static,
+    <T::ResponseBody as tonic::codegen::Body>::Error: Into<tonic::codegen::StdError> + Send,
+{
+    let response = send_grpc_reflection_request(
+        client,
+        ServerReflectionRequest {
+            host: String::new(),
+            message_request: Some(MessageRequest::ListServices(String::new())),
+        },
+    )
+    .await?;
+
+    match response {
+        MessageResponse::ListServicesResponse(services) => Ok(services
+            .service
+            .into_iter()
+            .map(|service| service.name)
+            .filter(|name| !name.is_empty() && !name.starts_with("grpc.reflection."))
+            .collect()),
+        MessageResponse::ErrorResponse(error) => bail!(
+            "gRPC reflection list services failed: {} ({})",
+            error.error_message,
+            error.error_code
+        ),
+        _ => bail!("gRPC reflection returned an unexpected list services response"),
+    }
+}
+
+async fn request_grpc_reflection_file_containing_symbol<T>(
+    client: &mut ServerReflectionClient<T>,
+    symbol: &str,
+) -> Result<Vec<FileDescriptorProto>>
+where
+    T: tonic::client::GrpcService<tonic::body::Body>,
+    T::Error: Into<tonic::codegen::StdError>,
+    T::ResponseBody: tonic::codegen::Body<Data = tonic::codegen::Bytes> + Send + 'static,
+    <T::ResponseBody as tonic::codegen::Body>::Error: Into<tonic::codegen::StdError> + Send,
+{
+    let response = send_grpc_reflection_request(
+        client,
+        ServerReflectionRequest {
+            host: String::new(),
+            message_request: Some(MessageRequest::FileContainingSymbol(symbol.to_string())),
+        },
+    )
+    .await?;
+
+    match response {
+        MessageResponse::FileDescriptorResponse(file_response) => file_response
+            .file_descriptor_proto
+            .into_iter()
+            .map(|bytes| {
+                FileDescriptorProto::decode(bytes.as_slice()).map_err(|error| {
+                    anyhow!("failed to decode gRPC reflection descriptor for {symbol}: {error}")
+                })
+            })
+            .collect(),
+        MessageResponse::ErrorResponse(error) => bail!(
+            "gRPC reflection file lookup failed for {symbol}: {} ({})",
+            error.error_message,
+            error.error_code
+        ),
+        _ => bail!("gRPC reflection returned an unexpected file descriptor response for {symbol}"),
+    }
+}
+
+async fn send_grpc_reflection_request<T>(
+    client: &mut ServerReflectionClient<T>,
+    request: ServerReflectionRequest,
+) -> Result<MessageResponse>
+where
+    T: tonic::client::GrpcService<tonic::body::Body>,
+    T::Error: Into<tonic::codegen::StdError>,
+    T::ResponseBody: tonic::codegen::Body<Data = tonic::codegen::Bytes> + Send + 'static,
+    <T::ResponseBody as tonic::codegen::Body>::Error: Into<tonic::codegen::StdError> + Send,
+{
+    let mut inbound = client
+        .server_reflection_info(Request::new(futures_util::stream::iter([request])))
+        .await
+        .map_err(|error| anyhow!("gRPC reflection request failed: {error}"))?
+        .into_inner();
+
+    let response = inbound
+        .next()
+        .await
+        .ok_or_else(|| anyhow!("gRPC reflection response stream ended without a response"))?
+        .map_err(|error| anyhow!("gRPC reflection response failed: {error}"))?;
+
+    response
+        .message_response
+        .ok_or_else(|| anyhow!("gRPC reflection response did not include a message"))
 }
 
 pub fn format_grpc_method_catalog(descriptors: &[GrpcMethodDescriptor]) -> String {
@@ -424,7 +561,12 @@ mod tests {
     use prost::Message;
     use prost_types::{FileDescriptorProto, MethodDescriptorProto, ServiceDescriptorProto};
     use serde_json::json;
+    use std::net::SocketAddr;
     use temp_dir::TempDir;
+    use tokio::sync::oneshot;
+    use tokio_stream::wrappers::TcpListenerStream;
+    use tonic::transport::Server;
+    use tonic_reflection::server::Builder as ReflectionBuilder;
 
     #[test]
     fn builds_grpc_request_draft_from_editor_fields() {
@@ -694,6 +836,78 @@ message User {
             "\
 unary demo.v1.Users/GetUser demo.v1.GetUserRequest demo.v1.User
 server-streaming demo.v1.Users/WatchUsers demo.v1.WatchUsersRequest demo.v1.User"
+        );
+    }
+
+    #[tokio::test]
+    async fn loads_method_catalog_from_reflection_service() {
+        let descriptor_set = FileDescriptorSet {
+            file: vec![FileDescriptorProto {
+                name: Some("demo/users.proto".to_string()),
+                package: Some("demo.v1".to_string()),
+                service: vec![ServiceDescriptorProto {
+                    name: Some("Users".to_string()),
+                    method: vec![
+                        MethodDescriptorProto {
+                            name: Some("GetUser".to_string()),
+                            input_type: Some(".demo.v1.GetUserRequest".to_string()),
+                            output_type: Some(".demo.v1.User".to_string()),
+                            ..Default::default()
+                        },
+                        MethodDescriptorProto {
+                            name: Some("UploadUsers".to_string()),
+                            input_type: Some(".demo.v1.UserChunk".to_string()),
+                            output_type: Some(".demo.v1.UploadSummary".to_string()),
+                            client_streaming: Some(true),
+                            ..Default::default()
+                        },
+                    ],
+                    ..Default::default()
+                }],
+                syntax: Some("proto3".to_string()),
+                ..Default::default()
+            }],
+        };
+        let encoded = descriptor_set.encode_to_vec();
+
+        let (shutdown_tx, shutdown_rx) = oneshot::channel();
+        let addr: SocketAddr = "127.0.0.1:0".parse().expect("addr");
+        let listener = tokio::net::TcpListener::bind(addr).await.expect("bind");
+        let endpoint = format!("http://{}", listener.local_addr().expect("local addr"));
+        let server = tokio::spawn(async move {
+            let service = ReflectionBuilder::configure()
+                .register_encoded_file_descriptor_set(&encoded)
+                .build_v1()
+                .expect("reflection service");
+
+            Server::builder()
+                .add_service(service)
+                .serve_with_incoming_shutdown(TcpListenerStream::new(listener), async {
+                    let _ = shutdown_rx.await;
+                })
+                .await
+                .expect("reflection server");
+        });
+
+        let descriptors = load_grpc_reflection_descriptors(&endpoint)
+            .await
+            .expect("reflection descriptors");
+        shutdown_tx.send(()).expect("shutdown");
+        server.await.expect("server join");
+
+        assert_eq!(descriptors.len(), 2);
+        assert_eq!(descriptors[0].full_method_name(), "demo.v1.Users/GetUser");
+        assert_eq!(descriptors[0].kind, GrpcMethodKind::Unary);
+        assert_eq!(
+            descriptors[1].full_method_name(),
+            "demo.v1.Users/UploadUsers"
+        );
+        assert_eq!(descriptors[1].kind, GrpcMethodKind::ClientStreaming);
+        assert_eq!(
+            format_grpc_method_catalog(&descriptors),
+            "\
+unary demo.v1.Users/GetUser demo.v1.GetUserRequest demo.v1.User
+client-streaming demo.v1.Users/UploadUsers demo.v1.UserChunk demo.v1.UploadSummary"
         );
     }
 }

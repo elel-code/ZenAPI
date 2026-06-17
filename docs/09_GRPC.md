@@ -1,6 +1,6 @@
 # gRPC 支持评估
 
-> 状态: 评估完成，domain draft/catalog validation 已接入 Slint，FileDescriptorSet/proto source 解析和加载已接入 Slint
+> 状态: 评估完成，domain draft/catalog validation 已接入 Slint，FileDescriptorSet/proto source 解析和加载已接入 Slint，reflection descriptor 加载已接入 domain
 > 日期: 2026-06-13
 
 ## 目标
@@ -106,7 +106,7 @@ gRPC 不应塞进 HTTP Body 面板。推荐单独面板或协议工作区：
 1. [x] 建立 gRPC domain model 并接入 Slint draft：endpoint、metadata、method descriptor catalog、message JSON。
 2. [x] 实现 `FileDescriptorSet` / `.protoset` method catalog 提取测试。
 3. [x] 接入 Slint `.protoset` 加载到 gRPC method catalog。
-4. [ ] 实现 reflection descriptor 加载测试。
+4. [x] 实现 reflection descriptor 加载测试。
 5. [x] 实现 `.proto` 源文件 descriptor 加载测试。
 6. [x] 接入 Slint `.proto` 源文件加载到 gRPC method catalog。
 7. [ ] 实现 unary 调用传输层和本地 tonic 服务测试。
