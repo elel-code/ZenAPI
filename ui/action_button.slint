@@ -1,0 +1,54 @@
+import { Theme } from "theme.slint";
+
+export global ButtonStyle {
+    public pure function border_color(enabled: bool, primary: bool, warning: bool) -> color {
+        return !enabled ? Theme.outline_variant : warning ? Theme.tertiary : primary ? Theme.primary_container : Theme.outline_variant;
+    }
+
+    public pure function background_color(enabled: bool, primary: bool, warning: bool, pressed: bool, hovered: bool) -> color {
+        return !enabled ? Theme.surface_container_low : warning ? (pressed ? #9b520f : hovered ? #c96b18 : #7a430d) : primary ? (pressed ? #3d3fba : hovered ? #5557df : Theme.inverse_primary) : (pressed ? Theme.surface_container_highest : hovered ? Theme.surface_container_high : Theme.surface_container);
+    }
+
+    public pure function text_color(enabled: bool, primary: bool, warning: bool) -> color {
+        return !enabled ? Theme.outline : primary ? Theme.on_surface : warning ? Theme.on_surface : Theme.on_surface;
+    }
+}
+
+export component ActionButton inherits Rectangle {
+    in property <string> text;
+    in property <bool> enabled: true;
+    in property <bool> primary: false;
+    in property <bool> warning: false;
+    in property <length> button_width: 96px;
+    callback clicked();
+
+    width: root.button_width;
+    height: 34px;
+    border-radius: 8px;
+    border-width: 1px;
+    border-color: ButtonStyle.border_color(root.enabled, root.primary, root.warning);
+    background: ButtonStyle.background_color(root.enabled, root.primary, root.warning, touch.pressed, touch.has-hover);
+    opacity: root.enabled ? 1 : 0.62;
+
+    touch := TouchArea {
+        enabled: root.enabled;
+        mouse-cursor: root.enabled ? pointer : default;
+        clicked => {
+            root.clicked();
+        }
+    }
+
+    Text {
+        text: root.text;
+        width: parent.width;
+        height: parent.height;
+        color: ButtonStyle.text_color(root.enabled, root.primary, root.warning);
+        font-family: "Inter";
+        font-size: 13px;
+        font-weight: 700;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+        overflow: elide;
+        letter-spacing: 0px;
+    }
+}
