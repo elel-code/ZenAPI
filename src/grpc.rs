@@ -2,12 +2,23 @@ use anyhow::{Result, anyhow, bail};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum GrpcMethodKind {
     Unary,
     ServerStreaming,
     ClientStreaming,
     BidiStreaming,
+}
+
+impl GrpcMethodKind {
+    pub fn label(&self) -> &'static str {
+        match self {
+            GrpcMethodKind::Unary => "unary",
+            GrpcMethodKind::ServerStreaming => "server streaming",
+            GrpcMethodKind::ClientStreaming => "client streaming",
+            GrpcMethodKind::BidiStreaming => "bidirectional streaming",
+        }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -33,6 +44,7 @@ pub struct GrpcRequestDraft {
     pub method: String,
     pub metadata: Vec<GrpcMetadata>,
     pub message: Value,
+    pub descriptor: Option<GrpcMethodDescriptor>,
 }
 
 impl GrpcMethodDescriptor {
@@ -57,11 +69,14 @@ pub fn build_grpc_request_draft(
     full_method: &str,
     metadata_lines: &str,
     message_json: &str,
+    method_catalog: &str,
 ) -> Result<GrpcRequestDraft> {
     let endpoint = parse_grpc_endpoint(endpoint)?;
     let (service, method) = parse_grpc_method_path(full_method)?;
     let metadata = parse_grpc_metadata_lines(metadata_lines)?;
     let message = parse_grpc_message_json(message_json)?;
+    let descriptors = parse_grpc_method_catalog(method_catalog)?;
+    let descriptor = resolve_grpc_method_descriptor(&service, &method, &descriptors)?;
 
     Ok(GrpcRequestDraft {
         endpoint,
@@ -69,6 +84,7 @@ pub fn build_grpc_request_draft(
         method,
         metadata,
         message,
+        descriptor,
     })
 }
 
@@ -149,6 +165,87 @@ fn split_metadata_line(line: &str) -> Option<(&str, &str)> {
     Some((&line[..separator], &line[separator + 1..]))
 }
 
+pub fn parse_grpc_method_catalog(input: &str) -> Result<Vec<GrpcMethodDescriptor>> {
+    input
+        .lines()
+        .enumerate()
+        .filter_map(|(index, line)| {
+            let line = line.trim();
+            (!line.is_empty() && !line.starts_with('#') && !line.starts_with("//"))
+                .then_some((index, line))
+        })
+        .map(|(index, line)| parse_grpc_method_descriptor_line(index + 1, line))
+        .collect()
+}
+
+fn parse_grpc_method_descriptor_line(
+    line_number: usize,
+    line: &str,
+) -> Result<GrpcMethodDescriptor> {
+    let parts = line.split_whitespace().collect::<Vec<_>>();
+    if parts.len() != 4 {
+        bail!(
+            "gRPC method catalog line {line_number} must use kind service/method request_type response_type"
+        );
+    }
+
+    let kind = parse_grpc_method_kind(parts[0], line_number)?;
+    let (service_path, method) = parse_grpc_method_path(parts[1])
+        .map_err(|error| anyhow!("gRPC method catalog line {line_number}: {error}"))?;
+    let request_type = parts[2].trim();
+    let response_type = parts[3].trim();
+    if request_type.is_empty() || response_type.is_empty() {
+        bail!("gRPC method catalog line {line_number} must include request and response types");
+    }
+
+    let (package, service) = split_grpc_package_service(&service_path);
+    Ok(GrpcMethodDescriptor {
+        package,
+        service,
+        method,
+        request_type: request_type.to_string(),
+        response_type: response_type.to_string(),
+        kind,
+    })
+}
+
+fn parse_grpc_method_kind(input: &str, line_number: usize) -> Result<GrpcMethodKind> {
+    match input.trim().to_ascii_lowercase().as_str() {
+        "unary" => Ok(GrpcMethodKind::Unary),
+        "server-streaming" | "server_streaming" | "server" => Ok(GrpcMethodKind::ServerStreaming),
+        "client-streaming" | "client_streaming" | "client" => Ok(GrpcMethodKind::ClientStreaming),
+        "bidi-streaming" | "bidi_streaming" | "bidi" | "bidirectional" => {
+            Ok(GrpcMethodKind::BidiStreaming)
+        }
+        _ => bail!("gRPC method catalog line {line_number} has unknown method kind"),
+    }
+}
+
+fn split_grpc_package_service(service_path: &str) -> (String, String) {
+    service_path
+        .rsplit_once('.')
+        .map(|(package, service)| (package.to_string(), service.to_string()))
+        .unwrap_or_else(|| ("".to_string(), service_path.to_string()))
+}
+
+fn resolve_grpc_method_descriptor(
+    service: &str,
+    method: &str,
+    descriptors: &[GrpcMethodDescriptor],
+) -> Result<Option<GrpcMethodDescriptor>> {
+    if descriptors.is_empty() {
+        return Ok(None);
+    }
+
+    let requested = format!("{service}/{method}");
+    descriptors
+        .iter()
+        .find(|descriptor| descriptor.full_method_name() == requested)
+        .cloned()
+        .map(Some)
+        .ok_or_else(|| anyhow!("gRPC method {requested} was not found in the method catalog"))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -161,6 +258,7 @@ mod tests {
             "/demo.Users/GetUser",
             "authorization=Bearer token\nx-trace-id: abc",
             r#"{"id":"u_123"}"#,
+            "unary demo.Users/GetUser demo.GetUserRequest demo.GetUserResponse",
         )
         .expect("draft");
 
@@ -182,6 +280,10 @@ mod tests {
             ]
         );
         assert_eq!(draft.message, json!({ "id": "u_123" }));
+        assert_eq!(
+            draft.descriptor.expect("descriptor").request_type,
+            "demo.GetUserRequest"
+        );
     }
 
     #[test]
@@ -204,6 +306,18 @@ mod tests {
                 .to_string()
                 .contains("must be an object")
         );
+        assert!(
+            build_grpc_request_draft(
+                "http://localhost:50051",
+                "demo.Users/Missing",
+                "",
+                "{}",
+                "unary demo.Users/GetUser demo.GetUserRequest demo.GetUserResponse",
+            )
+            .expect_err("catalog miss")
+            .to_string()
+            .contains("not found in the method catalog")
+        );
     }
 
     #[test]
@@ -218,5 +332,32 @@ mod tests {
         };
 
         assert_eq!(descriptor.full_method_name(), "demo.v1.Users/List");
+    }
+
+    #[test]
+    fn parses_grpc_method_catalog() {
+        let descriptors = parse_grpc_method_catalog(
+            "\
+# kind service/method request response
+unary demo.v1.Users/List demo.v1.ListUsersRequest demo.v1.ListUsersResponse
+server-streaming demo.v1.Events/Subscribe demo.v1.SubscribeRequest demo.v1.Event
+client-streaming demo.v1.Upload/Send demo.v1.Chunk demo.v1.UploadResult
+bidi demo.v1.Chat/Stream demo.v1.ChatMessage demo.v1.ChatMessage
+",
+        )
+        .expect("catalog");
+
+        assert_eq!(descriptors.len(), 4);
+        assert_eq!(descriptors[0].package, "demo.v1");
+        assert_eq!(descriptors[0].service, "Users");
+        assert_eq!(descriptors[0].full_method_name(), "demo.v1.Users/List");
+        assert_eq!(descriptors[0].kind, GrpcMethodKind::Unary);
+        assert_eq!(descriptors[1].kind, GrpcMethodKind::ServerStreaming);
+        assert_eq!(descriptors[2].kind, GrpcMethodKind::ClientStreaming);
+        assert_eq!(descriptors[3].kind, GrpcMethodKind::BidiStreaming);
+        assert_eq!(
+            GrpcMethodKind::BidiStreaming.label(),
+            "bidirectional streaming"
+        );
     }
 }

@@ -1599,6 +1599,7 @@ component RealtimeEditorPanel inherits Rectangle {
     in-out property <string> grpc_method;
     in-out property <string> grpc_metadata;
     in-out property <string> grpc_message;
+    in-out property <string> grpc_method_catalog;
     in property <bool> busy;
     callback open_websocket();
     callback run_websocket();
@@ -1955,6 +1956,12 @@ component RealtimeEditorPanel inherits Rectangle {
                             text <=> root.grpc_message;
                         }
                     }
+
+                    LabeledEditor {
+                        label: "Method Catalog";
+                        text <=> root.grpc_method_catalog;
+                        height: 118px;
+                    }
                 }
             }
 
@@ -1992,7 +1999,7 @@ component RealtimeEditorPanel inherits Rectangle {
                     }
 
                     UiText {
-                        text: "Validates endpoint, method, metadata, and JSON message. Unary transport is still future work.";
+                        text: "Validates endpoint, method, metadata, JSON message, and optional method catalog. Unary transport is still future work.";
                         horizontal-stretch: 1;
                         vertical-stretch: 1;
                         color: Theme.outline;
@@ -2240,6 +2247,7 @@ component RequestPanel inherits Rectangle {
     in-out property <string> grpc_method;
     in-out property <string> grpc_metadata;
     in-out property <string> grpc_message;
+    in-out property <string> grpc_method_catalog;
     in property <bool> busy;
     callback open_websocket();
     callback run_websocket();
@@ -2617,6 +2625,7 @@ component RequestPanel inherits Rectangle {
                 grpc_method <=> root.grpc_method;
                 grpc_metadata <=> root.grpc_metadata;
                 grpc_message <=> root.grpc_message;
+                grpc_method_catalog <=> root.grpc_method_catalog;
                 busy: root.busy;
                 open_websocket => {
                     root.open_websocket();
@@ -6117,6 +6126,7 @@ export component AppWindow inherits Window {
     in-out property <string> grpc_method: "package.Service/Method";
     in-out property <string> grpc_metadata: "";
     in-out property <string> grpc_message: "{}";
+    in-out property <string> grpc_method_catalog: "unary package.Service/Method package.Request package.Response";
     in-out property <string> response_status: "Idle";
     in-out property <string> response_meta: "";
     in-out property <string> response_time: "";
@@ -6416,6 +6426,7 @@ export component AppWindow inherits Window {
                                     grpc_method <=> root.grpc_method;
                                     grpc_metadata <=> root.grpc_metadata;
                                     grpc_message <=> root.grpc_message;
+                                    grpc_method_catalog <=> root.grpc_method_catalog;
                                     busy: root.busy;
                                     add_query_param => {
                                         root.add_query_param();

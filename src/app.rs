@@ -2430,6 +2430,7 @@ fn wire_grpc_draft(app: &AppWindow) {
             &app.get_grpc_method(),
             &app.get_grpc_metadata(),
             &app.get_grpc_message(),
+            &app.get_grpc_method_catalog(),
         ) {
             Ok(draft) => set_response(
                 &app,
@@ -3475,13 +3476,26 @@ fn format_grpc_draft(draft: &GrpcRequestDraft) -> String {
             .collect::<Vec<_>>()
             .join("\n")
     };
+    let descriptor = draft
+        .descriptor
+        .as_ref()
+        .map(|descriptor| {
+            format!(
+                "Kind: {}\nRequest: {}\nResponse: {}",
+                descriptor.kind.label(),
+                descriptor.request_type,
+                descriptor.response_type
+            )
+        })
+        .unwrap_or_else(|| "No method catalog".to_string());
     let message =
         serde_json::to_string_pretty(&draft.message).unwrap_or_else(|_| draft.message.to_string());
 
     format!(
-        "Endpoint: {}\nMethod: {}\n\nMetadata\n{}\n\nMessage\n{}",
+        "Endpoint: {}\nMethod: {}\n\nDescriptor\n{}\n\nMetadata\n{}\n\nMessage\n{}",
         draft.endpoint,
         draft.method_path(),
+        descriptor,
         metadata,
         message
     )
@@ -6088,12 +6102,13 @@ mod tests {
             "demo.Users/GetUser",
             "authorization=Bearer token",
             r#"{"id":"u_123"}"#,
+            "unary demo.Users/GetUser demo.GetUserRequest demo.GetUserResponse",
         )
         .expect("draft");
 
         assert_eq!(
             format_grpc_draft(&draft),
-            "Endpoint: http://localhost:50051\nMethod: /demo.Users/GetUser\n\nMetadata\nauthorization: Bearer token\n\nMessage\n{\n  \"id\": \"u_123\"\n}"
+            "Endpoint: http://localhost:50051\nMethod: /demo.Users/GetUser\n\nDescriptor\nKind: unary\nRequest: demo.GetUserRequest\nResponse: demo.GetUserResponse\n\nMetadata\nauthorization: Bearer token\n\nMessage\n{\n  \"id\": \"u_123\"\n}"
         );
     }
 

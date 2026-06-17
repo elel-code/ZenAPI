@@ -108,8 +108,9 @@
 - [~] Add GraphQL and gRPC UI surfaces after REST parity is stable; current
   Slint baseline has GraphQL query/variables editing, query/mutation/
   introspection templates, plus a visible Realtime gRPC draft surface backed by
-  the domain model, with gRPC descriptor loading/transport and GraphQL schema
-  response helpers still pending.
+  the domain model with optional manual method catalog validation and descriptor
+  display, with gRPC reflection/proto descriptor loading, unary transport, and
+  GraphQL schema response helpers still pending.
 - [~] Add mock request logs and richer mock manager controls; current Slint
   baseline has a dedicated Mock Manager page with endpoint selection,
   start/stop, selected route response preview, default/fallback routing cards,
@@ -147,5 +148,5 @@
 | WebSocket/SSE | Client modules restored | Realtime tab supports one-shot WS text, persistent WS text/binary sends with subprotocols, WebSocket history copy/clear, plus SSE previews, streams, history copy, and clear |
 | Mock logs | Core implemented | Slint baseline shows, filters, clears, and exports recent mock requests |
 | GraphQL | Payload builder implemented | Slint baseline edits query/variables and applies query, mutation, and introspection templates |
-| gRPC | Domain draft model implemented | Realtime tab exposes draft surface; descriptor loading and unary transport pending |
+| gRPC | Domain draft + catalog validation implemented | Realtime tab validates endpoint, method, metadata, message JSON, and optional method catalog entries; reflection/proto descriptor loading and unary transport pending |
 | Reference pages | Slint baseline implemented | Dashboard, Request Builder, Mock Manager, Environments, Test Runner, API Docs, API Keys, Team, Project Settings, and Traffic Analytics now have routed reference-aligned page layouts; unwired reference-page action buttons were removed, and API Docs snippet language switching is local and functional |

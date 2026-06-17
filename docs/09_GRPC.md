@@ -1,6 +1,6 @@
 # gRPC 支持评估
 
-> 状态: 评估完成，等待实现拆分
+> 状态: 评估完成，domain draft/catalog validation 已接入 Slint
 > 日期: 2026-06-13
 
 ## 目标
@@ -103,12 +103,12 @@ gRPC 不应塞进 HTTP Body 面板。推荐单独面板或协议工作区：
 
 ## 建议 TODO 拆分
 
-1. 建立 gRPC domain model，不接 UI：endpoint、metadata、method descriptor、message JSON。
-2. 实现 reflection descriptor 加载测试。
-3. 实现 `.proto` descriptor 加载测试。
-4. 实现 unary 调用传输层和本地 tonic 服务测试。
-5. 接入 Slint unary 面板。
-6. 再实现 server streaming。
+1. [x] 建立 gRPC domain model 并接入 Slint draft：endpoint、metadata、method descriptor catalog、message JSON。
+2. [ ] 实现 reflection descriptor 加载测试。
+3. [ ] 实现 `.proto` descriptor 加载测试。
+4. [ ] 实现 unary 调用传输层和本地 tonic 服务测试。
+5. [ ] 接入 Slint unary 面板。
+6. [ ] 再实现 server streaming。
 
 ## 当前结论
 

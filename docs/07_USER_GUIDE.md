@@ -361,8 +361,11 @@ zenapi run collection.json --delay-ms 100
 - GraphQL query and variables payload editing plus query, mutation, and
   introspection templates are available; introspection response schema/field
   panels are future work.
-  WebSocket one-shot sends, persistent WS text sessions, WebSocket history
+- WebSocket one-shot sends, persistent WS text sessions, WebSocket history
   copy/clear, SSE `Once` previews, and persistent SSE stream/resume controls are
-  available. gRPC has a draft domain model and an implementation plan in
-  `docs/09_GRPC.md`, but transport/UI support is future work.
+  available.
+- gRPC Realtime draft validation is available for endpoint, method, metadata,
+  JSON message, and optional manual method catalog entries such as
+  `unary demo.Users/GetUser demo.GetUserRequest demo.GetUserResponse`.
+  Reflection/proto descriptor loading and unary transport are future work.
 - Plugin APIs are future work.
