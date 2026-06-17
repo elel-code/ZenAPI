@@ -178,6 +178,7 @@ ZenAPI 采用单窗口多页面架构，全局外壳包含：
 | **端点列表** | `label-caps` "ENDPOINTS" + 添加按钮；每行含状态圆点 + MethodChip + 路径；激活项 `border-l-2 border-primary` |
 | **配置头** | 路径 + MethodChip + Copy 按钮 + "Mock Server Status" + Running 状态按钮 |
 | **配置项** | 3 个下拉：状态码选择器、延迟选择器、响应体来源选择器 |
+| **响应体预览** | 未选择端点时使用轻量空状态文本；选中端点后使用 CodeEditor 预览生成响应 |
 | **响应规则** | "Routing Rules" 区域；条件卡片（If Header / If Query）+ 条件表达式 + 结果响应文件路径 |
 | **流量日志** | `surface-container-lowest` 背景；每行：时间戳 + status（200=`secondary`, 401=`error`）+ 路径；悬停显示延迟/大小 |
 

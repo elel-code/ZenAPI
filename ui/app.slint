@@ -3255,12 +3255,24 @@ component MockManagerPage inherits Rectangle {
                     vertical-stretch: 1;
                     background: Theme.surface_container_lowest;
 
-                    CodePane {
+                    if root.selected_mock_body == "": UiText {
+                        x: 18px;
+                        width: parent.width - 36px;
+                        height: parent.height;
+                        text: root.routes.length == 0 ? "Import an OpenAPI document to generate mock route responses." : "Select an endpoint to preview its generated mock response.";
+                        color: Theme.outline;
+                        font-size: 12px;
+                        horizontal-alignment: center;
+                        vertical-alignment: center;
+                        overflow: elide;
+                    }
+
+                    if root.selected_mock_body != "": CodePane {
                         x: 0px;
                         y: 0px;
                         width: parent.width;
                         height: parent.height;
-                        text: root.selected_mock_body == "" ? (root.routes.length == 0 ? "Import an OpenAPI document to generate mock route responses." : "Select an endpoint to preview its generated mock response.") : root.selected_mock_body;
+                        text: root.selected_mock_body;
                         read_only: true;
                     }
                 }
@@ -4342,7 +4354,18 @@ component CodegenPage inherits Rectangle {
             }
         }
 
-        CodePane {
+        if root.codegen_output == "": UiText {
+            horizontal-stretch: 1;
+            vertical-stretch: 1;
+            text: "Generate a snippet from the current request.";
+            color: Theme.outline;
+            font-size: 12px;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+
+        if root.codegen_output != "": CodePane {
             text <=> root.codegen_output;
             read_only: true;
         }
