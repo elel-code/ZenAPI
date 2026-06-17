@@ -1,4 +1,3 @@
-import { LabeledEditor } from "editors.slint";
 import { Theme } from "theme.slint";
 import { KeyValueTableRow, TestAssertionRow } from "types.slint";
 import { WorkspaceTab } from "widgets.slint";
@@ -7,7 +6,7 @@ import { BodyEditorPanel } from "body_panel.slint";
 import { HeaderEditorPanel } from "header_panel.slint";
 import { KeyValueTablePanel } from "key_value_table_panel.slint";
 import { RealtimeEditorPanel } from "realtime_editor_panel.slint";
-import { TestAssertionEditorPanel } from "test_assertion_panel.slint";
+import { ScriptsEditorPanel } from "scripts_panel.slint";
 
 export component RequestPanel inherits Rectangle {
     in-out property <string> global_variables;
@@ -361,39 +360,31 @@ export component RequestPanel inherits Rectangle {
                 }
             }
 
-            if root.active_tab == "scripts": HorizontalLayout {
+            if root.active_tab == "scripts": ScriptsEditorPanel {
                 x: 16px;
                 y: 16px;
                 width: parent.width - 32px;
                 height: parent.height - 32px;
-                spacing: 12px;
-
-                LabeledEditor {
-                    label: "Pre-request";
-                    text <=> root.pre_request_script;
+                pre_request_script <=> root.pre_request_script;
+                test_assertion_rows <=> root.test_assertion_rows;
+                busy: root.busy;
+                add_test_assertion => {
+                    root.add_test_assertion();
                 }
-
-                TestAssertionEditorPanel {
-                    rows <=> root.test_assertion_rows;
-                    busy: root.busy;
-                    add_row => {
-                        root.add_test_assertion();
-                    }
-                    add_template_row(template) => {
-                        root.add_test_assertion_template(template);
-                    }
-                    add_custom_row(kind, target, expected) => {
-                        root.add_custom_test_assertion(kind, target, expected);
-                    }
-                    update_row(row_id, kind, target, expected) => {
-                        root.update_test_assertion_row(row_id, kind, target, expected);
-                    }
-                    cycle_kind_row(row_id, kind) => {
-                        root.cycle_test_assertion_kind(row_id, kind);
-                    }
-                    delete_row(row_id) => {
-                        root.delete_test_assertion_row(row_id);
-                    }
+                add_test_assertion_template(template) => {
+                    root.add_test_assertion_template(template);
+                }
+                add_custom_test_assertion(kind, target, expected) => {
+                    root.add_custom_test_assertion(kind, target, expected);
+                }
+                update_test_assertion_row(row_id, kind, target, expected) => {
+                    root.update_test_assertion_row(row_id, kind, target, expected);
+                }
+                cycle_test_assertion_kind(row_id, kind) => {
+                    root.cycle_test_assertion_kind(row_id, kind);
+                }
+                delete_test_assertion_row(row_id) => {
+                    root.delete_test_assertion_row(row_id);
                 }
             }
         }

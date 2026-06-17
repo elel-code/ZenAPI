@@ -1,0 +1,51 @@
+import { LabeledEditor } from "editors.slint";
+import { TestAssertionEditorPanel } from "test_assertion_panel.slint";
+import { TestAssertionRow } from "types.slint";
+
+export component ScriptsEditorPanel inherits Rectangle {
+    in-out property <string> pre_request_script;
+    in-out property <[TestAssertionRow]> test_assertion_rows;
+    in property <bool> busy;
+    callback add_test_assertion();
+    callback add_test_assertion_template(string);
+    callback add_custom_test_assertion(string, string, string);
+    callback update_test_assertion_row(int, string, string, string);
+    callback cycle_test_assertion_kind(int, string);
+    callback delete_test_assertion_row(int);
+
+    horizontal-stretch: 1;
+    vertical-stretch: 1;
+    background: transparent;
+
+    HorizontalLayout {
+        spacing: 12px;
+
+        LabeledEditor {
+            label: "Pre-request";
+            text <=> root.pre_request_script;
+        }
+
+        TestAssertionEditorPanel {
+            rows <=> root.test_assertion_rows;
+            busy: root.busy;
+            add_row => {
+                root.add_test_assertion();
+            }
+            add_template_row(template) => {
+                root.add_test_assertion_template(template);
+            }
+            add_custom_row(kind, target, expected) => {
+                root.add_custom_test_assertion(kind, target, expected);
+            }
+            update_row(row_id, kind, target, expected) => {
+                root.update_test_assertion_row(row_id, kind, target, expected);
+            }
+            cycle_kind_row(row_id, kind) => {
+                root.cycle_test_assertion_kind(row_id, kind);
+            }
+            delete_row(row_id) => {
+                root.delete_test_assertion_row(row_id);
+            }
+        }
+    }
+}
