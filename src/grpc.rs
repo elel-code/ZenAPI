@@ -1,6 +1,9 @@
 use anyhow::{Result, anyhow, bail};
+use prost::Message;
+use prost_types::FileDescriptorSet;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use std::{fs, path::Path};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum GrpcMethodKind {
@@ -178,6 +181,86 @@ pub fn parse_grpc_method_catalog(input: &str) -> Result<Vec<GrpcMethodDescriptor
         .collect()
 }
 
+pub fn decode_grpc_file_descriptor_set(input: &[u8]) -> Result<Vec<GrpcMethodDescriptor>> {
+    let descriptor_set = FileDescriptorSet::decode(input)
+        .map_err(|error| anyhow!("failed to decode gRPC descriptor set: {error}"))?;
+    grpc_method_descriptors_from_file_descriptor_set(&descriptor_set)
+}
+
+pub fn load_grpc_file_descriptor_set(path: impl AsRef<Path>) -> Result<Vec<GrpcMethodDescriptor>> {
+    let path = path.as_ref();
+    let bytes = fs::read(path).map_err(|error| {
+        anyhow!(
+            "failed to read gRPC descriptor set {}: {error}",
+            path.display()
+        )
+    })?;
+    decode_grpc_file_descriptor_set(&bytes)
+}
+
+pub fn grpc_method_descriptors_from_file_descriptor_set(
+    descriptor_set: &FileDescriptorSet,
+) -> Result<Vec<GrpcMethodDescriptor>> {
+    let mut descriptors = Vec::new();
+
+    for file in &descriptor_set.file {
+        let package = file.package.as_deref().unwrap_or("").trim();
+        for service in &file.service {
+            let service_name = service.name.as_deref().unwrap_or("").trim();
+            if service_name.is_empty() {
+                bail!("gRPC descriptor set contains a service without a name");
+            }
+
+            for method in &service.method {
+                let method_name = method.name.as_deref().unwrap_or("").trim();
+                let request_type = method.input_type.as_deref().unwrap_or("").trim();
+                let response_type = method.output_type.as_deref().unwrap_or("").trim();
+                if method_name.is_empty() {
+                    bail!("gRPC descriptor set contains a method without a name");
+                }
+                if request_type.is_empty() || response_type.is_empty() {
+                    bail!(
+                        "gRPC descriptor {}.{}/{} is missing request or response type",
+                        package,
+                        service_name,
+                        method_name
+                    );
+                }
+
+                descriptors.push(GrpcMethodDescriptor {
+                    package: package.to_string(),
+                    service: service_name.to_string(),
+                    method: method_name.to_string(),
+                    request_type: normalize_grpc_type_name(request_type),
+                    response_type: normalize_grpc_type_name(response_type),
+                    kind: grpc_method_kind_from_streaming(
+                        method.client_streaming.unwrap_or(false),
+                        method.server_streaming.unwrap_or(false),
+                    ),
+                });
+            }
+        }
+    }
+
+    Ok(descriptors)
+}
+
+pub fn format_grpc_method_catalog(descriptors: &[GrpcMethodDescriptor]) -> String {
+    descriptors
+        .iter()
+        .map(|descriptor| {
+            format!(
+                "{} {} {} {}",
+                grpc_method_kind_catalog_token(descriptor.kind),
+                descriptor.full_method_name(),
+                descriptor.request_type,
+                descriptor.response_type
+            )
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
 fn parse_grpc_method_descriptor_line(
     line_number: usize,
     line: &str,
@@ -221,6 +304,31 @@ fn parse_grpc_method_kind(input: &str, line_number: usize) -> Result<GrpcMethodK
     }
 }
 
+fn grpc_method_kind_from_streaming(
+    client_streaming: bool,
+    server_streaming: bool,
+) -> GrpcMethodKind {
+    match (client_streaming, server_streaming) {
+        (false, false) => GrpcMethodKind::Unary,
+        (false, true) => GrpcMethodKind::ServerStreaming,
+        (true, false) => GrpcMethodKind::ClientStreaming,
+        (true, true) => GrpcMethodKind::BidiStreaming,
+    }
+}
+
+fn grpc_method_kind_catalog_token(kind: GrpcMethodKind) -> &'static str {
+    match kind {
+        GrpcMethodKind::Unary => "unary",
+        GrpcMethodKind::ServerStreaming => "server-streaming",
+        GrpcMethodKind::ClientStreaming => "client-streaming",
+        GrpcMethodKind::BidiStreaming => "bidi",
+    }
+}
+
+fn normalize_grpc_type_name(input: &str) -> String {
+    input.trim_start_matches('.').to_string()
+}
+
 fn split_grpc_package_service(service_path: &str) -> (String, String) {
     service_path
         .rsplit_once('.')
@@ -249,7 +357,10 @@ fn resolve_grpc_method_descriptor(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use prost::Message;
+    use prost_types::{FileDescriptorProto, MethodDescriptorProto, ServiceDescriptorProto};
     use serde_json::json;
+    use temp_dir::TempDir;
 
     #[test]
     fn builds_grpc_request_draft_from_editor_fields() {
@@ -358,6 +469,118 @@ bidi demo.v1.Chat/Stream demo.v1.ChatMessage demo.v1.ChatMessage
         assert_eq!(
             GrpcMethodKind::BidiStreaming.label(),
             "bidirectional streaming"
+        );
+    }
+
+    #[test]
+    fn extracts_method_catalog_from_file_descriptor_set() {
+        let descriptor_set = FileDescriptorSet {
+            file: vec![FileDescriptorProto {
+                name: Some("demo/users.proto".to_string()),
+                package: Some("demo.v1".to_string()),
+                service: vec![
+                    ServiceDescriptorProto {
+                        name: Some("Users".to_string()),
+                        method: vec![
+                            MethodDescriptorProto {
+                                name: Some("GetUser".to_string()),
+                                input_type: Some(".demo.v1.GetUserRequest".to_string()),
+                                output_type: Some(".demo.v1.User".to_string()),
+                                ..Default::default()
+                            },
+                            MethodDescriptorProto {
+                                name: Some("WatchUsers".to_string()),
+                                input_type: Some(".demo.v1.WatchUsersRequest".to_string()),
+                                output_type: Some(".demo.v1.User".to_string()),
+                                server_streaming: Some(true),
+                                ..Default::default()
+                            },
+                            MethodDescriptorProto {
+                                name: Some("UploadUsers".to_string()),
+                                input_type: Some(".demo.v1.UserChunk".to_string()),
+                                output_type: Some(".demo.v1.UploadSummary".to_string()),
+                                client_streaming: Some(true),
+                                ..Default::default()
+                            },
+                            MethodDescriptorProto {
+                                name: Some("Chat".to_string()),
+                                input_type: Some(".demo.v1.ChatMessage".to_string()),
+                                output_type: Some(".demo.v1.ChatMessage".to_string()),
+                                client_streaming: Some(true),
+                                server_streaming: Some(true),
+                                ..Default::default()
+                            },
+                        ],
+                        ..Default::default()
+                    },
+                    ServiceDescriptorProto {
+                        name: Some("Health".to_string()),
+                        method: vec![MethodDescriptorProto {
+                            name: Some("Check".to_string()),
+                            input_type: Some(".demo.v1.HealthCheckRequest".to_string()),
+                            output_type: Some(".demo.v1.HealthCheckResponse".to_string()),
+                            ..Default::default()
+                        }],
+                        ..Default::default()
+                    },
+                ],
+                syntax: Some("proto3".to_string()),
+                ..Default::default()
+            }],
+        };
+
+        let encoded = descriptor_set.encode_to_vec();
+        let descriptors = decode_grpc_file_descriptor_set(&encoded).expect("descriptor set");
+
+        assert_eq!(descriptors.len(), 5);
+        assert_eq!(descriptors[0].full_method_name(), "demo.v1.Users/GetUser");
+        assert_eq!(descriptors[0].request_type, "demo.v1.GetUserRequest");
+        assert_eq!(descriptors[0].response_type, "demo.v1.User");
+        assert_eq!(descriptors[0].kind, GrpcMethodKind::Unary);
+        assert_eq!(descriptors[1].kind, GrpcMethodKind::ServerStreaming);
+        assert_eq!(descriptors[2].kind, GrpcMethodKind::ClientStreaming);
+        assert_eq!(descriptors[3].kind, GrpcMethodKind::BidiStreaming);
+        assert_eq!(
+            format_grpc_method_catalog(&descriptors),
+            "\
+unary demo.v1.Users/GetUser demo.v1.GetUserRequest demo.v1.User
+server-streaming demo.v1.Users/WatchUsers demo.v1.WatchUsersRequest demo.v1.User
+client-streaming demo.v1.Users/UploadUsers demo.v1.UserChunk demo.v1.UploadSummary
+bidi demo.v1.Users/Chat demo.v1.ChatMessage demo.v1.ChatMessage
+unary demo.v1.Health/Check demo.v1.HealthCheckRequest demo.v1.HealthCheckResponse"
+        );
+    }
+
+    #[test]
+    fn loads_method_catalog_from_descriptor_set_file() {
+        let descriptor_set = FileDescriptorSet {
+            file: vec![FileDescriptorProto {
+                package: Some("admin".to_string()),
+                service: vec![ServiceDescriptorProto {
+                    name: Some("Audit".to_string()),
+                    method: vec![MethodDescriptorProto {
+                        name: Some("ListEvents".to_string()),
+                        input_type: Some(".admin.ListEventsRequest".to_string()),
+                        output_type: Some(".admin.ListEventsResponse".to_string()),
+                        ..Default::default()
+                    }],
+                    ..Default::default()
+                }],
+                ..Default::default()
+            }],
+        };
+
+        let temp_dir = TempDir::new().expect("temp dir");
+        let path = temp_dir.path().join("audit.protoset");
+        std::fs::write(&path, descriptor_set.encode_to_vec()).expect("write descriptor set");
+
+        let descriptors = load_grpc_file_descriptor_set(&path).expect("descriptor set file");
+
+        assert_eq!(descriptors.len(), 1);
+        assert_eq!(descriptors[0].full_method_name(), "admin.Audit/ListEvents");
+        assert_eq!(
+            format_grpc_method_catalog(&descriptors),
+            "unary admin.Audit/ListEvents admin.ListEventsRequest admin.ListEventsResponse"
         );
     }
 }
