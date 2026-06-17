@@ -1,0 +1,266 @@
+import { Theme } from "theme.slint";
+import { DataPanel, ReadOnlyCodeBlock, UiText } from "widgets.slint";
+
+component ApiKeysPageTitle inherits Rectangle {
+    in property <string> title;
+    in property <string> subtitle;
+
+    height: 62px;
+    horizontal-stretch: 1;
+    background: transparent;
+
+    UiText {
+        text: root.title;
+        x: 0px;
+        y: 0px;
+        width: parent.width;
+        height: 34px;
+        color: Theme.on_surface;
+        font-size: 26px;
+        font-weight: 800;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+
+    UiText {
+        text: root.subtitle;
+        x: 0px;
+        y: 36px;
+        width: parent.width;
+        height: 22px;
+        color: Theme.on_surface_variant;
+        font-size: 13px;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+}
+
+component ApiKeysBadge inherits Rectangle {
+    in property <string> text;
+    in property <string> tone: "neutral";
+    in property <length> badge_width: 72px;
+
+    width: root.badge_width;
+    height: 22px;
+    border-radius: 4px;
+    border-width: 1px;
+    border-color: root.tone == "success" ? Theme.secondary : root.tone == "error" ? Theme.error : root.tone == "warning" ? Theme.tertiary : Theme.outline_variant;
+    background: root.tone == "success" ? #123627 : root.tone == "error" ? #3d1517 : root.tone == "warning" ? #3e2b13 : Theme.surface_container_high;
+
+    UiText {
+        text: root.text;
+        width: parent.width;
+        height: parent.height;
+        color: root.tone == "success" ? Theme.secondary : root.tone == "error" ? Theme.error : root.tone == "warning" ? Theme.tertiary : Theme.on_surface_variant;
+        font-family: "JetBrains Mono";
+        font-size: 11px;
+        font-weight: 800;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+}
+
+component ApiKeyCard inherits Rectangle {
+    in property <string> title;
+    in property <string> token;
+    in property <string> meta;
+    in property <bool> selected;
+
+    height: 92px;
+    horizontal-stretch: 1;
+    border-radius: 8px;
+    border-width: 1px;
+    border-color: root.selected ? Theme.primary_container : Theme.outline_variant;
+    background: root.selected ? Theme.surface_container_high : Theme.surface_container;
+
+    VerticalLayout {
+        padding: 12px;
+        spacing: 6px;
+
+        UiText {
+            text: root.title;
+            height: 22px;
+            horizontal-stretch: 1;
+            color: Theme.on_surface;
+            font-size: 15px;
+            font-weight: 800;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+
+        UiText {
+            text: root.token;
+            height: 18px;
+            horizontal-stretch: 1;
+            color: Theme.on_surface_variant;
+            font-family: "JetBrains Mono";
+            font-size: 12px;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+
+        UiText {
+            text: root.meta;
+            height: 18px;
+            horizontal-stretch: 1;
+            color: Theme.outline;
+            font-size: 11px;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+    }
+}
+
+export component ApiKeysPage inherits Rectangle {
+    in property <string> auth_mode;
+    in property <string> auth_config;
+    in property <string> auth_basic_username;
+    in property <int> auth_key_row_count;
+    in property <string> url;
+
+    property <bool> has_auth: root.auth_mode != "none" && (root.auth_config != "" || root.auth_key_row_count > 0 || root.auth_basic_username != "");
+    property <string> mode_title: root.auth_mode == "bearer" ? "Bearer Token" : root.auth_mode == "jwt" ? "JWT Bearer" : root.auth_mode == "basic" ? "Basic Auth" : root.auth_mode == "api-header" ? "API Key Header" : root.auth_mode == "api-query" ? "API Key Query" : "No Auth";
+    property <string> mode_summary: root.auth_mode == "api-header" ? root.auth_key_row_count + " header row(s) configured" : root.auth_mode == "api-query" ? root.auth_key_row_count + " query row(s) configured" : root.auth_mode == "basic" ? (root.auth_basic_username == "" ? "Username/password not configured" : "Username configured; password hidden") : root.has_auth ? "Credential value configured; secret hidden" : "No request auth configured";
+    property <string> target_url: root.url == "" ? "<request-url>" : root.url;
+    property <string> integration_hint: root.auth_mode == "bearer" ? "Authorization: Bearer <configured-token>" : root.auth_mode == "jwt" ? "Authorization: Bearer <configured-jwt>" : root.auth_mode == "basic" ? "Authorization: Basic <base64-credentials>" : root.auth_mode == "api-header" ? "Configured API key rows are merged into request headers." : root.auth_mode == "api-query" ? "Configured API key rows are merged into request query parameters." : "Requests are sent without generated authorization credentials.";
+    property <string> curl_hint: root.auth_mode == "bearer" || root.auth_mode == "jwt" ? "curl \"" + root.target_url + "\" \\\n  -H \"" + root.integration_hint + "\"" : root.auth_mode == "basic" ? "curl \"" + root.target_url + "\" \\\n  -H \"Authorization: Basic <base64-credentials>\"" : root.auth_mode == "api-header" ? "curl \"" + root.target_url + "\" \\\n  -H \"<configured-header>: <configured-value>\"" : root.auth_mode == "api-query" ? "curl \"" + root.target_url + "?<configured-key>=<configured-value>\"" : "curl \"" + root.target_url + "\"";
+
+    horizontal-stretch: 1;
+    vertical-stretch: 1;
+    background: Theme.background;
+
+    HorizontalLayout {
+        spacing: 0px;
+
+        Rectangle {
+            width: 280px;
+            vertical-stretch: 1;
+            background: Theme.surface_container_low;
+
+            VerticalLayout {
+                padding: 16px;
+                spacing: 12px;
+
+                ApiKeysPageTitle {
+                    title: "Request Auth";
+                    subtitle: "Current request credentials";
+                }
+
+                ApiKeyCard {
+                    title: root.mode_title;
+                    token: root.has_auth ? root.mode_summary : "No credential material stored for this request.";
+                    meta: "Source: Request / Auth tab";
+                    selected: true;
+                }
+
+                if root.auth_mode == "api-header" || root.auth_mode == "api-query": DataPanel {
+                    title: "Configured Rows";
+                    body: root.auth_key_row_count == 0 ? "No key rows configured." : root.auth_key_row_count + " row(s) will be merged into the request.";
+                }
+
+                if root.auth_mode == "basic": DataPanel {
+                    title: "Basic Username";
+                    body: root.auth_basic_username == "" ? "No username configured." : root.auth_basic_username;
+                }
+            }
+        }
+
+        Rectangle {
+            width: 1px;
+            background: Theme.outline_variant;
+        }
+
+        Rectangle {
+            horizontal-stretch: 1;
+            vertical-stretch: 1;
+            background: Theme.surface;
+
+            VerticalLayout {
+                padding: 28px;
+                spacing: 18px;
+
+                HorizontalLayout {
+                    height: 58px;
+                    spacing: 12px;
+
+                    ApiKeysPageTitle {
+                        title: root.mode_title;
+                        subtitle: root.has_auth ? "Configured in the active request." : "No auth mode is active.";
+                    }
+
+                    ApiKeysBadge {
+                        text: root.has_auth ? "ACTIVE" : "EMPTY";
+                        tone: root.has_auth ? "success" : "neutral";
+                        badge_width: 74px;
+                    }
+                }
+
+                DataPanel {
+                    title: "Credential Material";
+                    body: root.has_auth ? root.mode_summary + "\nSecret values are hidden in this overview." : "Choose an auth mode in Request / Auth to populate this overview.";
+                }
+
+                HorizontalLayout {
+                    height: 148px;
+                    spacing: 16px;
+
+                    DataPanel {
+                        title: "Transport Mapping";
+                        body: root.integration_hint;
+                    }
+
+                    DataPanel {
+                        title: "Target Request";
+                        body: root.target_url;
+                    }
+                }
+
+                DataPanel {
+                    title: "Settings";
+                    body: "This page mirrors the active request auth configuration. Key rotation, scopes, and server-side key management are not implemented in the local Slint app.";
+                }
+            }
+        }
+
+        Rectangle {
+            width: 320px;
+            vertical-stretch: 1;
+            background: Theme.surface_container_lowest;
+
+            VerticalLayout {
+                padding: 16px;
+                spacing: 12px;
+
+                UiText {
+                    text: "INTEGRATION";
+                    height: 22px;
+                    horizontal-stretch: 1;
+                    color: Theme.on_surface;
+                    font-size: 13px;
+                    font-weight: 800;
+                    vertical-alignment: center;
+                    overflow: elide;
+                }
+
+                UiText {
+                    text: root.has_auth ? "Equivalent request auth mapping." : "No auth headers or query values will be generated.";
+                    height: 36px;
+                    horizontal-stretch: 1;
+                    color: Theme.on_surface_variant;
+                    font-size: 12px;
+                    vertical-alignment: top;
+                    overflow: elide;
+                }
+
+                ReadOnlyCodeBlock {
+                    text: root.curl_hint;
+                }
+
+                ReadOnlyCodeBlock {
+                    text: root.integration_hint;
+                }
+            }
+        }
+    }
+}
