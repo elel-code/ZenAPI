@@ -121,6 +121,106 @@ component KeyValueEditorPanel inherits Rectangle {
     }
 }
 
+component TestAssertionEditorPanel inherits Rectangle {
+    in-out property <string> text;
+
+    horizontal-stretch: 1;
+    vertical-stretch: 1;
+    background: transparent;
+
+    VerticalLayout {
+        padding: 0px;
+        spacing: 6px;
+
+        UiText {
+            text: "Tests";
+            height: 20px;
+            horizontal-stretch: 1;
+            color: Theme.on_surface_variant;
+            font-size: 12px;
+            font-weight: 800;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+
+        Rectangle {
+            height: 30px;
+            horizontal-stretch: 1;
+            border-radius: 6px;
+            border-width: 1px;
+            border-color: Theme.outline_variant;
+            background: Theme.surface_container;
+
+            UiText {
+                x: 12px;
+                text: "Kind";
+                width: 96px;
+                height: parent.height;
+                color: Theme.on_surface_variant;
+                font-size: 12px;
+                font-weight: 800;
+                vertical-alignment: center;
+                overflow: elide;
+            }
+
+            Rectangle {
+                x: 116px;
+                y: 6px;
+                width: 1px;
+                height: parent.height - 12px;
+                background: Theme.outline_variant;
+            }
+
+            UiText {
+                x: 128px;
+                text: "Target";
+                width: 126px;
+                height: parent.height;
+                color: Theme.on_surface_variant;
+                font-size: 12px;
+                font-weight: 800;
+                vertical-alignment: center;
+                overflow: elide;
+            }
+
+            Rectangle {
+                x: 266px;
+                y: 6px;
+                width: 1px;
+                height: parent.height - 12px;
+                background: Theme.outline_variant;
+            }
+
+            UiText {
+                x: 278px;
+                text: "Expect";
+                width: parent.width - 290px;
+                height: parent.height;
+                color: Theme.on_surface_variant;
+                font-size: 12px;
+                font-weight: 800;
+                vertical-alignment: center;
+                overflow: elide;
+            }
+        }
+
+        CodePane {
+            text <=> root.text;
+            read_only: false;
+        }
+
+        UiText {
+            text: "Line format: status_equals 200, header_equals content-type application/json, json_path_equals data.id 1.";
+            height: 18px;
+            horizontal-stretch: 1;
+            color: Theme.outline;
+            font-size: 12px;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+    }
+}
+
 component HeaderEditorPanel inherits Rectangle {
     in-out property <string> request_headers;
     in property <bool> busy;
@@ -1967,8 +2067,7 @@ component RequestPanel inherits Rectangle {
                     text <=> root.pre_request_script;
                 }
 
-                LabeledEditor {
-                    label: "Tests";
+                TestAssertionEditorPanel {
                     text <=> root.request_tests;
                 }
             }

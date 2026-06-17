@@ -131,7 +131,8 @@ pre-request action names and target fields, but not action values.
 ## Tests
 
 The request editor includes a native Tests panel for response assertions. The
-kind selector uses compact labels for common checks:
+Slint panel uses a table-shaped line editor with `Kind`, `Target`, and `Expect`
+headers. Use one assertion per line. Supported kinds include:
 
 - `Status =`: status equals.
 - `Range`: status is within a range.
@@ -140,11 +141,9 @@ kind selector uses compact labels for common checks:
 - `Body ?`: body contains text.
 - `JSON =`: JSON path equals a value.
 
-Use `+` in the Tests header to add a row. Click the kind selector in a test row
-to cycle through assertion types. Use the `Target` and `Expect` fields according
-to the selected kind. For `JSON =` assertions, use dot paths such as
-`data.items.0.id`; expected values can be JSON literals such as `true`, `42`,
-or `"name"`. Use `x` at the row edge to remove a test row.
+For `JSON =` assertions, use dot paths such as `data.items.0.id`; expected
+values can be JSON literals such as `true`, `42`, or `"name"`. Per-row
+add/delete controls and kind cycling are still future work.
 
 Tests run when a request is sent and when a collection is run. Tests are saved
 with collection requests and restored with them.
