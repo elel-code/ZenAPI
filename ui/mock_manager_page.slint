@@ -1,8 +1,9 @@
 import { ListView } from "std-widgets.slint";
 import { DataPanel, MockLogLine } from "cards.slint";
+import { CodePane } from "editors.slint";
 import { Theme } from "theme.slint";
 import { MockLogRow, MockRuleRow, RouteRow } from "types.slint";
-import { ActionButton, BodyModeButton, CodePane, MethodChip, StatusDot, TextField, UiText } from "widgets.slint";
+import { ActionButton, BodyModeButton, MethodChip, StatusDot, TextField, UiText } from "widgets.slint";
 
 component MockRouteLine inherits Rectangle {
     in property <string> method;
