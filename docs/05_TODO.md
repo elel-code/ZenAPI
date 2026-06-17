@@ -150,9 +150,9 @@
   editor panel, Auth editor panel, Scripts editor panel, Tests assertion panel,
   Request panel, Response panel, Sidebar, App navigation, Address bar,
   Dashboard page, Codegen page, Settings page, Team page, API Keys page,
-  Analytics page, Documentation page, Environment page, Runner page, and Mock
-  Manager page now live in dedicated Slint files; additional large panels still
-  need extraction.
+  Analytics page, Documentation page, Environment page, Runner page, Mock
+  Manager page, request editor pane, and request sidebar pane now live in
+  dedicated Slint files; additional large panels still need extraction.
 
 ## Phase 4: Verification And Release
 
@@ -169,7 +169,7 @@
 
 | Area | Status | Notes |
 |------|--------|-------|
-| App shell | Multi-page Slint shell restored | Responsive lazy page mounting with first-visit caching, compact single-row request address bar, lightweight read-only code blocks, global navigation, compact navigation, request-sidebar OpenAPI import, and overflow scrollbars |
+| App shell | Multi-page Slint shell restored | Responsive page stack with page-level ScrollViews kept mounted and switched by visibility, compact single-row request address bar, lightweight read-only code blocks, global navigation, compact navigation, request-sidebar OpenAPI import, and overflow scrollbars |
 | OpenAPI import | Implemented | JSON/YAML parser and Slint route list wired |
 | HTTP client | Core implemented | Slint wires method, URL, params, headers, auth, variables, and body modes |
 | Mock server | Core implemented | Slint start/stop toggle wired |
