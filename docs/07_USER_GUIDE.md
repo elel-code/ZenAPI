@@ -332,6 +332,13 @@ The Team page is currently a local-only workspace overview. It shows the active
 spec, collection, and route count, and explicitly avoids account, invite, or
 role controls until a real collaboration backend exists.
 
+## Project Settings
+
+The Project Settings page is a read-only local workspace summary. It shows the
+active spec, selected OpenAPI and collection paths, imported route count, and
+history count. Remote visibility, audit trails, ownership transfer, and account
+controls remain future work until backed by real persistence.
+
 ## Error Feedback
 
 Import, collection import/export, request build, request send, test

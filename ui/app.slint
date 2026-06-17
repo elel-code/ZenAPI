@@ -4852,49 +4852,6 @@ component KeyCard inherits Rectangle {
     }
 }
 
-component AuditLine inherits Rectangle {
-    in property <string> title;
-    in property <string> meta;
-    in property <string> tone: "neutral";
-
-    height: 58px;
-    horizontal-stretch: 1;
-    background: transparent;
-
-    Rectangle {
-        x: 0px;
-        y: 9px;
-        width: 8px;
-        height: 40px;
-        border-radius: 4px;
-        background: root.tone == "success" ? Theme.secondary : root.tone == "warning" ? Theme.tertiary : Theme.outline_variant;
-    }
-
-    UiText {
-        x: 18px;
-        y: 6px;
-        text: root.title;
-        width: parent.width - 18px;
-        height: 24px;
-        color: Theme.on_surface;
-        font-size: 12px;
-        vertical-alignment: center;
-        overflow: elide;
-    }
-
-    UiText {
-        x: 18px;
-        y: 30px;
-        text: root.meta;
-        width: parent.width - 18px;
-        height: 18px;
-        color: Theme.outline;
-        font-size: 11px;
-        vertical-alignment: center;
-        overflow: elide;
-    }
-}
-
 component DocumentationPage inherits Rectangle {
     in property <[RouteRow]> routes;
     in-out property <int> selected_route;
@@ -5382,6 +5339,14 @@ component TeamPage inherits Rectangle {
 }
 
 component SettingsPage inherits Rectangle {
+    in property <string> spec_label;
+    in property <bool> spec_loaded;
+    in property <string> file_path;
+    in property <string> collection_name;
+    in property <string> collection_path;
+    in property <int> route_count;
+    in property <int> history_count;
+
     horizontal-stretch: 1;
     vertical-stretch: 1;
     background: Theme.background;
@@ -5399,13 +5364,13 @@ component SettingsPage inherits Rectangle {
                 spacing: 18px;
 
                 PageTitle {
-                    title: "General Settings";
-                    subtitle: "Configure core project details, visibility, and operational parameters.";
+                    title: "Project Settings";
+                    subtitle: "Local workspace configuration and persistence state.";
                 }
 
                 DataPanel {
-                    title: "Project Metadata";
-                    body: "Project Name: Core Authentication Service\nDescription: Primary microservice handling JWT generation, validation, and OAuth2 flows.";
+                    title: "Workspace";
+                    body: "Spec: " + (root.spec_loaded ? root.spec_label : "None") + "\nRoutes imported: " + root.route_count + "\nHistory entries: " + root.history_count;
                 }
 
                 HorizontalLayout {
@@ -5413,21 +5378,20 @@ component SettingsPage inherits Rectangle {
                     spacing: 16px;
 
                     DataPanel {
-                        title: "Public";
-                        body: "Anyone on the internet can see this project. You choose who can commit.";
+                        title: "OpenAPI Source";
+                        body: root.file_path == "" ? "No OpenAPI file path selected." : root.file_path;
                     }
 
                     DataPanel {
-                        title: "Private";
-                        body: "Selected. You choose who can see and commit to this project.";
+                        title: "Collection File";
+                        body: root.collection_path == "" ? "No collection file path selected." : root.collection_path;
                     }
                 }
 
                 DataPanel {
-                    title: "Danger Zone";
-                    body: "Transfer Ownership\nDelete Project\nBoth actions require confirmation.";
+                    title: "Local Storage";
+                    body: "The Slint app currently stores history locally and keeps environment profiles session-scoped. Remote project visibility, ownership transfer, and destructive account controls are not implemented.";
                 }
-
             }
         }
 
@@ -5443,7 +5407,7 @@ component SettingsPage inherits Rectangle {
                 spacing: 12px;
 
                 UiText {
-                    text: "AUDIT TRAIL";
+                    text: "CURRENT STATE";
                     height: 22px;
                     horizontal-stretch: 1;
                     color: Theme.on_surface;
@@ -5453,10 +5417,20 @@ component SettingsPage inherits Rectangle {
                     overflow: elide;
                 }
 
-                AuditLine { title: "Sarah Jenkins updated description"; meta: "2 minutes ago"; tone: "success"; }
-                AuditLine { title: "System rotated JWT_SECRET"; meta: "4 hours ago"; }
-                AuditLine { title: "Lead Architect added Mike Chen"; meta: "Yesterday, 14:30"; tone: "warning"; }
-                AuditLine { title: "System enabled DataDog Integration"; meta: "Oct 24, 09:15"; }
+                DataPanel {
+                    title: "Collection";
+                    body: root.collection_name == "" ? "None" : root.collection_name;
+                }
+
+                DataPanel {
+                    title: "Files";
+                    body: "OpenAPI: " + (root.file_path == "" ? "not selected" : root.file_path) + "\nCollection: " + (root.collection_path == "" ? "not selected" : root.collection_path);
+                }
+
+                DataPanel {
+                    title: "Missing Backend";
+                    body: "Audit trails, project membership, remote visibility, and ownership controls need real persistence before controls are exposed.";
+                }
             }
         }
     }
@@ -6479,6 +6453,13 @@ export component AppWindow inherits Window {
                     SettingsPage {
                         width: max(parent.visible-width, 1040px);
                         height: max(parent.visible-height, 620px);
+                        spec_label: root.spec_label;
+                        spec_loaded: root.spec_loaded;
+                        file_path: root.file_path;
+                        collection_name: root.collection_name;
+                        collection_path: root.collection_path;
+                        route_count: root.total_route_count;
+                        history_count: root.history_rows.length;
                     }
                 }
             }
