@@ -1605,13 +1605,63 @@ component RealtimeEditorPanel inherits Rectangle {
     }
 }
 
+component SendRequestButton inherits Rectangle {
+    in property <bool> enabled: true;
+    callback clicked();
+
+    width: 112px;
+    height: 40px;
+    border-radius: 6px;
+    border-width: 1px;
+    border-color: root.enabled ? Theme.primary_container : Theme.outline_variant;
+    background: !root.enabled ? Theme.surface_container_low : send_touch.pressed ? #3d3fba : send_touch.has-hover ? #5557df : Theme.inverse_primary;
+    opacity: root.enabled ? 1 : 0.62;
+
+    send_touch := TouchArea {
+        enabled: root.enabled;
+        mouse-cursor: root.enabled ? pointer : default;
+        clicked => {
+            root.clicked();
+        }
+    }
+
+    UiText {
+        x: 22px;
+        text: "Send";
+        width: 50px;
+        height: parent.height;
+        color: Theme.on_surface;
+        font-size: 13px;
+        font-weight: 800;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+
+    UiText {
+        x: parent.width - 34px;
+        text: ">";
+        width: 16px;
+        height: parent.height;
+        color: Theme.on_surface;
+        font-size: 16px;
+        font-weight: 800;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+}
+
 component AddressBar inherits Rectangle {
     in-out property <string> method;
     in-out property <string> url;
+    in property <string> request_name;
     in property <bool> busy;
     callback send_request();
 
-    height: 136px;
+    property <string> request_label: root.request_name != "" ? root.request_name : root.url == "" ? "New Request" : root.method + " Request";
+
+    height: 104px;
     horizontal-stretch: 1;
     background: Theme.surface_container_low;
 
@@ -1624,7 +1674,7 @@ component AddressBar inherits Rectangle {
 
     VerticalLayout {
         padding: 16px;
-        spacing: 12px;
+        spacing: 8px;
 
         HorizontalLayout {
             height: 22px;
@@ -1633,7 +1683,7 @@ component AddressBar inherits Rectangle {
 
             UiText {
                 text: "Users";
-                width: 46px;
+                width: 48px;
                 height: parent.height;
                 color: Theme.on_surface_variant;
                 font-size: 14px;
@@ -1652,7 +1702,7 @@ component AddressBar inherits Rectangle {
             }
 
             UiText {
-                text: root.url == "" ? "New Request" : "Request";
+                text: root.request_label;
                 horizontal-stretch: 1;
                 height: parent.height;
                 color: Theme.on_surface;
@@ -1663,15 +1713,15 @@ component AddressBar inherits Rectangle {
         }
 
         HorizontalLayout {
-            height: 42px;
+            height: 40px;
             spacing: 8px;
             alignment: center;
 
             Rectangle {
-                height: 42px;
+                height: 40px;
                 horizontal-stretch: 1;
                 background: Theme.surface_container;
-                border-radius: 8px;
+                border-radius: 6px;
                 border-width: 1px;
                 border-color: !root.busy && url_field.focused ? Theme.primary : Theme.outline_variant;
                 clip: true;
@@ -1697,7 +1747,7 @@ component AddressBar inherits Rectangle {
                         embedded: true;
                         mono: true;
                         enabled: !root.busy;
-                        height: 42px;
+                        height: 40px;
                         horizontal-stretch: 1;
                         accepted => {
                             if !root.busy {
@@ -1708,11 +1758,8 @@ component AddressBar inherits Rectangle {
                 }
             }
 
-            ActionButton {
-                text: "Send";
+            SendRequestButton {
                 enabled: !root.busy;
-                primary: true;
-                button_width: 124px;
                 clicked => {
                     root.send_request();
                 }
@@ -1728,7 +1775,7 @@ component WorkspaceTab inherits Rectangle {
     callback picked(string);
 
     width: 88px;
-    height: 48px;
+    height: 44px;
     background: transparent;
 
     tab_touch := TouchArea {
@@ -1801,7 +1848,7 @@ component RequestPanel inherits Rectangle {
         spacing: 0px;
 
         Rectangle {
-            height: 50px;
+            height: 44px;
             horizontal-stretch: 1;
             background: Theme.surface_container_low;
 
@@ -1835,7 +1882,7 @@ component RequestPanel inherits Rectangle {
         }
 
         if root.active_tab == "body": Rectangle {
-            height: 52px;
+            height: 44px;
             horizontal-stretch: 1;
             background: Theme.surface_container_lowest;
 
@@ -5317,6 +5364,7 @@ export component AppWindow inherits Window {
                                 AddressBar {
                                     method <=> root.method;
                                     url <=> root.url;
+                                    request_name: root.collection_request_name;
                                     busy: root.busy;
                                     send_request => {
                                         root.send_request();
