@@ -135,7 +135,7 @@
 
 | Area | Status | Notes |
 |------|--------|-------|
-| App shell | Multi-page Slint shell restored | Responsive resident page stack with synchronous page switching, lightweight read-only code blocks, global navigation, bottom compact navigation, status bar, and overflow scrollbars |
+| App shell | Multi-page Slint shell restored | Responsive conditional page stack with deferred render commits, lightweight read-only code blocks, global navigation, bottom compact navigation, status bar, and overflow scrollbars |
 | OpenAPI import | Implemented | JSON/YAML parser and Slint route list wired |
 | HTTP client | Core implemented | Slint wires method, URL, params, headers, auth, variables, and body modes |
 | Mock server | Core implemented | Slint start/stop toggle wired |
