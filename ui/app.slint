@@ -36,6 +36,91 @@ export struct MockLogRow {
     status: string,
 }
 
+component KeyValueEditorPanel inherits Rectangle {
+    in-out property <string> text;
+    in property <string> title;
+    in property <string> key_header: "Key";
+    in property <string> value_header: "Value";
+    in property <string> helper: "";
+    in property <bool> read_only: false;
+
+    horizontal-stretch: 1;
+    vertical-stretch: 1;
+    background: transparent;
+
+    VerticalLayout {
+        padding: 0px;
+        spacing: 6px;
+
+        if root.title != "": UiText {
+            text: root.title;
+            height: 20px;
+            horizontal-stretch: 1;
+            color: Theme.on_surface_variant;
+            font-size: 12px;
+            font-weight: 800;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+
+        Rectangle {
+            height: 30px;
+            horizontal-stretch: 1;
+            border-radius: 6px;
+            border-width: 1px;
+            border-color: Theme.outline_variant;
+            background: Theme.surface_container;
+
+            UiText {
+                x: 12px;
+                text: root.key_header;
+                width: 128px;
+                height: parent.height;
+                color: Theme.on_surface_variant;
+                font-size: 12px;
+                font-weight: 800;
+                vertical-alignment: center;
+                overflow: elide;
+            }
+
+            Rectangle {
+                x: 148px;
+                y: 6px;
+                width: 1px;
+                height: parent.height - 12px;
+                background: Theme.outline_variant;
+            }
+
+            UiText {
+                x: 160px;
+                text: root.value_header;
+                width: parent.width - 172px;
+                height: parent.height;
+                color: Theme.on_surface_variant;
+                font-size: 12px;
+                font-weight: 800;
+                vertical-alignment: center;
+                overflow: elide;
+            }
+        }
+
+        CodePane {
+            text <=> root.text;
+            read_only: root.read_only;
+        }
+
+        if root.helper != "": UiText {
+            text: root.helper;
+            height: 18px;
+            horizontal-stretch: 1;
+            color: Theme.outline;
+            font-size: 12px;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+    }
+}
+
 component HeaderEditorPanel inherits Rectangle {
     in-out property <string> request_headers;
     in property <bool> busy;
@@ -93,9 +178,12 @@ component HeaderEditorPanel inherits Rectangle {
             }
         }
 
-        CodePane {
+        KeyValueEditorPanel {
             text <=> root.request_headers;
-            read_only: false;
+            title: "";
+            key_header: "Header";
+            value_header: "Value";
+            helper: "One header per line. Accepts Header: value, Header=value, -H, and --header forms.";
         }
     }
 }
@@ -1078,25 +1166,22 @@ component AuthEditorPanel inherits Rectangle {
             }
         }
 
-        if root.auth_mode == "api-header": LabeledEditor {
-            label: "API Key Header";
+        if root.auth_mode == "api-header": KeyValueEditorPanel {
             text <=> root.auth_config;
+            title: "API Key Header";
+            key_header: "Header";
+            value_header: "Value";
+            helper: "One API key header per line, for example x-api-key={{apiKey}}.";
         }
 
-        if root.auth_mode == "api-query": LabeledEditor {
-            label: "API Key Query";
+        if root.auth_mode == "api-query": KeyValueEditorPanel {
             text <=> root.auth_config;
+            title: "API Key Query";
+            key_header: "Param";
+            value_header: "Value";
+            helper: "One API key query parameter per line, for example api_key={{apiKey}}.";
         }
 
-        if root.auth_mode == "api-header" || root.auth_mode == "api-query": UiText {
-            text: "Use one key=value pair per line, for example x-api-key={{apiKey}}.";
-            height: 20px;
-            horizontal-stretch: 1;
-            color: Theme.outline;
-            font-size: 12px;
-            vertical-alignment: center;
-            overflow: elide;
-        }
     }
 }
 
@@ -1704,13 +1789,16 @@ component RequestPanel inherits Rectangle {
             horizontal-stretch: 1;
             background: Theme.surface_container_lowest;
 
-            if root.active_tab == "params": LabeledEditor {
+            if root.active_tab == "params": KeyValueEditorPanel {
                 x: 16px;
                 y: 16px;
                 width: parent.width - 32px;
                 height: parent.height - 32px;
-                label: "Params";
                 text <=> root.query_params;
+                title: "Query Parameters";
+                key_header: "Param";
+                value_header: "Value";
+                helper: "One query parameter per line, formatted as key=value.";
             }
 
             if root.active_tab == "headers": HeaderEditorPanel {

@@ -149,9 +149,13 @@ or `"name"`. Use `x` at the row edge to remove a test row.
 Tests run when a request is sent and when a collection is run. Tests are saved
 with collection requests and restored with them.
 
-## Headers
+## Params And Headers
 
-Headers are edited as line-based text. The editor accepts common formats:
+Params and headers use table-shaped line editors with fixed key/value headers.
+Values are still stored as line-based text so they stay compatible with the
+transport parser.
+
+Params accept one `key=value` pair per line. Headers accept common formats:
 
 ```text
 Accept: application/json
@@ -161,7 +165,7 @@ Authorization=Bearer token
 ```
 
 Header presets add or update common values: `Accept`, `Content`, and `Bearer`.
-Table row editing and header clipboard copy are still future work.
+Per-row add/delete controls and header clipboard copy are still future work.
 
 ## Request Body
 
