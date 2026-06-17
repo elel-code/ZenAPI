@@ -291,8 +291,9 @@ Collections organize requests into folders and requests.
 
 Supported actions:
 
-- Import native ZenAPI JSON or Postman Collection v2.1 JSON.
-- Export native ZenAPI JSON.
+- Import native ZenAPI JSON or Postman Collection v2.1 JSON with `Open` or
+  `Load`.
+- Export native ZenAPI JSON with `Save`.
 - Export Postman Collection v2.1 JSON with `PM`.
 - Save the current request to the collection.
 - Create a root-level folder with the folder name field and `Folder`.

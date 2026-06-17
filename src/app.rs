@@ -603,6 +603,8 @@ fn import_openapi_path(
 
 fn wire_file_pickers(app: &AppWindow, runtime: Arc<Runtime>, state: Arc<Mutex<AppState>>) {
     let weak_app = app.as_weak();
+    let openapi_runtime = runtime.clone();
+    let openapi_state = state.clone();
     app.on_pick_openapi_file(move || {
         let Some(app) = weak_app.upgrade() else {
             return;
@@ -617,7 +619,70 @@ fn wire_file_pickers(app: &AppWindow, runtime: Arc<Runtime>, state: Arc<Mutex<Ap
             &[("OpenAPI", &["json", "yaml", "yml"])],
         ) {
             app.set_file_path(path.clone().into());
-            import_openapi_path(&app, runtime.clone(), state.clone(), path);
+            import_openapi_path(&app, openapi_runtime.clone(), openapi_state.clone(), path);
+        }
+    });
+
+    let weak_app = app.as_weak();
+    let import_collection_state = state.clone();
+    app.on_pick_collection_import_file(move || {
+        let Some(app) = weak_app.upgrade() else {
+            return;
+        };
+        if app.get_busy() {
+            return;
+        }
+
+        if let Some(path) = pick_file_path(
+            "Open collection",
+            app.get_collection_path().as_str(),
+            &[("Collection JSON", &["json"])],
+        ) {
+            import_collection_path(&app, import_collection_state.clone(), path);
+        }
+    });
+
+    let weak_app = app.as_weak();
+    let save_collection_state = state.clone();
+    app.on_pick_collection_save_path(move || {
+        let Some(app) = weak_app.upgrade() else {
+            return;
+        };
+        if app.get_busy() {
+            return;
+        }
+
+        let current_path = app.get_collection_path().to_string();
+        let default_name = default_dialog_file_name(&current_path, "zenapi-collection.json");
+        if let Some(path) = pick_save_path(
+            "Save collection",
+            &current_path,
+            &default_name,
+            &[("ZenAPI collection", &["json"])],
+        ) {
+            save_collection_path(&app, save_collection_state.clone(), path);
+        }
+    });
+
+    let weak_app = app.as_weak();
+    let postman_collection_state = state.clone();
+    app.on_pick_postman_collection_path(move || {
+        let Some(app) = weak_app.upgrade() else {
+            return;
+        };
+        if app.get_busy() {
+            return;
+        }
+
+        let current_path = app.get_collection_path().to_string();
+        let default_name = default_dialog_file_name(&current_path, "postman-collection.json");
+        if let Some(path) = pick_save_path(
+            "Export Postman collection",
+            &current_path,
+            &default_name,
+            &[("Postman collection", &["json"])],
+        ) {
+            export_postman_collection_path(&app, postman_collection_state.clone(), path);
         }
     });
 
@@ -1007,57 +1072,7 @@ fn wire_collection_actions(app: &AppWindow, state: Arc<Mutex<AppState>>) {
         let Some(app) = weak_app.upgrade() else {
             return;
         };
-        if app.get_busy() {
-            return;
-        }
-
-        let path = path.trim();
-        if path.is_empty() {
-            app.set_collection_status("Collection path required".into());
-            set_response(
-                &app,
-                "Collection import failed",
-                "",
-                "error",
-                "Enter a local native or Postman collection JSON file path.",
-            );
-            return;
-        }
-
-        match ApiCollection::load_file(path) {
-            Ok(collection) => {
-                let name = collection.name.clone();
-                let request_count = count_collection_requests(&collection.items);
-                let rows = collection_model(&collection);
-                if let Ok(mut state) = import_state.lock() {
-                    state.collection = collection;
-                }
-                app.set_collection_name(name.clone().into());
-                app.set_collection_rows(rows);
-                app.set_collection_status(format!("Loaded {request_count} requests").into());
-                app.set_selected_collection_request(-1);
-                app.set_selected_collection_folder("".into());
-                app.set_collection_move_target_label(name.clone().into());
-                app.set_collection_request_name("".into());
-                set_response(
-                    &app,
-                    "Collection loaded",
-                    path,
-                    "success",
-                    &format!("{name}\n{request_count} requests"),
-                );
-            }
-            Err(error) => {
-                app.set_collection_status("Load failed".into());
-                set_response(
-                    &app,
-                    "Collection import failed",
-                    path,
-                    "error",
-                    &error.to_string(),
-                );
-            }
-        }
+        import_collection_path(&app, import_state.clone(), path.to_string());
     });
 
     let weak_app = app.as_weak();
@@ -1066,42 +1081,7 @@ fn wire_collection_actions(app: &AppWindow, state: Arc<Mutex<AppState>>) {
         let Some(app) = weak_app.upgrade() else {
             return;
         };
-        if app.get_busy() {
-            return;
-        }
-
-        let path = path.trim();
-        if path.is_empty() {
-            app.set_collection_status("Collection path required".into());
-            set_response(
-                &app,
-                "Collection save failed",
-                "",
-                "error",
-                "Enter a target native collection JSON file path.",
-            );
-            return;
-        }
-
-        let Some(collection) = save_state.lock().ok().map(|state| state.collection.clone()) else {
-            return;
-        };
-        match collection.save_file(path) {
-            Ok(()) => {
-                app.set_collection_status("Saved native JSON".into());
-                set_response(&app, "Collection saved", path, "success", &collection.name);
-            }
-            Err(error) => {
-                app.set_collection_status("Save failed".into());
-                set_response(
-                    &app,
-                    "Collection save failed",
-                    path,
-                    "error",
-                    &error.to_string(),
-                );
-            }
-        }
+        save_collection_path(&app, save_state.clone(), path.to_string());
     });
 
     let weak_app = app.as_weak();
@@ -1110,52 +1090,7 @@ fn wire_collection_actions(app: &AppWindow, state: Arc<Mutex<AppState>>) {
         let Some(app) = weak_app.upgrade() else {
             return;
         };
-        if app.get_busy() {
-            return;
-        }
-
-        let path = path.trim();
-        if path.is_empty() {
-            app.set_collection_status("Collection path required".into());
-            set_response(
-                &app,
-                "Postman export failed",
-                "",
-                "error",
-                "Enter a target Postman collection JSON file path.",
-            );
-            return;
-        }
-
-        let Some(collection) = export_state
-            .lock()
-            .ok()
-            .map(|state| state.collection.clone())
-        else {
-            return;
-        };
-        match collection.save_postman_file(path) {
-            Ok(()) => {
-                app.set_collection_status("Exported Postman JSON".into());
-                set_response(
-                    &app,
-                    "Postman collection exported",
-                    path,
-                    "success",
-                    &collection.name,
-                );
-            }
-            Err(error) => {
-                app.set_collection_status("Export failed".into());
-                set_response(
-                    &app,
-                    "Postman export failed",
-                    path,
-                    "error",
-                    &error.to_string(),
-                );
-            }
-        }
+        export_postman_collection_path(&app, export_state.clone(), path.to_string());
     });
 
     let weak_app = app.as_weak();
@@ -1479,6 +1414,147 @@ fn wire_collection_actions(app: &AppWindow, state: Arc<Mutex<AppState>>) {
             restore_collection_request(&app, &request);
         }
     });
+}
+
+fn import_collection_path(app: &AppWindow, state: Arc<Mutex<AppState>>, path: String) {
+    if app.get_busy() {
+        return;
+    }
+
+    let path = path.trim().to_string();
+    if path.is_empty() {
+        app.set_collection_status("Collection path required".into());
+        set_response(
+            app,
+            "Collection import failed",
+            "",
+            "error",
+            "Enter a local native or Postman collection JSON file path.",
+        );
+        return;
+    }
+
+    match ApiCollection::load_file(&path) {
+        Ok(collection) => {
+            let name = collection.name.clone();
+            let request_count = count_collection_requests(&collection.items);
+            let rows = collection_model(&collection);
+            if let Ok(mut state) = state.lock() {
+                state.collection = collection;
+            }
+            app.set_collection_path(path.clone().into());
+            app.set_collection_name(name.clone().into());
+            app.set_collection_rows(rows);
+            app.set_collection_status(format!("Loaded {request_count} requests").into());
+            app.set_selected_collection_request(-1);
+            app.set_selected_collection_folder("".into());
+            app.set_collection_move_target_label(name.clone().into());
+            app.set_collection_request_name("".into());
+            set_response(
+                app,
+                "Collection loaded",
+                &path,
+                "success",
+                &format!("{name}\n{request_count} requests"),
+            );
+        }
+        Err(error) => {
+            app.set_collection_status("Load failed".into());
+            set_response(
+                app,
+                "Collection import failed",
+                &path,
+                "error",
+                &error.to_string(),
+            );
+        }
+    }
+}
+
+fn save_collection_path(app: &AppWindow, state: Arc<Mutex<AppState>>, path: String) {
+    if app.get_busy() {
+        return;
+    }
+
+    let path = path.trim().to_string();
+    if path.is_empty() {
+        app.set_collection_status("Collection path required".into());
+        set_response(
+            app,
+            "Collection save failed",
+            "",
+            "error",
+            "Enter a target native collection JSON file path.",
+        );
+        return;
+    }
+
+    let Some(collection) = state.lock().ok().map(|state| state.collection.clone()) else {
+        return;
+    };
+    match collection.save_file(&path) {
+        Ok(()) => {
+            app.set_collection_path(path.clone().into());
+            app.set_collection_status("Saved native JSON".into());
+            set_response(app, "Collection saved", &path, "success", &collection.name);
+        }
+        Err(error) => {
+            app.set_collection_status("Save failed".into());
+            set_response(
+                app,
+                "Collection save failed",
+                &path,
+                "error",
+                &error.to_string(),
+            );
+        }
+    }
+}
+
+fn export_postman_collection_path(app: &AppWindow, state: Arc<Mutex<AppState>>, path: String) {
+    if app.get_busy() {
+        return;
+    }
+
+    let path = path.trim().to_string();
+    if path.is_empty() {
+        app.set_collection_status("Collection path required".into());
+        set_response(
+            app,
+            "Postman export failed",
+            "",
+            "error",
+            "Enter a target Postman collection JSON file path.",
+        );
+        return;
+    }
+
+    let Some(collection) = state.lock().ok().map(|state| state.collection.clone()) else {
+        return;
+    };
+    match collection.save_postman_file(&path) {
+        Ok(()) => {
+            app.set_collection_path(path.clone().into());
+            app.set_collection_status("Exported Postman JSON".into());
+            set_response(
+                app,
+                "Postman collection exported",
+                &path,
+                "success",
+                &collection.name,
+            );
+        }
+        Err(error) => {
+            app.set_collection_status("Export failed".into());
+            set_response(
+                app,
+                "Postman export failed",
+                &path,
+                "error",
+                &error.to_string(),
+            );
+        }
+    }
 }
 
 fn wire_mock_log_filter(app: &AppWindow, state: Arc<Mutex<AppState>>) {

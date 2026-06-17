@@ -17,9 +17,9 @@ testing client with a local mock server in a single native executable.
   schema-derived JSON responses, ideal for frontend development.
 - **Environments & variables** — global and per-environment variables with
   `{{name}}` syntax replacement across URL, headers, and body.
-- **Collections** — organize requests into folders, import/export Postman
-  Collection v2.1 JSON, save current requests from the sidebar, manage items
-  with a right-click context menu, and move items with drag/drop.
+- **Collections** — organize requests into folders, import/export native
+  ZenAPI and Postman Collection v2.1 JSON, save current requests from the
+  sidebar, and rename, duplicate, delete, or move saved requests.
 - **Request history** — automatic local history with search and one-click
   restore.
 - **Code generation** — generate cURL, Python, JavaScript, Rust, and Go

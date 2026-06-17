@@ -150,6 +150,9 @@ export component AppWindow inherits Window {
     callback save_current_request();
     callback save_collection(string);
     callback export_postman_collection(string);
+    callback pick_collection_import_file();
+    callback pick_collection_save_path();
+    callback pick_postman_collection_path();
     callback select_history(int);
     callback filter_history(string);
     callback delete_history(int);
@@ -300,6 +303,8 @@ export component AppWindow inherits Window {
                             collection_request_name <=> root.collection_request_name;
                             collection_folder_name <=> root.collection_folder_name;
                             collection_name <=> root.collection_name;
+                            collection_path <=> root.collection_path;
+                            collection_status: root.collection_status;
                             file_path <=> root.file_path;
                             spec_label: root.spec_label;
                             spec_loaded: root.spec_loaded;
@@ -329,11 +334,29 @@ export component AppWindow inherits Window {
                             move_collection_request(id, folder_path) => {
                                 root.move_collection_request(id, folder_path);
                             }
+                            import_collection(path) => {
+                                root.import_collection(path);
+                            }
                             add_collection_folder(name) => {
                                 root.add_collection_folder(name);
                             }
                             save_current_request => {
                                 root.save_current_request();
+                            }
+                            save_collection(path) => {
+                                root.save_collection(path);
+                            }
+                            export_postman_collection(path) => {
+                                root.export_postman_collection(path);
+                            }
+                            pick_collection_import_file => {
+                                root.pick_collection_import_file();
+                            }
+                            pick_collection_save_path => {
+                                root.pick_collection_save_path();
+                            }
+                            pick_postman_collection_path => {
+                                root.pick_postman_collection_path();
                             }
                             select_history(id) => {
                                 root.select_history(id);

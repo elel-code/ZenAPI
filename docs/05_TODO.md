@@ -86,7 +86,8 @@
 - [~] Rebuild Collections UI for native JSON/Postman import/export, saving
   current requests, nested folders, rename/delete/copy, and drag/drop; current
   Slint baseline loads native/Postman JSON, saves the current editor request,
-  saves native JSON, exports Postman JSON, and restores saved requests from a
+  saves native JSON, exports Postman JSON, exposes native file pickers for
+  collection import/save/Postman export, and restores saved requests from a
   sidebar list with imported folder rows visible, selects folder rows, creates
   root-level and nested folders, includes pre-request/tests text, and
   duplicates/deletes saved requests, with request rename and folder reparenting
