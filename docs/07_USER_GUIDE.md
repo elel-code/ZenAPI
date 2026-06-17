@@ -57,7 +57,7 @@ The Slint shell uses Inter for UI text and JetBrains Mono for code.
 
 ## Import An API Specification
 
-1. Click `Import` in the top bar.
+1. Open the top-left menu in the app bar.
 2. Enter a local OpenAPI or Swagger file path in the import popover.
 3. Press Enter or click `Open`.
 4. Parsed routes appear in the left Routes tab.
