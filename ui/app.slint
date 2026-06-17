@@ -2435,6 +2435,7 @@ component ResponsePanel inherits Rectangle {
     property <string> active_tab: "pretty";
     property <bool> response_folded: false;
     property <string> active_response_text: root.active_tab == "pretty" ? root.response_body : root.active_tab == "raw" ? root.response_raw_body : root.active_tab == "headers" ? root.response_headers : "No cookies";
+    property <bool> response_ready: root.response_status != "Idle" || root.response_headers != "" || root.response_time != "" || root.response_size != "" || root.response_raw_body != root.response_body;
 
     width: 400px;
     vertical-stretch: 1;
@@ -2640,14 +2641,26 @@ component ResponsePanel inherits Rectangle {
                 overflow: elide;
             }
 
-            if !root.response_folded && root.active_tab == "pretty": CodePane {
+            if !root.response_folded && !root.response_ready && (root.active_tab == "pretty" || root.active_tab == "raw"): UiText {
+                text: root.active_tab == "raw" ? root.response_raw_body : root.response_body;
+                width: parent.width - 32px;
+                height: parent.height;
+                x: 16px;
+                color: Theme.outline;
+                font-size: 12px;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+                overflow: elide;
+            }
+
+            if !root.response_folded && root.response_ready && root.active_tab == "pretty": CodePane {
                 width: parent.width;
                 height: parent.height;
                 text <=> root.response_body;
                 read_only: true;
             }
 
-            if !root.response_folded && root.active_tab == "raw": CodePane {
+            if !root.response_folded && root.response_ready && root.active_tab == "raw": CodePane {
                 width: parent.width;
                 height: parent.height;
                 text <=> root.response_raw_body;
