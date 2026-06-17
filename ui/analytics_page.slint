@@ -1,0 +1,151 @@
+import { ListView } from "std-widgets.slint";
+import { Theme } from "theme.slint";
+import { MockLogRow } from "types.slint";
+import { DataPanel, MetricCard, MockLogLine, UiText } from "widgets.slint";
+
+component AnalyticsPageTitle inherits Rectangle {
+    in property <string> title;
+    in property <string> subtitle;
+
+    height: 62px;
+    horizontal-stretch: 1;
+    background: transparent;
+
+    UiText {
+        text: root.title;
+        x: 0px;
+        y: 0px;
+        width: parent.width;
+        height: 34px;
+        color: Theme.on_surface;
+        font-size: 26px;
+        font-weight: 800;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+
+    UiText {
+        text: root.subtitle;
+        x: 0px;
+        y: 36px;
+        width: parent.width;
+        height: 22px;
+        color: Theme.on_surface_variant;
+        font-size: 13px;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+}
+
+export component AnalyticsPage inherits Rectangle {
+    in property <int> route_count;
+    in property <int> history_count;
+    in property <[MockLogRow]> mock_logs;
+    in property <string> response_status;
+    in property <string> response_time;
+    in property <string> response_size;
+
+    horizontal-stretch: 1;
+    vertical-stretch: 1;
+    background: Theme.background;
+
+    HorizontalLayout {
+        spacing: 0px;
+
+        Rectangle {
+            horizontal-stretch: 1;
+            vertical-stretch: 1;
+            background: Theme.surface_dim;
+
+            VerticalLayout {
+                padding: 16px;
+                spacing: 14px;
+
+                HorizontalLayout {
+                    height: 58px;
+                    spacing: 12px;
+
+                    AnalyticsPageTitle {
+                        title: "Workspace Telemetry";
+                        subtitle: "Local session metrics from requests, history, responses, and mock traffic.";
+                    }
+                }
+
+                HorizontalLayout {
+                    height: 104px;
+                    spacing: 12px;
+
+                    MetricCard { label: "ROUTES"; value: root.route_count + ""; detail: "Imported endpoints"; }
+                    MetricCard { label: "HISTORY"; value: root.history_count + ""; detail: "Local requests"; }
+                    MetricCard { label: "MOCK LOGS"; value: root.mock_logs.length + ""; detail: "Captured traffic"; }
+                    MetricCard { label: "LAST RESPONSE"; value: root.response_status == "" ? "Idle" : root.response_status; detail: root.response_time == "" ? "No timing" : root.response_time; }
+                }
+
+                HorizontalLayout {
+                    height: 220px;
+                    spacing: 12px;
+
+                    DataPanel {
+                        title: "Response Snapshot";
+                        body: "Status: " + (root.response_status == "" ? "Idle" : root.response_status) + "\nTime: " + (root.response_time == "" ? "--" : root.response_time) + "\nSize: " + (root.response_size == "" ? "--" : root.response_size);
+                    }
+
+                    DataPanel {
+                        title: "Mock Traffic";
+                        body: root.mock_logs.length == 0 ? "No mock requests captured in this session." : root.mock_logs.length + " captured request(s). Use the Mocks page to filter, clear, or export logs.";
+                    }
+                }
+
+                DataPanel {
+                    title: "Coverage";
+                    body: "Routes imported: " + root.route_count + "\nHistory entries: " + root.history_count + "\nMock log entries: " + root.mock_logs.length;
+                }
+            }
+        }
+
+        Rectangle {
+            width: 320px;
+            vertical-stretch: 1;
+            background: Theme.surface_container;
+
+            VerticalLayout {
+                padding: 12px;
+                spacing: 10px;
+
+                UiText {
+                    text: "MOCK TRAFFIC";
+                    height: 24px;
+                    horizontal-stretch: 1;
+                    color: Theme.on_surface;
+                    font-size: 13px;
+                    font-weight: 800;
+                    vertical-alignment: center;
+                    overflow: elide;
+                }
+
+                if root.mock_logs.length == 0: DataPanel {
+                    title: "No Requests";
+                    body: "Start the mock server and call an imported route to populate this stream.";
+                }
+
+                if root.mock_logs.length != 0: ListView {
+                    horizontal-stretch: 1;
+                    vertical-stretch: 1;
+                    vertical-scrollbar-policy: ScrollBarPolicy.as-needed;
+                    horizontal-scrollbar-policy: ScrollBarPolicy.as-needed;
+
+                    for log in root.mock_logs: MockLogLine {
+                        method: log.method;
+                        path: log.path;
+                        status: log.status;
+                    }
+                }
+
+                DataPanel {
+                    title: "Last Response";
+                    body: "Status: " + (root.response_status == "" ? "Idle" : root.response_status) + "\nTime: " + (root.response_time == "" ? "--" : root.response_time) + "\nSize: " + (root.response_size == "" ? "--" : root.response_size);
+                }
+            }
+        }
+    }
+}

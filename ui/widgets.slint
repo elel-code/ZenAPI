@@ -67,6 +67,50 @@ export component MethodChip inherits Rectangle {
     }
 }
 
+export component MockLogLine inherits Rectangle {
+    in property <string> method;
+    in property <string> path;
+    in property <string> status;
+
+    height: 38px;
+    horizontal-stretch: 1;
+    background: touch.has-hover ? Theme.surface_container_high : transparent;
+    border-radius: 6px;
+
+    touch := TouchArea {}
+
+    UiText {
+        x: 10px;
+        text: root.status;
+        width: 34px;
+        height: parent.height;
+        font-family: "JetBrains Mono";
+        font-size: 11px;
+        font-weight: 800;
+        color: root.status == "500" || root.status == "404" || root.status == "401" ? Theme.error : Theme.secondary;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+
+    MethodChip {
+        x: 52px;
+        y: 8px;
+        method: root.method;
+    }
+
+    UiText {
+        x: 122px;
+        text: root.path;
+        width: parent.width - 132px;
+        height: parent.height;
+        font-family: "JetBrains Mono";
+        font-size: 12px;
+        color: Theme.on_surface_variant;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+}
+
 export component StatusDot inherits Rectangle {
     in property <string> tone: "inactive";
 
