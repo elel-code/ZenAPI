@@ -20,7 +20,10 @@ use zenapi::{
     collection_runner::{
         CollectionRunResult, CollectionRunSummary, FailureStrategy, RunnerOptions, run_collection,
     },
-    collections::{ApiCollection, CollectionBody, CollectionItem, CollectionRequest, NameValue},
+    collections::{
+        ApiCollection, CollectionBody, CollectionFolder, CollectionItem, CollectionRequest,
+        NameValue,
+    },
     grpc::{GrpcRequestDraft, build_grpc_request_draft},
     history::{HistoryRequest, HistoryResponse, RequestHistory},
     mock_server::{MockRequestLog, MockServer},
@@ -655,6 +658,47 @@ fn wire_collection_actions(app: &AppWindow, state: Arc<Mutex<AppState>>) {
                 );
             }
         }
+    });
+
+    let weak_app = app.as_weak();
+    let folder_state = state.clone();
+    app.on_add_collection_folder(move |name| {
+        let Some(app) = weak_app.upgrade() else {
+            return;
+        };
+        if app.get_busy() {
+            return;
+        }
+
+        let Some((folder_name, request_count, rows)) =
+            folder_state.lock().ok().and_then(|mut state| {
+                let folder_name = add_collection_folder(&mut state.collection, name.as_str())?;
+                let request_count = count_collection_requests(&state.collection.items);
+                let rows = collection_model(&state.collection);
+                Some((folder_name, request_count, rows))
+            })
+        else {
+            app.set_collection_status("Folder add failed".into());
+            set_response(
+                &app,
+                "Collection folder add failed",
+                "",
+                "error",
+                "Enter a folder name before adding it.",
+            );
+            return;
+        };
+
+        app.set_collection_rows(rows);
+        app.set_collection_folder_name("".into());
+        app.set_collection_status(format!("Added folder / {request_count} requests").into());
+        set_response(
+            &app,
+            "Collection folder added",
+            &folder_name,
+            "success",
+            "Folder created at the collection root.",
+        );
     });
 
     let weak_app = app.as_weak();
@@ -3108,6 +3152,23 @@ fn collect_collection_rows(
 
 fn indented_collection_label(depth: usize, name: &str) -> String {
     format!("{}{}", "  ".repeat(depth), name)
+}
+
+fn add_collection_folder(collection: &mut ApiCollection, name: &str) -> Option<String> {
+    let name = name.trim();
+    if name.is_empty() {
+        return None;
+    }
+
+    collection
+        .items
+        .push(CollectionItem::Folder(CollectionFolder {
+            name: name.to_string(),
+            description: String::new(),
+            items: Vec::new(),
+        }));
+
+    Some(name.to_string())
 }
 
 fn count_collection_requests(items: &[CollectionItem]) -> usize {
@@ -6372,6 +6433,27 @@ mod tests {
         assert!(!health.is_folder);
         assert_eq!(health.id, 2);
         assert_eq!(health.name.as_str(), "Health");
+    }
+
+    #[test]
+    fn adds_root_collection_folder() {
+        use slint::Model;
+
+        let mut collection = ApiCollection::new("Demo");
+
+        assert!(add_collection_folder(&mut collection, "   ").is_none());
+        assert_eq!(
+            add_collection_folder(&mut collection, " Admin "),
+            Some("Admin".to_string())
+        );
+        assert_eq!(collection.items.len(), 1);
+
+        let rows = collection_model(&collection);
+        assert_eq!(rows.row_count(), 1);
+        let folder = rows.row_data(0).expect("folder row");
+        assert!(folder.is_folder);
+        assert_eq!(folder.id, -1);
+        assert_eq!(folder.name.as_str(), "Admin");
     }
 
     #[test]
