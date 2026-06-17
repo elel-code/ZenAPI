@@ -212,7 +212,7 @@ pub fn decode_grpc_file_descriptor_set(input: &[u8]) -> Result<Vec<GrpcMethodDes
     grpc_method_descriptors_from_file_descriptor_set(&descriptor_set)
 }
 
-pub fn load_grpc_file_descriptor_set(path: impl AsRef<Path>) -> Result<Vec<GrpcMethodDescriptor>> {
+pub fn load_grpc_file_descriptor_set_proto(path: impl AsRef<Path>) -> Result<FileDescriptorSet> {
     let path = path.as_ref();
     let bytes = fs::read(path).map_err(|error| {
         anyhow!(
@@ -220,7 +220,17 @@ pub fn load_grpc_file_descriptor_set(path: impl AsRef<Path>) -> Result<Vec<GrpcM
             path.display()
         )
     })?;
-    decode_grpc_file_descriptor_set(&bytes)
+    FileDescriptorSet::decode(bytes.as_slice()).map_err(|error| {
+        anyhow!(
+            "failed to decode gRPC descriptor set {}: {error}",
+            path.display()
+        )
+    })
+}
+
+pub fn load_grpc_file_descriptor_set(path: impl AsRef<Path>) -> Result<Vec<GrpcMethodDescriptor>> {
+    let descriptor_set = load_grpc_file_descriptor_set_proto(path)?;
+    grpc_method_descriptors_from_file_descriptor_set(&descriptor_set)
 }
 
 pub fn load_grpc_proto_file(
@@ -228,6 +238,16 @@ pub fn load_grpc_proto_file(
     include_paths: &[PathBuf],
     protoc_path: impl AsRef<Path>,
 ) -> Result<Vec<GrpcMethodDescriptor>> {
+    let descriptor_set =
+        load_grpc_proto_file_descriptor_set(proto_path, include_paths, protoc_path)?;
+    grpc_method_descriptors_from_file_descriptor_set(&descriptor_set)
+}
+
+pub fn load_grpc_proto_file_descriptor_set(
+    proto_path: impl AsRef<Path>,
+    include_paths: &[PathBuf],
+    protoc_path: impl AsRef<Path>,
+) -> Result<FileDescriptorSet> {
     let proto_path = proto_path.as_ref();
     let protoc_path = protoc_path.as_ref();
     if !proto_path.exists() {
@@ -266,12 +286,17 @@ pub fn load_grpc_proto_file(
         bail!("protoc failed for {}: {detail}", proto_path.display());
     }
 
-    let result = load_grpc_file_descriptor_set(&descriptor_path);
+    let result = load_grpc_file_descriptor_set_proto(&descriptor_path);
     let _ = fs::remove_file(&descriptor_path);
     result
 }
 
 pub async fn load_grpc_reflection_descriptors(endpoint: &str) -> Result<Vec<GrpcMethodDescriptor>> {
+    let descriptor_set = load_grpc_reflection_descriptor_set(endpoint).await?;
+    grpc_method_descriptors_from_file_descriptor_set(&descriptor_set)
+}
+
+pub async fn load_grpc_reflection_descriptor_set(endpoint: &str) -> Result<FileDescriptorSet> {
     let endpoint = parse_grpc_endpoint(endpoint)?;
     let channel = Endpoint::from_shared(endpoint.clone())
         .map_err(|error| anyhow!("invalid gRPC reflection endpoint {endpoint}: {error}"))?
@@ -297,7 +322,7 @@ pub async fn load_grpc_reflection_descriptors(endpoint: &str) -> Result<Vec<Grpc
         }
     }
 
-    grpc_method_descriptors_from_file_descriptor_set(&FileDescriptorSet {
+    Ok(FileDescriptorSet {
         file: files.into_values().collect(),
     })
 }

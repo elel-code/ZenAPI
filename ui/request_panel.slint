@@ -1004,6 +1004,7 @@ export component RequestPanel inherits Rectangle {
     callback delete_test_assertion_row(int);
     callback apply_graphql_template(string);
     callback apply_header_preset(string);
+    callback invoke_grpc_unary();
     callback build_grpc_draft();
     callback load_grpc_descriptor_set(string);
     callback load_grpc_proto_file(string, string);
@@ -1407,6 +1408,9 @@ export component RequestPanel inherits Rectangle {
                 }
                 clear_sse_events => {
                     root.clear_sse_events();
+                }
+                invoke_grpc_unary => {
+                    root.invoke_grpc_unary();
                 }
                 build_grpc_draft => {
                     root.build_grpc_draft();

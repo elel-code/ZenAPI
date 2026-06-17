@@ -26,8 +26,10 @@ use zenapi::{
         NameValue,
     },
     grpc::{
-        GrpcRequestDraft, build_grpc_request_draft, format_grpc_method_catalog,
-        load_grpc_file_descriptor_set, load_grpc_proto_file, load_grpc_reflection_descriptors,
+        GrpcRequestDraft, GrpcUnaryResponse, build_grpc_request_draft, format_grpc_method_catalog,
+        invoke_grpc_unary, load_grpc_file_descriptor_set, load_grpc_file_descriptor_set_proto,
+        load_grpc_proto_file, load_grpc_proto_file_descriptor_set,
+        load_grpc_reflection_descriptor_set, load_grpc_reflection_descriptors,
     },
     history::{HistoryRequest, HistoryResponse, RequestHistory},
     mock_server::{MockRequestLog, MockServer},
@@ -3590,6 +3592,7 @@ fn wire_grpc_draft(app: &AppWindow, runtime: Arc<Runtime>) {
     });
 
     let weak_app = app.as_weak();
+    let runtime_for_reflection = runtime.clone();
     app.on_load_grpc_reflection(move || {
         let Some(app) = weak_app.upgrade() else {
             return;
@@ -3602,7 +3605,7 @@ fn wire_grpc_draft(app: &AppWindow, runtime: Arc<Runtime>) {
         app.set_activity("Loading gRPC reflection".into());
         let endpoint = app.get_grpc_endpoint().to_string();
         let weak_app = app.as_weak();
-        runtime.spawn(async move {
+        runtime_for_reflection.spawn(async move {
             let result = load_grpc_reflection_descriptors(&endpoint).await;
             if let Some(app) = weak_app.upgrade() {
                 app.set_busy(false);
@@ -3628,6 +3631,56 @@ fn wire_grpc_draft(app: &AppWindow, runtime: Arc<Runtime>) {
                             &error.to_string(),
                         );
                         app.set_activity(format!("gRPC reflection failed: {error}").into());
+                    }
+                }
+            }
+        });
+    });
+
+    let weak_app = app.as_weak();
+    let runtime_for_invoke = runtime.clone();
+    app.on_invoke_grpc_unary(move || {
+        let Some(app) = weak_app.upgrade() else {
+            return;
+        };
+        if app.get_busy() {
+            return;
+        }
+
+        app.set_busy(true);
+        app.set_activity("Invoking gRPC unary request".into());
+        let endpoint = app.get_grpc_endpoint().to_string();
+        let method = app.get_grpc_method().to_string();
+        let metadata = app.get_grpc_metadata().to_string();
+        let message = app.get_grpc_message().to_string();
+        let descriptor_path = app.get_grpc_descriptor_path().to_string();
+        let protoc_path = app.get_grpc_protoc_path().to_string();
+        let weak_app = app.as_weak();
+        runtime_for_invoke.spawn(async move {
+            let result = async {
+                let descriptor_set =
+                    grpc_descriptor_set_for_invoke(&endpoint, &descriptor_path, &protoc_path)
+                        .await?;
+                invoke_grpc_unary(&endpoint, &method, &metadata, &message, descriptor_set).await
+            }
+            .await;
+
+            if let Some(app) = weak_app.upgrade() {
+                app.set_busy(false);
+                match result {
+                    Ok(response) => {
+                        set_grpc_unary_response(&app, &response);
+                        app.set_activity("gRPC unary request complete".into());
+                    }
+                    Err(error) => {
+                        set_response(
+                            &app,
+                            "gRPC invoke failed",
+                            &method,
+                            "error",
+                            &error.to_string(),
+                        );
+                        app.set_activity(format!("gRPC invoke failed: {error}").into());
                     }
                 }
             }
@@ -5153,6 +5206,52 @@ fn format_sse_event(index: usize, event: &client::SseEvent) -> String {
         .map(|retry| format!(" / retry {retry}"))
         .unwrap_or_default();
     format!("{index}. {event_name}{id}{retry}\n{}", event.data)
+}
+
+async fn grpc_descriptor_set_for_invoke(
+    endpoint: &str,
+    descriptor_path: &str,
+    protoc_path: &str,
+) -> Result<prost_types::FileDescriptorSet> {
+    let descriptor_path = descriptor_path.trim();
+    if descriptor_path.is_empty() {
+        return load_grpc_reflection_descriptor_set(endpoint).await;
+    }
+
+    let path = Path::new(descriptor_path);
+    if path
+        .extension()
+        .and_then(|extension| extension.to_str())
+        .is_some_and(|extension| extension.eq_ignore_ascii_case("proto"))
+    {
+        let protoc_path = protoc_path.trim();
+        let protoc_path = if protoc_path.is_empty() {
+            "protoc"
+        } else {
+            protoc_path
+        };
+        return load_grpc_proto_file_descriptor_set(path, &[], protoc_path);
+    }
+
+    load_grpc_file_descriptor_set_proto(path)
+}
+
+fn set_grpc_unary_response(app: &AppWindow, response: &GrpcUnaryResponse) {
+    let body = serde_json::to_string_pretty(&response.message)
+        .unwrap_or_else(|_| response.message.to_string());
+    let metadata = if response.metadata.is_empty() {
+        "No metadata".to_string()
+    } else {
+        response
+            .metadata
+            .iter()
+            .map(|entry| format!("{}: {}", entry.name, entry.value))
+            .collect::<Vec<_>>()
+            .join("\n")
+    };
+
+    set_response(app, "gRPC OK", &response.method, "success", &body);
+    set_response_payload(app, &body, &body, &metadata, "No cookies");
 }
 
 fn format_grpc_draft(draft: &GrpcRequestDraft) -> String {

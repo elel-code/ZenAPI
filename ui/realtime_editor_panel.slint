@@ -29,6 +29,7 @@ export component RealtimeEditorPanel inherits Rectangle {
     callback close_sse_stream();
     callback copy_sse_events();
     callback clear_sse_events();
+    callback invoke_grpc_unary();
     callback build_grpc_draft();
     callback load_grpc_descriptor_set(string);
     callback load_grpc_proto_file(string, string);
@@ -453,7 +454,7 @@ export component RealtimeEditorPanel inherits Rectangle {
                     spacing: 10px;
 
                     UiText {
-                        text: "DRAFT";
+                        text: "REQUEST";
                         height: 20px;
                         horizontal-stretch: 1;
                         color: Theme.on_surface_variant;
@@ -464,9 +465,18 @@ export component RealtimeEditorPanel inherits Rectangle {
                     }
 
                     ActionButton {
-                        text: "Build Draft";
+                        text: "Invoke";
                         button_width: 162px;
                         primary: true;
+                        enabled: !root.busy && root.grpc_endpoint != "" && root.grpc_method != "";
+                        clicked => {
+                            root.invoke_grpc_unary();
+                        }
+                    }
+
+                    ActionButton {
+                        text: "Build";
+                        button_width: 162px;
                         enabled: !root.busy;
                         clicked => {
                             root.build_grpc_draft();
@@ -482,14 +492,10 @@ export component RealtimeEditorPanel inherits Rectangle {
                         }
                     }
 
-                    UiText {
-                        text: "Builds a validated draft with descriptor details and a grpcurl command preview.";
+                    Rectangle {
                         horizontal-stretch: 1;
                         vertical-stretch: 1;
-                        color: Theme.outline;
-                        font-size: 12px;
-                        vertical-alignment: top;
-                        overflow: elide;
+                        background: transparent;
                     }
                 }
             }
