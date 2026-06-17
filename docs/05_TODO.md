@@ -132,8 +132,9 @@
   request/response tab headers, metric cards, data panels, editor panes, and
   reusable list rows into `ui/widgets.slint`, and the Realtime editor business
   panel, Dashboard page, Codegen page, Settings page, Team page, API Keys page,
-  Analytics page, Documentation page, Environment page, and Runner page now live
-  in dedicated Slint files; additional large panels still need extraction.
+  Analytics page, Documentation page, Environment page, Runner page, and Mock
+  Manager page now live in dedicated Slint files; additional large panels still
+  need extraction.
 
 ## Phase 4: Verification And Release
 
