@@ -141,14 +141,13 @@
   baseline has a dedicated Mock Manager page with endpoint selection,
   start/stop, editable selected route response JSON, real per-route header/query
   conditional response rules, traffic filtering, clear, and export placement.
-- [~] Split reusable controls from `ui/app.slint` into `ui/widgets/`; current
-  Slint baseline extracts shared styles, buttons, text fields, method controls,
-  request/response tab headers and reusable list rows into `ui/widgets.slint`,
-  with method/status indicators in `ui/status_components.slint` and action
-  buttons, text fields, and mode buttons in `ui/action_button.slint`,
-  `ui/text_field.slint`, and `ui/mode_button.slint`; request method selection
-  and request/response tab controls live in `ui/method_selector.slint` and
-  `ui/tab_controls.slint`,
+- [~] Split reusable controls from `ui/app.slint` into dedicated Slint modules;
+  current Slint baseline keeps only shared `UiText` typography in
+  `ui/widgets.slint`, while method/status indicators live in
+  `ui/status_components.slint`, action buttons in `ui/action_button.slint`,
+  text fields in `ui/text_field.slint`, mode buttons in `ui/mode_button.slint`,
+  request method selection in `ui/method_selector.slint`, and request/response
+  tab controls in `ui/tab_controls.slint`,
   moved metric cards, data panels, and mock log rows into `ui/cards.slint`,
   moved code/editor panes into `ui/editors.slint`, and the Realtime editor
   business panel, shared Key/Value table panel, Body editor panel, Header
