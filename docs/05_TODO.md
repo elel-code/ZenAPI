@@ -131,8 +131,8 @@
   Slint baseline extracts shared styles, buttons, text fields, method controls,
   request/response tab headers, metric cards, data panels, editor panes, and
   reusable list rows into `ui/widgets.slint`, and the Realtime editor business
-  panel plus Codegen page now live in dedicated Slint files; additional large
-  panels still need extraction.
+  panel, Codegen page, and Settings page now live in dedicated Slint files;
+  additional large panels still need extraction.
 
 ## Phase 4: Verification And Release
 

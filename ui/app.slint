@@ -3,6 +3,7 @@ import { Theme } from "theme.slint";
 import { ActionButton, BodyModeButton, CodePane, DataPanel, LabeledEditor, MethodChip, MethodSelector, MetricCard, ReadOnlyCodeBlock, ResponseTab, StatusDot, TextField, UiText, WorkspaceTab } from "widgets.slint";
 import { RealtimeEditorPanel } from "realtime_editor_panel.slint";
 import { CodegenPage } from "codegen_page.slint";
+import { SettingsPage } from "settings_page.slint";
 
 export struct RouteRow {
     method: string,
@@ -5399,104 +5400,6 @@ component TeamPage inherits Rectangle {
                     DataPanel { title: "Local Files"; body: "Read/write by current OS user."; }
                     DataPanel { title: "Remote Sync"; body: "Not configured."; }
                     DataPanel { title: "Invites"; body: "Not available."; }
-                }
-            }
-        }
-    }
-}
-
-component SettingsPage inherits Rectangle {
-    in property <string> spec_label;
-    in property <bool> spec_loaded;
-    in property <string> file_path;
-    in property <string> collection_name;
-    in property <string> collection_path;
-    in property <int> route_count;
-    in property <int> history_count;
-
-    horizontal-stretch: 1;
-    vertical-stretch: 1;
-    background: Theme.background;
-
-    HorizontalLayout {
-        spacing: 0px;
-
-        Rectangle {
-            horizontal-stretch: 1;
-            vertical-stretch: 1;
-            background: Theme.surface;
-
-            VerticalLayout {
-                padding: 28px;
-                spacing: 18px;
-
-                PageTitle {
-                    title: "Project Settings";
-                    subtitle: "Local workspace configuration and persistence state.";
-                }
-
-                DataPanel {
-                    title: "Workspace";
-                    body: "Spec: " + (root.spec_loaded ? root.spec_label : "None") + "\nRoutes imported: " + root.route_count + "\nHistory entries: " + root.history_count;
-                }
-
-                HorizontalLayout {
-                    height: 150px;
-                    spacing: 16px;
-
-                    DataPanel {
-                        title: "OpenAPI Source";
-                        body: root.file_path == "" ? "No OpenAPI file path selected." : root.file_path;
-                    }
-
-                    DataPanel {
-                        title: "Collection File";
-                        body: root.collection_path == "" ? "No collection file path selected." : root.collection_path;
-                    }
-                }
-
-                DataPanel {
-                    title: "Local Storage";
-                    body: "The Slint app currently stores history locally and keeps environment profiles session-scoped. Remote project visibility, ownership transfer, and destructive account controls are not implemented.";
-                }
-            }
-        }
-
-        Rectangle { width: 1px; background: Theme.outline_variant; }
-
-        Rectangle {
-            width: 320px;
-            vertical-stretch: 1;
-            background: Theme.surface_container_lowest;
-
-            VerticalLayout {
-                padding: 16px;
-                spacing: 12px;
-
-                UiText {
-                    text: "CURRENT STATE";
-                    height: 22px;
-                    horizontal-stretch: 1;
-                    color: Theme.on_surface;
-                    font-size: 13px;
-                    font-weight: 800;
-                    vertical-alignment: center;
-                    overflow: elide;
-                }
-
-                DataPanel {
-                    title: "Collection";
-                    body: root.collection_name == "" ? "None" : root.collection_name;
-                }
-
-                DataPanel {
-                    title: "Files";
-                    body: "OpenAPI: " + (root.file_path == "" ? "not selected" : root.file_path) + "\nCollection: " + (root.collection_path == "" ? "not selected" : root.collection_path);
-                }
-
-                DataPanel {
-                    title: "Missing Backend";
-                    body: "Audit trails, project membership, remote visibility, and ownership controls need real persistence before controls are exposed.";
                 }
             }
         }
