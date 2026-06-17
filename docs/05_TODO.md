@@ -137,13 +137,13 @@
   conditional response rules, traffic filtering, clear, and export placement.
 - [~] Split reusable controls from `ui/app.slint` into `ui/widgets/`; current
   Slint baseline extracts shared styles, buttons, text fields, method controls,
-  request/response tab headers, metric cards, data panels, editor panes, and
-  reusable list rows into `ui/widgets.slint`, and the Realtime editor business
-  panel, Request panel, Response panel, Sidebar, App navigation, Address bar,
-  Dashboard page, Codegen page, Settings page, Team page, API Keys page,
-  Analytics page, Documentation page, Environment page, Runner page, and Mock
-  Manager page now live in dedicated Slint files; additional large panels still
-  need extraction.
+  request/response tab headers, editor panes, and reusable list rows into
+  `ui/widgets.slint`, moved metric cards, data panels, and mock log rows into
+  `ui/cards.slint`, and the Realtime editor business panel, Request panel,
+  Response panel, Sidebar, App navigation, Address bar, Dashboard page, Codegen
+  page, Settings page, Team page, API Keys page, Analytics page, Documentation
+  page, Environment page, Runner page, and Mock Manager page now live in
+  dedicated Slint files; additional large panels still need extraction.
 
 ## Phase 4: Verification And Release
 
