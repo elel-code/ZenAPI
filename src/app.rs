@@ -65,7 +65,6 @@ pub fn run() -> Result<()> {
 
     let state = Arc::new(Mutex::new(initial_state));
 
-    wire_page_navigation(&app);
     wire_import(&app, runtime.clone(), state.clone());
     wire_route_filter(&app, state.clone());
     wire_route_selection(&app, state.clone());
@@ -90,26 +89,6 @@ pub fn run() -> Result<()> {
     wire_mock_server(&app, runtime, state);
 
     app.run().map_err(|err| anyhow!(err.to_string()))
-}
-
-fn wire_page_navigation(app: &AppWindow) {
-    let weak_app = app.as_weak();
-
-    app.on_navigate_page(move |page_index| {
-        if !(0..=10).contains(&page_index) {
-            return;
-        }
-
-        let Some(app) = weak_app.upgrade() else {
-            return;
-        };
-
-        if app.get_active_page_index() == page_index {
-            return;
-        }
-
-        app.set_active_page_index(page_index);
-    });
 }
 
 struct AppState {
