@@ -400,8 +400,6 @@ component KPICard {
 | Team Members | `group` | Team |
 | API Keys | `key` | API Keys |
 
-**版本号**（底部）: `v2.4.0`，`on-surface-variant`，小字
-
 ### 导航项规格
 
 | 属性 | 激活态 | 非激活态 |
