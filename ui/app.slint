@@ -20,6 +20,7 @@ export struct CollectionRow {
     method: string,
     name: string,
     url: string,
+    is_folder: bool,
 }
 
 export struct RunnerRow {
@@ -1031,13 +1032,24 @@ component Sidebar inherits Rectangle {
                         vertical-scrollbar-policy: ScrollBarPolicy.as-needed;
                         horizontal-scrollbar-policy: ScrollBarPolicy.as-needed;
 
-                        for entry in root.collection_rows: SidebarRequestLink {
-                            method: entry.method;
-                            label: entry.name;
-                            selected: root.selected_collection_request == entry.id;
-                            picked => {
-                                root.selected_collection_request = entry.id;
-                                root.select_collection_request(entry.id);
+                        for entry in root.collection_rows: Rectangle {
+                            height: entry.is_folder ? 36px : 30px;
+                            horizontal-stretch: 1;
+                            background: transparent;
+
+                            if entry.is_folder: SidebarFolderRow {
+                                label: entry.name;
+                                selected: false;
+                            }
+
+                            if !entry.is_folder: SidebarRequestLink {
+                                method: entry.method;
+                                label: entry.name;
+                                selected: root.selected_collection_request == entry.id;
+                                picked => {
+                                    root.selected_collection_request = entry.id;
+                                    root.select_collection_request(entry.id);
+                                }
                             }
                         }
                     }
@@ -4436,9 +4448,20 @@ component RunnerPage inherits Rectangle {
                     vertical-scrollbar-policy: ScrollBarPolicy.as-needed;
                     horizontal-scrollbar-policy: ScrollBarPolicy.as-needed;
 
-                    for entry in root.collection_rows: SidebarRequestLink {
-                        method: entry.method;
-                        label: entry.name;
+                    for entry in root.collection_rows: Rectangle {
+                        height: entry.is_folder ? 36px : 30px;
+                        horizontal-stretch: 1;
+                        background: transparent;
+
+                        if entry.is_folder: SidebarFolderRow {
+                            label: entry.name;
+                            selected: false;
+                        }
+
+                        if !entry.is_folder: SidebarRequestLink {
+                            method: entry.method;
+                            label: entry.name;
+                        }
                     }
                 }
             }

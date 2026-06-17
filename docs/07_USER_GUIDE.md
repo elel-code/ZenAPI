@@ -273,13 +273,14 @@ Supported actions:
 - Export Postman Collection v2.1 JSON with `PM`.
 - Save the current request to the collection.
 - Restore a collection request into the request builder.
-- Rename the selected flat-list request with the request name field and `Ren`.
-- Duplicate a saved request from the flat sidebar list with `Dup`.
-- Delete a saved request from the flat sidebar list with `Del`.
+- Show imported collection folders as non-clickable tree rows in the sidebar.
+- Rename the selected request with the request name field and `Ren`.
+- Duplicate a saved request from the sidebar list with `Dup`.
+- Delete a saved request from the sidebar list with `Del`.
 
 Native JSON is the current default storage format. Bru-style text export is
-planned as a future Git-friendly option. Folder tree editing and drag/drop
-controls are still future work.
+planned as a future Git-friendly option. Folder creation/reparenting and
+drag/drop controls are still future work.
 
 ## History
 

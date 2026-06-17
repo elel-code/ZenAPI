@@ -3070,42 +3070,44 @@ fn update_selected_mock_response(
 fn collection_model(collection: &ApiCollection) -> ModelRc<CollectionRow> {
     let mut rows = Vec::new();
     let mut next_id = 0;
-    collect_collection_rows(&collection.items, "", &mut next_id, &mut rows);
+    collect_collection_rows(&collection.items, 0, &mut next_id, &mut rows);
     ModelRc::new(VecModel::from_iter(rows))
 }
 
 fn collect_collection_rows(
     items: &[CollectionItem],
-    folder_path: &str,
+    depth: usize,
     next_id: &mut i32,
     rows: &mut Vec<CollectionRow>,
 ) {
     for item in items {
         match item {
             CollectionItem::Folder(folder) => {
-                let nested_path = if folder_path.is_empty() {
-                    folder.name.clone()
-                } else {
-                    format!("{folder_path} / {}", folder.name)
-                };
-                collect_collection_rows(&folder.items, &nested_path, next_id, rows);
+                rows.push(CollectionRow {
+                    id: -1,
+                    method: String::new().into(),
+                    name: indented_collection_label(depth, &folder.name).into(),
+                    url: String::new().into(),
+                    is_folder: true,
+                });
+                collect_collection_rows(&folder.items, depth + 1, next_id, rows);
             }
             CollectionItem::Request(request) => {
-                let name = if folder_path.is_empty() {
-                    request.name.clone()
-                } else {
-                    format!("{folder_path} / {}", request.name)
-                };
                 rows.push(CollectionRow {
                     id: *next_id,
                     method: request.method.clone().into(),
-                    name: name.into(),
+                    name: indented_collection_label(depth, &request.name).into(),
                     url: request.url.clone().into(),
+                    is_folder: false,
                 });
                 *next_id += 1;
             }
         }
     }
+}
+
+fn indented_collection_label(depth: usize, name: &str) -> String {
+    format!("{}{}", "  ".repeat(depth), name)
 }
 
 fn count_collection_requests(items: &[CollectionItem]) -> usize {
@@ -6304,6 +6306,72 @@ mod tests {
             Some("Health")
         );
         assert!(collection_request_at(&collection, 3).is_none());
+    }
+
+    #[test]
+    fn collection_model_includes_folder_rows_without_request_ids() {
+        use slint::Model;
+
+        let collection = ApiCollection {
+            name: "Demo".to_string(),
+            description: String::new(),
+            items: vec![
+                CollectionItem::Folder(zenapi::collections::CollectionFolder {
+                    name: "Users".to_string(),
+                    description: String::new(),
+                    items: vec![
+                        CollectionItem::Request(saved_request(
+                            "List users",
+                            "GET",
+                            "https://api.example.com/users",
+                        )),
+                        CollectionItem::Folder(zenapi::collections::CollectionFolder {
+                            name: "Admin".to_string(),
+                            description: String::new(),
+                            items: vec![CollectionItem::Request(saved_request(
+                                "Suspend user",
+                                "POST",
+                                "https://api.example.com/users/suspend",
+                            ))],
+                        }),
+                    ],
+                }),
+                CollectionItem::Request(saved_request(
+                    "Health",
+                    "GET",
+                    "https://api.example.com/health",
+                )),
+            ],
+        };
+
+        let rows = collection_model(&collection);
+
+        assert_eq!(rows.row_count(), 5);
+
+        let users = rows.row_data(0).expect("users folder row");
+        assert!(users.is_folder);
+        assert_eq!(users.id, -1);
+        assert_eq!(users.name.as_str(), "Users");
+
+        let list = rows.row_data(1).expect("list request row");
+        assert!(!list.is_folder);
+        assert_eq!(list.id, 0);
+        assert_eq!(list.name.as_str(), "  List users");
+
+        let admin = rows.row_data(2).expect("admin folder row");
+        assert!(admin.is_folder);
+        assert_eq!(admin.id, -1);
+        assert_eq!(admin.name.as_str(), "  Admin");
+
+        let suspend = rows.row_data(3).expect("nested request row");
+        assert!(!suspend.is_folder);
+        assert_eq!(suspend.id, 1);
+        assert_eq!(suspend.name.as_str(), "    Suspend user");
+
+        let health = rows.row_data(4).expect("root request row");
+        assert!(!health.is_folder);
+        assert_eq!(health.id, 2);
+        assert_eq!(health.name.as_str(), "Health");
     }
 
     #[test]
