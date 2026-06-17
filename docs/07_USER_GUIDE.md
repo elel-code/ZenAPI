@@ -238,8 +238,10 @@ separate username and password fields, then saves them as the existing
 for header or query pairs, while still storing the saved config as line-based
 `key=value` text. The Slint auth panel changes its label, placeholder, and
 helper text for the selected mode while preserving the same saved config
-format. OAuth token acquisition, redirect handling, refresh, and secure state
-storage remain future work.
+format. The API Keys page mirrors the active request auth configuration with
+hidden secret values; local key creation, rotation, scopes, and server-side key
+management remain future work. OAuth token acquisition, redirect handling,
+refresh, and secure state storage remain future work.
 
 ## Vars And Envs
 

@@ -5381,6 +5381,19 @@ component DocumentationPage inherits Rectangle {
 }
 
 component ApiKeysPage inherits Rectangle {
+    in property <string> auth_mode;
+    in property <string> auth_config;
+    in property <string> auth_basic_username;
+    in property <[KeyValueTableRow]> auth_key_rows;
+    in property <string> url;
+
+    property <bool> has_auth: root.auth_mode != "none" && (root.auth_config != "" || root.auth_key_rows.length > 0 || root.auth_basic_username != "");
+    property <string> mode_title: root.auth_mode == "bearer" ? "Bearer Token" : root.auth_mode == "jwt" ? "JWT Bearer" : root.auth_mode == "basic" ? "Basic Auth" : root.auth_mode == "api-header" ? "API Key Header" : root.auth_mode == "api-query" ? "API Key Query" : "No Auth";
+    property <string> mode_summary: root.auth_mode == "api-header" ? root.auth_key_rows.length + " header row(s) configured" : root.auth_mode == "api-query" ? root.auth_key_rows.length + " query row(s) configured" : root.auth_mode == "basic" ? (root.auth_basic_username == "" ? "Username/password not configured" : "Username configured; password hidden") : root.has_auth ? "Credential value configured; secret hidden" : "No request auth configured";
+    property <string> target_url: root.url == "" ? "<request-url>" : root.url;
+    property <string> integration_hint: root.auth_mode == "bearer" ? "Authorization: Bearer <configured-token>" : root.auth_mode == "jwt" ? "Authorization: Bearer <configured-jwt>" : root.auth_mode == "basic" ? "Authorization: Basic <base64-credentials>" : root.auth_mode == "api-header" ? "Configured API key rows are merged into request headers." : root.auth_mode == "api-query" ? "Configured API key rows are merged into request query parameters." : "Requests are sent without generated authorization credentials.";
+    property <string> curl_hint: root.auth_mode == "bearer" || root.auth_mode == "jwt" ? "curl \"" + root.target_url + "\" \\\n  -H \"" + root.integration_hint + "\"" : root.auth_mode == "basic" ? "curl \"" + root.target_url + "\" \\\n  -H \"Authorization: Basic <base64-credentials>\"" : root.auth_mode == "api-header" ? "curl \"" + root.target_url + "\" \\\n  -H \"<configured-header>: <configured-value>\"" : root.auth_mode == "api-query" ? "curl \"" + root.target_url + "?<configured-key>=<configured-value>\"" : "curl \"" + root.target_url + "\"";
+
     horizontal-stretch: 1;
     vertical-stretch: 1;
     background: Theme.background;
@@ -5398,22 +5411,25 @@ component ApiKeysPage inherits Rectangle {
                 spacing: 12px;
 
                 PageTitle {
-                    title: "Active Keys";
-                    subtitle: "Scoped credentials";
+                    title: "Request Auth";
+                    subtitle: "Current request credentials";
                 }
 
                 KeyCard {
-                    title: "Production Key";
-                    token: "sk_prod_8f92a...";
-                    meta: "Last used: 2m ago";
+                    title: root.mode_title;
+                    token: root.has_auth ? root.mode_summary : "No credential material stored for this request.";
+                    meta: "Source: Request / Auth tab";
                     selected: true;
                 }
 
-                KeyCard {
-                    title: "Staging Key";
-                    token: "sk_test_4b21c...";
-                    meta: "Last used: 1d ago";
-                    selected: false;
+                if root.auth_mode == "api-header" || root.auth_mode == "api-query": DataPanel {
+                    title: "Configured Rows";
+                    body: root.auth_key_rows.length == 0 ? "No key rows configured." : root.auth_key_rows.length + " row(s) will be merged into the request.";
+                }
+
+                if root.auth_mode == "basic": DataPanel {
+                    title: "Basic Username";
+                    body: root.auth_basic_username == "" ? "No username configured." : root.auth_basic_username;
                 }
             }
         }
@@ -5434,20 +5450,20 @@ component ApiKeysPage inherits Rectangle {
                     spacing: 12px;
 
                     PageTitle {
-                        title: "Production Key";
-                        subtitle: "Created Oct 12, 2023 by Lead Architect";
+                        title: root.mode_title;
+                        subtitle: root.has_auth ? "Configured in the active request." : "No auth mode is active.";
                     }
 
                     Badge {
-                        text: "ACTIVE";
-                        tone: "success";
+                        text: root.has_auth ? "ACTIVE" : "EMPTY";
+                        tone: root.has_auth ? "success" : "neutral";
                         badge_width: 74px;
                     }
                 }
 
                 DataPanel {
-                    title: "Secret Key";
-                    body: "sk_prod_8f92a7c4e5b6d1f0...\nThis key will only be shown once. Store it securely.";
+                    title: "Credential Material";
+                    body: root.has_auth ? root.mode_summary + "\nSecret values are hidden in this overview." : "Choose an auth mode in Request / Auth to populate this overview.";
                 }
 
                 HorizontalLayout {
@@ -5455,19 +5471,19 @@ component ApiKeysPage inherits Rectangle {
                     spacing: 16px;
 
                     DataPanel {
-                        title: "Rate Limit";
-                        body: "45/sec\nLimit: 100/sec";
+                        title: "Transport Mapping";
+                        body: root.integration_hint;
                     }
 
                     DataPanel {
-                        title: "Bandwidth";
-                        body: "1.2 GB\nLimit: 10 GB monthly";
+                        title: "Target Request";
+                        body: root.target_url;
                     }
                 }
 
                 DataPanel {
                     title: "Settings";
-                    body: "Automatic Rotation: disabled\nAllowed origins: internal tools\nScopes: read, write";
+                    body: "This page mirrors the active request auth configuration. Key rotation, scopes, and server-side key management are not implemented in the local Slint app.";
                 }
             }
         }
@@ -5493,7 +5509,7 @@ component ApiKeysPage inherits Rectangle {
                 }
 
                 UiText {
-                    text: "Include this key in the Authorization header.";
+                    text: root.has_auth ? "Equivalent request auth mapping." : "No auth headers or query values will be generated.";
                     height: 36px;
                     horizontal-stretch: 1;
                     color: Theme.on_surface_variant;
@@ -5503,11 +5519,11 @@ component ApiKeysPage inherits Rectangle {
                 }
 
                 ReadOnlyCodeBlock {
-                    text: "curl -X GET \"https://api.example.com/v1/data\" \\\n  -H \"Authorization: Bearer sk_prod_8f92...\"";
+                    text: root.curl_hint;
                 }
 
                 ReadOnlyCodeBlock {
-                    text: "const axios = require('axios');\n\naxios.get('/v1/data', {\n  headers: {\n    Authorization: 'Bearer sk_prod_8f92...'\n  }\n});";
+                    text: root.integration_hint;
                 }
             }
         }
@@ -6720,6 +6736,11 @@ export component AppWindow inherits Window {
                     ApiKeysPage {
                         width: max(parent.visible-width, 1040px);
                         height: max(parent.visible-height, 620px);
+                        auth_mode: root.auth_mode;
+                        auth_config: root.auth_config;
+                        auth_basic_username: root.auth_basic_username;
+                        auth_key_rows: root.auth_key_rows;
+                        url: root.url;
                     }
                 }
 
