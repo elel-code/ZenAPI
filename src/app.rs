@@ -28,7 +28,8 @@ use zenapi::{
 };
 
 use crate::ui::{
-    AppWindow, CollectionRow, HistoryRow, MockLogRow, RouteRow, RunnerRow, VariableTableRow,
+    AppWindow, CollectionRow, HistoryRow, KeyValueTableRow, MockLogRow, RouteRow, RunnerRow,
+    VariableTableRow,
 };
 
 const HISTORY_FILE_NAME: &str = ".zenapi-history.json";
@@ -40,6 +41,7 @@ pub fn run() -> Result<()> {
     let history_load_error = initial_state.load_history_from_disk().err();
     let app = AppWindow::new().map_err(|err| anyhow!(err.to_string()))?;
     refresh_variable_table(&app);
+    refresh_query_param_rows(&app);
     app.set_history_rows(filtered_history_model(&initial_state.history, ""));
     if let Some(error) = history_load_error {
         set_response(
@@ -61,6 +63,7 @@ pub fn run() -> Result<()> {
     wire_collection_actions(&app, state.clone());
     wire_mock_log_filter(&app, state.clone());
     wire_header_helpers(&app);
+    wire_query_param_actions(&app);
     wire_environment_actions(&app);
     wire_request_sender(&app, runtime.clone(), state.clone());
     wire_graphql_helpers(&app);
@@ -288,6 +291,7 @@ fn wire_route_selection(app: &AppWindow, state: Arc<Mutex<AppState>>) {
                 route.path
             )));
             app.set_query_params("".into());
+            refresh_query_param_rows(&app);
             app.set_request_headers("Accept: application/json".into());
             app.set_body_mode(default_body_mode(&app.get_method()).into());
             app.set_request_body(default_request_body(&app.get_method()).into());
@@ -325,6 +329,7 @@ fn wire_history_selection(app: &AppWindow, state: Arc<Mutex<AppState>>) {
             app.set_method(entry.request.method.into());
             app.set_url(entry.request.url.into());
             app.set_query_params(format_key_value_preview(&entry.request.query_params).into());
+            refresh_query_param_rows(&app);
             app.set_request_headers(format_key_value_preview(&entry.request.headers).into());
             app.set_auth_mode(normalized_history_auth_mode(&entry.request.auth_mode).into());
             app.set_auth_config(entry.request.auth_config.into());
@@ -912,6 +917,55 @@ fn wire_header_helpers(app: &AppWindow) {
                 );
             }
         }
+    });
+}
+
+fn wire_query_param_actions(app: &AppWindow) {
+    let weak_app = app.as_weak();
+    app.on_add_query_param(move || {
+        let Some(app) = weak_app.upgrade() else {
+            return;
+        };
+        if app.get_busy() {
+            return;
+        }
+
+        let updated = add_key_value_text(app.get_query_params().as_str(), "param");
+        app.set_query_params(updated.into());
+        refresh_query_param_rows(&app);
+    });
+
+    let weak_app = app.as_weak();
+    app.on_update_query_param_row(move |row_id, key, value| {
+        let Some(app) = weak_app.upgrade() else {
+            return;
+        };
+        if app.get_busy() {
+            return;
+        }
+
+        let updated = update_key_value_text(
+            app.get_query_params().as_str(),
+            row_id,
+            key.as_str(),
+            value.as_str(),
+        );
+        app.set_query_params(updated.into());
+        refresh_query_param_rows(&app);
+    });
+
+    let weak_app = app.as_weak();
+    app.on_delete_query_param_row(move |row_id| {
+        let Some(app) = weak_app.upgrade() else {
+            return;
+        };
+        if app.get_busy() {
+            return;
+        }
+
+        let updated = delete_key_value_text(app.get_query_params().as_str(), row_id);
+        app.set_query_params(updated.into());
+        refresh_query_param_rows(&app);
     });
 }
 
@@ -2369,6 +2423,7 @@ fn restore_collection_request(app: &AppWindow, request: &CollectionRequest) {
     app.set_method(request.method.clone().into());
     app.set_url(request.url.clone().into());
     app.set_query_params(format_name_values(&request.query_params).into());
+    refresh_query_param_rows(app);
     app.set_request_headers(format_name_values(&request.headers).into());
     app.set_auth_mode("none".into());
     app.set_auth_config("".into());
@@ -2961,6 +3016,101 @@ fn format_key_value_preview(fields: &[(String, String)]) -> String {
         .map(|(name, value)| format!("{name}={value}"))
         .collect::<Vec<_>>()
         .join("\n")
+}
+
+fn refresh_query_param_rows(app: &AppWindow) {
+    app.set_query_param_rows(key_value_table_model(app.get_query_params().as_str()));
+}
+
+fn key_value_table_model(input: &str) -> ModelRc<KeyValueTableRow> {
+    ModelRc::new(VecModel::from_iter(
+        key_value_ui_entries(input)
+            .into_iter()
+            .enumerate()
+            .map(|(row_id, (_, key, value))| KeyValueTableRow {
+                row_id: row_id as i32,
+                key: key.into(),
+                value: value.into(),
+            }),
+    ))
+}
+
+fn key_value_ui_entries(input: &str) -> Vec<(usize, String, String)> {
+    input
+        .lines()
+        .enumerate()
+        .filter_map(|(line_index, line)| {
+            let line = line.trim();
+            if line.is_empty() || line.starts_with('#') {
+                return None;
+            }
+            split_key_value_line(line)
+                .map(|(key, value)| (line_index, key.trim().to_string(), value.trim().to_string()))
+        })
+        .collect()
+}
+
+fn update_key_value_text(input: &str, row_id: i32, key: &str, value: &str) -> String {
+    let mut lines = input.lines().map(str::to_string).collect::<Vec<_>>();
+    let entries = key_value_ui_entries(input);
+    let new_line = format!("{}={}", key.trim(), value.trim());
+
+    if let Some((line_index, _, _)) = row_id
+        .try_into()
+        .ok()
+        .and_then(|row_id: usize| entries.get(row_id))
+    {
+        lines[*line_index] = new_line;
+    } else {
+        lines.push(new_line);
+    }
+
+    lines.join("\n")
+}
+
+fn add_key_value_text(input: &str, base_key: &str) -> String {
+    let key = unique_key_value_name(input, base_key);
+    append_key_value_line(input, &format!("{key}="))
+}
+
+fn delete_key_value_text(input: &str, row_id: i32) -> String {
+    let mut lines = input.lines().map(str::to_string).collect::<Vec<_>>();
+    let entries = key_value_ui_entries(input);
+
+    if let Some((line_index, _, _)) = row_id
+        .try_into()
+        .ok()
+        .and_then(|row_id: usize| entries.get(row_id))
+    {
+        lines.remove(*line_index);
+    }
+
+    lines.join("\n")
+}
+
+fn append_key_value_line(input: &str, line: &str) -> String {
+    if input.trim().is_empty() {
+        line.to_string()
+    } else if input.ends_with('\n') {
+        format!("{input}{line}")
+    } else {
+        format!("{input}\n{line}")
+    }
+}
+
+fn unique_key_value_name(input: &str, base_key: &str) -> String {
+    let existing = key_value_ui_entries(input)
+        .into_iter()
+        .map(|(_, key, _)| key)
+        .collect::<Vec<_>>();
+    if !existing.iter().any(|key| key == base_key) {
+        return base_key.to_string();
+    }
+
+    (2..)
+        .map(|index| format!("{base_key}_{index}"))
+        .find(|candidate| !existing.iter().any(|key| key == candidate))
+        .unwrap_or_else(|| base_key.to_string())
 }
 
 fn refresh_variable_table(app: &AppWindow) {
@@ -4108,6 +4258,43 @@ mod tests {
         );
 
         assert_eq!(delete_variable_text(input, 0), "# keep\ntoken=global");
+    }
+
+    #[test]
+    fn builds_key_value_rows_for_query_params() {
+        use slint::Model;
+
+        let rows = key_value_table_model("# keep\nsearch=slint\nlimit: 20");
+
+        assert_eq!(rows.row_count(), 2);
+        let search = rows.row_data(0).expect("search row");
+        assert_eq!(search.row_id, 0);
+        assert_eq!(search.key.as_str(), "search");
+        assert_eq!(search.value.as_str(), "slint");
+
+        let limit = rows.row_data(1).expect("limit row");
+        assert_eq!(limit.row_id, 1);
+        assert_eq!(limit.key.as_str(), "limit");
+        assert_eq!(limit.value.as_str(), "20");
+    }
+
+    #[test]
+    fn updates_adds_and_deletes_key_value_text_rows() {
+        let input = "# keep\nsearch=slint\nlimit=20";
+
+        assert_eq!(
+            update_key_value_text(input, 1, "limit", "50"),
+            "# keep\nsearch=slint\nlimit=50"
+        );
+        assert_eq!(
+            add_key_value_text("search=slint", "param"),
+            "search=slint\nparam="
+        );
+        assert_eq!(
+            add_key_value_text("param=one", "param"),
+            "param=one\nparam_2="
+        );
+        assert_eq!(delete_key_value_text(input, 0), "# keep\nlimit=20");
     }
 
     #[test]

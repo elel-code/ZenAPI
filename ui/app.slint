@@ -44,6 +44,12 @@ export struct VariableTableRow {
     current_value: string,
 }
 
+export struct KeyValueTableRow {
+    row_id: int,
+    key: string,
+    value: string,
+}
+
 component KeyValueEditorPanel inherits Rectangle {
     in-out property <string> text;
     in property <string> title;
@@ -115,6 +121,198 @@ component KeyValueEditorPanel inherits Rectangle {
         CodePane {
             text <=> root.text;
             read_only: root.read_only;
+        }
+
+        if root.helper != "": UiText {
+            text: root.helper;
+            height: 18px;
+            horizontal-stretch: 1;
+            color: Theme.outline;
+            font-size: 12px;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+    }
+}
+
+component KeyValueTableLine inherits Rectangle {
+    in property <int> row_id;
+    in-out property <string> key;
+    in-out property <string> value;
+    in property <bool> enabled: true;
+    callback edited(int, string, string);
+    callback delete_requested(int);
+
+    height: 44px;
+    horizontal-stretch: 1;
+    border-radius: 6px;
+    border-width: 1px;
+    border-color: Theme.outline_variant;
+    background: row_touch.has-hover ? Theme.surface_container_high : Theme.surface_container_low;
+
+    row_touch := TouchArea {}
+
+    TextField {
+        x: 10px;
+        y: 5px;
+        width: 154px;
+        height: 34px;
+        text <=> root.key;
+        placeholder: "key";
+        mono: true;
+        enabled: root.enabled;
+        edited => {
+            root.edited(root.row_id, root.key, root.value);
+        }
+    }
+
+    TextField {
+        x: 176px;
+        y: 5px;
+        width: parent.width - 240px;
+        height: 34px;
+        text <=> root.value;
+        placeholder: "value";
+        mono: true;
+        enabled: root.enabled;
+        edited => {
+            root.edited(root.row_id, root.key, root.value);
+        }
+    }
+
+    ActionButton {
+        x: parent.width - 54px;
+        y: 5px;
+        text: "Del";
+        button_width: 44px;
+        warning: true;
+        enabled: root.enabled;
+        clicked => {
+            root.delete_requested(root.row_id);
+        }
+    }
+}
+
+component KeyValueTablePanel inherits Rectangle {
+    in-out property <[KeyValueTableRow]> rows;
+    in property <string> title;
+    in property <string> key_header: "Key";
+    in property <string> value_header: "Value";
+    in property <string> helper: "";
+    in property <bool> busy: false;
+    callback add_row();
+    callback update_row(int, string, string);
+    callback delete_row(int);
+
+    horizontal-stretch: 1;
+    vertical-stretch: 1;
+    background: transparent;
+
+    VerticalLayout {
+        padding: 0px;
+        spacing: 8px;
+
+        HorizontalLayout {
+            height: 28px;
+            spacing: 8px;
+            alignment: center;
+
+            UiText {
+                text: root.title;
+                horizontal-stretch: 1;
+                height: parent.height;
+                color: Theme.on_surface_variant;
+                font-size: 12px;
+                font-weight: 800;
+                vertical-alignment: center;
+                overflow: elide;
+            }
+
+            ActionButton {
+                text: "+";
+                button_width: 34px;
+                enabled: !root.busy;
+                clicked => {
+                    root.add_row();
+                }
+            }
+        }
+
+        Rectangle {
+            height: 30px;
+            horizontal-stretch: 1;
+            border-radius: 6px;
+            border-width: 1px;
+            border-color: Theme.outline_variant;
+            background: Theme.surface_container;
+
+            UiText {
+                x: 14px;
+                text: root.key_header;
+                width: 150px;
+                height: parent.height;
+                color: Theme.on_surface_variant;
+                font-size: 12px;
+                font-weight: 800;
+                vertical-alignment: center;
+                overflow: elide;
+            }
+
+            Rectangle {
+                x: 172px;
+                y: 6px;
+                width: 1px;
+                height: parent.height - 12px;
+                background: Theme.outline_variant;
+            }
+
+            UiText {
+                x: 184px;
+                text: root.value_header;
+                width: parent.width - 244px;
+                height: parent.height;
+                color: Theme.on_surface_variant;
+                font-size: 12px;
+                font-weight: 800;
+                vertical-alignment: center;
+                overflow: elide;
+            }
+        }
+
+        Rectangle {
+            horizontal-stretch: 1;
+            vertical-stretch: 1;
+            background: transparent;
+
+            if root.rows.length == 0: UiText {
+                text: "No rows";
+                width: parent.width;
+                height: 32px;
+                color: Theme.outline;
+                font-size: 12px;
+                vertical-alignment: center;
+                overflow: elide;
+            }
+
+            if root.rows.length != 0: ListView {
+                width: parent.width;
+                height: parent.height;
+                vertical-scrollbar-policy: ScrollBarPolicy.as-needed;
+                horizontal-scrollbar-policy: ScrollBarPolicy.as-needed;
+
+                for row in root.rows: KeyValueTableLine {
+                    row_id: row.row_id;
+                    key: row.key;
+                    value: row.value;
+                    enabled: !root.busy;
+                    edited(row_id, key, value) => {
+                        root.update_row(row_id, key, value);
+                    }
+                    delete_requested(row_id) => {
+                        root.delete_row(row_id);
+                    }
+                }
+            }
         }
 
         if root.helper != "": UiText {
@@ -1810,6 +2008,7 @@ component RequestPanel inherits Rectangle {
     in-out property <string> environment_name;
     in-out property <string> environment_variables;
     in-out property <string> query_params;
+    in-out property <[KeyValueTableRow]> query_param_rows;
     in-out property <string> request_headers;
     in-out property <string> auth_mode;
     in-out property <string> auth_config;
@@ -1834,6 +2033,9 @@ component RequestPanel inherits Rectangle {
     callback run_sse();
     callback open_sse_stream();
     callback close_sse_stream();
+    callback add_query_param();
+    callback update_query_param_row(int, string, string);
+    callback delete_query_param_row(int);
     callback apply_graphql_template(string);
     callback apply_header_preset(string);
     callback build_grpc_draft();
@@ -1944,16 +2146,26 @@ component RequestPanel inherits Rectangle {
             horizontal-stretch: 1;
             background: Theme.surface_container_lowest;
 
-            if root.active_tab == "params": KeyValueEditorPanel {
+            if root.active_tab == "params": KeyValueTablePanel {
                 x: 16px;
                 y: 16px;
                 width: parent.width - 32px;
                 height: parent.height - 32px;
-                text <=> root.query_params;
+                rows <=> root.query_param_rows;
                 title: "Query Parameters";
                 key_header: "Param";
                 value_header: "Value";
-                helper: "One query parameter per line, formatted as key=value.";
+                helper: "Stored as key=value lines for transport compatibility.";
+                busy: root.busy;
+                add_row => {
+                    root.add_query_param();
+                }
+                update_row(row_id, key, value) => {
+                    root.update_query_param_row(row_id, key, value);
+                }
+                delete_row(row_id) => {
+                    root.delete_query_param_row(row_id);
+                }
             }
 
             if root.active_tab == "headers": HeaderEditorPanel {
@@ -5440,6 +5652,7 @@ export component AppWindow inherits Window {
     in-out property <string> selected_mock_path: "";
     in-out property <string> selected_mock_summary: "";
     in-out property <string> selected_mock_body: "";
+    in-out property <[KeyValueTableRow]> query_param_rows;
     in-out property <int> total_route_count: 0;
     in-out property <int> selected_collection_request: -1;
     in-out property <string> collection_request_name: "";
@@ -5468,6 +5681,9 @@ export component AppWindow inherits Window {
     callback filter_mock_logs(string);
     callback save_mock_logs(string);
     callback clear_mock_logs();
+    callback add_query_param();
+    callback update_query_param_row(int, string, string);
+    callback delete_query_param_row(int);
     callback send_request();
     callback toggle_server();
     callback generate_code();
@@ -5652,6 +5868,7 @@ export component AppWindow inherits Window {
                                         environment_name <=> root.environment_name;
                                         environment_variables <=> root.environment_variables;
                                         query_params <=> root.query_params;
+                                        query_param_rows <=> root.query_param_rows;
                                         request_headers <=> root.request_headers;
                                         auth_mode <=> root.auth_mode;
                                         auth_config <=> root.auth_config;
@@ -5670,6 +5887,15 @@ export component AppWindow inherits Window {
                                         grpc_metadata <=> root.grpc_metadata;
                                         grpc_message <=> root.grpc_message;
                                         busy: root.busy;
+                                        add_query_param => {
+                                            root.add_query_param();
+                                        }
+                                        update_query_param_row(row_id, key, value) => {
+                                            root.update_query_param_row(row_id, key, value);
+                                        }
+                                        delete_query_param_row(row_id) => {
+                                            root.delete_query_param_row(row_id);
+                                        }
                                         open_websocket => {
                                             root.open_websocket();
                                         }

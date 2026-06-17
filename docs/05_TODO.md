@@ -45,10 +45,11 @@
 ## Phase 3: Slint UI Parity Backlog
 
 - [~] Rebuild Params and Headers editors in Slint and wire them into
-  `send_request_with_options`; current Slint baseline uses table-shaped
-  line-based editors for params, headers, and API-key pairs, supports
-  `key=value` / `key: value` parsing plus common header presets, with row
-  add/delete controls and header clipboard copy still pending.
+  `send_request_with_options`; current Slint baseline uses real editable row
+  controls for Params backed by `key=value` text storage, and table-shaped
+  line-based editors for headers and API-key pairs. Parsing supports
+  `key=value` / `key: value` plus common header presets, with header/API-key
+  row add/delete controls and header clipboard copy still pending.
 - [~] Rebuild Body mode controls for none, form-data, URL-encoded, raw, GraphQL,
   and binary bodies; current Slint baseline has dedicated visible panels for
   no-body, raw text, form-data, URL-encoded, GraphQL query/variables, and
