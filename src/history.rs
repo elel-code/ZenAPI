@@ -27,6 +27,8 @@ pub struct HistoryRequest {
     #[serde(default)]
     pub auth_config: String,
     pub body_kind: String,
+    #[serde(default)]
+    pub raw_body_subtype: String,
     pub body_preview: String,
     #[serde(default)]
     pub pre_request_script: String,
@@ -163,6 +165,7 @@ mod tests {
             auth_mode: "none".to_string(),
             auth_config: String::new(),
             body_kind: "none".to_string(),
+            raw_body_subtype: String::new(),
             body_preview: String::new(),
             pre_request_script: String::new(),
             request_tests: String::new(),

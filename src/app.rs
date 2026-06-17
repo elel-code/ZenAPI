@@ -106,6 +106,7 @@ struct RequestProjectionInput {
     auth_mode: String,
     auth_config: String,
     body_mode: String,
+    raw_body_subtype: String,
     body: String,
     graphql_variables: String,
     pre_request_script: String,
@@ -130,6 +131,7 @@ fn request_projection_input(app: &AppWindow) -> RequestProjectionInput {
         auth_mode: app.get_auth_mode().to_string(),
         auth_config: app.get_auth_config().to_string(),
         body_mode: app.get_body_mode().to_string(),
+        raw_body_subtype: app.get_raw_body_subtype().to_string(),
         body: app.get_request_body().to_string(),
         graphql_variables: app.get_graphql_variables().to_string(),
         pre_request_script: app.get_pre_request_script().to_string(),
@@ -302,6 +304,7 @@ fn wire_route_selection(app: &AppWindow, state: Arc<Mutex<AppState>>) {
             app.set_request_headers("Accept: application/json".into());
             refresh_header_rows(&app);
             app.set_body_mode(default_body_mode(&app.get_method()).into());
+            app.set_raw_body_subtype("json".into());
             app.set_request_body(default_request_body(&app.get_method()).into());
             refresh_body_field_rows(&app);
             app.set_graphql_variables("{}".into());
@@ -335,6 +338,7 @@ fn wire_history_selection(app: &AppWindow, state: Arc<Mutex<AppState>>) {
             .and_then(|state| state.history.find(id as u64).cloned());
 
         if let Some(entry) = entry {
+            let (body_mode, raw_body_subtype) = history_body_to_slint(&entry.request);
             app.set_method(entry.request.method.into());
             app.set_url(entry.request.url.into());
             app.set_query_params(format_key_value_preview(&entry.request.query_params).into());
@@ -344,7 +348,8 @@ fn wire_history_selection(app: &AppWindow, state: Arc<Mutex<AppState>>) {
             app.set_auth_mode(normalized_history_auth_mode(&entry.request.auth_mode).into());
             app.set_auth_config(entry.request.auth_config.into());
             refresh_auth_key_rows(&app);
-            app.set_body_mode(entry.request.body_kind.into());
+            app.set_body_mode(body_mode.into());
+            app.set_raw_body_subtype(raw_body_subtype.into());
             app.set_request_body(entry.request.body_preview.into());
             refresh_body_field_rows(&app);
             app.set_graphql_variables("{}".into());
@@ -2640,7 +2645,12 @@ fn collection_request_from_editor(
         url: input.url.trim().to_string(),
         headers,
         query_params,
-        body: build_request_body(&input.body_mode, &input.body, &input.graphql_variables)?,
+        body: build_request_body(
+            &input.body_mode,
+            &input.body,
+            &input.graphql_variables,
+            &input.raw_body_subtype,
+        )?,
     };
     if request.url.trim().is_empty() {
         bail!("request URL is empty");
@@ -2687,7 +2697,7 @@ fn collection_body_from_request_body(body: &RequestBody) -> CollectionBody {
 }
 
 fn restore_collection_request(app: &AppWindow, request: &CollectionRequest) {
-    let (body_mode, request_body) = collection_body_to_slint(&request.body);
+    let (body_mode, request_body, raw_body_subtype) = collection_body_to_slint(&request.body);
     app.set_method(request.method.clone().into());
     app.set_url(request.url.clone().into());
     app.set_query_params(format_name_values(&request.query_params).into());
@@ -2698,6 +2708,7 @@ fn restore_collection_request(app: &AppWindow, request: &CollectionRequest) {
     app.set_auth_config("".into());
     refresh_auth_key_rows(app);
     app.set_body_mode(body_mode.into());
+    app.set_raw_body_subtype(raw_body_subtype.into());
     app.set_request_body(request_body.into());
     refresh_body_field_rows(app);
     app.set_graphql_variables("{}".into());
@@ -2713,13 +2724,27 @@ fn restore_collection_request(app: &AppWindow, request: &CollectionRequest) {
     );
 }
 
-fn collection_body_to_slint(body: &CollectionBody) -> (String, String) {
+fn collection_body_to_slint(body: &CollectionBody) -> (String, String, String) {
     match body {
-        CollectionBody::None => ("none".to_string(), String::new()),
-        CollectionBody::Raw { body, .. } => ("raw".to_string(), body.clone()),
-        CollectionBody::FormData { fields } => ("form".to_string(), format_name_values(fields)),
-        CollectionBody::UrlEncoded { fields } => ("urlenc".to_string(), format_name_values(fields)),
-        CollectionBody::Binary { path, .. } => ("binary".to_string(), path.clone()),
+        CollectionBody::None => ("none".to_string(), String::new(), "json".to_string()),
+        CollectionBody::Raw { body, content_type } => (
+            "raw".to_string(),
+            body.clone(),
+            raw_body_subtype_from_content_type(content_type),
+        ),
+        CollectionBody::FormData { fields } => (
+            "form".to_string(),
+            format_name_values(fields),
+            "json".to_string(),
+        ),
+        CollectionBody::UrlEncoded { fields } => (
+            "urlenc".to_string(),
+            format_name_values(fields),
+            "json".to_string(),
+        ),
+        CollectionBody::Binary { path, .. } => {
+            ("binary".to_string(), path.clone(), "json".to_string())
+        }
     }
 }
 
@@ -3241,7 +3266,7 @@ fn history_request(
     input: &RequestProjectionInput,
     request_tests: &str,
 ) -> HistoryRequest {
-    let (body_kind, body_preview) = request_body_preview(&request.body);
+    let (body_kind, raw_body_subtype, body_preview) = request_body_preview(&request.body);
     HistoryRequest {
         method: request.method.clone(),
         url: request.url.clone(),
@@ -3250,6 +3275,7 @@ fn history_request(
         auth_mode: input.auth_mode.clone(),
         auth_config: input.auth_config.clone(),
         body_kind,
+        raw_body_subtype,
         body_preview,
         pre_request_script: input.pre_request_script.clone(),
         request_tests: request_tests.to_string(),
@@ -3261,6 +3287,21 @@ fn normalized_history_auth_mode(mode: &str) -> &str {
     if mode.is_empty() { "none" } else { mode }
 }
 
+fn history_body_to_slint(request: &HistoryRequest) -> (String, String) {
+    let body_mode = request.body_kind.trim();
+    let body_mode = if body_mode.is_empty() {
+        "none"
+    } else {
+        body_mode
+    };
+    let raw_body_subtype = if body_mode == "raw" {
+        normalize_raw_body_subtype(&request.raw_body_subtype)
+    } else {
+        "json"
+    };
+    (body_mode.to_string(), raw_body_subtype.to_string())
+}
+
 fn success_history_response(response: &ClientResponse) -> HistoryResponse {
     HistoryResponse {
         status: format!("HTTP {}", response.status),
@@ -3269,15 +3310,30 @@ fn success_history_response(response: &ClientResponse) -> HistoryResponse {
     }
 }
 
-fn request_body_preview(body: &RequestBody) -> (String, String) {
+fn request_body_preview(body: &RequestBody) -> (String, String, String) {
     match body {
-        RequestBody::None => ("none".to_string(), String::new()),
-        RequestBody::Raw { body, .. } => ("raw".to_string(), body.clone()),
-        RequestBody::FormUrlEncoded(fields) => {
-            ("urlenc".to_string(), format_key_value_preview(fields))
+        RequestBody::None => ("none".to_string(), "json".to_string(), String::new()),
+        RequestBody::Raw { body, content_type } => (
+            "raw".to_string(),
+            content_type
+                .as_deref()
+                .map(raw_body_subtype_from_content_type)
+                .unwrap_or_else(|| "json".to_string()),
+            body.clone(),
+        ),
+        RequestBody::FormUrlEncoded(fields) => (
+            "urlenc".to_string(),
+            "json".to_string(),
+            format_key_value_preview(fields),
+        ),
+        RequestBody::Multipart(fields) => (
+            "form".to_string(),
+            "json".to_string(),
+            format_key_value_preview(fields),
+        ),
+        RequestBody::BinaryFile { path, .. } => {
+            ("binary".to_string(), "json".to_string(), path.clone())
         }
-        RequestBody::Multipart(fields) => ("form".to_string(), format_key_value_preview(fields)),
-        RequestBody::BinaryFile { path, .. } => ("binary".to_string(), path.clone()),
     }
 }
 
@@ -3682,7 +3738,12 @@ fn build_unresolved_editor_request(
         url: input.url.trim().to_string(),
         headers,
         query_params,
-        body: build_request_body(&input.body_mode, &input.body, &input.graphql_variables)?,
+        body: build_request_body(
+            &input.body_mode,
+            &input.body,
+            &input.graphql_variables,
+            &input.raw_body_subtype,
+        )?,
     })
 }
 
@@ -3697,7 +3758,12 @@ fn split_key_value_line(line: &str) -> Option<(&str, &str)> {
     Some((&line[..separator], &line[separator + 1..]))
 }
 
-fn build_request_body(mode: &str, input: &str, graphql_variables: &str) -> Result<RequestBody> {
+fn build_request_body(
+    mode: &str,
+    input: &str,
+    graphql_variables: &str,
+    raw_body_subtype: &str,
+) -> Result<RequestBody> {
     match mode {
         "none" => Ok(RequestBody::None),
         "form" => Ok(RequestBody::Multipart(parse_key_value_lines(
@@ -3720,9 +3786,39 @@ fn build_request_body(mode: &str, input: &str, graphql_variables: &str) -> Resul
         }
         "graphql" => build_graphql_request_body(input, graphql_variables),
         _ => Ok(RequestBody::Raw {
-            content_type: Some("application/json".to_string()),
+            content_type: Some(raw_body_content_type(raw_body_subtype).to_string()),
             body: input.to_string(),
         }),
+    }
+}
+
+fn normalize_raw_body_subtype(subtype: &str) -> &'static str {
+    match subtype.trim().to_lowercase().as_str() {
+        "text" | "plain" | "txt" => "text",
+        "xml" => "xml",
+        _ => "json",
+    }
+}
+
+fn raw_body_content_type(subtype: &str) -> &'static str {
+    match normalize_raw_body_subtype(subtype) {
+        "text" => "text/plain",
+        "xml" => "application/xml",
+        _ => "application/json",
+    }
+}
+
+fn raw_body_subtype_from_content_type(content_type: &str) -> String {
+    let normalized = content_type
+        .split(';')
+        .next()
+        .unwrap_or_default()
+        .trim()
+        .to_lowercase();
+    match normalized.as_str() {
+        "text/plain" => "text".to_string(),
+        "application/xml" | "text/xml" => "xml".to_string(),
+        _ => "json".to_string(),
     }
 }
 
@@ -4333,29 +4429,43 @@ mod tests {
     #[test]
     fn builds_request_body_from_slint_mode() {
         assert_eq!(
-            build_request_body("none", "ignored", "").unwrap(),
+            build_request_body("none", "ignored", "", "").unwrap(),
             RequestBody::None
         );
         assert_eq!(
-            build_request_body("raw", "{\"name\":\"Zen\"}", "").unwrap(),
+            build_request_body("raw", "{\"name\":\"Zen\"}", "", "json").unwrap(),
             RequestBody::Raw {
                 content_type: Some("application/json".to_string()),
                 body: "{\"name\":\"Zen\"}".to_string(),
             }
         );
         assert_eq!(
-            build_request_body("urlenc", "search=rust slint\nlimit: 20", "").unwrap(),
+            build_request_body("raw", "hello", "", "text").unwrap(),
+            RequestBody::Raw {
+                content_type: Some("text/plain".to_string()),
+                body: "hello".to_string(),
+            }
+        );
+        assert_eq!(
+            build_request_body("raw", "<ok/>", "", "xml").unwrap(),
+            RequestBody::Raw {
+                content_type: Some("application/xml".to_string()),
+                body: "<ok/>".to_string(),
+            }
+        );
+        assert_eq!(
+            build_request_body("urlenc", "search=rust slint\nlimit: 20", "", "").unwrap(),
             RequestBody::FormUrlEncoded(vec![
                 ("search".to_string(), "rust slint".to_string()),
                 ("limit".to_string(), "20".to_string())
             ])
         );
         assert_eq!(
-            build_request_body("form", "file=@/tmp/upload.txt", "").unwrap(),
+            build_request_body("form", "file=@/tmp/upload.txt", "", "").unwrap(),
             RequestBody::Multipart(vec![("file".to_string(), "@/tmp/upload.txt".to_string())])
         );
         assert_eq!(
-            build_request_body("binary", "/tmp/body.bin", "").unwrap(),
+            build_request_body("binary", "/tmp/body.bin", "", "").unwrap(),
             RequestBody::BinaryFile {
                 path: "/tmp/body.bin".to_string(),
                 content_type: None,
@@ -4365,7 +4475,7 @@ mod tests {
 
     #[test]
     fn rejects_empty_binary_body_path() {
-        let error = build_request_body("binary", "  ", "").expect_err("empty path");
+        let error = build_request_body("binary", "  ", "", "").expect_err("empty path");
 
         assert!(error.to_string().contains("path is empty"));
     }
@@ -4377,6 +4487,7 @@ mod tests {
                 "graphql",
                 "query User($id: ID!) { user(id: $id) { name } }",
                 r#"{"id":"u_123"}"#,
+                "",
             )
             .unwrap(),
             RequestBody::Raw {
@@ -4385,7 +4496,7 @@ mod tests {
             }
         );
 
-        let error = build_request_body("graphql", "{ viewer { id } }", "[]")
+        let error = build_request_body("graphql", "{ viewer { id } }", "[]", "")
             .expect_err("invalid variables");
         assert!(error.to_string().contains("JSON object"));
     }
@@ -4616,6 +4727,7 @@ mod tests {
             auth_mode: "bearer".to_string(),
             auth_config: "{{token}}".to_string(),
             body_mode: "raw".to_string(),
+            raw_body_subtype: "json".to_string(),
             body: "{\"name\":\"{{name}}\"}".to_string(),
             graphql_variables: String::new(),
             pre_request_script: String::new(),
@@ -4657,6 +4769,7 @@ mod tests {
             auth_mode: "none".to_string(),
             auth_config: String::new(),
             body_mode: "none".to_string(),
+            raw_body_subtype: "json".to_string(),
             body: String::new(),
             graphql_variables: String::new(),
             pre_request_script:
@@ -4753,6 +4866,7 @@ mod tests {
                 auth_mode: "none".to_string(),
                 auth_config: String::new(),
                 body_mode: "raw".to_string(),
+                raw_body_subtype: "text".to_string(),
                 body: "{\"name\":\"{{name}}\"}".to_string(),
                 graphql_variables: String::new(),
                 pre_request_script: "set_header X-Mode=test".to_string(),
@@ -4767,6 +4881,13 @@ mod tests {
         assert_eq!(request.url, "{{baseUrl}}/users");
         assert_eq!(request.pre_request_script, "set_header X-Mode=test");
         assert_eq!(request.tests, tests);
+        assert_eq!(
+            request.body,
+            CollectionBody::Raw {
+                content_type: "text/plain".to_string(),
+                body: "{\"name\":\"{{name}}\"}".to_string(),
+            }
+        );
     }
 
     #[test]
@@ -5040,14 +5161,29 @@ mod tests {
                     value: "slint".to_string(),
                 }],
             }),
-            ("urlenc".to_string(), "search=slint".to_string())
+            (
+                "urlenc".to_string(),
+                "search=slint".to_string(),
+                "json".to_string()
+            )
+        );
+        assert_eq!(
+            collection_body_to_slint(&CollectionBody::Raw {
+                content_type: "application/xml; charset=utf-8".to_string(),
+                body: "<ok/>".to_string(),
+            }),
+            ("raw".to_string(), "<ok/>".to_string(), "xml".to_string())
         );
         assert_eq!(
             collection_body_to_slint(&CollectionBody::Binary {
                 path: "/tmp/body.bin".to_string(),
                 content_type: "application/octet-stream".to_string(),
             }),
-            ("binary".to_string(), "/tmp/body.bin".to_string())
+            (
+                "binary".to_string(),
+                "/tmp/body.bin".to_string(),
+                "json".to_string()
+            )
         );
     }
 
@@ -5434,6 +5570,7 @@ mod tests {
             auth_mode: "bearer".to_string(),
             auth_config: "{{token}}".to_string(),
             body_mode: "urlenc".to_string(),
+            raw_body_subtype: "json".to_string(),
             body: "name=Zen\nrole=admin".to_string(),
             graphql_variables: String::new(),
             pre_request_script: "set_header X-Trace=yes".to_string(),
@@ -5452,6 +5589,7 @@ mod tests {
                 auth_mode: "bearer".to_string(),
                 auth_config: "{{token}}".to_string(),
                 body_kind: "urlenc".to_string(),
+                raw_body_subtype: "json".to_string(),
                 body_preview: "name=Zen\nrole=admin".to_string(),
                 pre_request_script: "set_header X-Trace=yes".to_string(),
                 request_tests: "status_equals 201".to_string(),
@@ -5474,6 +5612,7 @@ mod tests {
                 auth_mode: "none".to_string(),
                 auth_config: String::new(),
                 body_kind: "none".to_string(),
+                raw_body_subtype: "json".to_string(),
                 body_preview: String::new(),
                 pre_request_script: String::new(),
                 request_tests: String::new(),
@@ -5494,6 +5633,7 @@ mod tests {
                 auth_mode: "none".to_string(),
                 auth_config: String::new(),
                 body_kind: "raw".to_string(),
+                raw_body_subtype: "json".to_string(),
                 body_preview: "{}".to_string(),
                 pre_request_script: String::new(),
                 request_tests: String::new(),
@@ -5528,6 +5668,7 @@ mod tests {
                 auth_mode: "none".to_string(),
                 auth_config: String::new(),
                 body_kind: "none".to_string(),
+                raw_body_subtype: "json".to_string(),
                 body_preview: String::new(),
                 pre_request_script: String::new(),
                 request_tests: String::new(),
@@ -5548,6 +5689,7 @@ mod tests {
                 auth_mode: "none".to_string(),
                 auth_config: String::new(),
                 body_kind: "raw".to_string(),
+                raw_body_subtype: "json".to_string(),
                 body_preview: "{}".to_string(),
                 pre_request_script: String::new(),
                 request_tests: String::new(),
@@ -5570,28 +5712,40 @@ mod tests {
     fn previews_request_body_modes_for_history() {
         assert_eq!(
             request_body_preview(&RequestBody::None),
-            ("none".to_string(), String::new())
+            ("none".to_string(), "json".to_string(), String::new())
         );
         assert_eq!(
             request_body_preview(&RequestBody::Raw {
-                content_type: Some("application/json".to_string()),
+                content_type: Some("text/plain".to_string()),
                 body: "{\"ok\":true}".to_string(),
             }),
-            ("raw".to_string(), "{\"ok\":true}".to_string())
+            (
+                "raw".to_string(),
+                "text".to_string(),
+                "{\"ok\":true}".to_string()
+            )
         );
         assert_eq!(
             request_body_preview(&RequestBody::Multipart(vec![(
                 "file".to_string(),
                 "@/tmp/upload.txt".to_string()
             )])),
-            ("form".to_string(), "file=@/tmp/upload.txt".to_string())
+            (
+                "form".to_string(),
+                "json".to_string(),
+                "file=@/tmp/upload.txt".to_string()
+            )
         );
         assert_eq!(
             request_body_preview(&RequestBody::BinaryFile {
                 path: "/tmp/body.bin".to_string(),
                 content_type: None,
             }),
-            ("binary".to_string(), "/tmp/body.bin".to_string())
+            (
+                "binary".to_string(),
+                "json".to_string(),
+                "/tmp/body.bin".to_string()
+            )
         );
     }
 

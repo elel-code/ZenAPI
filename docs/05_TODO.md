@@ -55,8 +55,9 @@
   and binary bodies; current Slint baseline has dedicated visible panels for
   no-body, raw text, form-data, URL-encoded, GraphQL query/variables, and
   binary file paths, all mapped into transport modes, with editable rows for
-  form-data and URL-encoded fields. Raw subtype selection, dedicated form file
-  picker controls, and GraphQL schema response helpers still pending.
+  form-data and URL-encoded fields. Raw JSON/Text/XML subtype selection is
+  wired through transport, collection restore, and history restore. Dedicated
+  form file picker controls and GraphQL schema response helpers still pending.
 - [~] Rebuild Auth controls for None, Bearer, Basic, JWT, and API key modes;
   current Slint Request Builder has the dedicated Auth tab, mode buttons, and
   mode-specific config panels wired to transport mapping. API key header/query

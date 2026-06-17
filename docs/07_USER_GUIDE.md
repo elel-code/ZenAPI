@@ -182,11 +182,13 @@ The Body toolbar exposes `none`, `form-data`, `urlenc`, `raw`, `graphql`, and
 controls and store one `key=value` pair per line. Form-data file fields use an
 `@path` prefix.
 
-Raw mode uses the code editor. GraphQL mode builds a payload with `query` and
-`variables`; use `Query` and `Mutation` to fill starter GraphQL documents and
-matching variables. Binary mode accepts a local file path. Raw subtype
-selection, dedicated form file picker controls, and GraphQL schema response
-helpers are still future work.
+Raw mode uses the code editor and exposes `JSON`, `Text`, and `XML` subtype
+buttons. They send raw bodies as `application/json`, `text/plain`, and
+`application/xml`, and saved collection/history entries restore the same
+subtype. GraphQL mode builds a payload with `query` and `variables`; use
+`Query` and `Mutation` to fill starter GraphQL documents and matching
+variables. Binary mode accepts a local file path. Dedicated form file picker
+controls and GraphQL schema response helpers are still future work.
 
 ## WebSocket
 
