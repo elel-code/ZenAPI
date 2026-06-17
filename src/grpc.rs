@@ -75,6 +75,13 @@ pub struct GrpcUnaryResponse {
     pub message: Value,
 }
 
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct GrpcServerStreamingResponse {
+    pub method: String,
+    pub metadata: Vec<GrpcMetadata>,
+    pub messages: Vec<Value>,
+}
+
 impl GrpcMethodDescriptor {
     pub fn full_method_name(&self) -> String {
         let service = if self.package.trim().is_empty() {
@@ -389,6 +396,83 @@ pub async fn invoke_grpc_unary_from_descriptor_bytes(
     let descriptor_set = FileDescriptorSet::decode(descriptor_set_bytes)
         .map_err(|error| anyhow!("failed to decode gRPC descriptor set: {error}"))?;
     invoke_grpc_unary(
+        endpoint,
+        full_method,
+        metadata_lines,
+        message_json,
+        descriptor_set,
+    )
+    .await
+}
+
+pub async fn invoke_grpc_server_streaming(
+    endpoint: &str,
+    full_method: &str,
+    metadata_lines: &str,
+    message_json: &str,
+    descriptor_set: FileDescriptorSet,
+) -> Result<GrpcServerStreamingResponse> {
+    let endpoint = parse_grpc_endpoint(endpoint)?;
+    let (service, method_name) = parse_grpc_method_path(full_method)?;
+    let metadata = parse_grpc_metadata_lines(metadata_lines)?;
+    let message = parse_grpc_message_json(message_json)?;
+    let pool = DescriptorPool::from_file_descriptor_set(descriptor_set)
+        .map_err(|error| anyhow!("failed to build gRPC descriptor pool: {error}"))?;
+    let method = resolve_dynamic_grpc_method(&pool, &service, &method_name)?;
+    if method.is_client_streaming() || !method.is_server_streaming() {
+        bail!("gRPC method {service}/{method_name} is not server streaming");
+    }
+
+    let request_message = dynamic_message_from_json(method.input(), &message)?;
+    let codec = DynamicMessageCodec::new(method.input(), method.output());
+    let channel = Endpoint::from_shared(endpoint.clone())
+        .map_err(|error| anyhow!("invalid gRPC endpoint {endpoint}: {error}"))?
+        .connect()
+        .await
+        .map_err(|error| anyhow!("failed to connect to gRPC endpoint {endpoint}: {error}"))?;
+    let mut client = tonic::client::Grpc::new(channel);
+    let path = tonic::codegen::http::uri::PathAndQuery::from_maybe_shared(format!(
+        "/{service}/{method_name}"
+    ))
+    .map_err(|error| anyhow!("invalid gRPC method path {service}/{method_name}: {error}"))?;
+    let mut request = Request::new(request_message);
+    apply_grpc_metadata(request.metadata_mut(), &metadata)?;
+
+    client
+        .ready()
+        .await
+        .map_err(|error| anyhow!("gRPC endpoint {endpoint} was not ready: {error}"))?;
+    let response = client
+        .server_streaming(request, path, codec)
+        .await
+        .map_err(format_grpc_status_error)?;
+    let response_metadata = grpc_metadata_from_tonic(response.metadata())?;
+    let mut stream = response.into_inner();
+    let mut messages = Vec::new();
+    while let Some(message) = stream.message().await.map_err(format_grpc_status_error)? {
+        messages.push(
+            serde_json::to_value(message)
+                .map_err(|error| anyhow!("failed to serialize gRPC stream message: {error}"))?,
+        );
+    }
+
+    Ok(GrpcServerStreamingResponse {
+        method: format!("{service}/{method_name}"),
+        metadata: response_metadata,
+        messages,
+    })
+}
+
+pub async fn invoke_grpc_server_streaming_from_descriptor_bytes(
+    endpoint: &str,
+    full_method: &str,
+    metadata_lines: &str,
+    message_json: &str,
+    descriptor_set_bytes: &[u8],
+) -> Result<GrpcServerStreamingResponse> {
+    let descriptor_set = FileDescriptorSet::decode(descriptor_set_bytes)
+        .map_err(|error| anyhow!("failed to decode gRPC descriptor set: {error}"))?;
+    invoke_grpc_server_streaming(
         endpoint,
         full_method,
         metadata_lines,
@@ -1263,6 +1347,78 @@ client-streaming demo.v1.Users/UploadUsers demo.v1.UserChunk demo.v1.UploadSumma
         assert!(error.to_string().contains("is not unary"));
     }
 
+    #[tokio::test]
+    async fn invokes_server_streaming_grpc_service_with_dynamic_messages() {
+        let descriptor_set = unary_test_descriptor_set();
+        let pool = DescriptorPool::from_file_descriptor_set(descriptor_set.clone()).expect("pool");
+        let service = TestUsersServer {
+            input: pool
+                .get_message_by_name("demo.v1.GetUserRequest")
+                .expect("request descriptor"),
+            output: pool
+                .get_message_by_name("demo.v1.User")
+                .expect("response descriptor"),
+        };
+
+        let (shutdown_tx, shutdown_rx) = oneshot::channel();
+        let addr: SocketAddr = "127.0.0.1:0".parse().expect("addr");
+        let listener = tokio::net::TcpListener::bind(addr).await.expect("bind");
+        let endpoint = format!("http://{}", listener.local_addr().expect("local addr"));
+        let server = tokio::spawn(async move {
+            Server::builder()
+                .add_service(service)
+                .serve_with_incoming_shutdown(TcpListenerStream::new(listener), async {
+                    let _ = shutdown_rx.await;
+                })
+                .await
+                .expect("streaming test server");
+        });
+
+        let response = invoke_grpc_server_streaming(
+            &endpoint,
+            "/demo.v1.Users/WatchUsers",
+            "x-trace-id=stream-42",
+            r#"{"id":"team"}"#,
+            descriptor_set,
+        )
+        .await
+        .expect("streaming response");
+        shutdown_tx.send(()).expect("shutdown");
+        server.await.expect("server join");
+
+        assert_eq!(response.method, "demo.v1.Users/WatchUsers");
+        assert_eq!(
+            response.messages,
+            vec![
+                json!({ "id": "team-1", "name": "Ada stream-42" }),
+                json!({ "id": "team-2", "name": "Grace stream-42" }),
+            ]
+        );
+        assert!(
+            response
+                .metadata
+                .iter()
+                .any(|item| item.name == "x-served-by" && item.value == "zenapi-test")
+        );
+    }
+
+    #[tokio::test]
+    async fn rejects_non_server_streaming_grpc_invocation() {
+        let descriptor_set = unary_test_descriptor_set();
+
+        let error = invoke_grpc_server_streaming(
+            "http://localhost:1",
+            "/demo.v1.Users/GetUser",
+            "",
+            "{}",
+            descriptor_set,
+        )
+        .await
+        .expect_err("unary method");
+
+        assert!(error.to_string().contains("is not server streaming"));
+    }
+
     fn unary_test_descriptor_set() -> FileDescriptorSet {
         FileDescriptorSet {
             file: vec![FileDescriptorProto {
@@ -1282,12 +1438,21 @@ client-streaming demo.v1.Users/UploadUsers demo.v1.UserChunk demo.v1.UploadSumma
                 ],
                 service: vec![ServiceDescriptorProto {
                     name: Some("Users".to_string()),
-                    method: vec![MethodDescriptorProto {
-                        name: Some("GetUser".to_string()),
-                        input_type: Some(".demo.v1.GetUserRequest".to_string()),
-                        output_type: Some(".demo.v1.User".to_string()),
-                        ..Default::default()
-                    }],
+                    method: vec![
+                        MethodDescriptorProto {
+                            name: Some("GetUser".to_string()),
+                            input_type: Some(".demo.v1.GetUserRequest".to_string()),
+                            output_type: Some(".demo.v1.User".to_string()),
+                            ..Default::default()
+                        },
+                        MethodDescriptorProto {
+                            name: Some("WatchUsers".to_string()),
+                            input_type: Some(".demo.v1.GetUserRequest".to_string()),
+                            output_type: Some(".demo.v1.User".to_string()),
+                            server_streaming: Some(true),
+                            ..Default::default()
+                        },
+                    ],
                     ..Default::default()
                 }],
                 syntax: Some("proto3".to_string()),
@@ -1339,6 +1504,17 @@ client-streaming demo.v1.Users/UploadUsers demo.v1.UserChunk demo.v1.UploadSumma
                     let fut = async move {
                         let mut grpc = tonic::server::Grpc::new(codec);
                         Ok(grpc.unary(method, req).await)
+                    };
+                    Box::pin(fut)
+                }
+                "/demo.v1.Users/WatchUsers" => {
+                    let method = TestWatchUsersSvc {
+                        output: self.output.clone(),
+                    };
+                    let codec = DynamicMessageCodec::new(self.output.clone(), self.input.clone());
+                    let fut = async move {
+                        let mut grpc = tonic::server::Grpc::new(codec);
+                        Ok(grpc.server_streaming(method, req).await)
                     };
                     Box::pin(fut)
                 }
@@ -1395,6 +1571,59 @@ client-streaming demo.v1.Users/UploadUsers demo.v1.UserChunk demo.v1.UploadSumma
                 let message = dynamic_message_from_json(output, &response_json)
                     .map_err(|error| tonic::Status::internal(error.to_string()))?;
                 let mut response = tonic::Response::new(message);
+                response
+                    .metadata_mut()
+                    .insert("x-served-by", "zenapi-test".parse().expect("metadata"));
+                Ok(response)
+            })
+        }
+    }
+
+    #[derive(Clone)]
+    struct TestWatchUsersSvc {
+        output: MessageDescriptor,
+    }
+
+    impl tonic::server::ServerStreamingService<DynamicMessage> for TestWatchUsersSvc {
+        type Response = DynamicMessage;
+        type ResponseStream =
+            futures_util::stream::BoxStream<'static, std::result::Result<DynamicMessage, Status>>;
+        type Future =
+            tonic::codegen::BoxFuture<tonic::Response<Self::ResponseStream>, tonic::Status>;
+
+        fn call(&mut self, request: tonic::Request<DynamicMessage>) -> Self::Future {
+            let output = self.output.clone();
+            Box::pin(async move {
+                let trace_id = request
+                    .metadata()
+                    .get("x-trace-id")
+                    .and_then(|value| value.to_str().ok())
+                    .unwrap_or("missing")
+                    .to_string();
+                let request_message = serde_json::to_value(request.into_inner())
+                    .map_err(|error| tonic::Status::internal(error.to_string()))?;
+                let id = request_message
+                    .get("id")
+                    .and_then(Value::as_str)
+                    .unwrap_or_default();
+                let messages = [
+                    json!({
+                        "id": format!("{id}-1"),
+                        "name": format!("Ada {trace_id}"),
+                    }),
+                    json!({
+                        "id": format!("{id}-2"),
+                        "name": format!("Grace {trace_id}"),
+                    }),
+                ]
+                .into_iter()
+                .map(|value| {
+                    dynamic_message_from_json(output.clone(), &value)
+                        .map_err(|error| tonic::Status::internal(error.to_string()))
+                })
+                .collect::<Vec<_>>();
+                let mut response =
+                    tonic::Response::new(futures_util::stream::iter(messages).boxed());
                 response
                     .metadata_mut()
                     .insert("x-served-by", "zenapi-test".parse().expect("metadata"));

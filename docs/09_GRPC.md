@@ -1,6 +1,6 @@
 # gRPC 支持评估
 
-> 状态: 评估完成，domain draft/catalog validation 已接入 Slint，FileDescriptorSet/proto source/reflection 解析和加载已接入 Slint，unary 传输层和 Slint invoke 面板已实现
+> 状态: 评估完成，domain draft/catalog validation 已接入 Slint，FileDescriptorSet/proto source/reflection 解析和加载已接入 Slint，unary 传输层和 Slint invoke 面板已实现，server streaming 传输层已实现
 > 日期: 2026-06-13
 
 ## 目标
@@ -112,7 +112,7 @@ gRPC 不应塞进 HTTP Body 面板。推荐单独面板或协议工作区：
 7. [x] 接入 Slint reflection 加载到 gRPC method catalog。
 8. [x] 实现 unary 调用传输层和本地 tonic 服务测试。
 9. [x] 接入 Slint unary 面板。
-10. [ ] 再实现 server streaming。
+10. [~] 再实现 server streaming：传输层和本地 tonic 服务测试已完成，Slint stream 控件待接入。
 
 ## 当前结论
 
