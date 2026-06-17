@@ -149,7 +149,8 @@
 
 - [x] `cargo check`
 - [x] `cargo test`
-- [ ] GUI smoke test on Linux Wayland.
+- [x] `cargo build --release`
+- [x] GUI smoke test on Linux Wayland.
 - [ ] GUI smoke test on Linux X11.
 - [ ] Windows build validation.
 - [ ] macOS build validation.
