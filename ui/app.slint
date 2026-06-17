@@ -84,6 +84,7 @@ export component AppWindow inherits Window {
     in-out property <string> grpc_message: "{}";
     in-out property <string> grpc_method_catalog: "unary package.Service/Method package.Request package.Response";
     in-out property <string> grpc_descriptor_path: "";
+    in-out property <string> grpc_protoc_path: "protoc";
     in-out property <string> response_status: "Idle";
     in-out property <string> response_meta: "";
     in-out property <string> response_time: "";
@@ -220,6 +221,7 @@ export component AppWindow inherits Window {
     callback apply_header_preset(string);
     callback build_grpc_draft();
     callback load_grpc_descriptor_set(string);
+    callback load_grpc_proto_file(string, string);
 
     background: Theme.background;
 
@@ -390,6 +392,7 @@ export component AppWindow inherits Window {
                                     grpc_message <=> root.grpc_message;
                                     grpc_method_catalog <=> root.grpc_method_catalog;
                                     grpc_descriptor_path <=> root.grpc_descriptor_path;
+                                    grpc_protoc_path <=> root.grpc_protoc_path;
                                     busy: root.busy;
                                     add_query_param => {
                                         root.add_query_param();
@@ -513,6 +516,9 @@ export component AppWindow inherits Window {
                                     }
                                     load_grpc_descriptor_set(path) => {
                                         root.load_grpc_descriptor_set(path);
+                                    }
+                                    load_grpc_proto_file(path, protoc_path) => {
+                                        root.load_grpc_proto_file(path, protoc_path);
                                     }
                                 }
                             }

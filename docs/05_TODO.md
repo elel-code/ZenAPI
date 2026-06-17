@@ -121,10 +121,9 @@
   introspection templates, plus a visible Realtime gRPC draft surface backed by
   the domain model with optional manual method catalog validation,
   FileDescriptorSet/protoset catalog extraction and Slint protoset load action,
-  direct proto source descriptor extraction in the domain layer, descriptor
-  display plus grpcurl command previews, with GraphQL schema response summaries
-  wired and gRPC reflection/Slint proto source loading plus unary transport
-  still pending.
+  direct proto source descriptor extraction and Slint proto source load action,
+  descriptor display plus grpcurl command previews, with GraphQL schema response
+  summaries wired and gRPC reflection plus unary transport still pending.
 - [~] Add mock request logs and richer mock manager controls; current Slint
   baseline has a dedicated Mock Manager page with endpoint selection,
   start/stop, editable selected route response JSON, real per-route header/query
@@ -166,5 +165,5 @@
 | WebSocket/SSE | Client modules restored | Realtime tab supports one-shot WS text, persistent WS text/binary sends with subprotocols, WebSocket history copy/clear, plus SSE previews, streams, history copy, and clear |
 | Mock logs | Core implemented | Slint baseline shows, filters, clears, and exports recent mock requests |
 | GraphQL | Payload builder implemented | Slint baseline edits query/variables, applies query/mutation/introspection templates, and summarizes introspection responses from the response pane |
-| gRPC | Domain draft + descriptor catalog implemented | Realtime tab validates endpoint, method, metadata, message JSON, optional method catalog entries, FileDescriptorSet/protoset extraction, domain direct proto source loading, Slint protoset loading into the method catalog, and grpcurl command previews; reflection/Slint proto source loading and unary transport pending |
+| gRPC | Domain draft + descriptor catalog implemented | Realtime tab validates endpoint, method, metadata, message JSON, optional method catalog entries, FileDescriptorSet/protoset extraction, Slint protoset/proto source loading into the method catalog, and grpcurl command previews; reflection and unary transport pending |
 | Reference pages | Slint baseline implemented | Dashboard, Request Builder, Mock Manager, Environments, Test Runner, API Docs, API Keys, Team, Project Settings, and Traffic Analytics now have routed reference-aligned page layouts; unwired reference-page action buttons were removed, API Docs snippets use the active request URL/auth state, API Keys mirrors active request auth, Team/Settings show local-only workspace state, and Traffic Analytics reads local session/mock-log data instead of static samples |

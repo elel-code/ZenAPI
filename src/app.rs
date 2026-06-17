@@ -27,7 +27,7 @@ use zenapi::{
     },
     grpc::{
         GrpcRequestDraft, build_grpc_request_draft, format_grpc_method_catalog,
-        load_grpc_file_descriptor_set,
+        load_grpc_file_descriptor_set, load_grpc_proto_file,
     },
     history::{HistoryRequest, HistoryResponse, RequestHistory},
     mock_server::{MockRequestLog, MockServer},
@@ -3545,6 +3545,43 @@ fn wire_grpc_draft(app: &AppWindow) {
             Err(error) => set_response(
                 &app,
                 "gRPC descriptor load failed",
+                path.as_str(),
+                "error",
+                &error.to_string(),
+            ),
+        }
+    });
+
+    let weak_app = app.as_weak();
+    app.on_load_grpc_proto_file(move |path, protoc_path| {
+        let Some(app) = weak_app.upgrade() else {
+            return;
+        };
+        if app.get_busy() {
+            return;
+        }
+
+        let protoc_path = protoc_path.trim();
+        let protoc_path = if protoc_path.is_empty() {
+            "protoc"
+        } else {
+            protoc_path
+        };
+        match load_grpc_proto_file(path.as_str(), &[], protoc_path) {
+            Ok(descriptors) => {
+                let catalog = format_grpc_method_catalog(&descriptors);
+                set_response(
+                    &app,
+                    "gRPC proto loaded",
+                    &format!("{} methods", descriptors.len()),
+                    "success",
+                    &catalog,
+                );
+                app.set_grpc_method_catalog(catalog.into());
+            }
+            Err(error) => set_response(
+                &app,
+                "gRPC proto load failed",
                 path.as_str(),
                 "error",
                 &error.to_string(),

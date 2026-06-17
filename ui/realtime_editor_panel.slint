@@ -17,6 +17,7 @@ export component RealtimeEditorPanel inherits Rectangle {
     in-out property <string> grpc_message;
     in-out property <string> grpc_method_catalog;
     in-out property <string> grpc_descriptor_path;
+    in-out property <string> grpc_protoc_path;
     in property <bool> busy;
     callback open_websocket();
     callback run_websocket();
@@ -30,6 +31,7 @@ export component RealtimeEditorPanel inherits Rectangle {
     callback clear_sse_events();
     callback build_grpc_draft();
     callback load_grpc_descriptor_set(string);
+    callback load_grpc_proto_file(string, string);
 
     horizontal-stretch: 1;
     vertical-stretch: 1;
@@ -387,7 +389,7 @@ export component RealtimeEditorPanel inherits Rectangle {
 
                         TextField {
                             text <=> root.grpc_descriptor_path;
-                            placeholder: "/absolute/path/to/schema.protoset";
+                            placeholder: "/absolute/path/to/schema.protoset or schema.proto";
                             mono: true;
                             enabled: !root.busy;
                             horizontal-stretch: 1;
@@ -399,11 +401,38 @@ export component RealtimeEditorPanel inherits Rectangle {
                         }
 
                         ActionButton {
-                            text: "Load";
-                            button_width: 58px;
+                            text: "Set";
+                            button_width: 46px;
                             enabled: !root.busy && root.grpc_descriptor_path != "";
                             clicked => {
                                 root.load_grpc_descriptor_set(root.grpc_descriptor_path);
+                            }
+                        }
+
+                        ActionButton {
+                            text: "Proto";
+                            button_width: 58px;
+                            enabled: !root.busy && root.grpc_descriptor_path != "";
+                            clicked => {
+                                root.load_grpc_proto_file(root.grpc_descriptor_path, root.grpc_protoc_path);
+                            }
+                        }
+                    }
+
+                    HorizontalLayout {
+                        height: 34px;
+                        spacing: 8px;
+
+                        TextField {
+                            text <=> root.grpc_protoc_path;
+                            placeholder: "protoc";
+                            mono: true;
+                            enabled: !root.busy;
+                            horizontal-stretch: 1;
+                            accepted => {
+                                if !root.busy && root.grpc_descriptor_path != "" {
+                                    root.load_grpc_proto_file(root.grpc_descriptor_path, root.grpc_protoc_path);
+                                }
                             }
                         }
                     }
