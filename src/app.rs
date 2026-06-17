@@ -2041,6 +2041,44 @@ fn wire_test_assertion_actions(app: &AppWindow) {
     });
 
     let weak_app = app.as_weak();
+    app.on_add_custom_test_assertion(move |kind, target, expected| {
+        let Some(app) = weak_app.upgrade() else {
+            return;
+        };
+        if app.get_busy() {
+            return;
+        }
+
+        match add_custom_test_assertion_text(
+            app.get_request_tests().as_str(),
+            kind.as_str(),
+            target.as_str(),
+            expected.as_str(),
+        ) {
+            Ok(updated) => {
+                app.set_request_tests(updated.into());
+                refresh_test_assertion_rows(&app);
+                set_response(
+                    &app,
+                    "Test assertion added",
+                    kind.as_str(),
+                    "success",
+                    "Custom assertion row appended.",
+                );
+            }
+            Err(error) => {
+                set_response(
+                    &app,
+                    "Test assertion failed",
+                    "",
+                    "error",
+                    &error.to_string(),
+                );
+            }
+        }
+    });
+
+    let weak_app = app.as_weak();
     app.on_update_test_assertion_row(move |row_id, kind, target, expected| {
         let Some(app) = weak_app.upgrade() else {
             return;
@@ -5408,6 +5446,17 @@ fn add_test_assertion_template_text(input: &str, template: &str) -> Result<Strin
     ))
 }
 
+fn add_custom_test_assertion_text(
+    input: &str,
+    kind: &str,
+    target: &str,
+    expected: &str,
+) -> Result<String> {
+    let line = format_test_assertion_line(kind, target, expected);
+    parse_response_assertion_line(&line)?;
+    Ok(append_test_assertion_line(input, &line))
+}
+
 fn append_test_assertion_line(input: &str, new_line: &str) -> String {
     if input.trim().is_empty() {
         new_line.to_string()
@@ -7333,10 +7382,21 @@ mod tests {
             "status_equals 200\njson_path_equals data.id 1"
         );
         assert_eq!(
+            add_custom_test_assertion_text("status_equals 200", "status_in_range", "200", "299",)
+                .unwrap(),
+            "status_equals 200\nstatus_in_range 200 299"
+        );
+        assert_eq!(
+            add_custom_test_assertion_text("", "body_contains", "ready", "").unwrap(),
+            "body_contains ready"
+        );
+        assert_eq!(
             test_assertion_template("range"),
             Some(("status_in_range", "200", "299"))
         );
         assert!(add_test_assertion_template_text(input, "unknown").is_err());
+        assert!(add_custom_test_assertion_text(input, "unknown", "x", "").is_err());
+        assert!(add_custom_test_assertion_text(input, "status_in_range", "200", "").is_err());
         assert_eq!(
             delete_test_assertion_text(input, 0),
             "# keep\nheader_equals content-type application/json\nbody_contains ok"

@@ -106,8 +106,8 @@
   with Kind/Target/Expect fields and add/delete controls, applies pre-request
   actions during send/codegen, evaluates native tests after single sends, and
   saves/restores both fields with collection requests. Kind cycling and Status,
-  Header, Body, and JSON assertion template builders are wired; richer custom
-  builders are still pending.
+  Header, Body, and JSON assertion template builders are wired, plus a custom
+  Kind/Target/Expect builder that validates against the native assertion parser.
 - [~] Rebuild WebSocket and SSE panels using the restored client modules;
   current Slint Request Builder has a visible Realtime tab with WebSocket
   one-shot text send, persistent open/send/close text and binary sessions with
@@ -153,7 +153,7 @@
 | History | Domain implemented | Slint baseline records, filters, deletes, restores, and persists recent requests |
 | Codegen | Domain + Slint page implemented | Dedicated page generates, copies, and saves snippets |
 | Runner | Domain + Slint page + CLI implemented | Dedicated page runs/cancels collections and saves reports; CLI remains stable |
-| Assertions/scripts | Domain implemented | Slint baseline edits, saves, restores, and evaluates native scripts/tests |
+| Assertions/scripts | Domain implemented | Slint baseline edits, builds, saves, restores, and evaluates native scripts/tests |
 | WebSocket/SSE | Client modules restored | Realtime tab supports one-shot WS text, persistent WS text/binary sends with subprotocols, WebSocket history copy/clear, plus SSE previews, streams, history copy, and clear |
 | Mock logs | Core implemented | Slint baseline shows, filters, clears, and exports recent mock requests |
 | GraphQL | Payload builder implemented | Slint baseline edits query/variables and applies query, mutation, and introspection templates |

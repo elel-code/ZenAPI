@@ -132,8 +132,8 @@ pre-request action names and target fields, but not action values.
 The request editor includes a native Tests panel for response assertions. The
 Slint panel uses editable rows with `Kind`, `Target`, and `Expect` fields plus
 `Add`, template builder, and `Del` controls. The `Status`, `Header`, `Body`,
-and `JSON` template buttons append common assertion rows. Supported kinds
-include:
+and `JSON` template buttons append common assertion rows. The custom builder
+fields append a parser-validated row with `Build`. Supported kinds include:
 
 - `status_equals`: status equals.
 - `status_in_range`: status is within a range.

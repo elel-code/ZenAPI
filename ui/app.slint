@@ -421,8 +421,12 @@ component TestAssertionLine inherits Rectangle {
 component TestAssertionEditorPanel inherits Rectangle {
     in-out property <[TestAssertionRow]> rows;
     in property <bool> busy: false;
+    property <string> custom_kind: "status_equals";
+    property <string> custom_target: "200";
+    property <string> custom_expected: "";
     callback add_row();
     callback add_template_row(string);
+    callback add_custom_row(string, string, string);
     callback update_row(int, string, string, string);
     callback cycle_kind_row(int, string);
     callback delete_row(int);
@@ -471,6 +475,50 @@ component TestAssertionEditorPanel inherits Rectangle {
                 enabled: !root.busy;
                 clicked => {
                     root.add_template_row(template.name);
+                }
+            }
+        }
+
+        HorizontalLayout {
+            height: 34px;
+            spacing: 8px;
+            alignment: center;
+
+            TextField {
+                text <=> root.custom_kind;
+                placeholder: "kind";
+                mono: true;
+                enabled: !root.busy;
+                horizontal-stretch: 1;
+            }
+
+            TextField {
+                text <=> root.custom_target;
+                placeholder: "target";
+                mono: true;
+                enabled: !root.busy;
+                horizontal-stretch: 1;
+            }
+
+            TextField {
+                text <=> root.custom_expected;
+                placeholder: "expected";
+                mono: true;
+                enabled: !root.busy;
+                horizontal-stretch: 1;
+                accepted => {
+                    if !root.busy && root.custom_kind != "" && root.custom_target != "" {
+                        root.add_custom_row(root.custom_kind, root.custom_target, root.custom_expected);
+                    }
+                }
+            }
+
+            ActionButton {
+                text: "Build";
+                button_width: 58px;
+                enabled: !root.busy && root.custom_kind != "" && root.custom_target != "";
+                clicked => {
+                    root.add_custom_row(root.custom_kind, root.custom_target, root.custom_expected);
                 }
             }
         }
@@ -2362,6 +2410,7 @@ component RequestPanel inherits Rectangle {
     callback delete_body_field_row(int);
     callback add_test_assertion();
     callback add_test_assertion_template(string);
+    callback add_custom_test_assertion(string, string, string);
     callback update_test_assertion_row(int, string, string, string);
     callback cycle_test_assertion_kind(int, string);
     callback delete_test_assertion_row(int);
@@ -2791,6 +2840,9 @@ component RequestPanel inherits Rectangle {
                     }
                     add_template_row(template) => {
                         root.add_test_assertion_template(template);
+                    }
+                    add_custom_row(kind, target, expected) => {
+                        root.add_custom_test_assertion(kind, target, expected);
                     }
                     update_row(row_id, kind, target, expected) => {
                         root.update_test_assertion_row(row_id, kind, target, expected);
@@ -6246,6 +6298,7 @@ export component AppWindow inherits Window {
     callback delete_body_field_row(int);
     callback add_test_assertion();
     callback add_test_assertion_template(string);
+    callback add_custom_test_assertion(string, string, string);
     callback update_test_assertion_row(int, string, string, string);
     callback cycle_test_assertion_kind(int, string);
     callback delete_test_assertion_row(int);
@@ -6554,6 +6607,9 @@ export component AppWindow inherits Window {
                                     }
                                     add_test_assertion_template(template) => {
                                         root.add_test_assertion_template(template);
+                                    }
+                                    add_custom_test_assertion(kind, target, expected) => {
+                                        root.add_custom_test_assertion(kind, target, expected);
                                     }
                                     update_test_assertion_row(row_id, kind, target, expected) => {
                                         root.update_test_assertion_row(row_id, kind, target, expected);
