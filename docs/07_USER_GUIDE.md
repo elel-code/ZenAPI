@@ -275,15 +275,17 @@ Supported actions:
 - Export Postman Collection v2.1 JSON with `PM`.
 - Save the current request to the collection.
 - Create a root-level folder with the folder name field and `Folder`.
+- Select a folder row, then use the folder name field and `Folder` to create a
+  nested child folder.
 - Restore a collection request into the request builder.
-- Show imported collection folders as non-clickable tree rows in the sidebar.
+- Show and select imported collection folders as tree rows in the sidebar.
 - Rename the selected request with the request name field and `Ren`.
 - Duplicate a saved request from the sidebar list with `Dup`.
 - Delete a saved request from the sidebar list with `Del`.
 
 Native JSON is the current default storage format. Bru-style text export is
-planned as a future Git-friendly option. Nested folder creation/reparenting and
-drag/drop controls are still future work.
+planned as a future Git-friendly option. Folder reparenting and drag/drop
+controls are still future work.
 
 ## History
 

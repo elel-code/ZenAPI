@@ -615,6 +615,7 @@ fn wire_collection_actions(app: &AppWindow, state: Arc<Mutex<AppState>>) {
                 app.set_collection_rows(rows);
                 app.set_collection_status(format!("Loaded {request_count} requests").into());
                 app.set_selected_collection_request(-1);
+                app.set_selected_collection_folder("".into());
                 app.set_collection_request_name("".into());
                 set_response(
                     &app,
@@ -745,12 +746,18 @@ fn wire_collection_actions(app: &AppWindow, state: Arc<Mutex<AppState>>) {
             return;
         }
 
-        let Some((folder_name, request_count, rows)) =
+        let selected_folder = app.get_selected_collection_folder().to_string();
+        let Some((folder_name, parent_label, request_count, rows)) =
             folder_state.lock().ok().and_then(|mut state| {
-                let folder_name = add_collection_folder(&mut state.collection, name.as_str())?;
+                let folder_name = add_collection_folder_in(
+                    &mut state.collection,
+                    &selected_folder,
+                    name.as_str(),
+                )?;
+                let parent_label = collection_folder_label(&selected_folder);
                 let request_count = count_collection_requests(&state.collection.items);
                 let rows = collection_model(&state.collection);
-                Some((folder_name, request_count, rows))
+                Some((folder_name, parent_label, request_count, rows))
             })
         else {
             app.set_collection_status("Folder add failed".into());
@@ -772,7 +779,7 @@ fn wire_collection_actions(app: &AppWindow, state: Arc<Mutex<AppState>>) {
             "Collection folder added",
             &folder_name,
             "success",
-            "Folder created at the collection root.",
+            &format!("Folder created under {parent_label}."),
         );
     });
 
@@ -3333,27 +3340,31 @@ fn update_selected_mock_response(
 fn collection_model(collection: &ApiCollection) -> ModelRc<CollectionRow> {
     let mut rows = Vec::new();
     let mut next_id = 0;
-    collect_collection_rows(&collection.items, 0, &mut next_id, &mut rows);
+    collect_collection_rows(&collection.items, 0, &[], &mut next_id, &mut rows);
     ModelRc::new(VecModel::from_iter(rows))
 }
 
 fn collect_collection_rows(
     items: &[CollectionItem],
     depth: usize,
+    folder_path: &[String],
     next_id: &mut i32,
     rows: &mut Vec<CollectionRow>,
 ) {
     for item in items {
         match item {
             CollectionItem::Folder(folder) => {
+                let mut current_path = folder_path.to_vec();
+                current_path.push(folder.name.clone());
                 rows.push(CollectionRow {
                     id: -1,
                     method: String::new().into(),
                     name: indented_collection_label(depth, &folder.name).into(),
                     url: String::new().into(),
                     is_folder: true,
+                    folder_path: collection_folder_path_key(&current_path).into(),
                 });
-                collect_collection_rows(&folder.items, depth + 1, next_id, rows);
+                collect_collection_rows(&folder.items, depth + 1, &current_path, next_id, rows);
             }
             CollectionItem::Request(request) => {
                 rows.push(CollectionRow {
@@ -3362,6 +3373,7 @@ fn collect_collection_rows(
                     name: indented_collection_label(depth, &request.name).into(),
                     url: request.url.clone().into(),
                     is_folder: false,
+                    folder_path: String::new().into(),
                 });
                 *next_id += 1;
             }
@@ -3373,21 +3385,72 @@ fn indented_collection_label(depth: usize, name: &str) -> String {
     format!("{}{}", "  ".repeat(depth), name)
 }
 
-fn add_collection_folder(collection: &mut ApiCollection, name: &str) -> Option<String> {
+fn add_collection_folder_in(
+    collection: &mut ApiCollection,
+    parent_path_key: &str,
+    name: &str,
+) -> Option<String> {
     let name = name.trim();
     if name.is_empty() {
         return None;
     }
 
-    collection
-        .items
-        .push(CollectionItem::Folder(CollectionFolder {
-            name: name.to_string(),
-            description: String::new(),
-            items: Vec::new(),
-        }));
+    let folder = CollectionItem::Folder(CollectionFolder {
+        name: name.to_string(),
+        description: String::new(),
+        items: Vec::new(),
+    });
+
+    let parent_path = parse_collection_folder_path_key(parent_path_key)?;
+    if parent_path.is_empty() {
+        collection.items.push(folder);
+        return Some(name.to_string());
+    }
+
+    let parent = collection_folder_items_mut(&mut collection.items, &parent_path)?;
+    parent.push(folder);
 
     Some(name.to_string())
+}
+
+fn collection_folder_items_mut<'a>(
+    items: &'a mut Vec<CollectionItem>,
+    folder_path: &[String],
+) -> Option<&'a mut Vec<CollectionItem>> {
+    let (current, rest) = folder_path.split_first()?;
+    let folder = items.iter_mut().find_map(|item| match item {
+        CollectionItem::Folder(folder) if folder.name.as_str() == current.as_str() => Some(folder),
+        _ => None,
+    })?;
+
+    if rest.is_empty() {
+        Some(&mut folder.items)
+    } else {
+        collection_folder_items_mut(&mut folder.items, rest)
+    }
+}
+
+fn collection_folder_path_key(folder_path: &[String]) -> String {
+    serde_json::to_string(folder_path).unwrap_or_else(|_| "[]".to_string())
+}
+
+fn parse_collection_folder_path_key(folder_path_key: &str) -> Option<Vec<String>> {
+    let trimmed = folder_path_key.trim();
+    if trimmed.is_empty() {
+        return Some(Vec::new());
+    }
+    serde_json::from_str(trimmed).ok()
+}
+
+fn collection_folder_label(folder_path_key: &str) -> String {
+    let Some(path) = parse_collection_folder_path_key(folder_path_key) else {
+        return "Collection".to_string();
+    };
+    if path.is_empty() {
+        "Collection".to_string()
+    } else {
+        path.join(" / ")
+    }
 }
 
 fn count_collection_requests(items: &[CollectionItem]) -> usize {
@@ -6701,6 +6764,7 @@ mod tests {
         assert!(users.is_folder);
         assert_eq!(users.id, -1);
         assert_eq!(users.name.as_str(), "Users");
+        assert_eq!(users.folder_path.as_str(), r#"["Users"]"#);
 
         let list = rows.row_data(1).expect("list request row");
         assert!(!list.is_folder);
@@ -6711,6 +6775,7 @@ mod tests {
         assert!(admin.is_folder);
         assert_eq!(admin.id, -1);
         assert_eq!(admin.name.as_str(), "  Admin");
+        assert_eq!(admin.folder_path.as_str(), r#"["Users","Admin"]"#);
 
         let suspend = rows.row_data(3).expect("nested request row");
         assert!(!suspend.is_folder);
@@ -6721,6 +6786,7 @@ mod tests {
         assert!(!health.is_folder);
         assert_eq!(health.id, 2);
         assert_eq!(health.name.as_str(), "Health");
+        assert_eq!(health.folder_path.as_str(), "");
     }
 
     #[test]
@@ -6729,9 +6795,9 @@ mod tests {
 
         let mut collection = ApiCollection::new("Demo");
 
-        assert!(add_collection_folder(&mut collection, "   ").is_none());
+        assert!(add_collection_folder_in(&mut collection, "", "   ").is_none());
         assert_eq!(
-            add_collection_folder(&mut collection, " Admin "),
+            add_collection_folder_in(&mut collection, "", " Admin "),
             Some("Admin".to_string())
         );
         assert_eq!(collection.items.len(), 1);
@@ -6742,6 +6808,48 @@ mod tests {
         assert!(folder.is_folder);
         assert_eq!(folder.id, -1);
         assert_eq!(folder.name.as_str(), "Admin");
+        assert_eq!(folder.folder_path.as_str(), r#"["Admin"]"#);
+    }
+
+    #[test]
+    fn adds_nested_collection_folder_under_selected_path() {
+        use slint::Model;
+
+        let mut collection = ApiCollection {
+            name: "Demo".to_string(),
+            description: String::new(),
+            items: vec![CollectionItem::Folder(
+                zenapi::collections::CollectionFolder {
+                    name: "Users".to_string(),
+                    description: String::new(),
+                    items: vec![CollectionItem::Folder(
+                        zenapi::collections::CollectionFolder {
+                            name: "Admin".to_string(),
+                            description: String::new(),
+                            items: Vec::new(),
+                        },
+                    )],
+                },
+            )],
+        };
+
+        assert_eq!(
+            add_collection_folder_in(&mut collection, r#"["Users","Admin"]"#, "Audit"),
+            Some("Audit".to_string())
+        );
+        assert!(add_collection_folder_in(&mut collection, r#"["Missing"]"#, "Nope").is_none());
+
+        let rows = collection_model(&collection);
+        assert_eq!(rows.row_count(), 3);
+
+        let audit = rows.row_data(2).expect("audit folder row");
+        assert!(audit.is_folder);
+        assert_eq!(audit.name.as_str(), "    Audit");
+        assert_eq!(audit.folder_path.as_str(), r#"["Users","Admin","Audit"]"#);
+        assert_eq!(
+            collection_folder_label(r#"["Users","Admin"]"#),
+            "Users / Admin"
+        );
     }
 
     #[test]

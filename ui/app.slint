@@ -21,6 +21,7 @@ export struct CollectionRow {
     name: string,
     url: string,
     is_folder: bool,
+    folder_path: string,
 }
 
 export struct RunnerRow {
@@ -733,11 +734,21 @@ component SidebarProfile inherits Rectangle {
 component SidebarFolderRow inherits Rectangle {
     in property <string> label;
     in property <bool> selected: false;
+    in property <bool> interactive: false;
+    callback picked();
 
     height: 36px;
     horizontal-stretch: 1;
     border-radius: 8px;
-    background: root.selected ? #00a572 : transparent;
+    background: root.selected ? #00a572 : touch.has-hover && root.interactive ? Theme.surface_container_high : transparent;
+
+    touch := TouchArea {
+        enabled: root.interactive;
+        mouse-cursor: pointer;
+        clicked => {
+            root.picked();
+        }
+    }
 
     Rectangle {
         x: 10px;
@@ -871,6 +882,7 @@ component Sidebar inherits Rectangle {
     in-out property <string> mock_log_path;
     in-out property <string> collection_path;
     in-out property <int> selected_collection_request;
+    in-out property <string> selected_collection_folder;
     in-out property <string> collection_request_name;
     in-out property <string> collection_folder_name;
     in-out property <string> collection_name;
@@ -1001,7 +1013,13 @@ component Sidebar inherits Rectangle {
 
                 SidebarFolderRow {
                     label: root.collection_name == "" ? "Collection" : root.collection_name;
-                    selected: true;
+                    selected: root.selected_collection_folder == "" && root.selected_collection_request < 0;
+                    interactive: true;
+                    picked => {
+                        root.selected_collection_folder = "";
+                        root.selected_collection_request = -1;
+                        root.collection_request_name = "";
+                    }
                 }
 
                 HorizontalLayout {
@@ -1068,7 +1086,13 @@ component Sidebar inherits Rectangle {
 
                             if entry.is_folder: SidebarFolderRow {
                                 label: entry.name;
-                                selected: false;
+                                selected: root.selected_collection_folder == entry.folder_path;
+                                interactive: true;
+                                picked => {
+                                    root.selected_collection_folder = entry.folder_path;
+                                    root.selected_collection_request = -1;
+                                    root.collection_request_name = "";
+                                }
                             }
 
                             if !entry.is_folder: SidebarRequestLink {
@@ -1077,6 +1101,7 @@ component Sidebar inherits Rectangle {
                                 selected: root.selected_collection_request == entry.id;
                                 picked => {
                                     root.selected_collection_request = entry.id;
+                                    root.selected_collection_folder = "";
                                     root.select_collection_request(entry.id);
                                 }
                             }
@@ -5814,6 +5839,7 @@ export component AppWindow inherits Window {
     in-out property <[KeyValueTableRow]> header_rows;
     in-out property <int> total_route_count: 0;
     in-out property <int> selected_collection_request: -1;
+    in-out property <string> selected_collection_folder: "";
     in-out property <string> collection_request_name: "";
     in-out property <string> collection_folder_name: "";
     in-out property <string> server_status: "Stopped";
@@ -5962,6 +5988,7 @@ export component AppWindow inherits Window {
                             mock_log_path <=> root.mock_log_path;
                             collection_path <=> root.collection_path;
                             selected_collection_request <=> root.selected_collection_request;
+                            selected_collection_folder <=> root.selected_collection_folder;
                             collection_request_name <=> root.collection_request_name;
                             collection_folder_name <=> root.collection_folder_name;
                             collection_name <=> root.collection_name;
