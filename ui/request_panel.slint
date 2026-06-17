@@ -1,0 +1,1446 @@
+import { ListView } from "std-widgets.slint";
+import { Theme } from "theme.slint";
+import { KeyValueTableRow, TestAssertionRow } from "types.slint";
+import { ActionButton, BodyModeButton, CodePane, DataPanel, LabeledEditor, TextField, UiText, WorkspaceTab } from "widgets.slint";
+import { RealtimeEditorPanel } from "realtime_editor_panel.slint";
+
+component KeyValueTableLine inherits Rectangle {
+    in property <int> row_id;
+    in-out property <string> key;
+    in-out property <string> value;
+    in property <bool> enabled: true;
+    callback edited(int, string, string);
+    callback delete_requested(int);
+
+    height: 44px;
+    horizontal-stretch: 1;
+    border-radius: 6px;
+    border-width: 1px;
+    border-color: Theme.outline_variant;
+    background: row_touch.has-hover ? Theme.surface_container_high : Theme.surface_container_low;
+
+    row_touch := TouchArea {}
+
+    TextField {
+        x: 10px;
+        y: 5px;
+        width: 154px;
+        height: 34px;
+        text <=> root.key;
+        placeholder: "key";
+        mono: true;
+        enabled: root.enabled;
+        edited => {
+            root.edited(root.row_id, root.key, root.value);
+        }
+    }
+
+    TextField {
+        x: 176px;
+        y: 5px;
+        width: parent.width - 240px;
+        height: 34px;
+        text <=> root.value;
+        placeholder: "value";
+        mono: true;
+        enabled: root.enabled;
+        edited => {
+            root.edited(root.row_id, root.key, root.value);
+        }
+    }
+
+    ActionButton {
+        x: parent.width - 54px;
+        y: 5px;
+        text: "Del";
+        button_width: 44px;
+        warning: true;
+        enabled: root.enabled;
+        clicked => {
+            root.delete_requested(root.row_id);
+        }
+    }
+}
+
+component KeyValueTablePanel inherits Rectangle {
+    in-out property <[KeyValueTableRow]> rows;
+    in property <string> title;
+    in property <string> key_header: "Key";
+    in property <string> value_header: "Value";
+    in property <string> helper: "";
+    in property <bool> busy: false;
+    in property <bool> show_paste: false;
+    in property <bool> show_import: false;
+    in-out property <string> import_path;
+    in property <bool> show_file_attach: false;
+    in-out property <string> file_field;
+    in-out property <string> file_path;
+    callback add_row();
+    callback paste_rows();
+    callback import_rows(string);
+    callback add_file_row(string, string);
+    callback update_row(int, string, string);
+    callback delete_row(int);
+
+    horizontal-stretch: 1;
+    vertical-stretch: 1;
+    background: transparent;
+
+    VerticalLayout {
+        padding: 0px;
+        spacing: 8px;
+
+        HorizontalLayout {
+            height: 28px;
+            spacing: 8px;
+            alignment: center;
+
+            UiText {
+                text: root.title;
+                horizontal-stretch: 1;
+                height: parent.height;
+                color: Theme.on_surface_variant;
+                font-size: 12px;
+                font-weight: 800;
+                vertical-alignment: center;
+                overflow: elide;
+            }
+
+            ActionButton {
+                text: "+";
+                button_width: 34px;
+                enabled: !root.busy;
+                clicked => {
+                    root.add_row();
+                }
+            }
+
+            if root.show_paste: ActionButton {
+                text: "Paste";
+                button_width: 58px;
+                enabled: !root.busy;
+                clicked => {
+                    root.paste_rows();
+                }
+            }
+        }
+
+        if root.show_import: HorizontalLayout {
+            height: 34px;
+            spacing: 8px;
+
+            TextField {
+                text <=> root.import_path;
+                placeholder: "key-value file path";
+                mono: true;
+                enabled: !root.busy;
+            }
+
+            ActionButton {
+                text: "Import";
+                button_width: 68px;
+                enabled: !root.busy && root.import_path != "";
+                clicked => {
+                    root.import_rows(root.import_path);
+                }
+            }
+        }
+
+        if root.show_file_attach: HorizontalLayout {
+            height: 34px;
+            spacing: 8px;
+
+            TextField {
+                text <=> root.file_field;
+                placeholder: "file field";
+                mono: true;
+                enabled: !root.busy;
+            }
+
+            TextField {
+                text <=> root.file_path;
+                placeholder: "/absolute/path/to/file";
+                mono: true;
+                enabled: !root.busy;
+            }
+
+            ActionButton {
+                text: "Add File";
+                button_width: 76px;
+                enabled: !root.busy && root.file_field != "" && root.file_path != "";
+                clicked => {
+                    root.add_file_row(root.file_field, root.file_path);
+                }
+            }
+        }
+
+        Rectangle {
+            height: 30px;
+            horizontal-stretch: 1;
+            border-radius: 6px;
+            border-width: 1px;
+            border-color: Theme.outline_variant;
+            background: Theme.surface_container;
+
+            UiText {
+                x: 14px;
+                text: root.key_header;
+                width: 150px;
+                height: parent.height;
+                color: Theme.on_surface_variant;
+                font-size: 12px;
+                font-weight: 800;
+                vertical-alignment: center;
+                overflow: elide;
+            }
+
+            Rectangle {
+                x: 172px;
+                y: 6px;
+                width: 1px;
+                height: parent.height - 12px;
+                background: Theme.outline_variant;
+            }
+
+            UiText {
+                x: 184px;
+                text: root.value_header;
+                width: parent.width - 244px;
+                height: parent.height;
+                color: Theme.on_surface_variant;
+                font-size: 12px;
+                font-weight: 800;
+                vertical-alignment: center;
+                overflow: elide;
+            }
+        }
+
+        Rectangle {
+            horizontal-stretch: 1;
+            vertical-stretch: 1;
+            background: transparent;
+
+            if root.rows.length == 0: UiText {
+                text: "No rows";
+                width: parent.width;
+                height: 32px;
+                color: Theme.outline;
+                font-size: 12px;
+                vertical-alignment: center;
+                overflow: elide;
+            }
+
+            if root.rows.length != 0: ListView {
+                width: parent.width;
+                height: parent.height;
+                vertical-scrollbar-policy: ScrollBarPolicy.as-needed;
+                horizontal-scrollbar-policy: ScrollBarPolicy.as-needed;
+
+                for row in root.rows: KeyValueTableLine {
+                    row_id: row.row_id;
+                    key: row.key;
+                    value: row.value;
+                    enabled: !root.busy;
+                    edited(row_id, key, value) => {
+                        root.update_row(row_id, key, value);
+                    }
+                    delete_requested(row_id) => {
+                        root.delete_row(row_id);
+                    }
+                }
+            }
+        }
+
+        if root.helper != "": UiText {
+            text: root.helper;
+            height: 18px;
+            horizontal-stretch: 1;
+            color: Theme.outline;
+            font-size: 12px;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+    }
+}
+
+component TestAssertionLine inherits Rectangle {
+    in property <int> row_id;
+    in-out property <string> kind;
+    in-out property <string> target;
+    in-out property <string> expected;
+    in property <bool> enabled: true;
+    callback edited(int, string, string, string);
+    callback cycle_kind_requested(int, string);
+    callback delete_requested(int);
+
+    height: 44px;
+    horizontal-stretch: 1;
+    border-radius: 6px;
+    border-width: 1px;
+    border-color: Theme.outline_variant;
+    background: row_touch.has-hover ? Theme.surface_container_high : Theme.surface_container_low;
+
+    row_touch := TouchArea {}
+
+    ActionButton {
+        x: 10px;
+        y: 5px;
+        text: "Kind";
+        button_width: 52px;
+        enabled: root.enabled;
+        clicked => {
+            root.cycle_kind_requested(root.row_id, root.kind);
+        }
+    }
+
+    TextField {
+        x: 70px;
+        y: 5px;
+        width: 116px;
+        height: 34px;
+        text <=> root.kind;
+        placeholder: "status_equals";
+        mono: true;
+        enabled: root.enabled;
+        edited => {
+            root.edited(root.row_id, root.kind, root.target, root.expected);
+        }
+    }
+
+    TextField {
+        x: 198px;
+        y: 5px;
+        width: 118px;
+        height: 34px;
+        text <=> root.target;
+        placeholder: "target";
+        mono: true;
+        enabled: root.enabled;
+        edited => {
+            root.edited(root.row_id, root.kind, root.target, root.expected);
+        }
+    }
+
+    TextField {
+        x: 328px;
+        y: 5px;
+        width: parent.width - 392px;
+        height: 34px;
+        text <=> root.expected;
+        placeholder: "expected";
+        mono: true;
+        enabled: root.enabled;
+        edited => {
+            root.edited(root.row_id, root.kind, root.target, root.expected);
+        }
+    }
+
+    ActionButton {
+        x: parent.width - 54px;
+        y: 5px;
+        text: "Del";
+        button_width: 44px;
+        warning: true;
+        enabled: root.enabled;
+        clicked => {
+            root.delete_requested(root.row_id);
+        }
+    }
+}
+
+component TestAssertionEditorPanel inherits Rectangle {
+    in-out property <[TestAssertionRow]> rows;
+    in property <bool> busy: false;
+    property <string> custom_kind: "status_equals";
+    property <string> custom_target: "200";
+    property <string> custom_expected: "";
+    callback add_row();
+    callback add_template_row(string);
+    callback add_custom_row(string, string, string);
+    callback update_row(int, string, string, string);
+    callback cycle_kind_row(int, string);
+    callback delete_row(int);
+
+    horizontal-stretch: 1;
+    vertical-stretch: 1;
+    background: transparent;
+
+    VerticalLayout {
+        padding: 0px;
+        spacing: 6px;
+
+        HorizontalLayout {
+            height: 34px;
+            spacing: 8px;
+            alignment: center;
+
+            UiText {
+                text: "Tests";
+                horizontal-stretch: 1;
+                height: parent.height;
+                color: Theme.on_surface_variant;
+                font-size: 12px;
+                font-weight: 800;
+                vertical-alignment: center;
+                overflow: elide;
+            }
+
+            ActionButton {
+                text: "Add";
+                button_width: 58px;
+                enabled: !root.busy;
+                clicked => {
+                    root.add_row();
+                }
+            }
+
+            for template in [
+                { name: "status", label: "Status", width: 62px },
+                { name: "header", label: "Header", width: 62px },
+                { name: "body", label: "Body", width: 54px },
+                { name: "json", label: "JSON", width: 52px },
+            ]: ActionButton {
+                text: template.label;
+                button_width: template.width;
+                enabled: !root.busy;
+                clicked => {
+                    root.add_template_row(template.name);
+                }
+            }
+        }
+
+        HorizontalLayout {
+            height: 34px;
+            spacing: 8px;
+            alignment: center;
+
+            TextField {
+                text <=> root.custom_kind;
+                placeholder: "kind";
+                mono: true;
+                enabled: !root.busy;
+                horizontal-stretch: 1;
+            }
+
+            TextField {
+                text <=> root.custom_target;
+                placeholder: "target";
+                mono: true;
+                enabled: !root.busy;
+                horizontal-stretch: 1;
+            }
+
+            TextField {
+                text <=> root.custom_expected;
+                placeholder: "expected";
+                mono: true;
+                enabled: !root.busy;
+                horizontal-stretch: 1;
+                accepted => {
+                    if !root.busy && root.custom_kind != "" && root.custom_target != "" {
+                        root.add_custom_row(root.custom_kind, root.custom_target, root.custom_expected);
+                    }
+                }
+            }
+
+            ActionButton {
+                text: "Build";
+                button_width: 58px;
+                enabled: !root.busy && root.custom_kind != "" && root.custom_target != "";
+                clicked => {
+                    root.add_custom_row(root.custom_kind, root.custom_target, root.custom_expected);
+                }
+            }
+        }
+
+        Rectangle {
+            height: 30px;
+            horizontal-stretch: 1;
+            border-radius: 6px;
+            border-width: 1px;
+            border-color: Theme.outline_variant;
+            background: Theme.surface_container;
+
+            UiText {
+                x: 12px;
+                text: "Kind";
+                width: 180px;
+                height: parent.height;
+                color: Theme.on_surface_variant;
+                font-size: 12px;
+                font-weight: 800;
+                vertical-alignment: center;
+                overflow: elide;
+            }
+
+            Rectangle {
+                x: 204px;
+                y: 6px;
+                width: 1px;
+                height: parent.height - 12px;
+                background: Theme.outline_variant;
+            }
+
+            UiText {
+                x: 216px;
+                text: "Target";
+                width: 126px;
+                height: parent.height;
+                color: Theme.on_surface_variant;
+                font-size: 12px;
+                font-weight: 800;
+                vertical-alignment: center;
+                overflow: elide;
+            }
+
+            Rectangle {
+                x: 346px;
+                y: 6px;
+                width: 1px;
+                height: parent.height - 12px;
+                background: Theme.outline_variant;
+            }
+
+            UiText {
+                x: 358px;
+                text: "Expect";
+                width: parent.width - 370px;
+                height: parent.height;
+                color: Theme.on_surface_variant;
+                font-size: 12px;
+                font-weight: 800;
+                vertical-alignment: center;
+                overflow: elide;
+            }
+        }
+
+        Rectangle {
+            horizontal-stretch: 1;
+            vertical-stretch: 1;
+            background: transparent;
+
+            if root.rows.length == 0: UiText {
+                text: "No tests";
+                width: parent.width;
+                height: 32px;
+                color: Theme.outline;
+                font-size: 12px;
+                vertical-alignment: center;
+                overflow: elide;
+            }
+
+            if root.rows.length != 0: ListView {
+                width: parent.width;
+                height: parent.height;
+                vertical-scrollbar-policy: ScrollBarPolicy.as-needed;
+                horizontal-scrollbar-policy: ScrollBarPolicy.as-needed;
+
+                for row in root.rows: TestAssertionLine {
+                    row_id: row.row_id;
+                    kind: row.kind;
+                    target: row.target;
+                    expected: row.expected;
+                    enabled: !root.busy;
+                    edited(row_id, kind, target, expected) => {
+                        root.update_row(row_id, kind, target, expected);
+                    }
+                    cycle_kind_requested(row_id, kind) => {
+                        root.cycle_kind_row(row_id, kind);
+                    }
+                    delete_requested(row_id) => {
+                        root.delete_row(row_id);
+                    }
+                }
+            }
+        }
+
+        UiText {
+            text: "Line format: status_equals 200, header_equals content-type application/json, json_path_equals data.id 1.";
+            height: 18px;
+            horizontal-stretch: 1;
+            color: Theme.outline;
+            font-size: 12px;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+    }
+}
+
+component HeaderEditorPanel inherits Rectangle {
+    in-out property <string> request_headers;
+    in-out property <[KeyValueTableRow]> header_rows;
+    in-out property <string> header_import_path;
+    in property <bool> busy;
+    callback apply_header_preset(string);
+    callback add_header();
+    callback paste_headers();
+    callback import_headers(string);
+    callback update_header_row(int, string, string);
+    callback delete_header_row(int);
+    callback copy_headers();
+
+    horizontal-stretch: 1;
+    vertical-stretch: 1;
+    background: transparent;
+
+    VerticalLayout {
+        padding: 0px;
+        spacing: 6px;
+
+        HorizontalLayout {
+            height: 22px;
+            spacing: 6px;
+            alignment: center;
+
+            UiText {
+                text: "Headers";
+                horizontal-stretch: 1;
+                height: parent.height;
+                color: Theme.on_surface_variant;
+                font-size: 12px;
+                font-weight: 800;
+                vertical-alignment: center;
+                overflow: elide;
+            }
+
+            ActionButton {
+                text: "Accept";
+                button_width: 58px;
+                enabled: !root.busy;
+                clicked => {
+                    root.apply_header_preset("accept-json");
+                }
+            }
+
+            ActionButton {
+                text: "Content";
+                button_width: 64px;
+                enabled: !root.busy;
+                clicked => {
+                    root.apply_header_preset("content-json");
+                }
+            }
+
+            ActionButton {
+                text: "Bearer";
+                button_width: 60px;
+                enabled: !root.busy;
+                clicked => {
+                    root.apply_header_preset("bearer-token");
+                }
+            }
+
+            ActionButton {
+                text: "Copy";
+                button_width: 54px;
+                enabled: root.request_headers != "";
+                clicked => {
+                    root.copy_headers();
+                }
+            }
+
+            ActionButton {
+                text: "Paste";
+                button_width: 58px;
+                enabled: !root.busy;
+                clicked => {
+                    root.paste_headers();
+                }
+            }
+        }
+
+        HorizontalLayout {
+            height: 34px;
+            spacing: 8px;
+
+            TextField {
+                text <=> root.header_import_path;
+                placeholder: "header file path";
+                mono: true;
+                enabled: !root.busy;
+            }
+
+            ActionButton {
+                text: "Import";
+                button_width: 68px;
+                enabled: !root.busy && root.header_import_path != "";
+                clicked => {
+                    root.import_headers(root.header_import_path);
+                }
+            }
+        }
+
+        KeyValueTablePanel {
+            rows <=> root.header_rows;
+            title: "";
+            key_header: "Header";
+            value_header: "Value";
+            helper: "Stored as Header=value lines; presets update common headers.";
+            busy: root.busy;
+            add_row => {
+                root.add_header();
+            }
+            update_row(row_id, key, value) => {
+                root.update_header_row(row_id, key, value);
+            }
+            delete_row(row_id) => {
+                root.delete_header_row(row_id);
+            }
+        }
+    }
+}
+component AuthEditorPanel inherits Rectangle {
+    in-out property <string> auth_mode;
+    in-out property <string> auth_config;
+    in-out property <string> auth_basic_username;
+    in-out property <string> auth_basic_password;
+    in-out property <[KeyValueTableRow]> auth_key_rows;
+    in property <bool> busy;
+    callback auth_mode_changed(string);
+    callback update_basic_auth(string, string);
+    callback add_auth_key();
+    callback update_auth_key_row(int, string, string);
+    callback delete_auth_key_row(int);
+
+    horizontal-stretch: 1;
+    vertical-stretch: 1;
+    background: transparent;
+
+    VerticalLayout {
+        padding: 0px;
+        spacing: 12px;
+
+        HorizontalLayout {
+            height: 30px;
+            spacing: 8px;
+            alignment: center;
+
+            for item in [
+                { mode: "none", label: "none", width: 64px },
+                { mode: "bearer", label: "bearer", width: 78px },
+                { mode: "basic", label: "basic", width: 72px },
+                { mode: "jwt", label: "jwt", width: 58px },
+                { mode: "api-header", label: "api hdr", width: 88px },
+                { mode: "api-query", label: "api query", width: 96px },
+            ]: BodyModeButton {
+                mode: item.mode;
+                label: item.label;
+                button_width: item.width;
+                selected: root.auth_mode == item.mode;
+                enabled: !root.busy;
+                picked(mode) => {
+                    root.auth_mode = mode;
+                    root.auth_mode_changed(mode);
+                }
+            }
+
+            Rectangle {
+                horizontal-stretch: 1;
+            }
+        }
+
+        if root.auth_mode == "none": DataPanel {
+            title: "No Authentication";
+            body: "Requests are sent without generated Authorization headers or API key query parameters.";
+        }
+
+        if root.auth_mode == "bearer": Rectangle {
+            height: 92px;
+            horizontal-stretch: 1;
+            background: transparent;
+
+            VerticalLayout {
+                padding: 0px;
+                spacing: 8px;
+
+                UiText {
+                    text: "Bearer Token";
+                    height: 20px;
+                    horizontal-stretch: 1;
+                    color: Theme.on_surface_variant;
+                    font-size: 12px;
+                    font-weight: 800;
+                    vertical-alignment: center;
+                    overflow: elide;
+                }
+
+                TextField {
+                    text <=> root.auth_config;
+                    placeholder: "token or {{token}}";
+                    mono: true;
+                    enabled: !root.busy;
+                }
+
+                UiText {
+                    text: "Sends Authorization: Bearer <token>.";
+                    height: 18px;
+                    horizontal-stretch: 1;
+                    color: Theme.outline;
+                    font-size: 12px;
+                    vertical-alignment: center;
+                    overflow: elide;
+                }
+            }
+        }
+
+        if root.auth_mode == "jwt": Rectangle {
+            height: 92px;
+            horizontal-stretch: 1;
+            background: transparent;
+
+            VerticalLayout {
+                padding: 0px;
+                spacing: 8px;
+
+                UiText {
+                    text: "JWT";
+                    height: 20px;
+                    horizontal-stretch: 1;
+                    color: Theme.on_surface_variant;
+                    font-size: 12px;
+                    font-weight: 800;
+                    vertical-alignment: center;
+                    overflow: elide;
+                }
+
+                TextField {
+                    text <=> root.auth_config;
+                    placeholder: "eyJhbGciOi...";
+                    mono: true;
+                    enabled: !root.busy;
+                }
+
+                UiText {
+                    text: "JWT is sent as Authorization: Bearer <token>.";
+                    height: 18px;
+                    horizontal-stretch: 1;
+                    color: Theme.outline;
+                    font-size: 12px;
+                    vertical-alignment: center;
+                    overflow: elide;
+                }
+            }
+        }
+
+        if root.auth_mode == "basic": Rectangle {
+            height: 98px;
+            horizontal-stretch: 1;
+            background: transparent;
+
+            VerticalLayout {
+                padding: 0px;
+                spacing: 8px;
+
+                UiText {
+                    text: "Basic Credentials";
+                    height: 20px;
+                    horizontal-stretch: 1;
+                    color: Theme.on_surface_variant;
+                    font-size: 12px;
+                    font-weight: 800;
+                    vertical-alignment: center;
+                    overflow: elide;
+                }
+
+                HorizontalLayout {
+                    height: 36px;
+                    spacing: 10px;
+
+                    TextField {
+                        text <=> root.auth_basic_username;
+                        placeholder: "username";
+                        mono: true;
+                        enabled: !root.busy;
+                        edited => {
+                            root.update_basic_auth(root.auth_basic_username, root.auth_basic_password);
+                        }
+                        accepted => {
+                            root.update_basic_auth(root.auth_basic_username, root.auth_basic_password);
+                        }
+                    }
+
+                    TextField {
+                        text <=> root.auth_basic_password;
+                        placeholder: "password";
+                        mono: true;
+                        enabled: !root.busy;
+                        edited => {
+                            root.update_basic_auth(root.auth_basic_username, root.auth_basic_password);
+                        }
+                        accepted => {
+                            root.update_basic_auth(root.auth_basic_username, root.auth_basic_password);
+                        }
+                    }
+                }
+
+                UiText {
+                    text: "Saved as username:password and base64 encoded before sending.";
+                    height: 18px;
+                    horizontal-stretch: 1;
+                    color: Theme.outline;
+                    font-size: 12px;
+                    vertical-alignment: center;
+                    overflow: elide;
+                }
+            }
+        }
+
+        if root.auth_mode == "api-header": KeyValueTablePanel {
+            rows <=> root.auth_key_rows;
+            title: "API Key Header";
+            key_header: "Header";
+            value_header: "Value";
+            helper: "Stored as key=value lines, for example x-api-key={{apiKey}}.";
+            busy: root.busy;
+            add_row => {
+                root.add_auth_key();
+            }
+            update_row(row_id, key, value) => {
+                root.update_auth_key_row(row_id, key, value);
+            }
+            delete_row(row_id) => {
+                root.delete_auth_key_row(row_id);
+            }
+        }
+
+        if root.auth_mode == "api-query": KeyValueTablePanel {
+            rows <=> root.auth_key_rows;
+            title: "API Key Query";
+            key_header: "Param";
+            value_header: "Value";
+            helper: "Stored as key=value lines, for example api_key={{apiKey}}.";
+            busy: root.busy;
+            add_row => {
+                root.add_auth_key();
+            }
+            update_row(row_id, key, value) => {
+                root.update_auth_key_row(row_id, key, value);
+            }
+            delete_row(row_id) => {
+                root.delete_auth_key_row(row_id);
+            }
+        }
+
+    }
+}
+export component RequestPanel inherits Rectangle {
+    in-out property <string> global_variables;
+    in-out property <string> environment_name;
+    in-out property <string> environment_variables;
+    in-out property <string> query_params;
+    in-out property <[KeyValueTableRow]> query_param_rows;
+    in-out property <string> query_param_import_path;
+    in-out property <string> request_headers;
+    in-out property <[KeyValueTableRow]> header_rows;
+    in-out property <string> header_import_path;
+    in-out property <string> auth_mode;
+    in-out property <string> auth_config;
+    in-out property <string> auth_basic_username;
+    in-out property <string> auth_basic_password;
+    in-out property <[KeyValueTableRow]> auth_key_rows;
+    in-out property <string> body_mode;
+    in-out property <string> raw_body_subtype;
+    in-out property <string> request_body;
+    in-out property <[KeyValueTableRow]> body_field_rows;
+    in-out property <string> form_file_field;
+    in-out property <string> form_file_path;
+    in-out property <string> graphql_variables;
+    in-out property <string> pre_request_script;
+    in-out property <string> request_tests;
+    in-out property <[TestAssertionRow]> test_assertion_rows;
+    in-out property <string> realtime_mode;
+    in-out property <string> realtime_message;
+    in-out property <string> websocket_message_mode;
+    in-out property <string> websocket_protocols;
+    in-out property <string> websocket_event_history;
+    in-out property <string> sse_max_events;
+    in-out property <string> sse_last_event_id;
+    in-out property <bool> sse_streaming;
+    in-out property <string> sse_event_history;
+    in-out property <string> grpc_endpoint;
+    in-out property <string> grpc_method;
+    in-out property <string> grpc_metadata;
+    in-out property <string> grpc_message;
+    in-out property <string> grpc_method_catalog;
+    in property <bool> busy;
+    callback open_websocket();
+    callback run_websocket();
+    callback close_websocket();
+    callback copy_websocket_events();
+    callback clear_websocket_events();
+    callback run_sse();
+    callback open_sse_stream();
+    callback close_sse_stream();
+    callback copy_sse_events();
+    callback clear_sse_events();
+    callback add_query_param();
+    callback paste_query_params();
+    callback import_query_params(string);
+    callback update_query_param_row(int, string, string);
+    callback delete_query_param_row(int);
+    callback add_header();
+    callback paste_headers();
+    callback import_headers(string);
+    callback update_header_row(int, string, string);
+    callback delete_header_row(int);
+    callback copy_headers();
+    callback auth_mode_changed(string);
+    callback update_basic_auth(string, string);
+    callback add_auth_key();
+    callback update_auth_key_row(int, string, string);
+    callback delete_auth_key_row(int);
+    callback body_mode_changed(string);
+    callback add_body_field();
+    callback add_body_file_field(string, string);
+    callback update_body_field_row(int, string, string);
+    callback delete_body_field_row(int);
+    callback add_test_assertion();
+    callback add_test_assertion_template(string);
+    callback add_custom_test_assertion(string, string, string);
+    callback update_test_assertion_row(int, string, string, string);
+    callback cycle_test_assertion_kind(int, string);
+    callback delete_test_assertion_row(int);
+    callback apply_graphql_template(string);
+    callback apply_header_preset(string);
+    callback build_grpc_draft();
+    property <string> active_tab: "body";
+
+    horizontal-stretch: 1;
+    vertical-stretch: 1;
+    background: Theme.surface_container_lowest;
+
+    VerticalLayout {
+        padding: 0px;
+        spacing: 0px;
+
+        Rectangle {
+            height: 44px;
+            horizontal-stretch: 1;
+            background: Theme.surface_container_low;
+
+            HorizontalLayout {
+                padding-left: 20px;
+                padding-right: 20px;
+                spacing: 12px;
+                alignment: center;
+
+                for item in [
+                    { mode: "params", label: "Params" },
+                    { mode: "headers", label: "Headers" },
+                    { mode: "body", label: "Body" },
+                    { mode: "auth", label: "Auth" },
+                    { mode: "realtime", label: "Realtime" },
+                    { mode: "scripts", label: "Scripts" },
+                ]: WorkspaceTab {
+                    mode: item.mode;
+                    label: item.label;
+                    selected: root.active_tab == item.mode;
+                    picked(mode) => {
+                        root.active_tab = mode;
+                    }
+                }
+            }
+        }
+
+        Rectangle {
+            height: 1px;
+            background: Theme.outline_variant;
+        }
+
+        if root.active_tab == "body": Rectangle {
+            height: 44px;
+            horizontal-stretch: 1;
+            background: Theme.surface_container_lowest;
+
+            HorizontalLayout {
+                padding-left: 8px;
+                padding-right: 8px;
+                spacing: 6px;
+                alignment: center;
+
+                for item in [
+                    { mode: "none", label: "none" },
+                    { mode: "form", label: "form-data" },
+                    { mode: "urlenc", label: "urlenc" },
+                    { mode: "raw", label: "raw" },
+                    { mode: "graphql", label: "graphql" },
+                    { mode: "binary", label: "binary" },
+                ]: BodyModeButton {
+                    mode: item.mode;
+                    label: item.label;
+                    button_width: item.mode == "form" ? 72px : item.mode == "graphql" ? 64px : item.mode == "urlenc" || item.mode == "binary" ? 58px : 46px;
+                    selected: root.body_mode == item.mode;
+                    enabled: !root.busy;
+                    picked(mode) => {
+                        root.body_mode = mode;
+                        root.body_mode_changed(mode);
+                    }
+                }
+
+                Rectangle {
+                    horizontal-stretch: 1;
+                }
+
+                if root.body_mode == "raw": HorizontalLayout {
+                    height: 34px;
+                    spacing: 4px;
+
+                    for item in [
+                        { subtype: "json", label: "JSON" },
+                        { subtype: "text", label: "Text" },
+                        { subtype: "xml", label: "XML" },
+                    ]: BodyModeButton {
+                        mode: item.subtype;
+                        label: item.label;
+                        button_width: 46px;
+                        selected: root.raw_body_subtype == item.subtype;
+                        enabled: !root.busy;
+                        picked(subtype) => {
+                            root.raw_body_subtype = subtype;
+                        }
+                    }
+                }
+
+                if root.body_mode == "graphql": ActionButton {
+                    text: "Query";
+                    button_width: 50px;
+                    enabled: !root.busy;
+                    clicked => {
+                        root.apply_graphql_template("query");
+                    }
+                }
+
+                if root.body_mode == "graphql": ActionButton {
+                    text: "Mutation";
+                    button_width: 68px;
+                    enabled: !root.busy;
+                    clicked => {
+                        root.apply_graphql_template("mutation");
+                    }
+                }
+
+                if root.body_mode == "graphql": ActionButton {
+                    text: "Intro";
+                    button_width: 52px;
+                    enabled: !root.busy;
+                    clicked => {
+                        root.apply_graphql_template("introspection");
+                    }
+                }
+            }
+        }
+
+        Rectangle {
+            height: 1px;
+            background: Theme.outline_variant;
+        }
+
+        Rectangle {
+            vertical-stretch: 1;
+            horizontal-stretch: 1;
+            background: Theme.surface_container_lowest;
+
+            if root.active_tab == "params": KeyValueTablePanel {
+                x: 16px;
+                y: 16px;
+                width: parent.width - 32px;
+                height: parent.height - 32px;
+                rows <=> root.query_param_rows;
+                title: "Query Parameters";
+                key_header: "Param";
+                value_header: "Value";
+                helper: "Stored as key=value lines for transport compatibility.";
+                busy: root.busy;
+                show_paste: true;
+                show_import: true;
+                import_path <=> root.query_param_import_path;
+                add_row => {
+                    root.add_query_param();
+                }
+                paste_rows => {
+                    root.paste_query_params();
+                }
+                import_rows(path) => {
+                    root.import_query_params(path);
+                }
+                update_row(row_id, key, value) => {
+                    root.update_query_param_row(row_id, key, value);
+                }
+                delete_row(row_id) => {
+                    root.delete_query_param_row(row_id);
+                }
+            }
+
+            if root.active_tab == "headers": HeaderEditorPanel {
+                x: 16px;
+                y: 16px;
+                width: parent.width - 32px;
+                height: parent.height - 32px;
+                request_headers <=> root.request_headers;
+                header_rows <=> root.header_rows;
+                header_import_path <=> root.header_import_path;
+                busy: root.busy;
+                apply_header_preset(preset) => {
+                    root.apply_header_preset(preset);
+                }
+                add_header => {
+                    root.add_header();
+                }
+                paste_headers => {
+                    root.paste_headers();
+                }
+                import_headers(path) => {
+                    root.import_headers(path);
+                }
+                update_header_row(row_id, key, value) => {
+                    root.update_header_row(row_id, key, value);
+                }
+                delete_header_row(row_id) => {
+                    root.delete_header_row(row_id);
+                }
+                copy_headers => {
+                    root.copy_headers();
+                }
+            }
+
+            if root.active_tab == "body" && root.body_mode == "graphql": HorizontalLayout {
+                x: 16px;
+                y: 16px;
+                width: parent.width - 32px;
+                height: parent.height - 32px;
+                spacing: 12px;
+
+                LabeledEditor {
+                    label: "GraphQL Query";
+                    text <=> root.request_body;
+                }
+
+                LabeledEditor {
+                    label: "Variables";
+                    text <=> root.graphql_variables;
+                }
+            }
+
+            if root.active_tab == "body" && root.body_mode == "form": KeyValueTablePanel {
+                x: 16px;
+                y: 16px;
+                width: parent.width - 32px;
+                height: parent.height - 32px;
+                rows <=> root.body_field_rows;
+                title: "Form Data";
+                key_header: "Field";
+                value_header: "Value";
+                helper: "Values are stored as key=value lines. Prefix file values with @path.";
+                busy: root.busy;
+                show_file_attach: true;
+                file_field <=> root.form_file_field;
+                file_path <=> root.form_file_path;
+                add_row => {
+                    root.add_body_field();
+                }
+                add_file_row(field, path) => {
+                    root.add_body_file_field(field, path);
+                }
+                update_row(row_id, key, value) => {
+                    root.update_body_field_row(row_id, key, value);
+                }
+                delete_row(row_id) => {
+                    root.delete_body_field_row(row_id);
+                }
+            }
+
+            if root.active_tab == "body" && root.body_mode == "urlenc": KeyValueTablePanel {
+                x: 16px;
+                y: 16px;
+                width: parent.width - 32px;
+                height: parent.height - 32px;
+                rows <=> root.body_field_rows;
+                title: "URL Encoded";
+                key_header: "Field";
+                value_header: "Value";
+                helper: "Stored as key=value lines for transport compatibility.";
+                busy: root.busy;
+                add_row => {
+                    root.add_body_field();
+                }
+                update_row(row_id, key, value) => {
+                    root.update_body_field_row(row_id, key, value);
+                }
+                delete_row(row_id) => {
+                    root.delete_body_field_row(row_id);
+                }
+            }
+
+            if root.active_tab == "body" && root.body_mode == "binary": Rectangle {
+                x: 16px;
+                y: 16px;
+                width: parent.width - 32px;
+                height: parent.height - 32px;
+                background: transparent;
+
+                VerticalLayout {
+                    padding: 0px;
+                    spacing: 10px;
+
+                    UiText {
+                        text: "Binary File";
+                        height: 20px;
+                        horizontal-stretch: 1;
+                        color: Theme.on_surface_variant;
+                        font-size: 12px;
+                        font-weight: 800;
+                        vertical-alignment: center;
+                        overflow: elide;
+                    }
+
+                    TextField {
+                        text <=> root.request_body;
+                        placeholder: "/absolute/path/to/body.bin";
+                        mono: true;
+                        enabled: !root.busy;
+                    }
+
+                    DataPanel {
+                        title: "Binary Upload";
+                        body: "The file at this path is streamed as the request body. Common file extensions set Content-Type automatically; a request header override wins.";
+                    }
+                }
+            }
+
+            if root.active_tab == "body" && root.body_mode == "none": DataPanel {
+                x: 16px;
+                y: 16px;
+                width: parent.width - 32px;
+                height: parent.height - 32px;
+                title: "No Body";
+                body: "This request will be sent without a body.";
+            }
+
+            if root.active_tab == "body" && root.body_mode == "raw": CodePane {
+                width: parent.width;
+                height: parent.height;
+                text <=> root.request_body;
+                read_only: false;
+            }
+
+            if root.active_tab == "auth": AuthEditorPanel {
+                x: 16px;
+                y: 16px;
+                width: parent.width - 32px;
+                height: parent.height - 32px;
+                auth_mode <=> root.auth_mode;
+                auth_config <=> root.auth_config;
+                auth_basic_username <=> root.auth_basic_username;
+                auth_basic_password <=> root.auth_basic_password;
+                auth_key_rows <=> root.auth_key_rows;
+                busy: root.busy;
+                auth_mode_changed(mode) => {
+                    root.auth_mode_changed(mode);
+                }
+                update_basic_auth(username, password) => {
+                    root.update_basic_auth(username, password);
+                }
+                add_auth_key => {
+                    root.add_auth_key();
+                }
+                update_auth_key_row(row_id, key, value) => {
+                    root.update_auth_key_row(row_id, key, value);
+                }
+                delete_auth_key_row(row_id) => {
+                    root.delete_auth_key_row(row_id);
+                }
+            }
+
+            if root.active_tab == "realtime": RealtimeEditorPanel {
+                x: 16px;
+                y: 16px;
+                width: parent.width - 32px;
+                height: parent.height - 32px;
+                realtime_mode <=> root.realtime_mode;
+                realtime_message <=> root.realtime_message;
+                websocket_message_mode <=> root.websocket_message_mode;
+                websocket_protocols <=> root.websocket_protocols;
+                websocket_event_history <=> root.websocket_event_history;
+                sse_max_events <=> root.sse_max_events;
+                sse_last_event_id <=> root.sse_last_event_id;
+                sse_streaming <=> root.sse_streaming;
+                sse_event_history <=> root.sse_event_history;
+                grpc_endpoint <=> root.grpc_endpoint;
+                grpc_method <=> root.grpc_method;
+                grpc_metadata <=> root.grpc_metadata;
+                grpc_message <=> root.grpc_message;
+                grpc_method_catalog <=> root.grpc_method_catalog;
+                busy: root.busy;
+                open_websocket => {
+                    root.open_websocket();
+                }
+                run_websocket => {
+                    root.run_websocket();
+                }
+                close_websocket => {
+                    root.close_websocket();
+                }
+                copy_websocket_events => {
+                    root.copy_websocket_events();
+                }
+                clear_websocket_events => {
+                    root.clear_websocket_events();
+                }
+                run_sse => {
+                    root.run_sse();
+                }
+                open_sse_stream => {
+                    root.open_sse_stream();
+                }
+                close_sse_stream => {
+                    root.close_sse_stream();
+                }
+                copy_sse_events => {
+                    root.copy_sse_events();
+                }
+                clear_sse_events => {
+                    root.clear_sse_events();
+                }
+                build_grpc_draft => {
+                    root.build_grpc_draft();
+                }
+            }
+
+            if root.active_tab == "scripts": HorizontalLayout {
+                x: 16px;
+                y: 16px;
+                width: parent.width - 32px;
+                height: parent.height - 32px;
+                spacing: 12px;
+
+                LabeledEditor {
+                    label: "Pre-request";
+                    text <=> root.pre_request_script;
+                }
+
+                TestAssertionEditorPanel {
+                    rows <=> root.test_assertion_rows;
+                    busy: root.busy;
+                    add_row => {
+                        root.add_test_assertion();
+                    }
+                    add_template_row(template) => {
+                        root.add_test_assertion_template(template);
+                    }
+                    add_custom_row(kind, target, expected) => {
+                        root.add_custom_test_assertion(kind, target, expected);
+                    }
+                    update_row(row_id, kind, target, expected) => {
+                        root.update_test_assertion_row(row_id, kind, target, expected);
+                    }
+                    cycle_kind_row(row_id, kind) => {
+                        root.cycle_test_assertion_kind(row_id, kind);
+                    }
+                    delete_row(row_id) => {
+                        root.delete_test_assertion_row(row_id);
+                    }
+                }
+            }
+        }
+    }
+}

@@ -35,6 +35,19 @@ export struct MockRuleRow {
     body_preview: string,
 }
 
+export struct KeyValueTableRow {
+    row_id: int,
+    key: string,
+    value: string,
+}
+
+export struct TestAssertionRow {
+    row_id: int,
+    kind: string,
+    target: string,
+    expected: string,
+}
+
 export struct VariableTableRow {
     row_id: int,
     scope: string,
