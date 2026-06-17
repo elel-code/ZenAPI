@@ -1456,6 +1456,27 @@ fn wire_codegen(app: &AppWindow) {
     });
 
     let weak_app = app.as_weak();
+    app.on_copy_codegen(move || {
+        let Some(app) = weak_app.upgrade() else {
+            return;
+        };
+        if app.get_busy() {
+            return;
+        }
+
+        let snippet = app.get_codegen_output().to_string();
+        if snippet.is_empty() {
+            app.set_activity("Generate a snippet before copying".into());
+            return;
+        }
+
+        match copy_text_to_clipboard(&snippet) {
+            Ok(()) => app.set_activity("Copied code snippet".into()),
+            Err(error) => app.set_activity(format!("Copy failed: {error}").into()),
+        }
+    });
+
+    let weak_app = app.as_weak();
     app.on_save_codegen(move |path| {
         let Some(app) = weak_app.upgrade() else {
             return;

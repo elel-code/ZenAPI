@@ -4328,6 +4328,7 @@ component CodegenPage inherits Rectangle {
     in-out property <string> codegen_path;
     in property <bool> busy;
     callback generate_code();
+    callback copy_codegen();
     callback save_codegen(string);
 
     horizontal-stretch: 1;
@@ -4408,6 +4409,15 @@ component CodegenPage inherits Rectangle {
                 enabled: !root.busy && root.codegen_path != "";
                 clicked => {
                     root.save_codegen(root.codegen_path);
+                }
+            }
+
+            ActionButton {
+                text: "Copy";
+                button_width: 72px;
+                enabled: !root.busy && root.codegen_output != "";
+                clicked => {
+                    root.copy_codegen();
                 }
             }
         }
@@ -5851,6 +5861,7 @@ export component AppWindow inherits Window {
     callback send_request();
     callback toggle_server();
     callback generate_code();
+    callback copy_codegen();
     callback save_codegen(string);
     callback run_collection();
     callback cancel_collection_run();
@@ -6332,6 +6343,9 @@ export component AppWindow inherits Window {
                         busy: root.busy;
                         generate_code => {
                             root.generate_code();
+                        }
+                        copy_codegen => {
+                            root.copy_codegen();
                         }
                         save_codegen(path) => {
                             root.save_codegen(path);

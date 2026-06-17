@@ -84,8 +84,8 @@
   wired plus local JSON persistence.
 - [~] Rebuild Codegen UI for cURL, Python, JavaScript, Rust, and Go snippets;
   domain wiring still generates snippets from the resolved request projection,
-  and the Slint shell now has a dedicated Codegen page; clipboard copy and
-  richer snippet metadata are still pending.
+  and the Slint shell now has a dedicated Codegen page with generate, clipboard
+  copy, and save actions; richer snippet metadata is still pending.
 - [~] Rebuild Collection Runner UI while keeping `zenapi run` as the stable CLI;
   domain wiring and CLI execution are in place, and the Slint shell now has a
   dedicated Test Runner page with run/cancel/report export controls; richer
@@ -136,7 +136,7 @@
 | Variables | Domain implemented | Slint baseline has a three-pane environment page with editable variable rows, add/delete, scope badges, and masked preview over one active environment |
 | Collections | Domain implemented | Slint baseline supports load/save/export plus flat request restore/rename/duplicate/delete |
 | History | Domain implemented | Slint baseline records, filters, deletes, restores, and persists recent requests |
-| Codegen | Domain + Slint page implemented | Dedicated page generates and saves snippets; clipboard copy pending |
+| Codegen | Domain + Slint page implemented | Dedicated page generates, copies, and saves snippets |
 | Runner | Domain + Slint page + CLI implemented | Dedicated page runs/cancels collections and saves reports; CLI remains stable |
 | Assertions/scripts | Domain implemented | Slint baseline edits, saves, restores, and evaluates native scripts/tests |
 | WebSocket/SSE | Client modules restored | Realtime tab supports one-shot and persistent WS text sends plus SSE previews and persistent SSE streams |

@@ -324,6 +324,10 @@ Codegen page. The supported snippet targets are:
 - `Rust` for Rust reqwest
 - `Go` for Go net/http
 
+Use `Generate` to refresh the snippet from the current request, `Copy` to place
+the generated snippet on the clipboard, and `Save` to write it to the configured
+path.
+
 ## Collection Runner
 
 The command-line runner executes every request in the current collection
