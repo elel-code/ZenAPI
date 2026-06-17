@@ -146,12 +146,12 @@
   request/response tab headers and reusable list rows into `ui/widgets.slint`,
   moved metric cards, data panels, and mock log rows into `ui/cards.slint`,
   moved code/editor panes into `ui/editors.slint`, and the Realtime editor
-  business panel, shared Key/Value table panel, Header editor panel, Auth
-  editor panel, Tests assertion panel, Request panel, Response panel, Sidebar,
-  App navigation, Address bar, Dashboard page, Codegen page, Settings page,
-  Team page, API Keys page, Analytics page, Documentation page, Environment
-  page, Runner page, and Mock Manager page now live in dedicated Slint files;
-  additional large panels still need extraction.
+  business panel, shared Key/Value table panel, Body editor panel, Header
+  editor panel, Auth editor panel, Tests assertion panel, Request panel,
+  Response panel, Sidebar, App navigation, Address bar, Dashboard page, Codegen
+  page, Settings page, Team page, API Keys page, Analytics page, Documentation
+  page, Environment page, Runner page, and Mock Manager page now live in
+  dedicated Slint files; additional large panels still need extraction.
 
 ## Phase 4: Verification And Release
 

@@ -1,0 +1,250 @@
+import { DataPanel } from "cards.slint";
+import { CodePane, LabeledEditor } from "editors.slint";
+import { KeyValueTablePanel } from "key_value_table_panel.slint";
+import { Theme } from "theme.slint";
+import { KeyValueTableRow } from "types.slint";
+import { ActionButton, BodyModeButton, TextField, UiText } from "widgets.slint";
+
+export component BodyEditorPanel inherits Rectangle {
+    in-out property <string> body_mode;
+    in-out property <string> raw_body_subtype;
+    in-out property <string> request_body;
+    in-out property <[KeyValueTableRow]> body_field_rows;
+    in-out property <string> form_file_field;
+    in-out property <string> form_file_path;
+    in-out property <string> graphql_variables;
+    in property <bool> busy;
+    callback body_mode_changed(string);
+    callback add_body_field();
+    callback add_body_file_field(string, string);
+    callback pick_form_file();
+    callback update_body_field_row(int, string, string);
+    callback delete_body_field_row(int);
+    callback apply_graphql_template(string);
+
+    horizontal-stretch: 1;
+    vertical-stretch: 1;
+    background: Theme.surface_container_lowest;
+
+    VerticalLayout {
+        padding: 0px;
+        spacing: 0px;
+
+        Rectangle {
+            height: 44px;
+            horizontal-stretch: 1;
+            background: Theme.surface_container_lowest;
+
+            HorizontalLayout {
+                padding-left: 8px;
+                padding-right: 8px;
+                spacing: 6px;
+                alignment: center;
+
+                for item in [
+                    { mode: "none", label: "none" },
+                    { mode: "form", label: "form-data" },
+                    { mode: "urlenc", label: "urlenc" },
+                    { mode: "raw", label: "raw" },
+                    { mode: "graphql", label: "graphql" },
+                    { mode: "binary", label: "binary" },
+                ]: BodyModeButton {
+                    mode: item.mode;
+                    label: item.label;
+                    button_width: item.mode == "form" ? 72px : item.mode == "graphql" ? 64px : item.mode == "urlenc" || item.mode == "binary" ? 58px : 46px;
+                    selected: root.body_mode == item.mode;
+                    enabled: !root.busy;
+                    picked(mode) => {
+                        root.body_mode = mode;
+                        root.body_mode_changed(mode);
+                    }
+                }
+
+                Rectangle {
+                    horizontal-stretch: 1;
+                }
+
+                if root.body_mode == "raw": HorizontalLayout {
+                    height: 34px;
+                    spacing: 4px;
+
+                    for item in [
+                        { subtype: "json", label: "JSON" },
+                        { subtype: "text", label: "Text" },
+                        { subtype: "xml", label: "XML" },
+                    ]: BodyModeButton {
+                        mode: item.subtype;
+                        label: item.label;
+                        button_width: 46px;
+                        selected: root.raw_body_subtype == item.subtype;
+                        enabled: !root.busy;
+                        picked(subtype) => {
+                            root.raw_body_subtype = subtype;
+                        }
+                    }
+                }
+
+                if root.body_mode == "graphql": ActionButton {
+                    text: "Query";
+                    button_width: 50px;
+                    enabled: !root.busy;
+                    clicked => {
+                        root.apply_graphql_template("query");
+                    }
+                }
+
+                if root.body_mode == "graphql": ActionButton {
+                    text: "Mutation";
+                    button_width: 68px;
+                    enabled: !root.busy;
+                    clicked => {
+                        root.apply_graphql_template("mutation");
+                    }
+                }
+
+                if root.body_mode == "graphql": ActionButton {
+                    text: "Intro";
+                    button_width: 52px;
+                    enabled: !root.busy;
+                    clicked => {
+                        root.apply_graphql_template("introspection");
+                    }
+                }
+            }
+        }
+
+        Rectangle {
+            height: 1px;
+            background: Theme.outline_variant;
+        }
+
+        Rectangle {
+            vertical-stretch: 1;
+            horizontal-stretch: 1;
+            background: Theme.surface_container_lowest;
+
+            if root.body_mode == "graphql": HorizontalLayout {
+                x: 16px;
+                y: 16px;
+                width: parent.width - 32px;
+                height: parent.height - 32px;
+                spacing: 12px;
+
+                LabeledEditor {
+                    label: "GraphQL Query";
+                    text <=> root.request_body;
+                }
+
+                LabeledEditor {
+                    label: "Variables";
+                    text <=> root.graphql_variables;
+                }
+            }
+
+            if root.body_mode == "form": KeyValueTablePanel {
+                x: 16px;
+                y: 16px;
+                width: parent.width - 32px;
+                height: parent.height - 32px;
+                rows <=> root.body_field_rows;
+                title: "Form Data";
+                key_header: "Field";
+                value_header: "Value";
+                helper: "Values are stored as key=value lines. Prefix file values with @path.";
+                busy: root.busy;
+                show_file_attach: true;
+                file_field <=> root.form_file_field;
+                file_path <=> root.form_file_path;
+                add_row => {
+                    root.add_body_field();
+                }
+                add_file_row(field, path) => {
+                    root.add_body_file_field(field, path);
+                }
+                pick_file => {
+                    root.pick_form_file();
+                }
+                update_row(row_id, key, value) => {
+                    root.update_body_field_row(row_id, key, value);
+                }
+                delete_row(row_id) => {
+                    root.delete_body_field_row(row_id);
+                }
+            }
+
+            if root.body_mode == "urlenc": KeyValueTablePanel {
+                x: 16px;
+                y: 16px;
+                width: parent.width - 32px;
+                height: parent.height - 32px;
+                rows <=> root.body_field_rows;
+                title: "URL Encoded";
+                key_header: "Field";
+                value_header: "Value";
+                helper: "Stored as key=value lines for transport compatibility.";
+                busy: root.busy;
+                add_row => {
+                    root.add_body_field();
+                }
+                update_row(row_id, key, value) => {
+                    root.update_body_field_row(row_id, key, value);
+                }
+                delete_row(row_id) => {
+                    root.delete_body_field_row(row_id);
+                }
+            }
+
+            if root.body_mode == "binary": Rectangle {
+                x: 16px;
+                y: 16px;
+                width: parent.width - 32px;
+                height: parent.height - 32px;
+                background: transparent;
+
+                VerticalLayout {
+                    padding: 0px;
+                    spacing: 10px;
+
+                    UiText {
+                        text: "Binary File";
+                        height: 20px;
+                        horizontal-stretch: 1;
+                        color: Theme.on_surface_variant;
+                        font-size: 12px;
+                        font-weight: 800;
+                        vertical-alignment: center;
+                        overflow: elide;
+                    }
+
+                    TextField {
+                        text <=> root.request_body;
+                        placeholder: "/absolute/path/to/body.bin";
+                        mono: true;
+                        enabled: !root.busy;
+                    }
+
+                    DataPanel {
+                        title: "Binary Upload";
+                        body: "The file at this path is streamed as the request body. Common file extensions set Content-Type automatically; a request header override wins.";
+                    }
+                }
+            }
+
+            if root.body_mode == "none": DataPanel {
+                x: 16px;
+                y: 16px;
+                width: parent.width - 32px;
+                height: parent.height - 32px;
+                title: "No Body";
+                body: "This request will be sent without a body.";
+            }
+
+            if root.body_mode == "raw": CodePane {
+                width: parent.width;
+                height: parent.height;
+                text <=> root.request_body;
+                read_only: false;
+            }
+        }
+    }
+}
