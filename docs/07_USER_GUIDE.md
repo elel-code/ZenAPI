@@ -128,7 +128,9 @@ pre-request action names and target fields, but not action values.
 
 The request editor includes a native Tests panel for response assertions. The
 Slint panel uses editable rows with `Kind`, `Target`, and `Expect` fields plus
-`Add` and `Del` controls. Supported kinds include:
+`Add`, template builder, and `Del` controls. The `Status`, `Header`, `Body`,
+and `JSON` template buttons append common assertion rows. Supported kinds
+include:
 
 - `status_equals`: status equals.
 - `status_in_range`: status is within a range.
@@ -139,8 +141,7 @@ Slint panel uses editable rows with `Kind`, `Target`, and `Expect` fields plus
 
 For `json_path_equals` assertions, use dot paths such as `data.items.0.id`;
 expected values can be JSON literals such as `true`, `42`, or `"name"`. Kind
-cycling fills the next supported assertion template. Richer assertion builders
-are still future work.
+cycling fills the next supported assertion template.
 
 Tests run when a request is sent and when a collection is run. Tests are saved
 with collection requests and restored with them.

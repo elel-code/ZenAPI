@@ -373,6 +373,7 @@ component TestAssertionEditorPanel inherits Rectangle {
     in-out property <[TestAssertionRow]> rows;
     in property <bool> busy: false;
     callback add_row();
+    callback add_template_row(string);
     callback update_row(int, string, string, string);
     callback cycle_kind_row(int, string);
     callback delete_row(int);
@@ -407,6 +408,20 @@ component TestAssertionEditorPanel inherits Rectangle {
                 enabled: !root.busy;
                 clicked => {
                     root.add_row();
+                }
+            }
+
+            for template in [
+                { name: "status", label: "Status", width: 62px },
+                { name: "header", label: "Header", width: 62px },
+                { name: "body", label: "Body", width: 54px },
+                { name: "json", label: "JSON", width: 52px },
+            ]: ActionButton {
+                text: template.label;
+                button_width: template.width;
+                enabled: !root.busy;
+                clicked => {
+                    root.add_template_row(template.name);
                 }
             }
         }
@@ -2366,6 +2381,7 @@ component RequestPanel inherits Rectangle {
     callback update_body_field_row(int, string, string);
     callback delete_body_field_row(int);
     callback add_test_assertion();
+    callback add_test_assertion_template(string);
     callback update_test_assertion_row(int, string, string, string);
     callback cycle_test_assertion_kind(int, string);
     callback delete_test_assertion_row(int);
@@ -2786,6 +2802,9 @@ component RequestPanel inherits Rectangle {
                     busy: root.busy;
                     add_row => {
                         root.add_test_assertion();
+                    }
+                    add_template_row(template) => {
+                        root.add_test_assertion_template(template);
                     }
                     update_row(row_id, kind, target, expected) => {
                         root.update_test_assertion_row(row_id, kind, target, expected);
@@ -6320,6 +6339,7 @@ export component AppWindow inherits Window {
     callback update_body_field_row(int, string, string);
     callback delete_body_field_row(int);
     callback add_test_assertion();
+    callback add_test_assertion_template(string);
     callback update_test_assertion_row(int, string, string, string);
     callback cycle_test_assertion_kind(int, string);
     callback delete_test_assertion_row(int);
@@ -6608,6 +6628,9 @@ export component AppWindow inherits Window {
                                     }
                                     add_test_assertion => {
                                         root.add_test_assertion();
+                                    }
+                                    add_test_assertion_template(template) => {
+                                        root.add_test_assertion_template(template);
                                     }
                                     update_test_assertion_row(row_id, kind, target, expected) => {
                                         root.update_test_assertion_row(row_id, kind, target, expected);

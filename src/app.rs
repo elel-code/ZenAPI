@@ -1377,6 +1377,40 @@ fn wire_test_assertion_actions(app: &AppWindow) {
     });
 
     let weak_app = app.as_weak();
+    app.on_add_test_assertion_template(move |template| {
+        let Some(app) = weak_app.upgrade() else {
+            return;
+        };
+        if app.get_busy() {
+            return;
+        }
+
+        match add_test_assertion_template_text(app.get_request_tests().as_str(), template.as_str())
+        {
+            Ok(updated) => {
+                app.set_request_tests(updated.into());
+                refresh_test_assertion_rows(&app);
+                set_response(
+                    &app,
+                    "Test template added",
+                    template.as_str(),
+                    "success",
+                    "Assertion row appended.",
+                );
+            }
+            Err(error) => {
+                set_response(
+                    &app,
+                    "Test template failed",
+                    "",
+                    "error",
+                    &error.to_string(),
+                );
+            }
+        }
+    });
+
+    let weak_app = app.as_weak();
     app.on_update_test_assertion_row(move |row_id, kind, target, expected| {
         let Some(app) = weak_app.upgrade() else {
             return;
@@ -4061,11 +4095,36 @@ fn update_test_assertion_text(
 }
 
 fn add_test_assertion_text(input: &str) -> String {
-    let new_line = "status_equals 200";
+    let (kind, target, expected) = test_assertion_template("status").expect("status template");
+    append_test_assertion_line(input, &format_test_assertion_line(kind, target, expected))
+}
+
+fn add_test_assertion_template_text(input: &str, template: &str) -> Result<String> {
+    let (kind, target, expected) = test_assertion_template(template)
+        .ok_or_else(|| anyhow!("unknown test assertion template: {template}"))?;
+
+    Ok(append_test_assertion_line(
+        input,
+        &format_test_assertion_line(kind, target, expected),
+    ))
+}
+
+fn append_test_assertion_line(input: &str, new_line: &str) -> String {
     if input.trim().is_empty() {
         new_line.to_string()
     } else {
         format!("{}\n{new_line}", input.trim_end())
+    }
+}
+
+fn test_assertion_template(template: &str) -> Option<(&'static str, &'static str, &'static str)> {
+    match template.trim().to_ascii_lowercase().as_str() {
+        "status" | "status_equals" => Some(("status_equals", "200", "")),
+        "range" | "status_in_range" => Some(("status_in_range", "200", "299")),
+        "header" | "header_equals" => Some(("header_equals", "content-type", "application/json")),
+        "body" | "body_contains" => Some(("body_contains", "ok", "")),
+        "json" | "json_path" | "json_path_equals" => Some(("json_path_equals", "data.id", "1")),
+        _ => None,
     }
 }
 
@@ -5606,6 +5665,23 @@ mod tests {
             add_test_assertion_text("status_equals 200"),
             "status_equals 200\nstatus_equals 200"
         );
+        assert_eq!(
+            add_test_assertion_template_text("status_equals 200", "header").unwrap(),
+            "status_equals 200\nheader_equals content-type application/json"
+        );
+        assert_eq!(
+            add_test_assertion_template_text("status_equals 200", "body").unwrap(),
+            "status_equals 200\nbody_contains ok"
+        );
+        assert_eq!(
+            add_test_assertion_template_text("status_equals 200", "json").unwrap(),
+            "status_equals 200\njson_path_equals data.id 1"
+        );
+        assert_eq!(
+            test_assertion_template("range"),
+            Some(("status_in_range", "200", "299"))
+        );
+        assert!(add_test_assertion_template_text(input, "unknown").is_err());
         assert_eq!(
             delete_test_assertion_text(input, 0),
             "# keep\nheader_equals content-type application/json\nbody_contains ok"
