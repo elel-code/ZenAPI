@@ -58,8 +58,10 @@
   picker controls, and GraphQL schema response helpers still pending.
 - [~] Rebuild Auth controls for None, Bearer, Basic, JWT, and API key modes;
   current Slint Request Builder has the dedicated Auth tab, mode buttons, and
-  mode-specific config panels wired to transport mapping, with split
-  credential/key-value rows and OAuth flows still pending.
+  mode-specific config panels wired to transport mapping. API key header/query
+  modes now use editable add/delete rows backed by the existing `key=value`
+  config storage; split Bearer/Basic credential rows and OAuth flows are still
+  pending.
 - [~] Rebuild Environments and Variables UI on top of `variables::VariableStore`;
   current Slint baseline uses the reference three-pane Environments page with
   dev/test/prod/local quick selectors, editable global/env variable rows,

@@ -50,91 +50,6 @@ export struct KeyValueTableRow {
     value: string,
 }
 
-component KeyValueEditorPanel inherits Rectangle {
-    in-out property <string> text;
-    in property <string> title;
-    in property <string> key_header: "Key";
-    in property <string> value_header: "Value";
-    in property <string> helper: "";
-    in property <bool> read_only: false;
-
-    horizontal-stretch: 1;
-    vertical-stretch: 1;
-    background: transparent;
-
-    VerticalLayout {
-        padding: 0px;
-        spacing: 6px;
-
-        if root.title != "": UiText {
-            text: root.title;
-            height: 20px;
-            horizontal-stretch: 1;
-            color: Theme.on_surface_variant;
-            font-size: 12px;
-            font-weight: 800;
-            vertical-alignment: center;
-            overflow: elide;
-        }
-
-        Rectangle {
-            height: 30px;
-            horizontal-stretch: 1;
-            border-radius: 6px;
-            border-width: 1px;
-            border-color: Theme.outline_variant;
-            background: Theme.surface_container;
-
-            UiText {
-                x: 12px;
-                text: root.key_header;
-                width: 128px;
-                height: parent.height;
-                color: Theme.on_surface_variant;
-                font-size: 12px;
-                font-weight: 800;
-                vertical-alignment: center;
-                overflow: elide;
-            }
-
-            Rectangle {
-                x: 148px;
-                y: 6px;
-                width: 1px;
-                height: parent.height - 12px;
-                background: Theme.outline_variant;
-            }
-
-            UiText {
-                x: 160px;
-                text: root.value_header;
-                width: parent.width - 172px;
-                height: parent.height;
-                color: Theme.on_surface_variant;
-                font-size: 12px;
-                font-weight: 800;
-                vertical-alignment: center;
-                overflow: elide;
-            }
-        }
-
-        CodePane {
-            text <=> root.text;
-            read_only: root.read_only;
-        }
-
-        if root.helper != "": UiText {
-            text: root.helper;
-            height: 18px;
-            horizontal-stretch: 1;
-            color: Theme.outline;
-            font-size: 12px;
-            vertical-alignment: center;
-            overflow: elide;
-        }
-    }
-}
-
 component KeyValueTableLine inherits Rectangle {
     in property <int> row_id;
     in-out property <string> key;
@@ -1326,7 +1241,12 @@ component DataPanel inherits Rectangle {
 component AuthEditorPanel inherits Rectangle {
     in-out property <string> auth_mode;
     in-out property <string> auth_config;
+    in-out property <[KeyValueTableRow]> auth_key_rows;
     in property <bool> busy;
+    callback auth_mode_changed(string);
+    callback add_auth_key();
+    callback update_auth_key_row(int, string, string);
+    callback delete_auth_key_row(int);
 
     horizontal-stretch: 1;
     vertical-stretch: 1;
@@ -1356,6 +1276,7 @@ component AuthEditorPanel inherits Rectangle {
                 enabled: !root.busy;
                 picked(mode) => {
                     root.auth_mode = mode;
+                    root.auth_mode_changed(mode);
                 }
             }
 
@@ -1486,20 +1407,40 @@ component AuthEditorPanel inherits Rectangle {
             }
         }
 
-        if root.auth_mode == "api-header": KeyValueEditorPanel {
-            text <=> root.auth_config;
+        if root.auth_mode == "api-header": KeyValueTablePanel {
+            rows <=> root.auth_key_rows;
             title: "API Key Header";
             key_header: "Header";
             value_header: "Value";
-            helper: "One API key header per line, for example x-api-key={{apiKey}}.";
+            helper: "Stored as key=value lines, for example x-api-key={{apiKey}}.";
+            busy: root.busy;
+            add_row => {
+                root.add_auth_key();
+            }
+            update_row(row_id, key, value) => {
+                root.update_auth_key_row(row_id, key, value);
+            }
+            delete_row(row_id) => {
+                root.delete_auth_key_row(row_id);
+            }
         }
 
-        if root.auth_mode == "api-query": KeyValueEditorPanel {
-            text <=> root.auth_config;
+        if root.auth_mode == "api-query": KeyValueTablePanel {
+            rows <=> root.auth_key_rows;
             title: "API Key Query";
             key_header: "Param";
             value_header: "Value";
-            helper: "One API key query parameter per line, for example api_key={{apiKey}}.";
+            helper: "Stored as key=value lines, for example api_key={{apiKey}}.";
+            busy: root.busy;
+            add_row => {
+                root.add_auth_key();
+            }
+            update_row(row_id, key, value) => {
+                root.update_auth_key_row(row_id, key, value);
+            }
+            delete_row(row_id) => {
+                root.delete_auth_key_row(row_id);
+            }
         }
 
     }
@@ -2027,6 +1968,7 @@ component RequestPanel inherits Rectangle {
     in-out property <[KeyValueTableRow]> header_rows;
     in-out property <string> auth_mode;
     in-out property <string> auth_config;
+    in-out property <[KeyValueTableRow]> auth_key_rows;
     in-out property <string> body_mode;
     in-out property <string> request_body;
     in-out property <[KeyValueTableRow]> body_field_rows;
@@ -2055,6 +1997,10 @@ component RequestPanel inherits Rectangle {
     callback add_header();
     callback update_header_row(int, string, string);
     callback delete_header_row(int);
+    callback auth_mode_changed(string);
+    callback add_auth_key();
+    callback update_auth_key_row(int, string, string);
+    callback delete_auth_key_row(int);
     callback body_mode_changed(string);
     callback add_body_field();
     callback update_body_field_row(int, string, string);
@@ -2335,7 +2281,20 @@ component RequestPanel inherits Rectangle {
                 height: parent.height - 32px;
                 auth_mode <=> root.auth_mode;
                 auth_config <=> root.auth_config;
+                auth_key_rows <=> root.auth_key_rows;
                 busy: root.busy;
+                auth_mode_changed(mode) => {
+                    root.auth_mode_changed(mode);
+                }
+                add_auth_key => {
+                    root.add_auth_key();
+                }
+                update_auth_key_row(row_id, key, value) => {
+                    root.update_auth_key_row(row_id, key, value);
+                }
+                delete_auth_key_row(row_id) => {
+                    root.delete_auth_key_row(row_id);
+                }
             }
 
             if root.active_tab == "realtime": RealtimeEditorPanel {
@@ -5668,6 +5627,7 @@ export component AppWindow inherits Window {
     in-out property <string> request_headers: "Accept: application/json";
     in-out property <string> auth_mode: "none";
     in-out property <string> auth_config;
+    in-out property <[KeyValueTableRow]> auth_key_rows;
     in-out property <string> body_mode: "none";
     in-out property <string> request_body;
     in-out property <[KeyValueTableRow]> body_field_rows;
@@ -5743,6 +5703,10 @@ export component AppWindow inherits Window {
     callback add_header();
     callback update_header_row(int, string, string);
     callback delete_header_row(int);
+    callback auth_mode_changed(string);
+    callback add_auth_key();
+    callback update_auth_key_row(int, string, string);
+    callback delete_auth_key_row(int);
     callback body_mode_changed(string);
     callback add_body_field();
     callback update_body_field_row(int, string, string);
@@ -5936,6 +5900,7 @@ export component AppWindow inherits Window {
                                         header_rows <=> root.header_rows;
                                         auth_mode <=> root.auth_mode;
                                         auth_config <=> root.auth_config;
+                                        auth_key_rows <=> root.auth_key_rows;
                                         body_mode <=> root.body_mode;
                                         request_body <=> root.request_body;
                                         body_field_rows <=> root.body_field_rows;
@@ -5969,6 +5934,18 @@ export component AppWindow inherits Window {
                                         }
                                         delete_header_row(row_id) => {
                                             root.delete_header_row(row_id);
+                                        }
+                                        auth_mode_changed(mode) => {
+                                            root.auth_mode_changed(mode);
+                                        }
+                                        add_auth_key => {
+                                            root.add_auth_key();
+                                        }
+                                        update_auth_key_row(row_id, key, value) => {
+                                            root.update_auth_key_row(row_id, key, value);
+                                        }
+                                        delete_auth_key_row(row_id) => {
+                                            root.delete_auth_key_row(row_id);
                                         }
                                         body_mode_changed(mode) => {
                                             root.body_mode_changed(mode);

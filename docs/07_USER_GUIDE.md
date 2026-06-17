@@ -221,11 +221,12 @@ Supported auth modes:
 - API key query
 
 Bearer and JWT modes send `Authorization: Bearer <token>`. Basic auth expects
-`username:password`. API key modes expect line-based `key=value` input and place
-the values in headers or query params. The Slint auth panel changes its label,
-placeholder, and helper text for the selected mode while preserving the same
-saved config format. OAuth token acquisition, redirect handling, refresh, and
-secure state storage remain future work.
+`username:password`. API key modes use editable add/delete rows for header or
+query pairs, while still storing the saved config as line-based `key=value`
+text. The Slint auth panel changes its label, placeholder, and helper text for
+the selected mode while preserving the same saved config format. OAuth token
+acquisition, redirect handling, refresh, and secure state storage remain future
+work.
 
 ## Vars And Envs
 
