@@ -1167,6 +1167,7 @@ component AppNavItem inherits Rectangle {
 
 component AppNavigation inherits Rectangle {
     in-out property <int> active_page_index;
+    callback navigate_page(int);
 
     width: 240px;
     vertical-stretch: 1;
@@ -1210,7 +1211,7 @@ component AppNavigation inherits Rectangle {
                     glyph: item.glyph;
                     selected: root.active_page_index == item.page_index;
                     picked(page_index) => {
-                        root.active_page_index = page_index;
+                        root.navigate_page(page_index);
                     }
                 }
 
@@ -1232,7 +1233,7 @@ component AppNavigation inherits Rectangle {
                     glyph: item.glyph;
                     selected: root.active_page_index == item.page_index;
                     picked(page_index) => {
-                        root.active_page_index = page_index;
+                        root.navigate_page(page_index);
                     }
                 }
 
@@ -5872,6 +5873,7 @@ component BottomNavItem inherits Rectangle {
 
 component BottomNavigation inherits Rectangle {
     in-out property <int> active_page_index;
+    callback navigate_page(int);
 
     height: 56px;
     horizontal-stretch: 1;
@@ -5898,7 +5900,7 @@ component BottomNavigation inherits Rectangle {
             glyph: item.glyph;
             selected: root.active_page_index == item.page_index;
             picked(page_index) => {
-                root.active_page_index = page_index;
+                root.navigate_page(page_index);
             }
         }
     }
@@ -6067,9 +6069,11 @@ export component AppWindow inherits Window {
     in-out property <bool> busy: false;
     in-out property <string> activity: "";
     in-out property <int> active_page_index: 0;
+    in-out property <int> rendered_page_index: 0;
     property <string> active_page_label: root.active_page_index == 0 ? "dashboard" : root.active_page_index == 1 ? "requests" : root.active_page_index == 2 ? "mocks" : root.active_page_index == 3 ? "runner" : root.active_page_index == 4 ? "environments" : root.active_page_index == 5 ? "analytics" : root.active_page_index == 6 ? "docs" : root.active_page_index == 7 ? "keys" : root.active_page_index == 8 ? "team" : root.active_page_index == 9 ? "settings" : "codegen";
     property <bool> compact_mode: root.width < 900px;
 
+    callback navigate_page(int);
     callback import_openapi(string);
     callback filter_routes(string);
     callback select_route(int);
@@ -6159,6 +6163,9 @@ export component AppWindow inherits Window {
                 height: parent.height;
                 visible: !root.compact_mode;
                 active_page_index <=> root.active_page_index;
+                navigate_page(page_index) => {
+                    root.navigate_page(page_index);
+                }
             }
 
             Rectangle {
@@ -6179,7 +6186,7 @@ export component AppWindow inherits Window {
                 clip: true;
 
                 ScrollView {
-                    visible: root.active_page_index == 1;
+                    visible: root.rendered_page_index == 1;
                     width: parent.width;
                     height: parent.height;
                     viewport-width: max(self.visible-width, 1200px);
@@ -6460,7 +6467,7 @@ export component AppWindow inherits Window {
                 }
 
                 ScrollView {
-                    visible: root.active_page_index == 0;
+                    visible: root.rendered_page_index == 0;
                     width: parent.width;
                     height: parent.height;
                     viewport-width: max(self.visible-width, 1040px);
@@ -6479,13 +6486,13 @@ export component AppWindow inherits Window {
                         server_status: root.server_status;
                         response_status: root.response_status;
                         open_page(page_index) => {
-                            root.active_page_index = page_index;
+                            root.navigate_page(page_index);
                         }
                     }
                 }
 
                 ScrollView {
-                    visible: root.active_page_index == 2;
+                    visible: root.rendered_page_index == 2;
                     width: parent.width;
                     height: parent.height;
                     viewport-width: max(self.visible-width, 1160px);
@@ -6527,7 +6534,7 @@ export component AppWindow inherits Window {
                 }
 
                 ScrollView {
-                    visible: root.active_page_index == 4;
+                    visible: root.rendered_page_index == 4;
                     width: parent.width;
                     height: parent.height;
                     viewport-width: max(self.visible-width, 1180px);
@@ -6563,7 +6570,7 @@ export component AppWindow inherits Window {
                 }
 
                 ScrollView {
-                    visible: root.active_page_index == 3;
+                    visible: root.rendered_page_index == 3;
                     width: parent.width;
                     height: parent.height;
                     viewport-width: max(self.visible-width, 1040px);
@@ -6595,7 +6602,7 @@ export component AppWindow inherits Window {
                 }
 
                 ScrollView {
-                    visible: root.active_page_index == 10;
+                    visible: root.rendered_page_index == 10;
                     width: parent.width;
                     height: parent.height;
                     viewport-width: max(self.visible-width, 840px);
@@ -6623,7 +6630,7 @@ export component AppWindow inherits Window {
                 }
 
                 ScrollView {
-                    visible: root.active_page_index == 5;
+                    visible: root.rendered_page_index == 5;
                     width: parent.width;
                     height: parent.height;
                     viewport-width: max(self.visible-width, 1040px);
@@ -6638,7 +6645,7 @@ export component AppWindow inherits Window {
                 }
 
                 ScrollView {
-                    visible: root.active_page_index == 6;
+                    visible: root.rendered_page_index == 6;
                     width: parent.width;
                     height: parent.height;
                     viewport-width: max(self.visible-width, 1040px);
@@ -6664,7 +6671,7 @@ export component AppWindow inherits Window {
                 }
 
                 ScrollView {
-                    visible: root.active_page_index == 7;
+                    visible: root.rendered_page_index == 7;
                     width: parent.width;
                     height: parent.height;
                     viewport-width: max(self.visible-width, 1040px);
@@ -6679,7 +6686,7 @@ export component AppWindow inherits Window {
                 }
 
                 ScrollView {
-                    visible: root.active_page_index == 8;
+                    visible: root.rendered_page_index == 8;
                     width: parent.width;
                     height: parent.height;
                     viewport-width: max(self.visible-width, 1040px);
@@ -6694,7 +6701,7 @@ export component AppWindow inherits Window {
                 }
 
                 ScrollView {
-                    visible: root.active_page_index == 9;
+                    visible: root.rendered_page_index == 9;
                     width: parent.width;
                     height: parent.height;
                     viewport-width: max(self.visible-width, 1040px);
@@ -6715,6 +6722,9 @@ export component AppWindow inherits Window {
                 width: parent.width;
                 visible: root.compact_mode;
                 active_page_index <=> root.active_page_index;
+                navigate_page(page_index) => {
+                    root.navigate_page(page_index);
+                }
             }
         }
 
