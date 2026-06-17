@@ -170,7 +170,7 @@ component AddressBar {
 
 ### 两种实例
 
-**请求编辑器标签页**: Params, Headers, Body, Auth, Scripts（5个标签）
+**请求编辑器标签页**: Params, Headers, Body, Auth, Realtime, Scripts（6个标签）
 **响应查看器标签页**: Body, Headers, Cookies（3个标签）
 
 ### 附加标记

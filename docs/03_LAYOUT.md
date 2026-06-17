@@ -131,7 +131,7 @@ ZenAPI 采用单窗口多页面架构，全局外壳包含：
 |------|------|
 | **整体布局** | 3 列：集合侧栏(240px, 可折叠) + 请求编辑器(弹性) + 响应面板(400px) |
 | **URL 地址栏** | 置于请求编辑器顶部；54px 行高（含 40px AddressBar + 上下间距）；AddressBar 组件 |
-| **工作区标签** | 5 个标签：Params, Headers, Body, Auth, Scripts；TabBar 组件，高度 34px |
+| **工作区标签** | 6 个标签：Params, Headers, Body, Auth, Realtime, Scripts；TabBar 组件，高度 34px |
 | **Body 类型栏** | 紧贴标签栏下方，`surface-container-lowest` 背景；radio 切换 none/form-data/raw/graphql/binary + 子类型下拉 |
 | **代码编辑器** | 最小高度 118px；弹性填充剩余空间；CodeEditor 组件（编辑模式） |
 | **集合侧栏** | 用户区 + "Collections" 标题 + 文件夹树（Auth/Users/Billing）+ "History" 底部区域 |
@@ -145,6 +145,7 @@ ZenAPI 采用单窗口多页面架构，全局外壳包含：
 | Headers | 请求头，KeyValueTable + Copy + Presets (+/bulk paste) | KeyValueTable |
 | Body | Body 类型选择 + CodeEditor / Form 编辑器 | CodeEditor, KeyValueTable |
 | Auth | 认证类型选择（None/Bearer/OAuth/Basic/JWT/API）+ 对应输入 | Dropdown + TextInput |
+| Realtime | WebSocket Open/Send/End、SSE Once/Stream/Stop、gRPC draft | TextInput, CodeEditor, ActionButton |
 | Scripts | Pre-request 操作行 + Tests 断言表 | KeyValueTable (Tests 模式) |
 
 ---

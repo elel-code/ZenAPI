@@ -188,17 +188,19 @@ for introspection responses are still future work. Form-data file fields use an
 
 ## WebSocket
 
-The WS panel opens a persistent `ws://` or `wss://` session. Use `Open` to
-establish the session, `Send` to send messages repeatedly, and `End` to close
-the connection. Request headers are sent during the handshake. Sent and
-received text messages are mirrored in the response viewer. Subprotocol entry,
-binary message controls, and copy/clear history actions are still future work.
+Open the Requests page, select the Realtime tab, and choose `WebSocket`. Use
+`Open` to establish a persistent `ws://` or `wss://` session, `Send` to send
+messages repeatedly, and `End` to close the connection. Request headers are
+sent during the handshake. Sent and received text messages are mirrored in the
+response viewer. Subprotocol entry, binary message controls, and copy/clear
+history actions are still future work.
 
 ## SSE
 
-The SSE panel works with `http://` or `https://` `text/event-stream` endpoints.
-Use `Once` for a bounded preview, `Stream` for a background stream, and `Stop`
-to cancel the active subscription. SSE headers are sent on both preview fetches
+Open the Requests page, select the Realtime tab, and choose `SSE`. The SSE
+panel works with `http://` or `https://` `text/event-stream` endpoints. Use
+`Once` for a bounded preview, `Stream` for a background stream, and `Stop` to
+cancel the active subscription. SSE headers are sent on both preview fetches
 and subscriptions. Event names, ids, reconnect attempts, close reasons, and
 errors are mirrored in the response viewer. The `Last-Event-ID` field is sent
 when starting a stream, and it is updated when incoming events include an id so

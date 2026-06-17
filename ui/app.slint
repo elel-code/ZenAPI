@@ -1100,6 +1100,318 @@ component AuthEditorPanel inherits Rectangle {
     }
 }
 
+component RealtimeEditorPanel inherits Rectangle {
+    in-out property <string> realtime_mode;
+    in-out property <string> realtime_message;
+    in-out property <string> sse_max_events;
+    in-out property <string> sse_last_event_id;
+    in-out property <bool> sse_streaming;
+    in-out property <string> grpc_endpoint;
+    in-out property <string> grpc_method;
+    in-out property <string> grpc_metadata;
+    in-out property <string> grpc_message;
+    in property <bool> busy;
+    callback open_websocket();
+    callback run_websocket();
+    callback close_websocket();
+    callback run_sse();
+    callback open_sse_stream();
+    callback close_sse_stream();
+    callback build_grpc_draft();
+
+    horizontal-stretch: 1;
+    vertical-stretch: 1;
+    background: transparent;
+
+    VerticalLayout {
+        padding: 0px;
+        spacing: 12px;
+
+        HorizontalLayout {
+            height: 30px;
+            spacing: 8px;
+            alignment: center;
+
+            for item in [
+                { mode: "ws", label: "WebSocket", width: 104px },
+                { mode: "sse", label: "SSE", width: 68px },
+                { mode: "grpc", label: "gRPC", width: 72px },
+            ]: BodyModeButton {
+                mode: item.mode;
+                label: item.label;
+                button_width: item.width;
+                selected: root.realtime_mode == item.mode;
+                enabled: !root.busy;
+                picked(mode) => {
+                    root.realtime_mode = mode;
+                }
+            }
+
+            Rectangle {
+                horizontal-stretch: 1;
+            }
+        }
+
+        if root.realtime_mode == "ws": HorizontalLayout {
+            spacing: 12px;
+            vertical-stretch: 1;
+
+            LabeledEditor {
+                label: "WebSocket Message";
+                text <=> root.realtime_message;
+            }
+
+            Rectangle {
+                width: 190px;
+                vertical-stretch: 1;
+                background: Theme.surface_container;
+                border-radius: 8px;
+                border-width: 1px;
+                border-color: Theme.outline_variant;
+
+                VerticalLayout {
+                    padding: 14px;
+                    spacing: 10px;
+
+                    UiText {
+                        text: "SESSION";
+                        height: 20px;
+                        horizontal-stretch: 1;
+                        color: Theme.on_surface_variant;
+                        font-size: 12px;
+                        font-weight: 800;
+                        vertical-alignment: center;
+                        overflow: elide;
+                    }
+
+                    ActionButton {
+                        text: "Open";
+                        button_width: 162px;
+                        enabled: !root.busy;
+                        clicked => {
+                            root.open_websocket();
+                        }
+                    }
+
+                    ActionButton {
+                        text: "Send";
+                        button_width: 162px;
+                        primary: true;
+                        enabled: !root.busy;
+                        clicked => {
+                            root.run_websocket();
+                        }
+                    }
+
+                    ActionButton {
+                        text: "End";
+                        button_width: 162px;
+                        warning: true;
+                        enabled: !root.busy;
+                        clicked => {
+                            root.close_websocket();
+                        }
+                    }
+
+                    UiText {
+                        text: "Uses the request URL and request headers.";
+                        horizontal-stretch: 1;
+                        vertical-stretch: 1;
+                        color: Theme.outline;
+                        font-size: 12px;
+                        vertical-alignment: top;
+                        overflow: elide;
+                    }
+                }
+            }
+        }
+
+        if root.realtime_mode == "sse": HorizontalLayout {
+            spacing: 12px;
+            vertical-stretch: 1;
+
+            Rectangle {
+                horizontal-stretch: 1;
+                vertical-stretch: 1;
+                background: transparent;
+
+                VerticalLayout {
+                    padding: 0px;
+                    spacing: 10px;
+
+                    TextField {
+                        text <=> root.sse_max_events;
+                        placeholder: "Preview event count";
+                        mono: true;
+                        enabled: !root.busy && !root.sse_streaming;
+                    }
+
+                    TextField {
+                        text <=> root.sse_last_event_id;
+                        placeholder: "Last-Event-ID";
+                        mono: true;
+                        enabled: !root.busy;
+                    }
+
+                    DataPanel {
+                        title: root.sse_streaming ? "SSE Streaming" : "SSE Preview";
+                        body: "Uses the request URL and request headers.\nLast-Event-ID is updated from incoming events when available.";
+                    }
+                }
+            }
+
+            Rectangle {
+                width: 190px;
+                vertical-stretch: 1;
+                background: Theme.surface_container;
+                border-radius: 8px;
+                border-width: 1px;
+                border-color: Theme.outline_variant;
+
+                VerticalLayout {
+                    padding: 14px;
+                    spacing: 10px;
+
+                    UiText {
+                        text: "EVENT STREAM";
+                        height: 20px;
+                        horizontal-stretch: 1;
+                        color: Theme.on_surface_variant;
+                        font-size: 12px;
+                        font-weight: 800;
+                        vertical-alignment: center;
+                        overflow: elide;
+                    }
+
+                    ActionButton {
+                        text: "Once";
+                        button_width: 162px;
+                        enabled: !root.busy && !root.sse_streaming;
+                        clicked => {
+                            root.run_sse();
+                        }
+                    }
+
+                    ActionButton {
+                        text: "Stream";
+                        button_width: 162px;
+                        primary: true;
+                        enabled: !root.busy && !root.sse_streaming;
+                        clicked => {
+                            root.open_sse_stream();
+                        }
+                    }
+
+                    ActionButton {
+                        text: "Stop";
+                        button_width: 162px;
+                        warning: true;
+                        enabled: root.sse_streaming;
+                        clicked => {
+                            root.close_sse_stream();
+                        }
+                    }
+                }
+            }
+        }
+
+        if root.realtime_mode == "grpc": HorizontalLayout {
+            spacing: 12px;
+            vertical-stretch: 1;
+
+            Rectangle {
+                horizontal-stretch: 1;
+                vertical-stretch: 1;
+                background: transparent;
+
+                VerticalLayout {
+                    padding: 0px;
+                    spacing: 10px;
+
+                    HorizontalLayout {
+                        height: 36px;
+                        spacing: 10px;
+
+                        TextField {
+                            text <=> root.grpc_endpoint;
+                            placeholder: "http://localhost:50051";
+                            mono: true;
+                            enabled: !root.busy;
+                        }
+
+                        TextField {
+                            text <=> root.grpc_method;
+                            placeholder: "package.Service/Method";
+                            mono: true;
+                            enabled: !root.busy;
+                        }
+                    }
+
+                    HorizontalLayout {
+                        spacing: 12px;
+                        vertical-stretch: 1;
+
+                        LabeledEditor {
+                            label: "Metadata";
+                            text <=> root.grpc_metadata;
+                        }
+
+                        LabeledEditor {
+                            label: "Message";
+                            text <=> root.grpc_message;
+                        }
+                    }
+                }
+            }
+
+            Rectangle {
+                width: 190px;
+                vertical-stretch: 1;
+                background: Theme.surface_container;
+                border-radius: 8px;
+                border-width: 1px;
+                border-color: Theme.outline_variant;
+
+                VerticalLayout {
+                    padding: 14px;
+                    spacing: 10px;
+
+                    UiText {
+                        text: "DRAFT";
+                        height: 20px;
+                        horizontal-stretch: 1;
+                        color: Theme.on_surface_variant;
+                        font-size: 12px;
+                        font-weight: 800;
+                        vertical-alignment: center;
+                        overflow: elide;
+                    }
+
+                    ActionButton {
+                        text: "Build Draft";
+                        button_width: 162px;
+                        primary: true;
+                        enabled: !root.busy;
+                        clicked => {
+                            root.build_grpc_draft();
+                        }
+                    }
+
+                    UiText {
+                        text: "Validates endpoint, method, metadata, and JSON message. Unary transport is still future work.";
+                        horizontal-stretch: 1;
+                        vertical-stretch: 1;
+                        color: Theme.outline;
+                        font-size: 12px;
+                        vertical-alignment: top;
+                        overflow: elide;
+                    }
+                }
+            }
+        }
+    }
+}
+
 component AddressBar inherits Rectangle {
     in-out property <string> method;
     in-out property <string> url;
@@ -1311,6 +1623,7 @@ component RequestPanel inherits Rectangle {
                     { mode: "headers", label: "Headers" },
                     { mode: "body", label: "Body" },
                     { mode: "auth", label: "Auth" },
+                    { mode: "realtime", label: "Realtime" },
                     { mode: "scripts", label: "Scripts" },
                 ]: WorkspaceTab {
                     mode: item.mode;
@@ -1445,6 +1758,44 @@ component RequestPanel inherits Rectangle {
                 auth_mode <=> root.auth_mode;
                 auth_config <=> root.auth_config;
                 busy: root.busy;
+            }
+
+            if root.active_tab == "realtime": RealtimeEditorPanel {
+                x: 16px;
+                y: 16px;
+                width: parent.width - 32px;
+                height: parent.height - 32px;
+                realtime_mode <=> root.realtime_mode;
+                realtime_message <=> root.realtime_message;
+                sse_max_events <=> root.sse_max_events;
+                sse_last_event_id <=> root.sse_last_event_id;
+                sse_streaming <=> root.sse_streaming;
+                grpc_endpoint <=> root.grpc_endpoint;
+                grpc_method <=> root.grpc_method;
+                grpc_metadata <=> root.grpc_metadata;
+                grpc_message <=> root.grpc_message;
+                busy: root.busy;
+                open_websocket => {
+                    root.open_websocket();
+                }
+                run_websocket => {
+                    root.run_websocket();
+                }
+                close_websocket => {
+                    root.close_websocket();
+                }
+                run_sse => {
+                    root.run_sse();
+                }
+                open_sse_stream => {
+                    root.open_sse_stream();
+                }
+                close_sse_stream => {
+                    root.close_sse_stream();
+                }
+                build_grpc_draft => {
+                    root.build_grpc_draft();
+                }
             }
 
             if root.active_tab == "scripts": HorizontalLayout {

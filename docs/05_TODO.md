@@ -86,14 +86,15 @@
   send/codegen, evaluates native tests after single sends, and saves/restores
   both fields with collection requests, with row-based test controls pending.
 - [~] Rebuild WebSocket and SSE panels using the restored client modules;
-  current Slint baseline provides WebSocket one-shot send, persistent
-  open/send/close text sessions, plus SSE bounded previews and persistent
-  stream/stop controls with Last-Event-ID resume, with richer WebSocket
-  binary/protocol controls and SSE copy/clear/history actions still pending.
+  current Slint Request Builder has a visible Realtime tab with WebSocket
+  one-shot send, persistent open/send/close text sessions, plus SSE bounded
+  previews and persistent stream/stop controls with Last-Event-ID resume, with
+  richer WebSocket binary/protocol controls and SSE copy/clear/history actions
+  still pending.
 - [~] Add GraphQL and gRPC UI surfaces after REST parity is stable; current
-  Slint baseline has GraphQL query/variables editing plus a gRPC draft surface
-  backed by the domain model, with gRPC descriptor loading/transport and GraphQL
-  schema response helpers still pending.
+  Slint baseline has GraphQL query/variables editing plus a visible Realtime
+  gRPC draft surface backed by the domain model, with gRPC descriptor
+  loading/transport and GraphQL schema response helpers still pending.
 - [~] Add mock request logs and richer mock manager controls; current Slint
   baseline has a dedicated Mock Manager page with endpoint selection,
   start/stop, traffic filtering, clear, and export placement, with richer route
@@ -127,8 +128,8 @@
 | Codegen | Domain + Slint page implemented | Dedicated page generates and saves snippets; clipboard copy pending |
 | Runner | Domain + Slint page + CLI implemented | Dedicated page runs/cancels collections and saves reports; CLI remains stable |
 | Assertions/scripts | Domain implemented | Slint baseline edits, saves, restores, and evaluates native scripts/tests |
-| WebSocket/SSE | Client modules restored | Slint baseline supports one-shot and persistent WS text sends plus SSE previews and persistent SSE streams |
+| WebSocket/SSE | Client modules restored | Realtime tab supports one-shot and persistent WS text sends plus SSE previews and persistent SSE streams |
 | Mock logs | Core implemented | Slint baseline shows, filters, clears, and exports recent mock requests |
 | GraphQL | Payload builder implemented | Slint baseline edits query/variables and applies helper templates |
-| gRPC | Domain draft model implemented | Slint draft surface wired; descriptor loading and unary transport pending |
+| gRPC | Domain draft model implemented | Realtime tab exposes draft surface; descriptor loading and unary transport pending |
 | Reference pages | Slint baseline implemented | Dashboard, Request Builder, Mock Manager, Environments, Test Runner, API Docs, API Keys, Team, Project Settings, and Traffic Analytics now have routed reference-aligned page layouts |
