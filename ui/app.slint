@@ -2335,7 +2335,7 @@ component RequestPanel inherits Rectangle {
 
                 if root.body_mode == "graphql": ActionButton {
                     text: "Query";
-                    button_width: 58px;
+                    button_width: 50px;
                     enabled: !root.busy;
                     clicked => {
                         root.apply_graphql_template("query");
@@ -2344,10 +2344,19 @@ component RequestPanel inherits Rectangle {
 
                 if root.body_mode == "graphql": ActionButton {
                     text: "Mutation";
-                    button_width: 78px;
+                    button_width: 68px;
                     enabled: !root.busy;
                     clicked => {
                         root.apply_graphql_template("mutation");
+                    }
+                }
+
+                if root.body_mode == "graphql": ActionButton {
+                    text: "Intro";
+                    button_width: 52px;
+                    enabled: !root.busy;
+                    clicked => {
+                        root.apply_graphql_template("introspection");
                     }
                 }
             }
