@@ -78,7 +78,9 @@ component KeyValueTablePanel inherits Rectangle {
     callback add_row();
     callback paste_rows();
     callback import_rows(string);
+    callback pick_import_file();
     callback add_file_row(string, string);
+    callback pick_file();
     callback update_row(int, string, string);
     callback delete_row(int);
 
@@ -137,6 +139,15 @@ component KeyValueTablePanel inherits Rectangle {
             }
 
             ActionButton {
+                text: "Open";
+                button_width: 54px;
+                enabled: !root.busy;
+                clicked => {
+                    root.pick_import_file();
+                }
+            }
+
+            ActionButton {
                 text: "Import";
                 button_width: 68px;
                 enabled: !root.busy && root.import_path != "";
@@ -162,6 +173,15 @@ component KeyValueTablePanel inherits Rectangle {
                 placeholder: "/absolute/path/to/file";
                 mono: true;
                 enabled: !root.busy;
+            }
+
+            ActionButton {
+                text: "Pick";
+                button_width: 50px;
+                enabled: !root.busy;
+                clicked => {
+                    root.pick_file();
+                }
             }
 
             ActionButton {
@@ -575,6 +595,7 @@ component HeaderEditorPanel inherits Rectangle {
     callback add_header();
     callback paste_headers();
     callback import_headers(string);
+    callback pick_header_import_file();
     callback update_header_row(int, string, string);
     callback delete_header_row(int);
     callback copy_headers();
@@ -658,6 +679,15 @@ component HeaderEditorPanel inherits Rectangle {
                 placeholder: "header file path";
                 mono: true;
                 enabled: !root.busy;
+            }
+
+            ActionButton {
+                text: "Open";
+                button_width: 54px;
+                enabled: !root.busy;
+                clicked => {
+                    root.pick_header_import_file();
+                }
             }
 
             ActionButton {
@@ -979,11 +1009,13 @@ export component RequestPanel inherits Rectangle {
     callback add_query_param();
     callback paste_query_params();
     callback import_query_params(string);
+    callback pick_query_param_import_file();
     callback update_query_param_row(int, string, string);
     callback delete_query_param_row(int);
     callback add_header();
     callback paste_headers();
     callback import_headers(string);
+    callback pick_header_import_file();
     callback update_header_row(int, string, string);
     callback delete_header_row(int);
     callback copy_headers();
@@ -995,6 +1027,7 @@ export component RequestPanel inherits Rectangle {
     callback body_mode_changed(string);
     callback add_body_field();
     callback add_body_file_field(string, string);
+    callback pick_form_file();
     callback update_body_field_row(int, string, string);
     callback delete_body_field_row(int);
     callback add_test_assertion();
@@ -1009,6 +1042,7 @@ export component RequestPanel inherits Rectangle {
     callback invoke_grpc_server_streaming();
     callback stop_grpc_stream();
     callback build_grpc_draft();
+    callback pick_grpc_descriptor_file();
     callback load_grpc_descriptor_set(string);
     callback load_grpc_proto_file(string, string);
     callback load_grpc_reflection();
@@ -1172,6 +1206,9 @@ export component RequestPanel inherits Rectangle {
                 import_rows(path) => {
                     root.import_query_params(path);
                 }
+                pick_import_file => {
+                    root.pick_query_param_import_file();
+                }
                 update_row(row_id, key, value) => {
                     root.update_query_param_row(row_id, key, value);
                 }
@@ -1200,6 +1237,9 @@ export component RequestPanel inherits Rectangle {
                 }
                 import_headers(path) => {
                     root.import_headers(path);
+                }
+                pick_header_import_file => {
+                    root.pick_header_import_file();
                 }
                 update_header_row(row_id, key, value) => {
                     root.update_header_row(row_id, key, value);
@@ -1249,6 +1289,9 @@ export component RequestPanel inherits Rectangle {
                 }
                 add_file_row(field, path) => {
                     root.add_body_file_field(field, path);
+                }
+                pick_file => {
+                    root.pick_form_file();
                 }
                 update_row(row_id, key, value) => {
                     root.update_body_field_row(row_id, key, value);
@@ -1424,6 +1467,9 @@ export component RequestPanel inherits Rectangle {
                 }
                 build_grpc_draft => {
                     root.build_grpc_draft();
+                }
+                pick_grpc_descriptor_file => {
+                    root.pick_grpc_descriptor_file();
                 }
                 load_grpc_descriptor_set(path) => {
                     root.load_grpc_descriptor_set(path);

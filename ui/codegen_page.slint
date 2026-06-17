@@ -44,6 +44,7 @@ export component CodegenPage inherits Rectangle {
     callback generate_code();
     callback copy_codegen();
     callback save_codegen(string);
+    callback pick_codegen_path();
 
     horizontal-stretch: 1;
     vertical-stretch: 1;
@@ -121,6 +122,15 @@ export component CodegenPage inherits Rectangle {
                 placeholder: "zenapi-snippet.txt";
                 mono: true;
                 enabled: !root.busy;
+            }
+
+            ActionButton {
+                text: "Open";
+                button_width: 64px;
+                enabled: !root.busy;
+                clicked => {
+                    root.pick_codegen_path();
+                }
             }
 
             ActionButton {

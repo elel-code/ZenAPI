@@ -179,6 +179,7 @@ export component MockManagerPage inherits Rectangle {
     callback delete_mock_rule(int);
     callback filter_mock_logs(string);
     callback save_mock_logs(string);
+    callback pick_mock_log_path();
     callback clear_mock_logs();
 
     horizontal-stretch: 1;
@@ -707,6 +708,15 @@ export component MockManagerPage inherits Rectangle {
                                 placeholder: "mock-logs.json";
                                 mono: true;
                                 enabled: !root.busy;
+                            }
+
+                            ActionButton {
+                                text: "Open";
+                                button_width: 58px;
+                                enabled: !root.busy;
+                                clicked => {
+                                    root.pick_mock_log_path();
+                                }
                             }
 
                             ActionButton {

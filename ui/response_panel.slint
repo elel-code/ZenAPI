@@ -29,9 +29,11 @@ export component ResponsePanel inherits Rectangle {
     in property <bool> busy;
     callback generate_code();
     callback save_codegen(string);
+    callback pick_codegen_path();
     callback run_collection();
     callback cancel_collection_run();
     callback save_runner_report(string);
+    callback pick_runner_report_path();
     callback copy_response(string, string, int, int);
     callback format_response(string);
     callback summarize_graphql_schema(string, string);

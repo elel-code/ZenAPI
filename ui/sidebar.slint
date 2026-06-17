@@ -193,6 +193,7 @@ export component Sidebar inherits Rectangle {
     in property <int> total_route_count;
     in property <bool> busy;
     callback import_openapi(string);
+    callback pick_openapi_file();
     callback select_route(int);
     callback select_collection_request(int);
     callback rename_collection_request(int, string);
@@ -252,6 +253,15 @@ export component Sidebar inherits Rectangle {
                             if !root.busy && root.file_path != "" {
                                 root.import_openapi(root.file_path);
                             }
+                        }
+                    }
+
+                    ActionButton {
+                        text: "Open";
+                        enabled: !root.busy;
+                        button_width: 54px;
+                        clicked => {
+                            root.pick_openapi_file();
                         }
                     }
 

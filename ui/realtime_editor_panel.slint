@@ -34,6 +34,7 @@ export component RealtimeEditorPanel inherits Rectangle {
     callback invoke_grpc_server_streaming();
     callback stop_grpc_stream();
     callback build_grpc_draft();
+    callback pick_grpc_descriptor_file();
     callback load_grpc_descriptor_set(string);
     callback load_grpc_proto_file(string, string);
     callback load_grpc_reflection();
@@ -406,9 +407,18 @@ export component RealtimeEditorPanel inherits Rectangle {
                         }
 
                         ActionButton {
+                            text: "Open";
+                            button_width: 54px;
+                            enabled: !root.busy && !root.grpc_streaming;
+                            clicked => {
+                                root.pick_grpc_descriptor_file();
+                            }
+                        }
+
+                        ActionButton {
                             text: "Set";
                             button_width: 46px;
-                            enabled: !root.busy && root.grpc_descriptor_path != "";
+                            enabled: !root.busy && !root.grpc_streaming && root.grpc_descriptor_path != "";
                             clicked => {
                                 root.load_grpc_descriptor_set(root.grpc_descriptor_path);
                             }
@@ -417,7 +427,7 @@ export component RealtimeEditorPanel inherits Rectangle {
                         ActionButton {
                             text: "Proto";
                             button_width: 58px;
-                            enabled: !root.busy && root.grpc_descriptor_path != "";
+                            enabled: !root.busy && !root.grpc_streaming && root.grpc_descriptor_path != "";
                             clicked => {
                                 root.load_grpc_proto_file(root.grpc_descriptor_path, root.grpc_protoc_path);
                             }

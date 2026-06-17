@@ -137,6 +137,7 @@ export component AppWindow inherits Window {
     property <bool> compact_mode: root.width < 900px;
 
     callback import_openapi(string);
+    callback pick_openapi_file();
     callback filter_routes(string);
     callback select_route(int);
     callback select_collection_request(int);
@@ -155,6 +156,7 @@ export component AppWindow inherits Window {
     callback clear_history();
     callback filter_mock_logs(string);
     callback save_mock_logs(string);
+    callback pick_mock_log_path();
     callback clear_mock_logs();
     callback save_mock_response(string);
     callback select_mock_rule(int);
@@ -164,11 +166,13 @@ export component AppWindow inherits Window {
     callback add_query_param();
     callback paste_query_params();
     callback import_query_params(string);
+    callback pick_query_param_import_file();
     callback update_query_param_row(int, string, string);
     callback delete_query_param_row(int);
     callback add_header();
     callback paste_headers();
     callback import_headers(string);
+    callback pick_header_import_file();
     callback update_header_row(int, string, string);
     callback delete_header_row(int);
     callback copy_headers();
@@ -180,6 +184,7 @@ export component AppWindow inherits Window {
     callback body_mode_changed(string);
     callback add_body_field();
     callback add_body_file_field(string, string);
+    callback pick_form_file();
     callback update_body_field_row(int, string, string);
     callback delete_body_field_row(int);
     callback add_test_assertion();
@@ -193,9 +198,11 @@ export component AppWindow inherits Window {
     callback generate_code();
     callback copy_codegen();
     callback save_codegen(string);
+    callback pick_codegen_path();
     callback run_collection();
     callback cancel_collection_run();
     callback save_runner_report(string);
+    callback pick_runner_report_path();
     callback copy_response(string, string, int, int);
     callback format_response(string);
     callback summarize_graphql_schema(string, string);
@@ -224,6 +231,7 @@ export component AppWindow inherits Window {
     callback invoke_grpc_server_streaming();
     callback stop_grpc_stream();
     callback build_grpc_draft();
+    callback pick_grpc_descriptor_file();
     callback load_grpc_descriptor_set(string);
     callback load_grpc_proto_file(string, string);
     callback load_grpc_reflection();
@@ -298,6 +306,9 @@ export component AppWindow inherits Window {
                             busy: root.busy;
                             import_openapi(path) => {
                                 root.import_openapi(path);
+                            }
+                            pick_openapi_file => {
+                                root.pick_openapi_file();
                             }
                             select_route(index) => {
                                 root.select_route(index);
@@ -409,6 +420,9 @@ export component AppWindow inherits Window {
                                     import_query_params(path) => {
                                         root.import_query_params(path);
                                     }
+                                    pick_query_param_import_file => {
+                                        root.pick_query_param_import_file();
+                                    }
                                     update_query_param_row(row_id, key, value) => {
                                         root.update_query_param_row(row_id, key, value);
                                     }
@@ -423,6 +437,9 @@ export component AppWindow inherits Window {
                                     }
                                     import_headers(path) => {
                                         root.import_headers(path);
+                                    }
+                                    pick_header_import_file => {
+                                        root.pick_header_import_file();
                                     }
                                     update_header_row(row_id, key, value) => {
                                         root.update_header_row(row_id, key, value);
@@ -456,6 +473,9 @@ export component AppWindow inherits Window {
                                     }
                                     add_body_file_field(field, path) => {
                                         root.add_body_file_field(field, path);
+                                    }
+                                    pick_form_file => {
+                                        root.pick_form_file();
                                     }
                                     update_body_field_row(row_id, key, value) => {
                                         root.update_body_field_row(row_id, key, value);
@@ -529,6 +549,9 @@ export component AppWindow inherits Window {
                                     build_grpc_draft => {
                                         root.build_grpc_draft();
                                     }
+                                    pick_grpc_descriptor_file => {
+                                        root.pick_grpc_descriptor_file();
+                                    }
                                     load_grpc_descriptor_set(path) => {
                                         root.load_grpc_descriptor_set(path);
                                     }
@@ -578,6 +601,9 @@ export component AppWindow inherits Window {
                             save_codegen(path) => {
                                 root.save_codegen(path);
                             }
+                            pick_codegen_path => {
+                                root.pick_codegen_path();
+                            }
                             run_collection => {
                                 root.run_collection();
                             }
@@ -586,6 +612,9 @@ export component AppWindow inherits Window {
                             }
                             save_runner_report(path) => {
                                 root.save_runner_report(path);
+                            }
+                            pick_runner_report_path => {
+                                root.pick_runner_report_path();
                             }
                             copy_response(tab, text, anchor, cursor) => {
                                 root.copy_response(tab, text, anchor, cursor);
@@ -682,6 +711,9 @@ export component AppWindow inherits Window {
                         save_mock_logs(path) => {
                             root.save_mock_logs(path);
                         }
+                        pick_mock_log_path => {
+                            root.pick_mock_log_path();
+                        }
                         clear_mock_logs => {
                             root.clear_mock_logs();
                         }
@@ -766,6 +798,9 @@ export component AppWindow inherits Window {
                         save_runner_report(path) => {
                             root.save_runner_report(path);
                         }
+                        pick_runner_report_path => {
+                            root.pick_runner_report_path();
+                        }
                     }
                 }
 
@@ -793,6 +828,9 @@ export component AppWindow inherits Window {
                         }
                         save_codegen(path) => {
                             root.save_codegen(path);
+                        }
+                        pick_codegen_path => {
+                            root.pick_codegen_path();
                         }
                     }
                 }

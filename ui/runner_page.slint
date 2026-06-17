@@ -188,6 +188,7 @@ export component RunnerPage inherits Rectangle {
     callback run_collection();
     callback cancel_collection_run();
     callback save_runner_report(string);
+    callback pick_runner_report_path();
 
     horizontal-stretch: 1;
     vertical-stretch: 1;
@@ -404,6 +405,15 @@ export component RunnerPage inherits Rectangle {
                         placeholder: root.runner_report_format == "json" ? "runner-report.json" : "runner-report.txt";
                         mono: true;
                         enabled: !root.busy && !root.runner_active;
+                    }
+
+                    ActionButton {
+                        text: "Open";
+                        button_width: 58px;
+                        enabled: !root.busy && !root.runner_active;
+                        clicked => {
+                            root.pick_runner_report_path();
+                        }
                     }
 
                     ActionButton {

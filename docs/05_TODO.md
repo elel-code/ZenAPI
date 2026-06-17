@@ -64,7 +64,9 @@
   form file attach controls now add validated local files as multipart `@path`
   rows, and binary file paths infer common Content-Type values from extensions.
   GraphQL introspection responses can be summarized from the response pane,
-  while native file picker dialogs are still pending.
+  with native file picker dialogs now wired for OpenAPI files, Params/Headers
+  imports, multipart attachments, gRPC descriptors/proto files, and
+  codegen/runner/mock export paths.
 - [~] Rebuild Auth controls for None, Bearer, Basic, JWT, and API key modes;
   current Slint Request Builder has the dedicated Auth tab, mode buttons, and
   mode-specific config panels wired to transport mapping. API key header/query

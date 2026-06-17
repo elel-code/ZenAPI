@@ -94,6 +94,7 @@ pub fn run() -> Result<()> {
     let state = Arc::new(Mutex::new(initial_state));
 
     wire_import(&app, runtime.clone(), state.clone());
+    wire_file_pickers(&app, runtime.clone(), state.clone());
     wire_route_filter(&app, state.clone());
     wire_route_selection(&app, state.clone());
     wire_history_selection(&app, state.clone());
@@ -515,80 +516,306 @@ fn wire_import(app: &AppWindow, runtime: Arc<Runtime>, state: Arc<Mutex<AppState
         let Some(app) = weak_app.upgrade() else {
             return;
         };
+        import_openapi_path(&app, runtime.clone(), state.clone(), path.to_string());
+    });
+}
+
+fn import_openapi_path(
+    app: &AppWindow,
+    runtime: Arc<Runtime>,
+    state: Arc<Mutex<AppState>>,
+    path: String,
+) {
+    if app.get_busy() {
+        return;
+    }
+
+    let path = path.trim().to_string();
+    if path.is_empty() {
+        set_response(
+            app,
+            "Import needs a file path",
+            "",
+            "error",
+            "Enter a local OpenAPI or Swagger JSON/YAML file path.",
+        );
+        return;
+    }
+
+    app.set_busy(true);
+    app.set_activity("Importing OpenAPI spec".into());
+
+    match load_openapi_file(&path) {
+        Ok(spec) => {
+            let routes = spec.routes.clone();
+            let stopped_server = state.lock().ok().and_then(|mut state| {
+                let stopped_server = state.server.take();
+                state.routes = routes.clone();
+                state.visible_routes = routes.clone();
+                stopped_server
+            });
+
+            let spec_name = display_spec_name(&spec);
+            let spec_label = display_spec_label(&path);
+            let weak_app = app.as_weak();
+            runtime.spawn(async move {
+                if let Some(server) = stopped_server {
+                    server.stop().await;
+                }
+
+                let _ = slint::invoke_from_event_loop(move || {
+                    let Some(app) = weak_app.upgrade() else {
+                        return;
+                    };
+
+                    app.set_routes(route_model(&routes));
+                    app.set_selected_route(-1);
+                    clear_selected_mock_route(&app);
+                    app.set_route_filter("".into());
+                    app.set_total_route_count(routes.len() as i32);
+                    app.set_spec_label(spec_label.into());
+                    app.set_spec_loaded(true);
+                    app.set_server_running(false);
+                    app.set_server_status(if routes.is_empty() {
+                        "No mock routes".into()
+                    } else {
+                        "Ready".into()
+                    });
+                    set_response(
+                        &app,
+                        &format!("Imported {spec_name}"),
+                        &format!("{} routes", routes.len()),
+                        "success",
+                        &format!("Ready: {} routes parsed.", routes.len()),
+                    );
+                    app.set_activity("".into());
+                    app.set_busy(false);
+                });
+            });
+        }
+        Err(error) => {
+            set_response(app, "Import failed", "", "error", &error.to_string());
+            app.set_activity("".into());
+            app.set_busy(false);
+        }
+    }
+}
+
+fn wire_file_pickers(app: &AppWindow, runtime: Arc<Runtime>, state: Arc<Mutex<AppState>>) {
+    let weak_app = app.as_weak();
+    app.on_pick_openapi_file(move || {
+        let Some(app) = weak_app.upgrade() else {
+            return;
+        };
         if app.get_busy() {
             return;
         }
 
-        let path = path.trim();
-        if path.is_empty() {
-            set_response(
-                &app,
-                "Import needs a file path",
-                "",
-                "error",
-                "Enter a local OpenAPI or Swagger JSON/YAML file path.",
-            );
+        if let Some(path) = pick_file_path(
+            "Open OpenAPI spec",
+            app.get_file_path().as_str(),
+            &[("OpenAPI", &["json", "yaml", "yml"])],
+        ) {
+            app.set_file_path(path.clone().into());
+            import_openapi_path(&app, runtime.clone(), state.clone(), path);
+        }
+    });
+
+    let weak_app = app.as_weak();
+    app.on_pick_query_param_import_file(move || {
+        let Some(app) = weak_app.upgrade() else {
+            return;
+        };
+        if app.get_busy() {
             return;
         }
 
-        app.set_busy(true);
-        app.set_activity("Importing OpenAPI spec".into());
-
-        match load_openapi_file(path) {
-            Ok(spec) => {
-                let routes = spec.routes.clone();
-                let stopped_server = state.lock().ok().and_then(|mut state| {
-                    let stopped_server = state.server.take();
-                    state.routes = routes.clone();
-                    state.visible_routes = routes.clone();
-                    stopped_server
-                });
-
-                let spec_name = display_spec_name(&spec);
-                let spec_label = display_spec_label(path);
-                let weak_app = app.as_weak();
-                runtime.spawn(async move {
-                    if let Some(server) = stopped_server {
-                        server.stop().await;
-                    }
-
-                    let _ = slint::invoke_from_event_loop(move || {
-                        let Some(app) = weak_app.upgrade() else {
-                            return;
-                        };
-
-                        app.set_routes(route_model(&routes));
-                        app.set_selected_route(-1);
-                        clear_selected_mock_route(&app);
-                        app.set_route_filter("".into());
-                        app.set_total_route_count(routes.len() as i32);
-                        app.set_spec_label(spec_label.into());
-                        app.set_spec_loaded(true);
-                        app.set_server_running(false);
-                        app.set_server_status(if routes.is_empty() {
-                            "No mock routes".into()
-                        } else {
-                            "Ready".into()
-                        });
-                        set_response(
-                            &app,
-                            &format!("Imported {spec_name}"),
-                            &format!("{} routes", routes.len()),
-                            "success",
-                            &format!("Ready: {} routes parsed.", routes.len()),
-                        );
-                        app.set_activity("".into());
-                        app.set_busy(false);
-                    });
-                });
-            }
-            Err(error) => {
-                set_response(&app, "Import failed", "", "error", &error.to_string());
-                app.set_activity("".into());
-                app.set_busy(false);
-            }
+        if let Some(path) = pick_file_path(
+            "Open query parameter file",
+            app.get_query_param_import_path().as_str(),
+            &[("Text", &["txt", "csv", "env"])],
+        ) {
+            app.set_query_param_import_path(path.into());
         }
     });
+
+    let weak_app = app.as_weak();
+    app.on_pick_header_import_file(move || {
+        let Some(app) = weak_app.upgrade() else {
+            return;
+        };
+        if app.get_busy() {
+            return;
+        }
+
+        if let Some(path) = pick_file_path(
+            "Open header file",
+            app.get_header_import_path().as_str(),
+            &[("Text", &["txt", "csv", "env"])],
+        ) {
+            app.set_header_import_path(path.into());
+        }
+    });
+
+    let weak_app = app.as_weak();
+    app.on_pick_form_file(move || {
+        let Some(app) = weak_app.upgrade() else {
+            return;
+        };
+        if app.get_busy() {
+            return;
+        }
+
+        if let Some(path) = pick_file_path(
+            "Attach multipart file",
+            app.get_form_file_path().as_str(),
+            &[],
+        ) {
+            app.set_form_file_path(path.into());
+        }
+    });
+
+    let weak_app = app.as_weak();
+    app.on_pick_grpc_descriptor_file(move || {
+        let Some(app) = weak_app.upgrade() else {
+            return;
+        };
+        if app.get_busy() || app.get_grpc_streaming() {
+            return;
+        }
+
+        if let Some(path) = pick_file_path(
+            "Open gRPC descriptor or proto",
+            app.get_grpc_descriptor_path().as_str(),
+            &[("gRPC schema", &["protoset", "bin", "proto"])],
+        ) {
+            app.set_grpc_descriptor_path(path.into());
+        }
+    });
+
+    let weak_app = app.as_weak();
+    app.on_pick_codegen_path(move || {
+        let Some(app) = weak_app.upgrade() else {
+            return;
+        };
+        if app.get_busy() {
+            return;
+        }
+
+        let current_path = app.get_codegen_path().to_string();
+        let default_name = default_dialog_file_name(&current_path, "zenapi-snippet.txt");
+        if let Some(path) = pick_save_path(
+            "Save code snippet",
+            &current_path,
+            &default_name,
+            &[("Text", &["txt"])],
+        ) {
+            app.set_codegen_path(path.into());
+        }
+    });
+
+    let weak_app = app.as_weak();
+    app.on_pick_runner_report_path(move || {
+        let Some(app) = weak_app.upgrade() else {
+            return;
+        };
+        if app.get_busy() || app.get_runner_active() {
+            return;
+        }
+
+        let current_path = app.get_runner_report_path().to_string();
+        let fallback =
+            if normalize_runner_report_format(app.get_runner_report_format().as_str()) == "json" {
+                "zenapi-runner-report.json"
+            } else {
+                "zenapi-runner-report.txt"
+            };
+        let default_name = default_dialog_file_name(&current_path, fallback);
+        let filters: &[(&str, &[&str])] = if fallback.ends_with(".json") {
+            &[("JSON", &["json"])]
+        } else {
+            &[("Text", &["txt"])]
+        };
+        if let Some(path) =
+            pick_save_path("Save runner report", &current_path, &default_name, filters)
+        {
+            app.set_runner_report_path(path.into());
+        }
+    });
+
+    let weak_app = app.as_weak();
+    app.on_pick_mock_log_path(move || {
+        let Some(app) = weak_app.upgrade() else {
+            return;
+        };
+        if app.get_busy() {
+            return;
+        }
+
+        let current_path = app.get_mock_log_path().to_string();
+        let default_name = default_dialog_file_name(&current_path, "mock-logs.json");
+        if let Some(path) = pick_save_path(
+            "Save mock logs",
+            &current_path,
+            &default_name,
+            &[("JSON", &["json"])],
+        ) {
+            app.set_mock_log_path(path.into());
+        }
+    });
+}
+
+fn pick_file_path(title: &str, current_path: &str, filters: &[(&str, &[&str])]) -> Option<String> {
+    configure_file_dialog(title, current_path, filters)
+        .pick_file()
+        .map(dialog_path_string)
+}
+
+fn pick_save_path(
+    title: &str,
+    current_path: &str,
+    default_name: &str,
+    filters: &[(&str, &[&str])],
+) -> Option<String> {
+    configure_file_dialog(title, current_path, filters)
+        .set_file_name(default_name)
+        .save_file()
+        .map(dialog_path_string)
+}
+
+fn configure_file_dialog(
+    title: &str,
+    current_path: &str,
+    filters: &[(&str, &[&str])],
+) -> rfd::FileDialog {
+    let mut dialog = rfd::FileDialog::new().set_title(title);
+    let current_path = current_path.trim();
+    if !current_path.is_empty() {
+        let path = Path::new(current_path);
+        if let Some(parent) = path
+            .parent()
+            .filter(|parent| !parent.as_os_str().is_empty())
+        {
+            dialog = dialog.set_directory(parent);
+        }
+    }
+    for (name, extensions) in filters {
+        dialog = dialog.add_filter(*name, extensions);
+    }
+    dialog
+}
+
+fn dialog_path_string(path: PathBuf) -> String {
+    path.to_string_lossy().to_string()
+}
+
+fn default_dialog_file_name(current_path: &str, fallback: &str) -> String {
+    Path::new(current_path.trim())
+        .file_name()
+        .and_then(|name| name.to_str())
+        .filter(|name| !name.is_empty())
+        .unwrap_or(fallback)
+        .to_string()
 }
 
 fn wire_route_filter(app: &AppWindow, state: Arc<Mutex<AppState>>) {
