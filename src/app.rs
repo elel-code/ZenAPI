@@ -2060,6 +2060,7 @@ fn wire_realtime_actions(app: &AppWindow, runtime: Arc<Runtime>) {
         let url = app.get_url().to_string();
 
         app.set_busy(true);
+        app.set_sse_event_history("".into());
         app.set_activity("Collecting SSE events".into());
         set_response(
             &app,
@@ -2081,6 +2082,8 @@ fn wire_realtime_actions(app: &AppWindow, runtime: Arc<Runtime>) {
                         if let Some(last_event_id) = latest_sse_event_id(&exchange.events) {
                             app.set_sse_last_event_id(last_event_id.into());
                         }
+                        let body = format_sse_exchange(&exchange);
+                        app.set_sse_event_history(body.clone().into());
                         set_response(
                             &app,
                             "SSE complete",
@@ -2090,7 +2093,7 @@ fn wire_realtime_actions(app: &AppWindow, runtime: Arc<Runtime>) {
                                 exchange.events.len()
                             ),
                             "success",
-                            &format_sse_exchange(&exchange),
+                            &body,
                         );
                     }
                     Err(error) => set_response(&app, "SSE failed", "", "error", &error.to_string()),
@@ -2148,6 +2151,7 @@ fn wire_realtime_actions(app: &AppWindow, runtime: Arc<Runtime>) {
 
         let (event_tx, mut event_rx) = mpsc::unbounded_channel();
         app.set_sse_streaming(true);
+        app.set_sse_event_history("".into());
         app.set_activity("SSE stream active".into());
         set_response(
             &app,
@@ -2246,6 +2250,44 @@ fn wire_realtime_actions(app: &AppWindow, runtime: Arc<Runtime>) {
             "neutral",
             "SSE subscription stopped.",
         );
+    });
+
+    let weak_app = app.as_weak();
+    app.on_copy_sse_events(move || {
+        let Some(app) = weak_app.upgrade() else {
+            return;
+        };
+
+        let history = app.get_sse_event_history().to_string();
+        if history.is_empty() {
+            app.set_activity("No SSE events to copy".into());
+            return;
+        }
+
+        match copy_text_to_clipboard(&history) {
+            Ok(()) => app.set_activity("Copied SSE events".into()),
+            Err(error) => app.set_activity(format!("Copy failed: {error}").into()),
+        }
+    });
+
+    let weak_app = app.as_weak();
+    app.on_clear_sse_events(move || {
+        let Some(app) = weak_app.upgrade() else {
+            return;
+        };
+        if app.get_sse_streaming() {
+            set_response(
+                &app,
+                "SSE stream active",
+                "",
+                "neutral",
+                "Stop the active SSE stream before clearing events.",
+            );
+            return;
+        }
+
+        app.set_sse_event_history("".into());
+        set_response(&app, "SSE history cleared", "", "neutral", "No SSE events.");
     });
 }
 
@@ -3090,6 +3132,7 @@ fn publish_sse_stream_event(
     let _ = slint::invoke_from_event_loop(move || {
         if let Some(app) = weak_app.upgrade() {
             set_response(&app, status, &meta, tone, &body);
+            app.set_sse_event_history(body.into());
             if let Some(last_event_id) = last_event_id {
                 app.set_sse_last_event_id(last_event_id.into());
             }

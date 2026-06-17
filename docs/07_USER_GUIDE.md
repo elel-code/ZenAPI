@@ -196,8 +196,8 @@ Open the Requests page, select the Realtime tab, and choose `WebSocket`. Use
 `Open` to establish a persistent `ws://` or `wss://` session, `Send` to send
 messages repeatedly, and `End` to close the connection. Request headers are
 sent during the handshake. Sent and received text messages are mirrored in the
-response viewer. Subprotocol entry, binary message controls, and copy/clear
-history actions are still future work.
+response viewer. Subprotocol entry, binary message controls, and dedicated
+WebSocket history actions are still future work.
 
 ## SSE
 
@@ -209,8 +209,9 @@ and subscriptions. Event names, ids, reconnect attempts, close reasons, and
 errors are mirrored in the response viewer. The `Last-Event-ID` field is sent
 when starting a stream, and it is updated when incoming events include an id so
 the next subscription can resume from that cursor. Subscriptions reconnect
-automatically with backoff until stopped. Dedicated copy/clear history controls
-are still future work.
+automatically with backoff until stopped. The SSE panel keeps the latest event
+history, `Copy` places it on the clipboard, and `Clear` removes it when no
+stream is active.
 
 ## Authorization
 
