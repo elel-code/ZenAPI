@@ -1,0 +1,145 @@
+import { Theme } from "theme.slint";
+import { ActionButton, BodyModeButton, CodePane, DataPanel, TextField, UiText } from "widgets.slint";
+
+component CodegenPageTitle inherits Rectangle {
+    in property <string> title;
+    in property <string> subtitle;
+
+    height: 62px;
+    horizontal-stretch: 1;
+    background: transparent;
+
+    UiText {
+        text: root.title;
+        x: 0px;
+        y: 0px;
+        width: parent.width;
+        height: 34px;
+        color: Theme.on_surface;
+        font-size: 26px;
+        font-weight: 800;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+
+    UiText {
+        text: root.subtitle;
+        x: 0px;
+        y: 36px;
+        width: parent.width;
+        height: 22px;
+        color: Theme.on_surface_variant;
+        font-size: 13px;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+}
+
+export component CodegenPage inherits Rectangle {
+    in-out property <string> codegen_language;
+    in-out property <string> codegen_output;
+    in property <string> codegen_metadata;
+    in-out property <string> codegen_path;
+    in property <bool> busy;
+    callback generate_code();
+    callback copy_codegen();
+    callback save_codegen(string);
+
+    horizontal-stretch: 1;
+    vertical-stretch: 1;
+    background: Theme.background;
+
+    VerticalLayout {
+        padding: 20px;
+        spacing: 16px;
+
+        CodegenPageTitle {
+            title: "Code Generation";
+            subtitle: "Generate snippets from the current resolved request.";
+        }
+
+        HorizontalLayout {
+            height: 38px;
+            spacing: 10px;
+
+            for item in [
+                { mode: "curl", label: "curl" },
+                { mode: "python", label: "python" },
+                { mode: "js", label: "js" },
+                { mode: "rust", label: "rust" },
+                { mode: "go", label: "go" },
+            ]: BodyModeButton {
+                mode: item.mode;
+                label: item.label;
+                button_width: 76px;
+                selected: root.codegen_language == item.mode;
+                enabled: !root.busy;
+                picked(mode) => {
+                    root.codegen_language = mode;
+                }
+            }
+
+            ActionButton {
+                text: "Generate";
+                button_width: 96px;
+                primary: true;
+                enabled: !root.busy;
+                clicked => {
+                    root.generate_code();
+                }
+            }
+        }
+
+        DataPanel {
+            height: 92px;
+            title: "Metadata";
+            body: root.codegen_metadata;
+        }
+
+        if root.codegen_output == "": UiText {
+            horizontal-stretch: 1;
+            vertical-stretch: 1;
+            text: "Generate a snippet from the current request.";
+            color: Theme.outline;
+            font-size: 12px;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+
+        if root.codegen_output != "": CodePane {
+            text <=> root.codegen_output;
+            read_only: true;
+        }
+
+        HorizontalLayout {
+            height: 38px;
+            spacing: 10px;
+
+            TextField {
+                text <=> root.codegen_path;
+                placeholder: "zenapi-snippet.txt";
+                mono: true;
+                enabled: !root.busy;
+            }
+
+            ActionButton {
+                text: "Save";
+                button_width: 72px;
+                enabled: !root.busy && root.codegen_path != "";
+                clicked => {
+                    root.save_codegen(root.codegen_path);
+                }
+            }
+
+            ActionButton {
+                text: "Copy";
+                button_width: 72px;
+                enabled: !root.busy && root.codegen_output != "";
+                clicked => {
+                    root.copy_codegen();
+                }
+            }
+        }
+    }
+}
