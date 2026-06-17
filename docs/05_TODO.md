@@ -61,8 +61,8 @@
   form-data and URL-encoded fields. Raw JSON/Text/XML subtype selection is
   wired through transport, collection restore, and history restore. Dedicated
   form file attach controls now add validated local files as multipart
-  `@path` rows; native file picker dialogs and GraphQL schema response helpers
-  still pending.
+  `@path` rows; GraphQL introspection responses can be summarized from the
+  response pane, while native file picker dialogs are still pending.
 - [~] Rebuild Auth controls for None, Bearer, Basic, JWT, and API key modes;
   current Slint Request Builder has the dedicated Auth tab, mode buttons, and
   mode-specific config panels wired to transport mapping. API key header/query
@@ -118,8 +118,8 @@
   Slint baseline has GraphQL query/variables editing, query/mutation/
   introspection templates, plus a visible Realtime gRPC draft surface backed by
   the domain model with optional manual method catalog validation and descriptor
-  display, with gRPC reflection/proto descriptor loading, unary transport, and
-  GraphQL schema response helpers still pending.
+  display, with GraphQL schema response summaries wired and gRPC reflection/
+  proto descriptor loading plus unary transport still pending.
 - [~] Add mock request logs and richer mock manager controls; current Slint
   baseline has a dedicated Mock Manager page with endpoint selection,
   start/stop, editable selected route response JSON, real per-route header/query
@@ -156,6 +156,6 @@
 | Assertions/scripts | Domain implemented | Slint baseline edits, builds, saves, restores, and evaluates native scripts/tests |
 | WebSocket/SSE | Client modules restored | Realtime tab supports one-shot WS text, persistent WS text/binary sends with subprotocols, WebSocket history copy/clear, plus SSE previews, streams, history copy, and clear |
 | Mock logs | Core implemented | Slint baseline shows, filters, clears, and exports recent mock requests |
-| GraphQL | Payload builder implemented | Slint baseline edits query/variables and applies query, mutation, and introspection templates |
+| GraphQL | Payload builder implemented | Slint baseline edits query/variables, applies query/mutation/introspection templates, and summarizes introspection responses from the response pane |
 | gRPC | Domain draft + catalog validation implemented | Realtime tab validates endpoint, method, metadata, message JSON, and optional method catalog entries; reflection/proto descriptor loading and unary transport pending |
 | Reference pages | Slint baseline implemented | Dashboard, Request Builder, Mock Manager, Environments, Test Runner, API Docs, API Keys, Team, Project Settings, and Traffic Analytics now have routed reference-aligned page layouts; unwired reference-page action buttons were removed, API Docs snippets use the active request URL/auth state, API Keys mirrors active request auth, Team/Settings show local-only workspace state, and Traffic Analytics reads local session/mock-log data instead of static samples |

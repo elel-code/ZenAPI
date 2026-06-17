@@ -192,8 +192,10 @@ buttons. They send raw bodies as `application/json`, `text/plain`, and
 subtype. GraphQL mode builds a payload with `query` and `variables`; use
 `Query`, `Mutation`, and `Intro` to fill starter GraphQL documents,
 introspection query text, and matching variables. Binary mode accepts a local
-file path. Native file picker dialogs and GraphQL schema response helpers are
-still future work.
+file path. After running an introspection request, use `Schema` in the response
+pane on Pretty or Raw JSON to render a readable schema summary while keeping
+the original Raw response available. Native file picker dialogs are still
+future work.
 
 ## WebSocket
 
@@ -406,9 +408,8 @@ zenapi run collection.json --delay-ms 100
 - Pre-request script-lite and native response assertions are available in
   collection JSON, but a full script engine and `pm.*` compatibility are not
   implemented yet.
-- GraphQL query and variables payload editing plus query, mutation, and
-  introspection templates are available; introspection response schema/field
-  panels are future work.
+- GraphQL query and variables payload editing, query/mutation/introspection
+  templates, and introspection response schema summaries are available.
 - WebSocket one-shot sends, persistent WS text sessions, WebSocket history
   copy/clear, SSE `Once` previews, and persistent SSE stream/resume controls are
   available.

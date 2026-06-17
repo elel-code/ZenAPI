@@ -2891,6 +2891,7 @@ component ResponsePanel inherits Rectangle {
     callback save_runner_report(string);
     callback copy_response(string, string);
     callback format_response(string);
+    callback summarize_graphql_schema(string, string);
     property <string> active_tab: "pretty";
     property <bool> pretty_response_folded: false;
     property <bool> raw_response_folded: false;
@@ -3058,8 +3059,18 @@ component ResponsePanel inherits Rectangle {
                 }
 
                 ActionButton {
+                    text: "Schema";
+                    button_width: 64px;
+                    enabled: !root.busy && root.active_response_text != "" && (root.active_tab == "pretty" || root.active_tab == "raw");
+                    clicked => {
+                        root.summarize_graphql_schema(root.active_tab, root.active_response_text);
+                        root.active_tab = "pretty";
+                    }
+                }
+
+                ActionButton {
                     text: "Format";
-                    button_width: 70px;
+                    button_width: 62px;
                     enabled: !root.busy && (root.active_tab == "pretty" || root.active_tab == "raw");
                     clicked => {
                         root.format_response(root.active_tab);
@@ -3068,7 +3079,7 @@ component ResponsePanel inherits Rectangle {
 
                 ActionButton {
                     text: "Copy";
-                    button_width: 58px;
+                    button_width: 52px;
                     enabled: root.active_response_text != "";
                     clicked => {
                         root.copy_response(root.active_tab, root.active_response_text);
@@ -3077,7 +3088,7 @@ component ResponsePanel inherits Rectangle {
 
                 ActionButton {
                     text: root.active_response_folded ? "Open" : "Fold";
-                    button_width: 58px;
+                    button_width: 52px;
                     clicked => {
                         root.pretty_response_folded = root.active_tab == "pretty" ? !root.pretty_response_folded : root.pretty_response_folded;
                         root.raw_response_folded = root.active_tab == "raw" ? !root.raw_response_folded : root.raw_response_folded;
@@ -3088,7 +3099,7 @@ component ResponsePanel inherits Rectangle {
 
                 ActionButton {
                     text: "Fold All";
-                    button_width: 72px;
+                    button_width: 62px;
                     enabled: !root.all_responses_folded;
                     clicked => {
                         root.pretty_response_folded = true;
@@ -3100,7 +3111,7 @@ component ResponsePanel inherits Rectangle {
 
                 ActionButton {
                     text: "Open All";
-                    button_width: 74px;
+                    button_width: 66px;
                     enabled: root.any_response_folded;
                     clicked => {
                         root.pretty_response_folded = false;
@@ -6312,6 +6323,7 @@ export component AppWindow inherits Window {
     callback save_runner_report(string);
     callback copy_response(string, string);
     callback format_response(string);
+    callback summarize_graphql_schema(string, string);
     callback open_websocket();
     callback run_websocket();
     callback close_websocket();
@@ -6713,6 +6725,9 @@ export component AppWindow inherits Window {
                             }
                             format_response(tab) => {
                                 root.format_response(tab);
+                            }
+                            summarize_graphql_schema(tab, text) => {
+                                root.summarize_graphql_schema(tab, text);
                             }
                         }
                     }
