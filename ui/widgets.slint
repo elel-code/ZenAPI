@@ -884,3 +884,92 @@ export component ResponseTab inherits Rectangle {
         background: root.selected ? Theme.primary : transparent;
     }
 }
+
+export component MetricCard inherits Rectangle {
+    in property <string> label;
+    in property <string> value;
+    in property <string> detail;
+
+    height: 104px;
+    horizontal-stretch: 1;
+    border-radius: 8px;
+    border-width: 1px;
+    border-color: Theme.outline_variant;
+    background: Theme.surface_container;
+
+    VerticalLayout {
+        padding: 16px;
+        spacing: 8px;
+
+        UiText {
+            text: root.label;
+            height: 16px;
+            horizontal-stretch: 1;
+            color: Theme.on_surface_variant;
+            font-size: 11px;
+            font-weight: 800;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+
+        UiText {
+            text: root.value;
+            height: 34px;
+            horizontal-stretch: 1;
+            color: Theme.on_surface;
+            font-size: 28px;
+            font-weight: 800;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+
+        UiText {
+            text: root.detail;
+            height: 18px;
+            horizontal-stretch: 1;
+            color: Theme.outline;
+            font-size: 12px;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+    }
+}
+
+export component DataPanel inherits Rectangle {
+    in property <string> title;
+    in property <string> body;
+
+    horizontal-stretch: 1;
+    vertical-stretch: 1;
+    border-radius: 8px;
+    border-width: 1px;
+    border-color: Theme.outline_variant;
+    background: Theme.surface_container;
+
+    VerticalLayout {
+        padding: 16px;
+        spacing: 10px;
+
+        UiText {
+            text: root.title;
+            height: 24px;
+            horizontal-stretch: 1;
+            color: Theme.on_surface;
+            font-size: 15px;
+            font-weight: 800;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+
+        UiText {
+            text: root.body;
+            horizontal-stretch: 1;
+            vertical-stretch: 1;
+            color: Theme.on_surface_variant;
+            font-family: "JetBrains Mono";
+            font-size: 12px;
+            vertical-alignment: top;
+            overflow: elide;
+        }
+    }
+}
