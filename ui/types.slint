@@ -9,3 +9,18 @@ export struct MockLogRow {
     path: string,
     status: string,
 }
+
+export struct VariableTableRow {
+    row_id: int,
+    scope: string,
+    name: string,
+    initial_value: string,
+    current_value: string,
+}
+
+export struct EnvironmentRow {
+    name: string,
+    label: string,
+    detail: string,
+    tone: string,
+}
