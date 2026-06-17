@@ -30,15 +30,8 @@ snippet language buttons switch the displayed sample locally.
 
 ## Keyboard Shortcuts
 
-| Shortcut | Action |
-|----------|--------|
-| Enter in URL | Send request |
-| Ctrl/Cmd+Enter | Send request from the current request editor context |
-| Ctrl/Cmd+F | Focus the active sidebar input |
-| Ctrl/Cmd+L | Focus the request URL input |
-| Ctrl/Cmd+S | Save current request to the collection |
-| Ctrl/Cmd+A in response | Select all response text |
-| Ctrl/Cmd+C in response | Copy selected response text |
+Press Enter in the request URL field to send the current request. Native text
+editing shortcuts still work inside editable fields.
 
 ## Install And Run
 

@@ -1030,36 +1030,6 @@ component TopBar inherits Rectangle {
         Rectangle {
             horizontal-stretch: 1;
         }
-
-        Rectangle {
-            width: 36px;
-            height: 36px;
-            border-radius: 8px;
-            background: search_touch.has-hover ? Theme.surface_container_high : transparent;
-
-            search_touch := TouchArea {
-                mouse-cursor: pointer;
-            }
-
-            Rectangle {
-                x: 9px;
-                y: 8px;
-                width: 14px;
-                height: 14px;
-                border-radius: 7px;
-                border-width: 2px;
-                border-color: Theme.primary;
-                background: transparent;
-            }
-
-            Rectangle {
-                x: 22px;
-                y: 22px;
-                width: 8px;
-                height: 2px;
-                background: Theme.primary;
-            }
-        }
     }
 
     Rectangle {
