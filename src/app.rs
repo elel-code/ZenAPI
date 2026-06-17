@@ -104,6 +104,10 @@ fn wire_page_navigation(app: &AppWindow) {
             return;
         };
 
+        if app.get_active_page_index() == page_index {
+            return;
+        }
+
         app.set_active_page_index(page_index);
     });
 }
