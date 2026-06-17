@@ -1,6 +1,7 @@
 use anyhow::{Result, anyhow, bail};
 use futures_util::StreamExt;
 use prost::Message;
+use prost_reflect::{DescriptorPool, DynamicMessage, MessageDescriptor};
 use prost_types::{FileDescriptorProto, FileDescriptorSet};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -11,7 +12,12 @@ use std::{
     process::Command,
     time::{SystemTime, UNIX_EPOCH},
 };
-use tonic::{Request, transport::Endpoint};
+use tonic::{
+    Request, Status,
+    codec::{Codec, DecodeBuf, Decoder, EncodeBuf, Encoder},
+    metadata::{AsciiMetadataKey, AsciiMetadataValue, BinaryMetadataKey, BinaryMetadataValue},
+    transport::Endpoint,
+};
 use tonic_reflection::pb::v1::{
     ServerReflectionRequest, server_reflection_client::ServerReflectionClient,
     server_reflection_request::MessageRequest, server_reflection_response::MessageResponse,
@@ -60,6 +66,13 @@ pub struct GrpcRequestDraft {
     pub metadata: Vec<GrpcMetadata>,
     pub message: Value,
     pub descriptor: Option<GrpcMethodDescriptor>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct GrpcUnaryResponse {
+    pub method: String,
+    pub metadata: Vec<GrpcMetadata>,
+    pub message: Value,
 }
 
 impl GrpcMethodDescriptor {
@@ -289,6 +302,77 @@ pub async fn load_grpc_reflection_descriptors(endpoint: &str) -> Result<Vec<Grpc
     })
 }
 
+pub async fn invoke_grpc_unary(
+    endpoint: &str,
+    full_method: &str,
+    metadata_lines: &str,
+    message_json: &str,
+    descriptor_set: FileDescriptorSet,
+) -> Result<GrpcUnaryResponse> {
+    let endpoint = parse_grpc_endpoint(endpoint)?;
+    let (service, method_name) = parse_grpc_method_path(full_method)?;
+    let metadata = parse_grpc_metadata_lines(metadata_lines)?;
+    let message = parse_grpc_message_json(message_json)?;
+    let pool = DescriptorPool::from_file_descriptor_set(descriptor_set)
+        .map_err(|error| anyhow!("failed to build gRPC descriptor pool: {error}"))?;
+    let method = resolve_dynamic_grpc_method(&pool, &service, &method_name)?;
+    if method.is_client_streaming() || method.is_server_streaming() {
+        bail!("gRPC method {service}/{method_name} is not unary");
+    }
+
+    let request_message = dynamic_message_from_json(method.input(), &message)?;
+    let codec = DynamicMessageCodec::new(method.input(), method.output());
+    let channel = Endpoint::from_shared(endpoint.clone())
+        .map_err(|error| anyhow!("invalid gRPC endpoint {endpoint}: {error}"))?
+        .connect()
+        .await
+        .map_err(|error| anyhow!("failed to connect to gRPC endpoint {endpoint}: {error}"))?;
+    let mut client = tonic::client::Grpc::new(channel);
+    let path = tonic::codegen::http::uri::PathAndQuery::from_maybe_shared(format!(
+        "/{service}/{method_name}"
+    ))
+    .map_err(|error| anyhow!("invalid gRPC method path {service}/{method_name}: {error}"))?;
+    let mut request = Request::new(request_message);
+    apply_grpc_metadata(request.metadata_mut(), &metadata)?;
+
+    client
+        .ready()
+        .await
+        .map_err(|error| anyhow!("gRPC endpoint {endpoint} was not ready: {error}"))?;
+    let response = client
+        .unary(request, path, codec)
+        .await
+        .map_err(format_grpc_status_error)?;
+    let response_metadata = grpc_metadata_from_tonic(response.metadata())?;
+    let response_message = serde_json::to_value(response.into_inner())
+        .map_err(|error| anyhow!("failed to serialize gRPC response message: {error}"))?;
+
+    Ok(GrpcUnaryResponse {
+        method: format!("{service}/{method_name}"),
+        metadata: response_metadata,
+        message: response_message,
+    })
+}
+
+pub async fn invoke_grpc_unary_from_descriptor_bytes(
+    endpoint: &str,
+    full_method: &str,
+    metadata_lines: &str,
+    message_json: &str,
+    descriptor_set_bytes: &[u8],
+) -> Result<GrpcUnaryResponse> {
+    let descriptor_set = FileDescriptorSet::decode(descriptor_set_bytes)
+        .map_err(|error| anyhow!("failed to decode gRPC descriptor set: {error}"))?;
+    invoke_grpc_unary(
+        endpoint,
+        full_method,
+        metadata_lines,
+        message_json,
+        descriptor_set,
+    )
+    .await
+}
+
 pub fn grpc_method_descriptors_from_file_descriptor_set(
     descriptor_set: &FileDescriptorSet,
 ) -> Result<Vec<GrpcMethodDescriptor>> {
@@ -334,6 +418,172 @@ pub fn grpc_method_descriptors_from_file_descriptor_set(
     }
 
     Ok(descriptors)
+}
+
+fn resolve_dynamic_grpc_method(
+    pool: &DescriptorPool,
+    service: &str,
+    method_name: &str,
+) -> Result<prost_reflect::MethodDescriptor> {
+    let service_descriptor = pool
+        .get_service_by_name(service)
+        .ok_or_else(|| anyhow!("gRPC service {service} was not found in the descriptor set"))?;
+    service_descriptor
+        .methods()
+        .find(|method| method.name() == method_name)
+        .ok_or_else(|| {
+            anyhow!("gRPC method {service}/{method_name} was not found in the descriptor set")
+        })
+}
+
+fn dynamic_message_from_json(
+    descriptor: MessageDescriptor,
+    value: &Value,
+) -> Result<DynamicMessage> {
+    let json = value.to_string();
+    let mut deserializer = serde_json::Deserializer::from_str(&json);
+    let message = DynamicMessage::deserialize(descriptor, &mut deserializer)
+        .map_err(|error| anyhow!("failed to encode gRPC request JSON: {error}"))?;
+    deserializer
+        .end()
+        .map_err(|error| anyhow!("gRPC request JSON had trailing data: {error}"))?;
+    Ok(message)
+}
+
+fn apply_grpc_metadata(
+    target: &mut tonic::metadata::MetadataMap,
+    metadata: &[GrpcMetadata],
+) -> Result<()> {
+    for item in metadata {
+        if item.name.ends_with("-bin") {
+            let key = BinaryMetadataKey::from_bytes(item.name.as_bytes()).map_err(|error| {
+                anyhow!("invalid binary gRPC metadata key {}: {error}", item.name)
+            })?;
+            let value = BinaryMetadataValue::from_bytes(item.value.as_bytes());
+            target.insert_bin(key, value);
+        } else {
+            let key = AsciiMetadataKey::from_bytes(item.name.as_bytes())
+                .map_err(|error| anyhow!("invalid gRPC metadata key {}: {error}", item.name))?;
+            let value = AsciiMetadataValue::try_from(item.value.as_str()).map_err(|error| {
+                anyhow!("invalid gRPC metadata value for {}: {error}", item.name)
+            })?;
+            target.insert(key, value);
+        }
+    }
+    Ok(())
+}
+
+fn grpc_metadata_from_tonic(map: &tonic::metadata::MetadataMap) -> Result<Vec<GrpcMetadata>> {
+    map.iter()
+        .map(|entry| match entry {
+            tonic::metadata::KeyAndValueRef::Ascii(key, value) => Ok(GrpcMetadata {
+                name: key.to_string(),
+                value: value
+                    .to_str()
+                    .map_err(|error| anyhow!("invalid ASCII gRPC metadata value: {error}"))?
+                    .to_string(),
+            }),
+            tonic::metadata::KeyAndValueRef::Binary(key, value) => Ok(GrpcMetadata {
+                name: key.to_string(),
+                value: String::from_utf8_lossy(&value.to_bytes().map_err(|error| {
+                    anyhow!("invalid binary gRPC metadata value for {}: {error}", key)
+                })?)
+                .to_string(),
+            }),
+        })
+        .collect()
+}
+
+fn format_grpc_status_error(status: Status) -> anyhow::Error {
+    let details = if status.details().is_empty() {
+        String::new()
+    } else {
+        format!("; details={} bytes", status.details().len())
+    };
+    anyhow!(
+        "gRPC unary request failed: {:?}: {}{}",
+        status.code(),
+        status.message(),
+        details
+    )
+}
+
+#[derive(Clone)]
+struct DynamicMessageCodec {
+    encode_descriptor: MessageDescriptor,
+    decode_descriptor: MessageDescriptor,
+}
+
+impl DynamicMessageCodec {
+    fn new(encode_descriptor: MessageDescriptor, decode_descriptor: MessageDescriptor) -> Self {
+        Self {
+            encode_descriptor,
+            decode_descriptor,
+        }
+    }
+}
+
+impl Codec for DynamicMessageCodec {
+    type Encode = DynamicMessage;
+    type Decode = DynamicMessage;
+    type Encoder = DynamicMessageEncoder;
+    type Decoder = DynamicMessageDecoder;
+
+    fn encoder(&mut self) -> Self::Encoder {
+        DynamicMessageEncoder {
+            descriptor_name: self.encode_descriptor.full_name().to_string(),
+        }
+    }
+
+    fn decoder(&mut self) -> Self::Decoder {
+        DynamicMessageDecoder {
+            descriptor: self.decode_descriptor.clone(),
+        }
+    }
+}
+
+#[derive(Clone)]
+struct DynamicMessageEncoder {
+    descriptor_name: String,
+}
+
+impl Encoder for DynamicMessageEncoder {
+    type Item = DynamicMessage;
+    type Error = Status;
+
+    fn encode(
+        &mut self,
+        item: Self::Item,
+        buf: &mut EncodeBuf<'_>,
+    ) -> std::result::Result<(), Self::Error> {
+        item.encode(buf).map_err(|error| {
+            Status::internal(format!(
+                "failed to encode dynamic gRPC message {}: {error}",
+                self.descriptor_name
+            ))
+        })
+    }
+}
+
+#[derive(Clone)]
+struct DynamicMessageDecoder {
+    descriptor: MessageDescriptor,
+}
+
+impl Decoder for DynamicMessageDecoder {
+    type Item = DynamicMessage;
+    type Error = Status;
+
+    fn decode(
+        &mut self,
+        buf: &mut DecodeBuf<'_>,
+    ) -> std::result::Result<Option<Self::Item>, Self::Error> {
+        DynamicMessage::decode(self.descriptor.clone(), buf)
+            .map(Some)
+            .map_err(|error| {
+                Status::internal(format!("failed to decode dynamic gRPC message: {error}"))
+            })
+    }
 }
 
 async fn request_grpc_reflection_services<T>(
@@ -559,8 +809,12 @@ fn resolve_grpc_method_descriptor(
 mod tests {
     use super::*;
     use prost::Message;
-    use prost_types::{FileDescriptorProto, MethodDescriptorProto, ServiceDescriptorProto};
+    use prost_types::{
+        DescriptorProto, FieldDescriptorProto, MethodDescriptorProto, ServiceDescriptorProto,
+        field_descriptor_proto::{Label, Type},
+    };
     use serde_json::json;
+    use std::convert::Infallible;
     use std::net::SocketAddr;
     use temp_dir::TempDir;
     use tokio::sync::oneshot;
@@ -909,5 +1163,218 @@ server-streaming demo.v1.Users/WatchUsers demo.v1.WatchUsersRequest demo.v1.User
 unary demo.v1.Users/GetUser demo.v1.GetUserRequest demo.v1.User
 client-streaming demo.v1.Users/UploadUsers demo.v1.UserChunk demo.v1.UploadSummary"
         );
+    }
+
+    #[tokio::test]
+    async fn invokes_unary_grpc_service_with_dynamic_messages() {
+        let descriptor_set = unary_test_descriptor_set();
+        let pool = DescriptorPool::from_file_descriptor_set(descriptor_set.clone()).expect("pool");
+        let service = TestUsersServer {
+            input: pool
+                .get_message_by_name("demo.v1.GetUserRequest")
+                .expect("request descriptor"),
+            output: pool
+                .get_message_by_name("demo.v1.User")
+                .expect("response descriptor"),
+        };
+
+        let (shutdown_tx, shutdown_rx) = oneshot::channel();
+        let addr: SocketAddr = "127.0.0.1:0".parse().expect("addr");
+        let listener = tokio::net::TcpListener::bind(addr).await.expect("bind");
+        let endpoint = format!("http://{}", listener.local_addr().expect("local addr"));
+        let server = tokio::spawn(async move {
+            Server::builder()
+                .add_service(service)
+                .serve_with_incoming_shutdown(TcpListenerStream::new(listener), async {
+                    let _ = shutdown_rx.await;
+                })
+                .await
+                .expect("unary test server");
+        });
+
+        let response = invoke_grpc_unary(
+            &endpoint,
+            "/demo.v1.Users/GetUser",
+            "x-trace-id=abc-123",
+            r#"{"id":"u_123"}"#,
+            descriptor_set,
+        )
+        .await
+        .expect("unary response");
+        shutdown_tx.send(()).expect("shutdown");
+        server.await.expect("server join");
+
+        assert_eq!(response.method, "demo.v1.Users/GetUser");
+        assert_eq!(
+            response.message,
+            json!({
+                "id": "u_123",
+                "name": "Ada abc-123",
+            })
+        );
+        assert!(
+            response
+                .metadata
+                .iter()
+                .any(|item| item.name == "x-served-by" && item.value == "zenapi-test")
+        );
+    }
+
+    #[tokio::test]
+    async fn rejects_non_unary_grpc_invocation() {
+        let mut descriptor_set = unary_test_descriptor_set();
+        descriptor_set.file[0].service[0].method[0].server_streaming = Some(true);
+
+        let error = invoke_grpc_unary(
+            "http://localhost:1",
+            "/demo.v1.Users/GetUser",
+            "",
+            "{}",
+            descriptor_set,
+        )
+        .await
+        .expect_err("streaming method");
+
+        assert!(error.to_string().contains("is not unary"));
+    }
+
+    fn unary_test_descriptor_set() -> FileDescriptorSet {
+        FileDescriptorSet {
+            file: vec![FileDescriptorProto {
+                name: Some("demo/users.proto".to_string()),
+                package: Some("demo.v1".to_string()),
+                message_type: vec![
+                    DescriptorProto {
+                        name: Some("GetUserRequest".to_string()),
+                        field: vec![string_field("id", 1)],
+                        ..Default::default()
+                    },
+                    DescriptorProto {
+                        name: Some("User".to_string()),
+                        field: vec![string_field("id", 1), string_field("name", 2)],
+                        ..Default::default()
+                    },
+                ],
+                service: vec![ServiceDescriptorProto {
+                    name: Some("Users".to_string()),
+                    method: vec![MethodDescriptorProto {
+                        name: Some("GetUser".to_string()),
+                        input_type: Some(".demo.v1.GetUserRequest".to_string()),
+                        output_type: Some(".demo.v1.User".to_string()),
+                        ..Default::default()
+                    }],
+                    ..Default::default()
+                }],
+                syntax: Some("proto3".to_string()),
+                ..Default::default()
+            }],
+        }
+    }
+
+    fn string_field(name: &str, number: i32) -> FieldDescriptorProto {
+        FieldDescriptorProto {
+            name: Some(name.to_string()),
+            number: Some(number),
+            label: Some(Label::Optional as i32),
+            r#type: Some(Type::String as i32),
+            json_name: Some(name.to_string()),
+            ..Default::default()
+        }
+    }
+
+    #[derive(Clone)]
+    struct TestUsersServer {
+        input: MessageDescriptor,
+        output: MessageDescriptor,
+    }
+
+    impl<B> tonic::codegen::Service<tonic::codegen::http::Request<B>> for TestUsersServer
+    where
+        B: tonic::codegen::Body + Send + 'static,
+        B::Error: Into<tonic::codegen::StdError> + Send + 'static,
+    {
+        type Response = tonic::codegen::http::Response<tonic::body::Body>;
+        type Error = Infallible;
+        type Future = tonic::codegen::BoxFuture<Self::Response, Self::Error>;
+
+        fn poll_ready(
+            &mut self,
+            _cx: &mut std::task::Context<'_>,
+        ) -> std::task::Poll<std::result::Result<(), Self::Error>> {
+            std::task::Poll::Ready(Ok(()))
+        }
+
+        fn call(&mut self, req: tonic::codegen::http::Request<B>) -> Self::Future {
+            match req.uri().path() {
+                "/demo.v1.Users/GetUser" => {
+                    let method = TestGetUserSvc {
+                        output: self.output.clone(),
+                    };
+                    let codec = DynamicMessageCodec::new(self.output.clone(), self.input.clone());
+                    let fut = async move {
+                        let mut grpc = tonic::server::Grpc::new(codec);
+                        Ok(grpc.unary(method, req).await)
+                    };
+                    Box::pin(fut)
+                }
+                _ => Box::pin(async move {
+                    let mut response =
+                        tonic::codegen::http::Response::new(tonic::body::Body::default());
+                    let headers = response.headers_mut();
+                    headers.insert(
+                        tonic::Status::GRPC_STATUS,
+                        (tonic::Code::Unimplemented as i32).into(),
+                    );
+                    headers.insert(
+                        tonic::codegen::http::header::CONTENT_TYPE,
+                        tonic::metadata::GRPC_CONTENT_TYPE,
+                    );
+                    Ok(response)
+                }),
+            }
+        }
+    }
+
+    impl tonic::server::NamedService for TestUsersServer {
+        const NAME: &'static str = "demo.v1.Users";
+    }
+
+    #[derive(Clone)]
+    struct TestGetUserSvc {
+        output: MessageDescriptor,
+    }
+
+    impl tonic::server::UnaryService<DynamicMessage> for TestGetUserSvc {
+        type Response = DynamicMessage;
+        type Future = tonic::codegen::BoxFuture<tonic::Response<Self::Response>, tonic::Status>;
+
+        fn call(&mut self, request: tonic::Request<DynamicMessage>) -> Self::Future {
+            let output = self.output.clone();
+            Box::pin(async move {
+                let trace_id = request
+                    .metadata()
+                    .get("x-trace-id")
+                    .and_then(|value| value.to_str().ok())
+                    .unwrap_or("missing")
+                    .to_string();
+                let request_message = serde_json::to_value(request.into_inner())
+                    .map_err(|error| tonic::Status::internal(error.to_string()))?;
+                let id = request_message
+                    .get("id")
+                    .and_then(Value::as_str)
+                    .unwrap_or_default();
+                let response_json = json!({
+                    "id": id,
+                    "name": format!("Ada {trace_id}"),
+                });
+                let message = dynamic_message_from_json(output, &response_json)
+                    .map_err(|error| tonic::Status::internal(error.to_string()))?;
+                let mut response = tonic::Response::new(message);
+                response
+                    .metadata_mut()
+                    .insert("x-served-by", "zenapi-test".parse().expect("metadata"));
+                Ok(response)
+            })
+        }
     }
 }
