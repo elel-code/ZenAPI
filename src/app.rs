@@ -27,7 +27,9 @@ use zenapi::{
     variables::{Variable, VariableStore, replace_variables},
 };
 
-use crate::ui::{AppWindow, CollectionRow, HistoryRow, MockLogRow, RouteRow, RunnerRow};
+use crate::ui::{
+    AppWindow, CollectionRow, HistoryRow, MockLogRow, RouteRow, RunnerRow, VariableTableRow,
+};
 
 const HISTORY_FILE_NAME: &str = ".zenapi-history.json";
 const MAX_SSE_STREAM_EVENTS: usize = 200;
@@ -37,6 +39,7 @@ pub fn run() -> Result<()> {
     let mut initial_state = AppState::default();
     let history_load_error = initial_state.load_history_from_disk().err();
     let app = AppWindow::new().map_err(|err| anyhow!(err.to_string()))?;
+    refresh_variable_table(&app);
     app.set_history_rows(filtered_history_model(&initial_state.history, ""));
     if let Some(error) = history_load_error {
         set_response(
@@ -58,6 +61,7 @@ pub fn run() -> Result<()> {
     wire_collection_actions(&app, state.clone());
     wire_mock_log_filter(&app, state.clone());
     wire_header_helpers(&app);
+    wire_environment_actions(&app);
     wire_request_sender(&app, runtime.clone(), state.clone());
     wire_graphql_helpers(&app);
     wire_codegen(&app);
@@ -905,6 +909,104 @@ fn wire_header_helpers(app: &AppWindow) {
                 );
             }
         }
+    });
+}
+
+fn wire_environment_actions(app: &AppWindow) {
+    let weak_app = app.as_weak();
+    app.on_select_environment(move |environment| {
+        let Some(app) = weak_app.upgrade() else {
+            return;
+        };
+        if app.get_busy() {
+            return;
+        }
+
+        app.set_environment_name(environment);
+        refresh_variable_table(&app);
+    });
+
+    let weak_app = app.as_weak();
+    app.on_environment_name_changed(move |environment| {
+        let Some(app) = weak_app.upgrade() else {
+            return;
+        };
+        if app.get_busy() {
+            return;
+        }
+
+        app.set_environment_name(environment);
+        refresh_variable_table(&app);
+    });
+
+    let weak_app = app.as_weak();
+    app.on_update_variable_row(move |row_id, scope, name, value| {
+        let Some(app) = weak_app.upgrade() else {
+            return;
+        };
+        if app.get_busy() {
+            return;
+        }
+
+        if is_global_scope(scope.as_str()) {
+            let updated = update_variable_text(
+                app.get_global_variables().as_str(),
+                row_id,
+                name.as_str(),
+                value.as_str(),
+            );
+            app.set_global_variables(updated.into());
+        } else {
+            let updated = update_variable_text(
+                app.get_environment_variables().as_str(),
+                row_id,
+                name.as_str(),
+                value.as_str(),
+            );
+            app.set_environment_variables(updated.into());
+        }
+        refresh_variable_table(&app);
+    });
+
+    let weak_app = app.as_weak();
+    app.on_add_variable(move |scope| {
+        let Some(app) = weak_app.upgrade() else {
+            return;
+        };
+        if app.get_busy() {
+            return;
+        }
+
+        if is_global_scope(scope.as_str()) {
+            let updated = add_variable_text(app.get_global_variables().as_str(), "GLOBAL_VAR");
+            app.set_global_variables(updated.into());
+        } else {
+            if app.get_environment_name().trim().is_empty() {
+                app.set_environment_name("dev".into());
+            }
+            let updated = add_variable_text(app.get_environment_variables().as_str(), "ENV_VAR");
+            app.set_environment_variables(updated.into());
+        }
+        refresh_variable_table(&app);
+    });
+
+    let weak_app = app.as_weak();
+    app.on_delete_variable_row(move |row_id, scope| {
+        let Some(app) = weak_app.upgrade() else {
+            return;
+        };
+        if app.get_busy() {
+            return;
+        }
+
+        if is_global_scope(scope.as_str()) {
+            let updated = delete_variable_text(app.get_global_variables().as_str(), row_id);
+            app.set_global_variables(updated.into());
+        } else {
+            let updated = delete_variable_text(app.get_environment_variables().as_str(), row_id);
+            app.set_environment_variables(updated.into());
+        }
+        refresh_variable_table(&app);
     });
 }
 
@@ -2828,6 +2930,181 @@ fn format_key_value_preview(fields: &[(String, String)]) -> String {
         .join("\n")
 }
 
+fn refresh_variable_table(app: &AppWindow) {
+    let global_variables = app.get_global_variables();
+    let environment_name = app.get_environment_name();
+    let environment_variables = app.get_environment_variables();
+
+    app.set_variable_rows(variable_table_model(
+        global_variables.as_str(),
+        environment_variables.as_str(),
+    ));
+    app.set_variables_json_preview(
+        variables_json_preview(
+            global_variables.as_str(),
+            environment_name.as_str(),
+            environment_variables.as_str(),
+        )
+        .into(),
+    );
+}
+
+fn variable_table_model(global_input: &str, environment_input: &str) -> ModelRc<VariableTableRow> {
+    let global_rows = variable_ui_entries(global_input)
+        .into_iter()
+        .enumerate()
+        .map(|(row_id, (_, name, value))| variable_table_row(row_id, "global", name, value));
+    let environment_rows = variable_ui_entries(environment_input)
+        .into_iter()
+        .enumerate()
+        .map(|(row_id, (_, name, value))| variable_table_row(row_id, "environment", name, value));
+
+    ModelRc::new(VecModel::from_iter(global_rows.chain(environment_rows)))
+}
+
+fn variable_table_row(
+    row_id: usize,
+    scope: &'static str,
+    name: String,
+    value: String,
+) -> VariableTableRow {
+    VariableTableRow {
+        row_id: row_id as i32,
+        scope: scope.into(),
+        name: name.into(),
+        initial_value: value.clone().into(),
+        current_value: value.into(),
+    }
+}
+
+fn variable_ui_entries(input: &str) -> Vec<(usize, String, String)> {
+    input
+        .lines()
+        .enumerate()
+        .filter_map(|(line_index, line)| {
+            let line = line.trim();
+            if line.is_empty() || line.starts_with('#') {
+                return None;
+            }
+            split_key_value_line(line).map(|(name, value)| {
+                (
+                    line_index,
+                    name.trim().to_string(),
+                    value.trim().to_string(),
+                )
+            })
+        })
+        .collect()
+}
+
+fn update_variable_text(input: &str, row_id: i32, name: &str, value: &str) -> String {
+    let mut lines = input.lines().map(str::to_string).collect::<Vec<_>>();
+    let entries = variable_ui_entries(input);
+    let new_line = format!("{}={}", name.trim(), value.trim());
+
+    if let Some((line_index, _, _)) = row_id
+        .try_into()
+        .ok()
+        .and_then(|row_id: usize| entries.get(row_id))
+    {
+        lines[*line_index] = new_line;
+    } else {
+        lines.push(new_line);
+    }
+
+    lines.join("\n")
+}
+
+fn add_variable_text(input: &str, base_name: &str) -> String {
+    let name = unique_variable_name(input, base_name);
+    append_variable_line(input, &format!("{name}="))
+}
+
+fn delete_variable_text(input: &str, row_id: i32) -> String {
+    let mut lines = input.lines().map(str::to_string).collect::<Vec<_>>();
+    let entries = variable_ui_entries(input);
+
+    if let Some((line_index, _, _)) = row_id
+        .try_into()
+        .ok()
+        .and_then(|row_id: usize| entries.get(row_id))
+    {
+        lines.remove(*line_index);
+    }
+
+    lines.join("\n")
+}
+
+fn append_variable_line(input: &str, line: &str) -> String {
+    if input.trim().is_empty() {
+        line.to_string()
+    } else if input.ends_with('\n') {
+        format!("{input}{line}")
+    } else {
+        format!("{input}\n{line}")
+    }
+}
+
+fn unique_variable_name(input: &str, base_name: &str) -> String {
+    let existing = variable_ui_entries(input)
+        .into_iter()
+        .map(|(_, name, _)| name)
+        .collect::<Vec<_>>();
+    if !existing.iter().any(|name| name == base_name) {
+        return base_name.to_string();
+    }
+
+    (2..)
+        .map(|index| format!("{base_name}_{index}"))
+        .find(|candidate| !existing.iter().any(|name| name == candidate))
+        .unwrap_or_else(|| base_name.to_string())
+}
+
+fn variables_json_preview(
+    global_input: &str,
+    environment_name: &str,
+    environment_input: &str,
+) -> String {
+    let global = variable_scope_json(global_input);
+    let environment = variable_scope_json(environment_input);
+    let active_environment = environment_name.trim();
+    let preview = serde_json::json!({
+        "activeEnvironment": if active_environment.is_empty() {
+            Value::Null
+        } else {
+            Value::String(active_environment.to_string())
+        },
+        "globals": global,
+        "environment": environment,
+    });
+
+    serde_json::to_string_pretty(&preview).unwrap_or_else(|_| "{}".to_string())
+}
+
+fn variable_scope_json(input: &str) -> Value {
+    let mut values = serde_json::Map::new();
+    for (_, name, value) in variable_ui_entries(input) {
+        values.insert(
+            name.clone(),
+            Value::String(mask_variable_preview_value(&name, &value)),
+        );
+    }
+    Value::Object(values)
+}
+
+fn mask_variable_preview_value(name: &str, value: &str) -> String {
+    let name = name.to_ascii_lowercase();
+    if name.contains("key") || name.contains("token") || name.contains("secret") {
+        "********".to_string()
+    } else {
+        value.to_string()
+    }
+}
+
+fn is_global_scope(scope: &str) -> bool {
+    scope == "global"
+}
+
 fn truncate_preview(input: &str, max_chars: usize) -> String {
     let mut preview = input.chars().take(max_chars).collect::<String>();
     if input.chars().count() > max_chars {
@@ -3740,6 +4017,67 @@ mod tests {
             .expect_err("missing env name");
 
         assert!(error.to_string().contains("environment name is empty"));
+    }
+
+    #[test]
+    fn builds_variable_rows_for_environment_page() {
+        use slint::Model;
+
+        let rows = variable_table_model(
+            "baseUrl=https://api.example.com\ntoken=global",
+            "baseUrl=http://localhost:8080",
+        );
+
+        assert_eq!(rows.row_count(), 3);
+        let global = rows.row_data(0).expect("global row");
+        assert_eq!(global.row_id, 0);
+        assert_eq!(global.scope.as_str(), "global");
+        assert_eq!(global.name.as_str(), "baseUrl");
+        assert_eq!(global.current_value.as_str(), "https://api.example.com");
+
+        let env = rows.row_data(2).expect("env row");
+        assert_eq!(env.row_id, 0);
+        assert_eq!(env.scope.as_str(), "environment");
+        assert_eq!(env.name.as_str(), "baseUrl");
+        assert_eq!(env.current_value.as_str(), "http://localhost:8080");
+    }
+
+    #[test]
+    fn updates_adds_and_deletes_variable_text_rows() {
+        let input = "# keep\nbaseUrl=https://api.example.com\ntoken=global";
+
+        assert_eq!(
+            update_variable_text(input, 1, "token", "changed"),
+            "# keep\nbaseUrl=https://api.example.com\ntoken=changed"
+        );
+
+        assert_eq!(
+            add_variable_text("baseUrl=https://api.example.com", "GLOBAL_VAR"),
+            "baseUrl=https://api.example.com\nGLOBAL_VAR="
+        );
+
+        assert_eq!(
+            add_variable_text("GLOBAL_VAR=one", "GLOBAL_VAR"),
+            "GLOBAL_VAR=one\nGLOBAL_VAR_2="
+        );
+
+        assert_eq!(delete_variable_text(input, 0), "# keep\ntoken=global");
+    }
+
+    #[test]
+    fn masks_secret_values_in_variable_preview() {
+        let preview = variables_json_preview(
+            "token=global-secret\nbaseUrl=https://api.example.com",
+            "dev",
+            "API_KEY=local-secret",
+        );
+
+        assert!(preview.contains("\"activeEnvironment\": \"dev\""));
+        assert!(preview.contains("\"token\": \"********\""));
+        assert!(preview.contains("\"API_KEY\": \"********\""));
+        assert!(preview.contains("\"baseUrl\": \"https://api.example.com\""));
+        assert!(!preview.contains("global-secret"));
+        assert!(!preview.contains("local-secret"));
     }
 
     #[test]

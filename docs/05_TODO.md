@@ -60,9 +60,11 @@
   mode-specific config panels wired to transport mapping, with split
   credential/key-value rows and OAuth flows still pending.
 - [~] Rebuild Environments and Variables UI on top of `variables::VariableStore`;
-  current Slint baseline supports one active environment with dev/test/prod
-  quick selectors plus line-based global and environment variable editors, with
-  full environment list management pending.
+  current Slint baseline uses the reference three-pane Environments page with
+  dev/test/prod/local quick selectors, editable global/env variable rows,
+  add/delete row actions, scope badges, and a masked JSON preview, still backed
+  by the existing `key=value` text storage. Full multi-environment list
+  management remains pending.
 - [~] Rebuild Collections UI for native JSON/Postman import/export, saving
   current requests, nested folders, rename/delete/copy, and drag/drop; current
   Slint baseline loads native/Postman JSON, saves the current editor request,
@@ -125,7 +127,7 @@
 | OpenAPI import | Implemented | JSON/YAML parser and Slint route list wired |
 | HTTP client | Core implemented | Slint wires method, URL, params, headers, auth, variables, and body modes |
 | Mock server | Core implemented | Slint start/stop toggle wired |
-| Variables | Domain implemented | Slint baseline supports global and one active environment editor |
+| Variables | Domain implemented | Slint baseline has a three-pane environment page with editable variable rows, add/delete, scope badges, and masked preview over one active environment |
 | Collections | Domain implemented | Slint baseline supports load/save/export plus flat request restore/rename/duplicate/delete |
 | History | Domain implemented | Slint baseline records, filters, deletes, restores, and persists recent requests |
 | Codegen | Domain + Slint page implemented | Dedicated page generates and saves snippets; clipboard copy pending |

@@ -238,10 +238,12 @@ Var scopes:
 - `Global`.
 - `Env` for the active env.
 
-Use the `dev`, `test`, and `prod` chips to switch the active environment quickly,
-or edit the env name field directly. Global and env vars are edited as
-line-based `key=value` text. Env variables override globals with the same name.
-Full environment list management is still future work.
+Use the `dev`, `test`, `prod`, and `local` rows to switch the active
+environment quickly, or edit the env name field directly. The Environments page
+shows editable variable rows with `Global` and `Env` scopes, row add/delete
+actions, and a masked JSON preview. The backing storage is still line-based
+`key=value` text, so env variables override globals with the same name. Full
+multi-environment list management is still future work.
 
 ## Collections
 
