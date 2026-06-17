@@ -997,7 +997,7 @@ component Sidebar inherits Rectangle {
                 }
 
                 SidebarFolderRow {
-                    label: root.collection_name == "" ? "Users" : root.collection_name;
+                    label: root.collection_name == "" ? "Collection" : root.collection_name;
                     selected: true;
                 }
 
@@ -5973,7 +5973,7 @@ export component AppWindow inherits Window {
     in-out property <string> spec_label: "";
     in-out property <bool> spec_loaded: false;
     in-out property <string> collection_path;
-    in-out property <string> collection_name: "Users";
+    in-out property <string> collection_name: "Collection";
     in-out property <string> collection_status: "";
     in-out property <string> method: "GET";
     in-out property <string> url;

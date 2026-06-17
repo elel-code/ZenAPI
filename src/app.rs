@@ -228,7 +228,7 @@ impl Default for AppState {
         Self {
             routes: Vec::new(),
             visible_routes: Vec::new(),
-            collection: ApiCollection::new("Users"),
+            collection: ApiCollection::new("Collection"),
             history: RequestHistory::default(),
             history_path: PathBuf::from(HISTORY_FILE_NAME),
             mock_logs: Vec::new(),
