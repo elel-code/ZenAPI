@@ -21,8 +21,8 @@
   secondary, tertiary, and error tokens.
 - [x] Route `src/main.rs` through `src/app.rs` for the desktop app and keep
   `src/cli.rs` for CLI commands.
-- [x] Implement a Slint app shell with top bar, endpoint sidebar, request editor,
-  response viewer, and bottom status bar.
+- [x] Implement a Slint app shell with global navigation, endpoint sidebar,
+  request editor, response viewer, and compact navigation.
 - [x] Wire Rust callbacks for OpenAPI import, route filtering, route selection,
   request sending, and mock server start/stop.
 - [x] Remove remaining GPUI source files from `src/app/`.
@@ -140,7 +140,7 @@
 
 | Area | Status | Notes |
 |------|--------|-------|
-| App shell | Multi-page Slint shell restored | Responsive conditional page stack with deferred render commits, lightweight read-only code blocks, global navigation, bottom compact navigation, status bar, and overflow scrollbars |
+| App shell | Multi-page Slint shell restored | Responsive persistent page stack, lightweight read-only code blocks, global navigation, compact navigation, request-sidebar OpenAPI import, and overflow scrollbars |
 | OpenAPI import | Implemented | JSON/YAML parser and Slint route list wired |
 | HTTP client | Core implemented | Slint wires method, URL, params, headers, auth, variables, and body modes |
 | Mock server | Core implemented | Slint start/stop toggle wired |

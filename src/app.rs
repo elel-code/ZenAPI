@@ -2,13 +2,12 @@ use anyhow::{Result, anyhow, bail};
 use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64_STANDARD};
 use copypasta::{ClipboardContext, ClipboardProvider};
 use serde_json::Value;
-use slint::{ComponentHandle, ModelRc, SharedString, Timer, VecModel};
+use slint::{ComponentHandle, ModelRc, SharedString, VecModel};
 use std::{
     collections::BTreeMap,
     fs,
     path::{Path, PathBuf},
     sync::{Arc, Mutex},
-    time::Duration,
 };
 use tokio::{runtime::Runtime, sync::mpsc, task::JoinHandle};
 use zenapi::{
@@ -103,17 +102,6 @@ fn wire_page_navigation(app: &AppWindow) {
         };
 
         app.set_active_page_index(page_index);
-
-        let weak_app = app.as_weak();
-        Timer::single_shot(Duration::from_millis(16), move || {
-            let Some(app) = weak_app.upgrade() else {
-                return;
-            };
-
-            if app.get_active_page_index() == page_index {
-                app.set_rendered_page_index(page_index);
-            }
-        });
     });
 }
 

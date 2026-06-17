@@ -16,8 +16,8 @@ Indigo primary, Mint secondary, Inter + JetBrains Mono typography.
 
 ## Workbench Layout
 
-The main window is a single Slint shell with a fixed top bar, global navigation,
-page content, and a bottom status bar. Wide windows use the left navigation for
+The main window is a single Slint shell with global navigation and page content.
+Wide windows use the left navigation for
 Dashboard, Requests, Mocks, Runner, Environments, Analytics, API Docs, API Keys,
 Team, Settings, and Codegen. Compact widths hide the global navigation and show
 bottom navigation for the primary pages.
@@ -25,6 +25,8 @@ bottom navigation for the primary pages.
 The Requests page keeps the three-pane request builder: collection/history
 sidebar, request editor, and response viewer. Long lists, code panes, and
 narrow-window page content use Slint scrollbars instead of clipping overflow.
+OpenAPI import lives inside the request sidebar while the app chrome is reserved
+for a later redesign.
 Reference pages only expose controls that perform a visible action; API Docs
 snippet language buttons switch the displayed sample locally.
 
@@ -301,7 +303,7 @@ export.
 
 Behavior:
 
-- Runs on the configured local mock port shown in the top bar.
+- Runs on the configured local mock port shown in the Mocks page.
 - Enables permissive CORS for local frontend development.
 - Serves generated JSON responses from OpenAPI schemas and examples.
 - Shows the selected endpoint method/path and mock response body in the Mocks

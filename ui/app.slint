@@ -887,8 +887,10 @@ component Sidebar inherits Rectangle {
     in-out property <string> collection_request_name;
     in-out property <string> collection_name;
     in-out property <string> collection_status;
+    in-out property <string> file_path;
     in property <int> total_route_count;
     in property <bool> busy;
+    callback import_openapi(string);
     callback select_route(int);
     callback select_collection_request(int);
     callback rename_collection_request(int, string);
@@ -916,6 +918,57 @@ component Sidebar inherits Rectangle {
         spacing: 14px;
 
         SidebarProfile {}
+
+        Rectangle {
+            height: 72px;
+            horizontal-stretch: 1;
+            background: transparent;
+
+            VerticalLayout {
+                padding: 0px;
+                spacing: 8px;
+
+                UiText {
+                    text: "OPENAPI";
+                    height: 18px;
+                    horizontal-stretch: 1;
+                    color: Theme.on_surface_variant;
+                    font-size: 12px;
+                    font-weight: 800;
+                    vertical-alignment: center;
+                    overflow: elide;
+                }
+
+                HorizontalLayout {
+                    height: 36px;
+                    spacing: 8px;
+                    alignment: center;
+
+                    TextField {
+                        text <=> root.file_path;
+                        placeholder: "spec path";
+                        mono: true;
+                        enabled: !root.busy;
+                        horizontal-stretch: 1;
+                        accepted => {
+                            if !root.busy && root.file_path != "" {
+                                root.import_openapi(root.file_path);
+                            }
+                        }
+                    }
+
+                    ActionButton {
+                        text: "Import";
+                        primary: true;
+                        enabled: !root.busy && root.file_path != "";
+                        button_width: 66px;
+                        clicked => {
+                            root.import_openapi(root.file_path);
+                        }
+                    }
+                }
+            }
+        }
 
         Rectangle {
             horizontal-stretch: 1;
@@ -1085,134 +1138,6 @@ component Sidebar inherits Rectangle {
                         label: entry.url;
                         picked => {
                             root.select_history(entry.id);
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-component TopBar inherits Rectangle {
-    in-out property <string> file_path;
-    in property <bool> busy;
-    callback import_openapi(string);
-
-    height: 64px;
-    horizontal-stretch: 1;
-    background: Theme.surface_dim;
-
-    HorizontalLayout {
-        padding-left: 20px;
-        padding-right: 20px;
-        spacing: 16px;
-        alignment: center;
-
-        Rectangle {
-            width: 36px;
-            height: 36px;
-            border-radius: 8px;
-            background: menu_touch.has-hover ? Theme.surface_container_high : transparent;
-
-            menu_touch := TouchArea {
-                enabled: !root.busy;
-                mouse-cursor: root.busy ? default : pointer;
-                clicked => {
-                    import_popup.show();
-                }
-            }
-
-            Rectangle {
-                x: 7px;
-                y: 11px;
-                width: 22px;
-                height: 2px;
-                background: Theme.primary;
-            }
-
-            Rectangle {
-                x: 7px;
-                y: 17px;
-                width: 22px;
-                height: 2px;
-                background: Theme.primary;
-            }
-
-            Rectangle {
-                x: 7px;
-                y: 23px;
-                width: 22px;
-                height: 2px;
-                background: Theme.primary;
-            }
-        }
-
-        UiText {
-            text: "API Architect";
-            width: 220px;
-            height: root.height;
-            font-size: 24px;
-            font-weight: 800;
-            color: Theme.primary;
-            vertical-alignment: center;
-            overflow: elide;
-        }
-
-        Rectangle {
-            horizontal-stretch: 1;
-        }
-    }
-
-    Rectangle {
-        y: parent.height - 1px;
-        width: parent.width;
-        height: 1px;
-        background: Theme.outline_variant;
-    }
-
-    import_popup := PopupWindow {
-        x: 20px;
-        y: root.height + 6px;
-        width: root.width - 40px;
-        height: 58px;
-        close-policy: close-on-click-outside;
-
-        Rectangle {
-            width: parent.width;
-            height: parent.height;
-            background: Theme.surface_container;
-            border-radius: 8px;
-            border-width: 1px;
-            border-color: Theme.outline_variant;
-
-            HorizontalLayout {
-                padding: 10px;
-                spacing: 10px;
-                alignment: center;
-
-                TextField {
-                    text <=> root.file_path;
-                    placeholder: "Local JSON or YAML file path";
-                    mono: true;
-                    enabled: !root.busy;
-                    horizontal-stretch: 1;
-                    accepted => {
-                        if !root.busy {
-                            import_popup.close();
-                            root.import_openapi(root.file_path);
-                        }
-                    }
-                }
-
-                ActionButton {
-                    text: "Import";
-                    primary: true;
-                    enabled: !root.busy;
-                    button_width: 82px;
-                    clicked => {
-                        if !root.busy {
-                            import_popup.close();
-                            root.import_openapi(root.file_path);
                         }
                     }
                 }
@@ -6040,81 +5965,6 @@ component BottomNavigation inherits Rectangle {
     }
 }
 
-component StatusBar inherits Rectangle {
-    in property <string> active_page;
-    in property <bool> server_running;
-    in property <string> server_status;
-    in property <int> total_route_count;
-    in property <bool> busy;
-    in property <string> activity;
-
-    height: 28px;
-    horizontal-stretch: 1;
-    background: Theme.surface_container;
-
-    Rectangle {
-        width: parent.width;
-        height: 1px;
-        background: Theme.outline_variant;
-    }
-
-    HorizontalLayout {
-        padding-left: 14px;
-        padding-right: 14px;
-        spacing: 16px;
-        alignment: center;
-
-        UiText {
-            text: "Mock " + (root.server_running ? root.server_status : "Stopped");
-            width: 210px;
-            height: parent.height;
-            color: root.server_running ? Theme.secondary : Theme.on_surface_variant;
-            font-family: "JetBrains Mono";
-            font-size: 11px;
-            vertical-alignment: center;
-            overflow: elide;
-        }
-
-        UiText {
-            text: root.total_route_count + " routes";
-            width: 104px;
-            height: parent.height;
-            color: Theme.on_surface_variant;
-            font-family: "JetBrains Mono";
-            font-size: 11px;
-            vertical-alignment: center;
-            overflow: elide;
-        }
-
-        UiText {
-            text: root.active_page;
-            width: 120px;
-            height: parent.height;
-            color: Theme.outline;
-            font-family: "JetBrains Mono";
-            font-size: 11px;
-            vertical-alignment: center;
-            overflow: elide;
-        }
-
-        Rectangle {
-            horizontal-stretch: 1;
-        }
-
-        UiText {
-            text: root.busy ? "Busy" : root.activity;
-            width: 240px;
-            height: parent.height;
-            color: root.busy ? Theme.tertiary : Theme.outline;
-            font-family: "JetBrains Mono";
-            font-size: 11px;
-            horizontal-alignment: right;
-            vertical-alignment: center;
-            overflow: elide;
-        }
-    }
-}
-
 export component AppWindow inherits Window {
     title: "API Architect";
     preferred-width: 1280px;
@@ -6214,8 +6064,6 @@ export component AppWindow inherits Window {
     in-out property <bool> busy: false;
     in-out property <string> activity: "";
     in-out property <int> active_page_index: 0;
-    in-out property <int> rendered_page_index: 0;
-    property <string> active_page_label: root.active_page_index == 0 ? "dashboard" : root.active_page_index == 1 ? "requests" : root.active_page_index == 2 ? "mocks" : root.active_page_index == 3 ? "runner" : root.active_page_index == 4 ? "environments" : root.active_page_index == 5 ? "analytics" : root.active_page_index == 6 ? "docs" : root.active_page_index == 7 ? "keys" : root.active_page_index == 8 ? "team" : root.active_page_index == 9 ? "settings" : "codegen";
     property <bool> compact_mode: root.width < 900px;
 
     callback navigate_page(int);
@@ -6299,14 +6147,6 @@ export component AppWindow inherits Window {
         padding: 0px;
         spacing: 0px;
 
-        TopBar {
-            file_path <=> root.file_path;
-            busy: root.busy;
-            import_openapi(path) => {
-                root.import_openapi(path);
-            }
-        }
-
         Rectangle {
             horizontal-stretch: 1;
             vertical-stretch: 1;
@@ -6341,7 +6181,8 @@ export component AppWindow inherits Window {
                 background: Theme.background;
                 clip: true;
 
-                if root.rendered_page_index == 1: ScrollView {
+                ScrollView {
+                    visible: root.active_page_index == 1;
                     width: parent.width;
                     height: parent.height;
                     viewport-width: max(self.visible-width, 1200px);
@@ -6369,8 +6210,12 @@ export component AppWindow inherits Window {
                             collection_request_name <=> root.collection_request_name;
                             collection_name <=> root.collection_name;
                             collection_status <=> root.collection_status;
+                            file_path <=> root.file_path;
                             total_route_count: root.total_route_count;
                             busy: root.busy;
+                            import_openapi(path) => {
+                                root.import_openapi(path);
+                            }
                             filter_routes(query) => {
                                 root.filter_routes(query);
                             }
@@ -6661,7 +6506,8 @@ export component AppWindow inherits Window {
                     }
                 }
 
-                if root.rendered_page_index == 0: ScrollView {
+                ScrollView {
+                    visible: root.active_page_index == 0;
                     width: parent.width;
                     height: parent.height;
                     viewport-width: max(self.visible-width, 1040px);
@@ -6685,7 +6531,8 @@ export component AppWindow inherits Window {
                     }
                 }
 
-                if root.rendered_page_index == 2: ScrollView {
+                ScrollView {
+                    visible: root.active_page_index == 2;
                     width: parent.width;
                     height: parent.height;
                     viewport-width: max(self.visible-width, 1160px);
@@ -6729,7 +6576,8 @@ export component AppWindow inherits Window {
                     }
                 }
 
-                if root.rendered_page_index == 4: ScrollView {
+                ScrollView {
+                    visible: root.active_page_index == 4;
                     width: parent.width;
                     height: parent.height;
                     viewport-width: max(self.visible-width, 1180px);
@@ -6764,7 +6612,8 @@ export component AppWindow inherits Window {
                     }
                 }
 
-                if root.rendered_page_index == 3: ScrollView {
+                ScrollView {
+                    visible: root.active_page_index == 3;
                     width: parent.width;
                     height: parent.height;
                     viewport-width: max(self.visible-width, 1040px);
@@ -6796,7 +6645,8 @@ export component AppWindow inherits Window {
                     }
                 }
 
-                if root.rendered_page_index == 10: ScrollView {
+                ScrollView {
+                    visible: root.active_page_index == 10;
                     width: parent.width;
                     height: parent.height;
                     viewport-width: max(self.visible-width, 840px);
@@ -6824,7 +6674,8 @@ export component AppWindow inherits Window {
                     }
                 }
 
-                if root.rendered_page_index == 5: ScrollView {
+                ScrollView {
+                    visible: root.active_page_index == 5;
                     width: parent.width;
                     height: parent.height;
                     viewport-width: max(self.visible-width, 1040px);
@@ -6838,7 +6689,8 @@ export component AppWindow inherits Window {
                     }
                 }
 
-                if root.rendered_page_index == 6: ScrollView {
+                ScrollView {
+                    visible: root.active_page_index == 6;
                     width: parent.width;
                     height: parent.height;
                     viewport-width: max(self.visible-width, 1040px);
@@ -6863,7 +6715,8 @@ export component AppWindow inherits Window {
                     }
                 }
 
-                if root.rendered_page_index == 7: ScrollView {
+                ScrollView {
+                    visible: root.active_page_index == 7;
                     width: parent.width;
                     height: parent.height;
                     viewport-width: max(self.visible-width, 1040px);
@@ -6877,7 +6730,8 @@ export component AppWindow inherits Window {
                     }
                 }
 
-                if root.rendered_page_index == 8: ScrollView {
+                ScrollView {
+                    visible: root.active_page_index == 8;
                     width: parent.width;
                     height: parent.height;
                     viewport-width: max(self.visible-width, 1040px);
@@ -6891,7 +6745,8 @@ export component AppWindow inherits Window {
                     }
                 }
 
-                if root.rendered_page_index == 9: ScrollView {
+                ScrollView {
+                    visible: root.active_page_index == 9;
                     width: parent.width;
                     height: parent.height;
                     viewport-width: max(self.visible-width, 1040px);
@@ -6918,13 +6773,5 @@ export component AppWindow inherits Window {
             }
         }
 
-        StatusBar {
-            active_page: root.active_page_label;
-            server_running: root.server_running;
-            server_status: root.server_status;
-            total_route_count: root.total_route_count;
-            busy: root.busy;
-            activity: root.activity;
-        }
     }
 }
