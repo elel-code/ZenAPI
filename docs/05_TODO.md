@@ -38,13 +38,14 @@
 - [x] Send HTTP requests through the existing reqwest transport.
 - [x] Show response status, timing, size, and formatted body.
 - [x] Start/stop the local Axum mock server from the Slint shell.
-- [~] Keep the request body editor and response viewer usable as Slint text
+- [x] Keep the request body editor and response viewer usable as Slint text
   controls; response Pretty, Raw, Headers, and Set-Cookie-derived Cookies tabs
   are visible, and the response toolbar now wires Copy, JSON Format,
   per-tab Fold/Open, Fold All, and Open All actions. JSON response folding now
   renders top-level object/array structure while collapsing nested containers,
-  with line-count summaries for non-JSON tabs. Selection-aware copy still needs
-  parity work.
+  with line-count summaries for non-JSON tabs, and Copy prefers the selected
+  text in the current visible response view before falling back to the whole
+  visible tab.
 
 ## Phase 3: Slint UI Parity Backlog
 

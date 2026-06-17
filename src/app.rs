@@ -2532,14 +2532,22 @@ fn wire_request_sender(app: &AppWindow, runtime: Arc<Runtime>, state: Arc<Mutex<
 
 fn wire_response_actions(app: &AppWindow) {
     let weak_app = app.as_weak();
-    app.on_copy_response(move |tab, text| {
+    app.on_copy_response(move |tab, text, anchor, cursor| {
         let Some(app) = weak_app.upgrade() else {
             return;
         };
 
-        match copy_text_to_clipboard(text.as_str()) {
+        let (copy_text, copied_selection) = response_copy_text(text.as_str(), anchor, cursor);
+        match copy_text_to_clipboard(copy_text) {
             Ok(()) => {
-                app.set_activity(format!("Copied {} response", response_tab_label(&tab)).into())
+                let selection_label = if copied_selection { " selected" } else { "" };
+                app.set_activity(
+                    format!(
+                        "Copied{selection_label} {} response",
+                        response_tab_label(&tab)
+                    )
+                    .into(),
+                )
             }
             Err(error) => app.set_activity(format!("Copy failed: {error}").into()),
         }
@@ -3693,6 +3701,26 @@ fn read_text_from_clipboard() -> Result<String> {
     clipboard
         .get_contents()
         .map_err(|error| anyhow!("failed to read clipboard: {error}"))
+}
+
+fn response_copy_text(text: &str, anchor: i32, cursor: i32) -> (&str, bool) {
+    let start = anchor.min(cursor);
+    let end = anchor.max(cursor);
+    if start < 0 || end <= start {
+        return (text, false);
+    }
+
+    let Ok(start) = usize::try_from(start) else {
+        return (text, false);
+    };
+    let Ok(end) = usize::try_from(end) else {
+        return (text, false);
+    };
+    if end > text.len() || !text.is_char_boundary(start) || !text.is_char_boundary(end) {
+        return (text, false);
+    }
+
+    (&text[start..end], true)
 }
 
 fn format_json_response_text(text: &str) -> Result<String> {
@@ -6970,6 +6998,20 @@ mod tests {
             "Cookies folded\n0 lines"
         );
         assert!(folded_response_view_text("pretty", "not json").starts_with("Pretty folded\n"));
+    }
+
+    #[test]
+    fn selects_response_copy_text_from_byte_offsets() {
+        assert_eq!(response_copy_text("abcdef", 1, 4), ("bcd", true));
+        assert_eq!(response_copy_text("abcdef", 4, 1), ("bcd", true));
+        assert_eq!(response_copy_text("h\u{e9}llo", 0, 3), ("h\u{e9}", true));
+        assert_eq!(response_copy_text("abcdef", 2, 2), ("abcdef", false));
+        assert_eq!(response_copy_text("abcdef", -1, 3), ("abcdef", false));
+        assert_eq!(response_copy_text("abcdef", 0, 20), ("abcdef", false));
+        assert_eq!(
+            response_copy_text("h\u{e9}llo", 0, 2),
+            ("h\u{e9}llo", false)
+        );
     }
 
     #[test]

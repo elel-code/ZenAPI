@@ -653,6 +653,7 @@ export component MethodSelector inherits Rectangle {
 export component CodePane inherits Rectangle {
     in-out property <string> text;
     in property <bool> read_only;
+    callback selection_changed(int, int);
 
     horizontal-stretch: 1;
     vertical-stretch: 1;
@@ -688,6 +689,9 @@ export component CodePane inherits Rectangle {
             selection-background-color: Theme.primary_container;
             selection-foreground-color: Theme.on_surface;
             text-cursor-width: root.read_only ? 0px : 2px;
+            cursor-position-changed(_) => {
+                root.selection_changed(code_input.anchor-position-byte-offset, code_input.cursor-position_byte-offset);
+            }
         }
     }
 }
