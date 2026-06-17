@@ -4942,9 +4942,7 @@ component TeamMemberLine inherits Rectangle {
     border-color: Theme.primary;
     background: root.selected ? Theme.surface_variant : touch.has-hover ? Theme.surface_container_high : transparent;
 
-    touch := TouchArea {
-        mouse-cursor: pointer;
-    }
+    touch := TouchArea {}
 
     Rectangle {
         x: 10px;
