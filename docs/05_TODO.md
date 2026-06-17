@@ -98,8 +98,8 @@
 - [~] Rebuild History UI for local request history, filtering, restore, delete,
   and clear; current Slint baseline records recent requests and restores method,
   URL, query params, headers, auth config, body mode, body preview, pre-request
-  script, and tests, with filtering, single-entry delete, and clear controls
-  wired plus local JSON persistence.
+  script, and tests, with visible sidebar filtering, single-entry delete, and
+  clear controls plus local JSON persistence.
 - [~] Rebuild Codegen UI for cURL, Python, JavaScript, Rust, and Go snippets;
   domain wiring still generates snippets from the resolved request projection,
   and the Slint shell now has a dedicated Codegen page with generate, clipboard

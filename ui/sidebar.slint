@@ -136,9 +136,11 @@ component SidebarRequestLink inherits Rectangle {
 }
 
 component SidebarHistoryLink inherits Rectangle {
+    in property <int> row_id;
     in property <string> method;
     in property <string> label;
     callback picked();
+    callback delete_entry(int);
 
     height: 26px;
     horizontal-stretch: 1;
@@ -167,12 +169,40 @@ component SidebarHistoryLink inherits Rectangle {
     UiText {
         x: 38px;
         text: root.label;
-        width: parent.width - 38px;
+        width: parent.width - 74px;
         height: parent.height;
         color: Theme.on_surface_variant;
         font-size: 12px;
         overflow: elide;
         vertical-alignment: center;
+    }
+
+    Rectangle {
+        x: parent.width - 32px;
+        y: 4px;
+        width: 32px;
+        height: 18px;
+        border-radius: 4px;
+        background: delete_touch.has-hover ? Theme.surface_container_highest : transparent;
+
+        delete_touch := TouchArea {
+            mouse-cursor: pointer;
+            clicked => {
+                root.delete_entry(root.row_id);
+            }
+        }
+
+        UiText {
+            text: "Del";
+            width: parent.width;
+            height: parent.height;
+            color: delete_touch.has-hover ? Theme.error : Theme.outline;
+            font-size: 10px;
+            font-weight: 800;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+            overflow: elide;
+        }
     }
 }
 
@@ -188,6 +218,7 @@ export component Sidebar inherits Rectangle {
     in-out property <string> collection_folder_name;
     in-out property <string> collection_name;
     in-out property <string> collection_path;
+    in-out property <string> history_filter;
     in property <string> collection_status;
     in-out property <string> file_path;
     in property <string> spec_label;
@@ -211,6 +242,8 @@ export component Sidebar inherits Rectangle {
     callback pick_collection_save_path();
     callback pick_postman_collection_path();
     callback select_history(int);
+    callback filter_history(string);
+    callback delete_history(int);
     callback clear_history();
 
     width: 240px;
@@ -584,7 +617,7 @@ export component Sidebar inherits Rectangle {
         }
 
         Rectangle {
-            height: 112px;
+            height: 148px;
             horizontal-stretch: 1;
             background: transparent;
 
@@ -618,6 +651,19 @@ export component Sidebar inherits Rectangle {
                     }
                 }
 
+                TextField {
+                    text <=> root.history_filter;
+                    placeholder: "filter history";
+                    mono: true;
+                    enabled: !root.busy;
+                    edited => {
+                        root.filter_history(root.history_filter);
+                    }
+                    accepted => {
+                        root.filter_history(root.history_filter);
+                    }
+                }
+
                 if root.history_rows.length == 0: UiText {
                     text: "No requests yet";
                     height: 26px;
@@ -635,10 +681,14 @@ export component Sidebar inherits Rectangle {
                     horizontal-scrollbar-policy: ScrollBarPolicy.as-needed;
 
                     for entry in root.history_rows: SidebarHistoryLink {
+                        row_id: entry.id;
                         method: entry.method;
                         label: entry.url;
                         picked => {
                             root.select_history(entry.id);
+                        }
+                        delete_entry(row_id) => {
+                            root.delete_history(row_id);
                         }
                     }
                 }

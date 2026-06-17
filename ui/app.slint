@@ -304,6 +304,7 @@ export component AppWindow inherits Window {
                             collection_folder_name <=> root.collection_folder_name;
                             collection_name <=> root.collection_name;
                             collection_path <=> root.collection_path;
+                            history_filter <=> root.history_filter;
                             collection_status: root.collection_status;
                             file_path <=> root.file_path;
                             spec_label: root.spec_label;
@@ -360,6 +361,12 @@ export component AppWindow inherits Window {
                             }
                             select_history(id) => {
                                 root.select_history(id);
+                            }
+                            filter_history(query) => {
+                                root.filter_history(query);
+                            }
+                            delete_history(id) => {
+                                root.delete_history(id);
                             }
                             clear_history => {
                                 root.clear_history();
