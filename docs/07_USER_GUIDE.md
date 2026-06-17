@@ -83,12 +83,12 @@ The response pane shows:
 - Pretty body.
 - Raw body.
 - Response headers.
+- Cookies tab placeholder.
 
-Pretty JSON responses can be folded to a structural summary with `Fold` and
-restored with `Open`. Response text is read-only but selectable and copyable.
-The Response tab row also includes `Copy`, which copies the currently visible
-`Pretty`, `Raw`, or `Hdrs` view. New responses and response view switches start
-at the top of the response body.
+Pretty JSON responses use the formatted body from the transport layer. Raw
+responses preserve the original response text. Response text is read-only but
+selectable and copyable. Dedicated response copy, format, and fold/open actions
+are still future work.
 
 ## Pre-request
 

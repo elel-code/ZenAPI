@@ -135,7 +135,7 @@ ZenAPI 采用单窗口多页面架构，全局外壳包含：
 | **Body 类型栏** | 紧贴标签栏下方，`surface-container-lowest` 背景；radio 切换 none/form-data/raw/graphql/binary + 子类型下拉 |
 | **代码编辑器** | 最小高度 118px；弹性填充剩余空间；CodeEditor 组件（编辑模式） |
 | **集合侧栏** | 用户区 + "Collections" 标题 + 文件夹树（Auth/Users/Billing）+ "History" 底部区域 |
-| **响应面板** | 状态栏（status badge）+ 元数据行（Time/Size）+ 标签页（Body/Headers/Cookies + Copy/Format 按钮）+ CodeEditor（预览模式） |
+| **响应面板** | 状态栏（status badge）+ 元数据行（Time/Size）+ 标签页（Pretty/Raw/Headers/Cookies + Copy/Format 按钮）+ CodeEditor（预览模式） |
 
 ### 请求编辑器标签页内容
 

@@ -1883,6 +1883,7 @@ component ToolGlyphButton inherits Rectangle {
 
 component ResponsePanel inherits Rectangle {
     in-out property <string> response_body;
+    in-out property <string> response_raw_body;
     in-out property <string> response_headers;
     in-out property <string> codegen_language;
     in-out property <string> codegen_output;
@@ -1902,7 +1903,7 @@ component ResponsePanel inherits Rectangle {
     callback run_collection();
     callback cancel_collection_run();
     callback save_runner_report(string);
-    property <string> active_tab: "body";
+    property <string> active_tab: "pretty";
 
     width: 400px;
     vertical-stretch: 1;
@@ -2011,7 +2012,8 @@ component ResponsePanel inherits Rectangle {
                 alignment: center;
 
                 for item in [
-                    { mode: "body", label: "Body" },
+                    { mode: "pretty", label: "Pretty" },
+                    { mode: "raw", label: "Raw" },
                     { mode: "headers", label: "Headers" },
                     { mode: "cookies", label: "Cookies" },
                 ]: ResponseTab {
@@ -2060,10 +2062,17 @@ component ResponsePanel inherits Rectangle {
             horizontal-stretch: 1;
             background: Theme.surface_container_lowest;
 
-            if root.active_tab == "body": CodePane {
+            if root.active_tab == "pretty": CodePane {
                 width: parent.width;
                 height: parent.height;
                 text <=> root.response_body;
+                read_only: true;
+            }
+
+            if root.active_tab == "raw": CodePane {
+                width: parent.width;
+                height: parent.height;
+                text <=> root.response_raw_body;
                 read_only: true;
             }
 
@@ -4314,6 +4323,7 @@ export component AppWindow inherits Window {
     in-out property <string> response_meta: "";
     in-out property <string> response_tone: "neutral";
     in-out property <string> response_body: "Import an OpenAPI or Swagger document to begin.";
+    in-out property <string> response_raw_body: "Import an OpenAPI or Swagger document to begin.";
     in-out property <string> response_headers: "";
     in-out property <string> codegen_language: "curl";
     in-out property <string> codegen_output: "";
@@ -4587,6 +4597,7 @@ export component AppWindow inherits Window {
 
                                     ResponsePanel {
                                         response_body <=> root.response_body;
+                                        response_raw_body <=> root.response_raw_body;
                                         response_headers <=> root.response_headers;
                                         codegen_language <=> root.codegen_language;
                                         codegen_output <=> root.codegen_output;

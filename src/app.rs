@@ -974,6 +974,8 @@ fn wire_request_sender(app: &AppWindow, runtime: Arc<Runtime>, state: Arc<Mutex<
                             response_tone_with_assertions(response.status, &assertion_results);
                         let response_body =
                             response_body_with_assertions(&response.body, &assertion_results);
+                        let response_raw_body =
+                            response_body_with_assertions(&response.raw_body, &assertion_results);
                         record_history(
                             &state,
                             history_snapshot.clone(),
@@ -992,6 +994,7 @@ fn wire_request_sender(app: &AppWindow, runtime: Arc<Runtime>, state: Arc<Mutex<
                             response_tone,
                             &response_body,
                         );
+                        app.set_response_raw_body(response_raw_body.into());
                         app.set_response_headers(response_headers.into());
                     }
                     Err(error) => {
@@ -1922,6 +1925,7 @@ fn set_response(app: &AppWindow, status: &str, meta: &str, tone: &str, body: &st
     app.set_response_meta(meta.into());
     app.set_response_tone(tone.into());
     app.set_response_body(body.into());
+    app.set_response_raw_body(body.into());
     app.set_response_headers("".into());
 }
 

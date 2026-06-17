@@ -39,8 +39,8 @@
 - [x] Show response status, timing, size, and formatted body.
 - [x] Start/stop the local Axum mock server from the Slint shell.
 - [~] Keep the request body editor and response viewer usable as Slint text
-  controls; response headers are visible, while richer Pretty/Raw/Header tabs
-  still need parity work.
+  controls; response Pretty, Raw, Headers, and Cookies tabs are visible, while
+  response copy/format/fold actions still need parity work.
 
 ## Phase 3: Slint UI Parity Backlog
 

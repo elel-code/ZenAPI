@@ -171,7 +171,7 @@ component AddressBar {
 ### 两种实例
 
 **请求编辑器标签页**: Params, Headers, Body, Auth, Realtime, Scripts（6个标签）
-**响应查看器标签页**: Body, Headers, Cookies（3个标签）
+**响应查看器标签页**: Pretty, Raw, Headers, Cookies（4个标签）
 
 ### 附加标记
 
@@ -261,7 +261,7 @@ component KeyValueTable {
 - 只读文本框，可选可复制
 - 与编辑模式相同的语法高亮
 - 右上角 "Copy" 按钮（悬停显示）
-- 支持 "Fold" / "Open" JSON 折叠
+- "Fold" / "Open" JSON 折叠为后续增强项
 
 ### Slint 组件设计
 
