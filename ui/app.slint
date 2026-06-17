@@ -696,24 +696,18 @@ component HeaderEditorPanel inherits Rectangle {
 }
 
 component SidebarProfile inherits Rectangle {
-    height: 58px;
+    in property <string> title;
+    in property <string> subtitle;
+
+    height: 46px;
     horizontal-stretch: 1;
     background: transparent;
 
-    Rectangle {
-        x: 0px;
-        y: 6px;
-        width: 40px;
-        height: 40px;
-        border-radius: 20px;
-        background: Theme.surface_container_highest;
-    }
-
     UiText {
-        x: 52px;
-        y: 5px;
-        text: "Lead Architect";
-        width: parent.width - 52px;
+        x: 0px;
+        y: 0px;
+        text: root.title;
+        width: parent.width;
         height: 24px;
         color: Theme.primary;
         font-size: 14px;
@@ -723,13 +717,13 @@ component SidebarProfile inherits Rectangle {
     }
 
     UiText {
-        x: 52px;
-        y: 29px;
-        text: "Dev-Ops Team";
-        width: parent.width - 52px;
+        x: 0px;
+        y: 24px;
+        text: root.subtitle;
+        width: parent.width;
         height: 22px;
         color: Theme.on_surface_variant;
-        font-size: 14px;
+        font-size: 12px;
         overflow: elide;
         vertical-alignment: center;
     }
@@ -880,6 +874,8 @@ component Sidebar inherits Rectangle {
     in-out property <string> collection_name;
     in-out property <string> collection_status;
     in-out property <string> file_path;
+    in property <string> spec_label;
+    in property <bool> spec_loaded;
     in property <int> total_route_count;
     in property <bool> busy;
     callback import_openapi(string);
@@ -909,7 +905,10 @@ component Sidebar inherits Rectangle {
         padding: 16px;
         spacing: 14px;
 
-        SidebarProfile {}
+        SidebarProfile {
+            title: root.spec_loaded ? root.spec_label : "Workspace";
+            subtitle: root.spec_loaded ? "OpenAPI imported" : "No OpenAPI loaded";
+        }
 
         Rectangle {
             height: 72px;
@@ -1176,6 +1175,8 @@ component AppNavItem inherits Rectangle {
 
 component AppNavigation inherits Rectangle {
     in-out property <int> active_page_index;
+    in property <string> spec_label;
+    in property <bool> spec_loaded;
     callback navigate_page(int);
 
     width: 240px;
@@ -1199,7 +1200,10 @@ component AppNavigation inherits Rectangle {
                 padding: 16px;
                 spacing: 12px;
 
-                SidebarProfile {}
+                SidebarProfile {
+                    title: root.spec_loaded ? root.spec_label : "Workspace";
+                    subtitle: root.spec_loaded ? "OpenAPI imported" : "No OpenAPI loaded";
+                }
 
                 Rectangle {
                     height: 1px;
@@ -6142,6 +6146,8 @@ export component AppWindow inherits Window {
                 height: parent.height;
                 visible: !root.compact_mode;
                 active_page_index <=> root.active_page_index;
+                spec_label: root.spec_label;
+                spec_loaded: root.spec_loaded;
                 navigate_page(page_index) => {
                     root.navigate_page(page_index);
                 }
@@ -6194,6 +6200,8 @@ export component AppWindow inherits Window {
                             collection_name <=> root.collection_name;
                             collection_status <=> root.collection_status;
                             file_path <=> root.file_path;
+                            spec_label: root.spec_label;
+                            spec_loaded: root.spec_loaded;
                             total_route_count: root.total_route_count;
                             busy: root.busy;
                             import_openapi(path) => {
