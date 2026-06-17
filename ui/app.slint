@@ -898,6 +898,7 @@ component Sidebar inherits Rectangle {
     in-out property <string> collection_path;
     in-out property <int> selected_collection_request;
     in-out property <string> selected_collection_folder;
+    in-out property <string> collection_move_target_label;
     in-out property <string> collection_request_name;
     in-out property <string> collection_folder_name;
     in-out property <string> collection_name;
@@ -913,6 +914,7 @@ component Sidebar inherits Rectangle {
     callback rename_collection_request(int, string);
     callback duplicate_collection_request(int);
     callback delete_collection_request(int);
+    callback move_collection_request(int, string);
     callback import_collection(string);
     callback add_collection_folder(string);
     callback save_current_request();
@@ -1032,6 +1034,7 @@ component Sidebar inherits Rectangle {
                     interactive: true;
                     picked => {
                         root.selected_collection_folder = "";
+                        root.collection_move_target_label = root.collection_name == "" ? "Collection" : root.collection_name;
                         root.selected_collection_request = -1;
                         root.collection_request_name = "";
                     }
@@ -1105,6 +1108,7 @@ component Sidebar inherits Rectangle {
                                 interactive: true;
                                 picked => {
                                     root.selected_collection_folder = entry.folder_path;
+                                    root.collection_move_target_label = entry.name;
                                     root.selected_collection_request = -1;
                                     root.collection_request_name = "";
                                 }
@@ -1116,7 +1120,6 @@ component Sidebar inherits Rectangle {
                                 selected: root.selected_collection_request == entry.id;
                                 picked => {
                                     root.selected_collection_request = entry.id;
-                                    root.selected_collection_folder = "";
                                     root.select_collection_request(entry.id);
                                 }
                             }
@@ -1138,6 +1141,77 @@ component Sidebar inherits Rectangle {
                                 root.selected_route = i;
                                 root.select_route(i);
                             }
+                        }
+                    }
+                }
+
+                HorizontalLayout {
+                    height: 34px;
+                    spacing: 6px;
+                    alignment: center;
+
+                    TextField {
+                        text <=> root.collection_request_name;
+                        placeholder: "request name";
+                        enabled: !root.busy && root.selected_collection_request >= 0;
+                        horizontal-stretch: 1;
+                        accepted => {
+                            if !root.busy && root.selected_collection_request >= 0 && root.collection_request_name != "" {
+                                root.rename_collection_request(root.selected_collection_request, root.collection_request_name);
+                            }
+                        }
+                    }
+
+                    ActionButton {
+                        text: "Ren";
+                        button_width: 40px;
+                        enabled: !root.busy && root.selected_collection_request >= 0 && root.collection_request_name != "";
+                        clicked => {
+                            root.rename_collection_request(root.selected_collection_request, root.collection_request_name);
+                        }
+                    }
+                }
+
+                HorizontalLayout {
+                    height: 30px;
+                    spacing: 6px;
+                    alignment: center;
+
+                    UiText {
+                        text: "Target: " + root.collection_move_target_label;
+                        horizontal-stretch: 1;
+                        height: parent.height;
+                        color: Theme.outline;
+                        font-size: 11px;
+                        vertical-alignment: center;
+                        overflow: elide;
+                    }
+
+                    ActionButton {
+                        text: "Move";
+                        button_width: 50px;
+                        enabled: !root.busy && root.selected_collection_request >= 0;
+                        clicked => {
+                            root.move_collection_request(root.selected_collection_request, root.selected_collection_folder);
+                        }
+                    }
+
+                    ActionButton {
+                        text: "Dup";
+                        button_width: 42px;
+                        enabled: !root.busy && root.selected_collection_request >= 0;
+                        clicked => {
+                            root.duplicate_collection_request(root.selected_collection_request);
+                        }
+                    }
+
+                    ActionButton {
+                        text: "Del";
+                        button_width: 40px;
+                        warning: true;
+                        enabled: !root.busy && root.selected_collection_request >= 0;
+                        clicked => {
+                            root.delete_collection_request(root.selected_collection_request);
                         }
                     }
                 }
@@ -6114,6 +6188,7 @@ export component AppWindow inherits Window {
     in-out property <int> total_route_count: 0;
     in-out property <int> selected_collection_request: -1;
     in-out property <string> selected_collection_folder: "";
+    in-out property <string> collection_move_target_label: "Collection";
     in-out property <string> collection_request_name: "";
     in-out property <string> collection_folder_name: "";
     in-out property <string> server_status: "Stopped";
@@ -6130,6 +6205,7 @@ export component AppWindow inherits Window {
     callback rename_collection_request(int, string);
     callback duplicate_collection_request(int);
     callback delete_collection_request(int);
+    callback move_collection_request(int, string);
     callback import_collection(string);
     callback add_collection_folder(string);
     callback save_current_request();
@@ -6272,6 +6348,7 @@ export component AppWindow inherits Window {
                             collection_path <=> root.collection_path;
                             selected_collection_request <=> root.selected_collection_request;
                             selected_collection_folder <=> root.selected_collection_folder;
+                            collection_move_target_label <=> root.collection_move_target_label;
                             collection_request_name <=> root.collection_request_name;
                             collection_folder_name <=> root.collection_folder_name;
                             collection_name <=> root.collection_name;
@@ -6301,6 +6378,9 @@ export component AppWindow inherits Window {
                             }
                             delete_collection_request(id) => {
                                 root.delete_collection_request(id);
+                            }
+                            move_collection_request(id, folder_path) => {
+                                root.move_collection_request(id, folder_path);
                             }
                             import_collection(path) => {
                                 root.import_collection(path);

@@ -804,6 +804,7 @@ fn wire_collection_actions(app: &AppWindow, state: Arc<Mutex<AppState>>) {
                 app.set_collection_status(format!("Loaded {request_count} requests").into());
                 app.set_selected_collection_request(-1);
                 app.set_selected_collection_folder("".into());
+                app.set_collection_move_target_label(name.clone().into());
                 app.set_collection_request_name("".into());
                 set_response(
                     &app,
@@ -1115,6 +1116,55 @@ fn wire_collection_actions(app: &AppWindow, state: Arc<Mutex<AppState>>) {
             &removed.name,
             "neutral",
             &removed.url,
+        );
+    });
+
+    let weak_app = app.as_weak();
+    let move_state = state.clone();
+    app.on_move_collection_request(move |id, folder_path| {
+        let Some(app) = weak_app.upgrade() else {
+            return;
+        };
+        if app.get_busy() || id < 0 {
+            return;
+        }
+
+        let Some((moved, target_label, request_count, rows)) =
+            move_state.lock().ok().and_then(|mut state| {
+                move_collection_request_to_folder(
+                    &mut state.collection,
+                    id as usize,
+                    folder_path.as_str(),
+                )
+                .map(|request| {
+                    let target_label = collection_folder_label(folder_path.as_str());
+                    let request_count = count_collection_requests(&state.collection.items);
+                    let rows = collection_model(&state.collection);
+                    (request, target_label, request_count, rows)
+                })
+            })
+        else {
+            app.set_collection_status("Move failed".into());
+            set_response(
+                &app,
+                "Collection move failed",
+                "",
+                "error",
+                "Select a saved request and a valid target folder.",
+            );
+            return;
+        };
+
+        app.set_collection_rows(rows);
+        app.set_collection_status(format!("Moved {request_count} requests").into());
+        app.set_selected_collection_request(-1);
+        app.set_collection_request_name("".into());
+        set_response(
+            &app,
+            "Collection request moved",
+            &moved.name,
+            "success",
+            &format!("Moved to {target_label}."),
         );
     });
 
@@ -4069,6 +4119,24 @@ fn collection_folder_items_mut<'a>(
     }
 }
 
+fn collection_folder_items_exists(items: &[CollectionItem], folder_path: &[String]) -> bool {
+    if folder_path.is_empty() {
+        return true;
+    }
+
+    let Some((current, rest)) = folder_path.split_first() else {
+        return true;
+    };
+    let Some(folder) = items.iter().find_map(|item| match item {
+        CollectionItem::Folder(folder) if folder.name.as_str() == current.as_str() => Some(folder),
+        _ => None,
+    }) else {
+        return false;
+    };
+
+    collection_folder_items_exists(&folder.items, rest)
+}
+
 fn collection_folder_path_key(folder_path: &[String]) -> String {
     serde_json::to_string(folder_path).unwrap_or_else(|_| "[]".to_string())
 }
@@ -4246,6 +4314,29 @@ fn remove_collection_request_at_items(
         position += 1;
     }
     None
+}
+
+fn move_collection_request_to_folder(
+    collection: &mut ApiCollection,
+    index: usize,
+    target_folder_path_key: &str,
+) -> Option<CollectionRequest> {
+    let target_path = parse_collection_folder_path_key(target_folder_path_key)?;
+    if !collection_folder_items_exists(&collection.items, &target_path) {
+        return None;
+    }
+
+    let request = remove_collection_request_at(collection, index)?;
+    if target_path.is_empty() {
+        collection
+            .items
+            .push(CollectionItem::Request(request.clone()));
+        return Some(request);
+    }
+
+    let target_items = collection_folder_items_mut(&mut collection.items, &target_path)?;
+    target_items.push(CollectionItem::Request(request.clone()));
+    Some(request)
 }
 
 fn collection_request_from_codegen(request: &CodegenRequest) -> CollectionRequest {
@@ -7752,6 +7843,63 @@ mod tests {
             Some("Health")
         );
         assert!(remove_collection_request_at(&mut collection, 5).is_none());
+        assert_eq!(count_collection_requests(&collection.items), 2);
+    }
+
+    #[test]
+    fn moves_collection_requests_between_root_and_folders() {
+        let mut collection = ApiCollection {
+            name: "Demo".to_string(),
+            description: String::new(),
+            items: vec![
+                CollectionItem::Folder(zenapi::collections::CollectionFolder {
+                    name: "Users".to_string(),
+                    description: String::new(),
+                    items: vec![CollectionItem::Folder(
+                        zenapi::collections::CollectionFolder {
+                            name: "Admin".to_string(),
+                            description: String::new(),
+                            items: vec![CollectionItem::Request(saved_request(
+                                "Suspend user",
+                                "POST",
+                                "https://api.example.com/users/suspend",
+                            ))],
+                        },
+                    )],
+                }),
+                CollectionItem::Request(saved_request(
+                    "Health",
+                    "GET",
+                    "https://api.example.com/health",
+                )),
+            ],
+        };
+
+        let moved = move_collection_request_to_folder(&mut collection, 1, r#"["Users","Admin"]"#)
+            .expect("move root request into folder");
+        assert_eq!(moved.name, "Health");
+        assert_eq!(count_collection_requests(&collection.items), 2);
+        assert_eq!(
+            collection_request_at(&collection, 0).map(|request| request.name.as_str()),
+            Some("Suspend user")
+        );
+        assert_eq!(
+            collection_request_at(&collection, 1).map(|request| request.name.as_str()),
+            Some("Health")
+        );
+
+        let moved = move_collection_request_to_folder(&mut collection, 0, "")
+            .expect("move nested request to root");
+        assert_eq!(moved.name, "Suspend user");
+        assert_eq!(
+            collection_request_at(&collection, 0).map(|request| request.name.as_str()),
+            Some("Health")
+        );
+        assert_eq!(
+            collection_request_at(&collection, 1).map(|request| request.name.as_str()),
+            Some("Suspend user")
+        );
+        assert!(move_collection_request_to_folder(&mut collection, 1, r#"["Missing"]"#).is_none());
         assert_eq!(count_collection_requests(&collection.items), 2);
     }
 

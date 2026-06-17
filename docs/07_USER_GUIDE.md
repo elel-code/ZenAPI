@@ -281,12 +281,15 @@ Supported actions:
 - Restore a collection request into the request builder.
 - Show and select imported collection folders as tree rows in the sidebar.
 - Rename the selected request with the request name field and `Ren`.
+- Select a folder as the move target, select a request, then use `Move` to
+  append that request to the target folder. Select the collection root first to
+  move a request back to the root.
 - Duplicate a saved request from the sidebar list with `Dup`.
 - Delete a saved request from the sidebar list with `Del`.
 
 Native JSON is the current default storage format. Bru-style text export is
-planned as a future Git-friendly option. Folder reparenting and drag/drop
-controls are still future work.
+planned as a future Git-friendly option. Drag/drop controls are still future
+work.
 
 ## History
 
