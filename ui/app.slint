@@ -2761,6 +2761,7 @@ component ResponsePanel inherits Rectangle {
     in-out property <string> runner_summary;
     in-out property <string> runner_delay_ms;
     in-out property <string> runner_report_path;
+    in-out property <string> runner_report_format;
     in-out property <bool> runner_stop_on_failure;
     in-out property <bool> runner_active;
     in property <string> response_status;
@@ -4443,6 +4444,7 @@ component RunnerPage inherits Rectangle {
     in-out property <string> runner_summary;
     in-out property <string> runner_delay_ms;
     in-out property <string> runner_report_path;
+    in-out property <string> runner_report_format;
     in-out property <bool> runner_stop_on_failure;
     in-out property <bool> runner_active;
     in property <bool> busy;
@@ -4620,12 +4622,39 @@ component RunnerPage inherits Rectangle {
                 }
 
                 HorizontalLayout {
+                    height: 30px;
+                    spacing: 8px;
+
+                    BodyModeButton {
+                        mode: "text";
+                        label: "Text";
+                        button_width: 68px;
+                        selected: root.runner_report_format == "text";
+                        enabled: !root.busy && !root.runner_active;
+                        picked(mode) => {
+                            root.runner_report_format = mode;
+                        }
+                    }
+
+                    BodyModeButton {
+                        mode: "json";
+                        label: "JSON";
+                        button_width: 68px;
+                        selected: root.runner_report_format == "json";
+                        enabled: !root.busy && !root.runner_active;
+                        picked(mode) => {
+                            root.runner_report_format = mode;
+                        }
+                    }
+                }
+
+                HorizontalLayout {
                     height: 34px;
                     spacing: 8px;
 
                     TextField {
                         text <=> root.runner_report_path;
-                        placeholder: "runner-report.txt";
+                        placeholder: root.runner_report_format == "json" ? "runner-report.json" : "runner-report.txt";
                         mono: true;
                         enabled: !root.busy && !root.runner_active;
                     }
@@ -6127,6 +6156,7 @@ export component AppWindow inherits Window {
     in-out property <string> runner_summary: "";
     in-out property <string> runner_delay_ms: "0";
     in-out property <string> runner_report_path: "zenapi-runner-report.txt";
+    in-out property <string> runner_report_format: "text";
     in-out property <bool> runner_stop_on_failure: false;
     in-out property <bool> runner_active: false;
     in-out property <string> route_filter;
@@ -6526,6 +6556,7 @@ export component AppWindow inherits Window {
                             runner_summary <=> root.runner_summary;
                             runner_delay_ms <=> root.runner_delay_ms;
                             runner_report_path <=> root.runner_report_path;
+                            runner_report_format <=> root.runner_report_format;
                             runner_stop_on_failure <=> root.runner_stop_on_failure;
                             runner_active <=> root.runner_active;
                             response_status: root.response_status;
@@ -6679,6 +6710,7 @@ export component AppWindow inherits Window {
                         runner_summary <=> root.runner_summary;
                         runner_delay_ms <=> root.runner_delay_ms;
                         runner_report_path <=> root.runner_report_path;
+                        runner_report_format <=> root.runner_report_format;
                         runner_stop_on_failure <=> root.runner_stop_on_failure;
                         runner_active <=> root.runner_active;
                         busy: root.busy;

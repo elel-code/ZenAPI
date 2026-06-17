@@ -342,7 +342,8 @@ and body mode.
 
 The command-line runner executes every request in the current collection
 sequentially. The Runner page exposes Slint controls for stop-on-failure mode,
-delay, run, cancel, result review, and report export.
+delay, run, cancel, result review, and report export. Choose Text or JSON in
+the report panel, enter a target path, and save the latest completed run.
 
 HTTP 2xx and 3xx responses are treated as passing when no tests are defined.
 Native ZenAPI collection JSON can include response assertions; when assertions

@@ -90,8 +90,8 @@
   size, headers, query params, and body mode.
 - [~] Rebuild Collection Runner UI while keeping `zenapi run` as the stable CLI;
   domain wiring and CLI execution are in place, and the Slint shell now has a
-  dedicated Test Runner page with run/cancel/report export controls; richer
-  report formats are still pending.
+  dedicated Test Runner page with run/cancel/report export controls plus
+  text/JSON report format selection.
 - [~] Rebuild Pre-request script-lite and native Tests panels; current Slint
   baseline provides a pre-request editor plus editable Tests assertion rows
   with Kind/Target/Expect fields and add/delete controls, applies pre-request

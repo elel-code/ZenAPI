@@ -1696,13 +1696,17 @@ fn wire_collection_runner(app: &AppWindow, runtime: Arc<Runtime>, state: Arc<Mut
             return;
         };
 
-        match save_runner_report(path.as_str(), &summary) {
+        let format = app.get_runner_report_format().to_string();
+        match save_runner_report(path.as_str(), &summary, &format) {
             Ok(()) => set_response(
                 &app,
                 "Runner report saved",
                 path.as_str(),
                 "success",
-                "Collection runner report exported.",
+                &format!(
+                    "Collection runner {} report exported.",
+                    normalize_runner_report_format(&format)
+                ),
             ),
             Err(error) => set_response(
                 &app,
@@ -3095,8 +3099,23 @@ fn format_runner_summary(summary: &CollectionRunSummary) -> String {
     lines.join("\n")
 }
 
-fn save_runner_report(path: &str, summary: &CollectionRunSummary) -> Result<()> {
-    write_text_file(path, &format_runner_summary(summary), "runner report")
+fn normalize_runner_report_format(format: &str) -> &'static str {
+    match format.trim().to_ascii_lowercase().as_str() {
+        "json" => "json",
+        _ => "text",
+    }
+}
+
+fn format_runner_report(summary: &CollectionRunSummary, format: &str) -> Result<String> {
+    match normalize_runner_report_format(format) {
+        "json" => Ok(serde_json::to_string_pretty(summary)?),
+        _ => Ok(format_runner_summary(summary)),
+    }
+}
+
+fn save_runner_report(path: &str, summary: &CollectionRunSummary, format: &str) -> Result<()> {
+    let report = format_runner_report(summary, format)?;
+    write_text_file(path, &report, "runner report")
 }
 
 fn format_runner_result(result: &CollectionRunResult) -> String {
@@ -5807,7 +5826,7 @@ mod tests {
     }
 
     #[test]
-    fn saves_runner_report_to_disk() {
+    fn saves_runner_report_formats_to_disk() {
         let summary = CollectionRunSummary {
             collection_name: "Demo".to_string(),
             total: 1,
@@ -5830,19 +5849,41 @@ mod tests {
                 error: None,
             }],
         };
-        let path =
+        let text_path =
             std::env::temp_dir().join(format!("zenapi-runner-report-{}.txt", std::process::id()));
-        let _ = fs::remove_file(&path);
+        let json_path =
+            std::env::temp_dir().join(format!("zenapi-runner-report-{}.json", std::process::id()));
+        let _ = fs::remove_file(&text_path);
+        let _ = fs::remove_file(&json_path);
 
-        save_runner_report(path.to_str().expect("utf-8 temp path"), &summary)
-            .expect("save runner report");
+        save_runner_report(
+            text_path.to_str().expect("utf-8 temp path"),
+            &summary,
+            "text",
+        )
+        .expect("save runner report");
 
         assert_eq!(
-            fs::read_to_string(&path).expect("runner report"),
+            fs::read_to_string(&text_path).expect("runner report"),
             "Demo: 1 passed, 0 failed, 1 total / 15 ms\n[PASS] HTTP 200 GET https://api.example.com/health (Demo / Health)"
         );
-        assert!(save_runner_report("   ", &summary).is_err());
-        let _ = fs::remove_file(path);
+
+        save_runner_report(
+            json_path.to_str().expect("utf-8 temp path"),
+            &summary,
+            "JSON",
+        )
+        .expect("save json runner report");
+        let parsed: CollectionRunSummary =
+            serde_json::from_str(&fs::read_to_string(&json_path).expect("json runner report"))
+                .expect("parse runner json");
+        assert_eq!(parsed, summary);
+
+        assert_eq!(normalize_runner_report_format(" json "), "json");
+        assert_eq!(normalize_runner_report_format("csv"), "text");
+        assert!(save_runner_report("   ", &summary, "json").is_err());
+        let _ = fs::remove_file(text_path);
+        let _ = fs::remove_file(json_path);
     }
 
     #[test]
