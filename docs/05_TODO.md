@@ -144,6 +144,8 @@
 - [~] Split reusable controls from `ui/app.slint` into `ui/widgets/`; current
   Slint baseline extracts shared styles, buttons, text fields, method controls,
   request/response tab headers and reusable list rows into `ui/widgets.slint`,
+  with method/status indicators in `ui/status_components.slint` and action
+  buttons in `ui/action_button.slint`,
   moved metric cards, data panels, and mock log rows into `ui/cards.slint`,
   moved code/editor panes into `ui/editors.slint`, and the Realtime editor
   business panel, shared Key/Value table panel, Body editor panel, Header
