@@ -1,0 +1,279 @@
+import { DataPanel } from "cards.slint";
+import { KeyValueTablePanel } from "key_value_table_panel.slint";
+import { Theme } from "theme.slint";
+import { KeyValueTableRow } from "types.slint";
+import { BodyModeButton, TextField, UiText } from "widgets.slint";
+
+export component AuthEditorPanel inherits Rectangle {
+    in-out property <string> auth_mode;
+    in-out property <string> auth_config;
+    in-out property <string> auth_basic_username;
+    in-out property <string> auth_basic_password;
+    in-out property <[KeyValueTableRow]> auth_key_rows;
+    in property <bool> busy;
+    callback auth_mode_changed(string);
+    callback update_basic_auth(string, string);
+    callback add_auth_key();
+    callback update_auth_key_row(int, string, string);
+    callback delete_auth_key_row(int);
+
+    horizontal-stretch: 1;
+    vertical-stretch: 1;
+    background: transparent;
+
+    VerticalLayout {
+        padding: 0px;
+        spacing: 12px;
+
+        HorizontalLayout {
+            height: 30px;
+            spacing: 8px;
+            alignment: center;
+
+            for item in [
+                { mode: "none", label: "none", width: 54px },
+                { mode: "bearer", label: "bearer", width: 64px },
+                { mode: "oauth2", label: "oauth2", width: 68px },
+                { mode: "basic", label: "basic", width: 58px },
+                { mode: "jwt", label: "jwt", width: 46px },
+                { mode: "api-header", label: "api hdr", width: 70px },
+                { mode: "api-query", label: "api qry", width: 76px },
+            ]: BodyModeButton {
+                mode: item.mode;
+                label: item.label;
+                button_width: item.width;
+                selected: root.auth_mode == item.mode;
+                enabled: !root.busy;
+                picked(mode) => {
+                    root.auth_mode = mode;
+                    root.auth_mode_changed(mode);
+                }
+            }
+
+            Rectangle {
+                horizontal-stretch: 1;
+            }
+        }
+
+        if root.auth_mode == "none": DataPanel {
+            title: "No Authentication";
+            body: "Requests are sent without generated Authorization headers or API key query parameters.";
+        }
+
+        if root.auth_mode == "bearer": Rectangle {
+            height: 92px;
+            horizontal-stretch: 1;
+            background: transparent;
+
+            VerticalLayout {
+                padding: 0px;
+                spacing: 8px;
+
+                UiText {
+                    text: "Bearer Token";
+                    height: 20px;
+                    horizontal-stretch: 1;
+                    color: Theme.on_surface_variant;
+                    font-size: 12px;
+                    font-weight: 800;
+                    vertical-alignment: center;
+                    overflow: elide;
+                }
+
+                TextField {
+                    text <=> root.auth_config;
+                    placeholder: "token or {{token}}";
+                    mono: true;
+                    enabled: !root.busy;
+                }
+
+                UiText {
+                    text: "Sends Authorization: Bearer <token>.";
+                    height: 18px;
+                    horizontal-stretch: 1;
+                    color: Theme.outline;
+                    font-size: 12px;
+                    vertical-alignment: center;
+                    overflow: elide;
+                }
+            }
+        }
+
+        if root.auth_mode == "jwt": Rectangle {
+            height: 92px;
+            horizontal-stretch: 1;
+            background: transparent;
+
+            VerticalLayout {
+                padding: 0px;
+                spacing: 8px;
+
+                UiText {
+                    text: "JWT";
+                    height: 20px;
+                    horizontal-stretch: 1;
+                    color: Theme.on_surface_variant;
+                    font-size: 12px;
+                    font-weight: 800;
+                    vertical-alignment: center;
+                    overflow: elide;
+                }
+
+                TextField {
+                    text <=> root.auth_config;
+                    placeholder: "eyJhbGciOi...";
+                    mono: true;
+                    enabled: !root.busy;
+                }
+
+                UiText {
+                    text: "JWT is sent as Authorization: Bearer <token>.";
+                    height: 18px;
+                    horizontal-stretch: 1;
+                    color: Theme.outline;
+                    font-size: 12px;
+                    vertical-alignment: center;
+                    overflow: elide;
+                }
+            }
+        }
+
+        if root.auth_mode == "oauth2": Rectangle {
+            height: 92px;
+            horizontal-stretch: 1;
+            background: transparent;
+
+            VerticalLayout {
+                padding: 0px;
+                spacing: 8px;
+
+                UiText {
+                    text: "OAuth2 Access Token";
+                    height: 20px;
+                    horizontal-stretch: 1;
+                    color: Theme.on_surface_variant;
+                    font-size: 12px;
+                    font-weight: 800;
+                    vertical-alignment: center;
+                    overflow: elide;
+                }
+
+                TextField {
+                    text <=> root.auth_config;
+                    placeholder: "access token or {{oauthToken}}";
+                    mono: true;
+                    enabled: !root.busy;
+                }
+
+                UiText {
+                    text: "Uses an existing OAuth2 access token as Authorization: Bearer <token>.";
+                    height: 18px;
+                    horizontal-stretch: 1;
+                    color: Theme.outline;
+                    font-size: 12px;
+                    vertical-alignment: center;
+                    overflow: elide;
+                }
+            }
+        }
+
+        if root.auth_mode == "basic": Rectangle {
+            height: 98px;
+            horizontal-stretch: 1;
+            background: transparent;
+
+            VerticalLayout {
+                padding: 0px;
+                spacing: 8px;
+
+                UiText {
+                    text: "Basic Credentials";
+                    height: 20px;
+                    horizontal-stretch: 1;
+                    color: Theme.on_surface_variant;
+                    font-size: 12px;
+                    font-weight: 800;
+                    vertical-alignment: center;
+                    overflow: elide;
+                }
+
+                HorizontalLayout {
+                    height: 36px;
+                    spacing: 10px;
+
+                    TextField {
+                        text <=> root.auth_basic_username;
+                        placeholder: "username";
+                        mono: true;
+                        enabled: !root.busy;
+                        edited => {
+                            root.update_basic_auth(root.auth_basic_username, root.auth_basic_password);
+                        }
+                        accepted => {
+                            root.update_basic_auth(root.auth_basic_username, root.auth_basic_password);
+                        }
+                    }
+
+                    TextField {
+                        text <=> root.auth_basic_password;
+                        placeholder: "password";
+                        mono: true;
+                        enabled: !root.busy;
+                        edited => {
+                            root.update_basic_auth(root.auth_basic_username, root.auth_basic_password);
+                        }
+                        accepted => {
+                            root.update_basic_auth(root.auth_basic_username, root.auth_basic_password);
+                        }
+                    }
+                }
+
+                UiText {
+                    text: "Saved as username:password and base64 encoded before sending.";
+                    height: 18px;
+                    horizontal-stretch: 1;
+                    color: Theme.outline;
+                    font-size: 12px;
+                    vertical-alignment: center;
+                    overflow: elide;
+                }
+            }
+        }
+
+        if root.auth_mode == "api-header": KeyValueTablePanel {
+            rows <=> root.auth_key_rows;
+            title: "API Key Header";
+            key_header: "Header";
+            value_header: "Value";
+            helper: "Stored as key=value lines, for example x-api-key={{apiKey}}.";
+            busy: root.busy;
+            add_row => {
+                root.add_auth_key();
+            }
+            update_row(row_id, key, value) => {
+                root.update_auth_key_row(row_id, key, value);
+            }
+            delete_row(row_id) => {
+                root.delete_auth_key_row(row_id);
+            }
+        }
+
+        if root.auth_mode == "api-query": KeyValueTablePanel {
+            rows <=> root.auth_key_rows;
+            title: "API Key Query";
+            key_header: "Param";
+            value_header: "Value";
+            helper: "Stored as key=value lines, for example api_key={{apiKey}}.";
+            busy: root.busy;
+            add_row => {
+                root.add_auth_key();
+            }
+            update_row(row_id, key, value) => {
+                root.update_auth_key_row(row_id, key, value);
+            }
+            delete_row(row_id) => {
+                root.delete_auth_key_row(row_id);
+            }
+        }
+    }
+}
