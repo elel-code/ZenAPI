@@ -215,6 +215,7 @@ fn wire_import(app: &AppWindow, runtime: Arc<Runtime>, state: Arc<Mutex<AppState
 
                         app.set_routes(route_model(&routes));
                         app.set_selected_route(-1);
+                        clear_selected_mock_route(&app);
                         app.set_route_filter("".into());
                         app.set_total_route_count(routes.len() as i32);
                         app.set_spec_label(spec_label.into());
@@ -263,6 +264,7 @@ fn wire_route_filter(app: &AppWindow, state: Arc<Mutex<AppState>>) {
 
         app.set_routes(route_model(&filtered));
         app.set_selected_route(-1);
+        clear_selected_mock_route(&app);
     });
 }
 
@@ -279,6 +281,7 @@ fn wire_route_selection(app: &AppWindow, state: Arc<Mutex<AppState>>) {
             .and_then(|state| state.visible_routes.get(index as usize).cloned());
 
         if let Some(route) = route {
+            set_selected_mock_route(&app, &route);
             app.set_method(SharedString::from(route.method));
             app.set_url(SharedString::from(format!(
                 "http://127.0.0.1:8080{}",
@@ -2070,6 +2073,20 @@ fn route_model(routes: &[ApiRoute]) -> ModelRc<RouteRow> {
         path: route.path.clone().into(),
         summary: route.summary.clone().into(),
     })))
+}
+
+fn set_selected_mock_route(app: &AppWindow, route: &ApiRoute) {
+    app.set_selected_mock_method(route.method.clone().into());
+    app.set_selected_mock_path(route.path.clone().into());
+    app.set_selected_mock_summary(route.summary.clone().into());
+    app.set_selected_mock_body(pretty_json(&route.mock_body).into());
+}
+
+fn clear_selected_mock_route(app: &AppWindow) {
+    app.set_selected_mock_method("".into());
+    app.set_selected_mock_path("".into());
+    app.set_selected_mock_summary("".into());
+    app.set_selected_mock_body("".into());
 }
 
 fn collection_model(collection: &ApiCollection) -> ModelRc<CollectionRow> {

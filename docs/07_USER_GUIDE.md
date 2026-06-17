@@ -282,14 +282,19 @@ snapshot.
 ## Local Mock Server
 
 The mock server transport and log storage are available in the Rust domain
-layer. Use the Mocks page for endpoint selection, server start/stop, traffic
-filtering, log clearing, and log export.
+layer. Use the Mocks page for endpoint selection, server start/stop, generated
+response preview, routing overview, traffic filtering, log clearing, and log
+export.
 
 Behavior:
 
 - Runs on the configured local mock port shown in the top bar.
 - Enables permissive CORS for local frontend development.
 - Serves generated JSON responses from OpenAPI schemas and examples.
+- Shows the selected endpoint method/path and generated mock response body in
+  the Mocks page.
+- Shows default and fallback routing cards; editing conditional rules is still
+  future work.
 - Records recent mock requests in the Mock Log panel.
 - Filters mock logs by method, path, or status.
 - Clears the current in-memory mock log list with `Clear`.

@@ -102,8 +102,9 @@
   loading/transport and GraphQL schema response helpers still pending.
 - [~] Add mock request logs and richer mock manager controls; current Slint
   baseline has a dedicated Mock Manager page with endpoint selection,
-  start/stop, traffic filtering, clear, and export placement, with richer route
-  response/rule editors pending.
+  start/stop, selected route response preview, default/fallback routing cards,
+  traffic filtering, clear, and export placement, with editable route response
+  and conditional rule editors pending.
 - [~] Split reusable controls from `ui/app.slint` into `ui/widgets/`; current
   Slint baseline extracts shared styles, buttons, text fields, method controls,
   tab headers, editor panes, and reusable list rows into `ui/widgets.slint`,

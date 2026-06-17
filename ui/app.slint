@@ -1,6 +1,6 @@
 import { ListView, ScrollView } from "std-widgets.slint";
 import { Theme } from "theme.slint";
-import { ActionButton, BodyModeButton, CodePane, LabeledEditor, MethodSelector, StatusDot, TextField, UiText } from "widgets.slint";
+import { ActionButton, BodyModeButton, CodePane, LabeledEditor, MethodChip, MethodSelector, StatusDot, TextField, UiText } from "widgets.slint";
 
 export struct RouteRow {
     method: string,
@@ -2509,11 +2509,10 @@ component MockRouteLine inherits Rectangle {
     in property <bool> selected;
     callback picked();
 
-    height: 36px;
+    height: 46px;
     horizontal-stretch: 1;
     border-radius: 6px;
-    border-width: root.selected ? 1px : 0px;
-    border-color: Theme.primary;
+    border-width: 0px;
     background: root.selected ? Theme.surface_variant : touch.has-hover ? Theme.surface_container_high : transparent;
 
     touch := TouchArea {
@@ -2523,29 +2522,35 @@ component MockRouteLine inherits Rectangle {
         }
     }
 
-    UiText {
+    Rectangle {
+        width: 2px;
+        height: parent.height - 10px;
+        y: 5px;
+        background: root.selected ? Theme.primary : transparent;
+    }
+
+    MethodChip {
         x: 10px;
-        text: root.method;
-        width: 48px;
-        height: parent.height;
-        font-family: "JetBrains Mono";
-        font-size: 11px;
-        font-weight: 800;
-        color: root.method == "GET" ? Theme.secondary : root.method == "POST" ? #00a572 : root.method == "PUT" ? Theme.tertiary : root.method == "DELETE" ? Theme.error : Theme.primary;
-        vertical-alignment: center;
-        overflow: elide;
+        y: 12px;
+        method: root.method;
     }
 
     UiText {
-        x: 66px;
+        x: 82px;
         text: root.path;
-        width: parent.width - 76px;
+        width: parent.width - 108px;
         height: parent.height;
         font-family: "JetBrains Mono";
         font-size: 12px;
         color: root.selected ? Theme.on_surface : Theme.on_surface_variant;
         vertical-alignment: center;
         overflow: elide;
+    }
+
+    StatusDot {
+        x: parent.width - 18px;
+        y: 19px;
+        tone: root.selected ? "active" : "inactive";
     }
 }
 
@@ -2554,7 +2559,7 @@ component MockLogLine inherits Rectangle {
     in property <string> path;
     in property <string> status;
 
-    height: 34px;
+    height: 38px;
     horizontal-stretch: 1;
     background: touch.has-hover ? Theme.surface_container_high : transparent;
     border-radius: 6px;
@@ -2563,20 +2568,27 @@ component MockLogLine inherits Rectangle {
 
     UiText {
         x: 10px;
-        text: root.method;
-        width: 44px;
+        text: root.status;
+        width: 34px;
         height: parent.height;
         font-family: "JetBrains Mono";
         font-size: 11px;
-        color: Theme.secondary;
+        font-weight: 800;
+        color: root.status == "500" || root.status == "404" || root.status == "401" ? Theme.error : Theme.secondary;
         vertical-alignment: center;
         overflow: elide;
     }
 
+    MethodChip {
+        x: 52px;
+        y: 8px;
+        method: root.method;
+    }
+
     UiText {
-        x: 62px;
+        x: 122px;
         text: root.path;
-        width: parent.width - 122px;
+        width: parent.width - 132px;
         height: parent.height;
         font-family: "JetBrains Mono";
         font-size: 12px;
@@ -2584,16 +2596,96 @@ component MockLogLine inherits Rectangle {
         vertical-alignment: center;
         overflow: elide;
     }
+}
+
+component MockConfigField inherits Rectangle {
+    in property <string> label;
+    in property <string> value;
+
+    width: 150px;
+    height: 52px;
+    background: transparent;
 
     UiText {
-        x: parent.width - 52px;
-        text: root.status;
-        width: 42px;
-        height: parent.height;
+        y: 2px;
+        text: root.label;
+        width: parent.width;
+        height: 16px;
+        color: Theme.on_surface_variant;
+        font-size: 11px;
+        font-weight: 800;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+
+    UiText {
+        y: 22px;
+        text: root.value;
+        width: parent.width;
+        height: 28px;
+        color: Theme.on_surface;
+        font-family: "JetBrains Mono";
+        font-size: 12px;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+}
+
+component MockRuleCard inherits Rectangle {
+    in property <string> kind;
+    in property <string> expression;
+    in property <string> result;
+
+    height: 92px;
+    horizontal-stretch: 1;
+    border-radius: 8px;
+    border-width: 1px;
+    border-color: Theme.outline_variant;
+    background: Theme.surface;
+
+    UiText {
+        x: 12px;
+        y: 10px;
+        text: root.kind;
+        width: 96px;
+        height: 22px;
+        color: Theme.on_surface;
         font-family: "JetBrains Mono";
         font-size: 11px;
-        color: root.status == "500" ? Theme.error : Theme.secondary;
-        horizontal-alignment: right;
+        font-weight: 800;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+
+    UiText {
+        x: 12px;
+        y: 36px;
+        text: root.expression;
+        width: parent.width - 24px;
+        height: 20px;
+        color: Theme.tertiary;
+        font-family: "JetBrains Mono";
+        font-size: 12px;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+
+    Rectangle {
+        x: 12px;
+        y: 62px;
+        width: parent.width - 24px;
+        height: 1px;
+        background: Theme.outline_variant;
+    }
+
+    UiText {
+        x: 12px;
+        y: 66px;
+        text: "Return " + root.result;
+        width: parent.width - 24px;
+        height: 20px;
+        color: Theme.on_surface_variant;
+        font-size: 12px;
         vertical-alignment: center;
         overflow: elide;
     }
@@ -2605,6 +2697,10 @@ component MockManagerPage inherits Rectangle {
     in-out property <int> selected_route;
     in-out property <string> mock_log_filter;
     in-out property <string> mock_log_path;
+    in property <string> selected_mock_method;
+    in property <string> selected_mock_path;
+    in property <string> selected_mock_summary;
+    in property <string> selected_mock_body;
     in property <bool> busy;
     in property <bool> server_running;
     in property <string> server_status;
@@ -2622,7 +2718,7 @@ component MockManagerPage inherits Rectangle {
         spacing: 0px;
 
         Rectangle {
-            width: 300px;
+            width: 288px;
             vertical-stretch: 1;
             background: Theme.surface;
 
@@ -2638,11 +2734,24 @@ component MockManagerPage inherits Rectangle {
                     UiText {
                         x: 16px;
                         text: "ENDPOINTS";
-                        width: parent.width - 32px;
+                        width: parent.width - 56px;
                         height: parent.height;
                         color: Theme.on_surface;
                         font-size: 12px;
                         font-weight: 800;
+                        vertical-alignment: center;
+                        overflow: elide;
+                    }
+
+                    UiText {
+                        x: parent.width - 36px;
+                        text: "+";
+                        width: 20px;
+                        height: parent.height;
+                        color: Theme.primary;
+                        font-size: 18px;
+                        font-weight: 800;
+                        horizontal-alignment: center;
                         vertical-alignment: center;
                         overflow: elide;
                     }
@@ -2678,21 +2787,63 @@ component MockManagerPage inherits Rectangle {
             background: Theme.surface;
 
             VerticalLayout {
-                padding: 20px;
-                spacing: 16px;
+                padding: 0px;
+                spacing: 0px;
 
-                PageTitle {
-                    title: "Mock Server";
-                    subtitle: root.server_running ? "Running at " + root.server_status : "Configure local mock responses.";
-                }
+                Rectangle {
+                    height: 76px;
+                    horizontal-stretch: 1;
+                    background: Theme.surface_container_lowest;
 
-                HorizontalLayout {
-                    height: 38px;
-                    spacing: 10px;
+                    MethodChip {
+                        x: 18px;
+                        y: 18px;
+                        method: root.selected_mock_method == "" ? "GET" : root.selected_mock_method;
+                    }
+
+                    UiText {
+                        x: 90px;
+                        y: 14px;
+                        text: root.selected_mock_path == "" ? "Select an endpoint" : root.selected_mock_path;
+                        width: parent.width - 338px;
+                        height: 24px;
+                        color: Theme.on_surface;
+                        font-family: "JetBrains Mono";
+                        font-size: 15px;
+                        font-weight: 800;
+                        vertical-alignment: center;
+                        overflow: elide;
+                    }
+
+                    UiText {
+                        x: 90px;
+                        y: 40px;
+                        text: root.selected_mock_summary == "" ? (root.routes.length == 0 ? "Import routes to configure mock responses." : "Generated OpenAPI mock response preview.") : root.selected_mock_summary;
+                        width: parent.width - 338px;
+                        height: 18px;
+                        color: Theme.on_surface_variant;
+                        font-size: 12px;
+                        vertical-alignment: center;
+                        overflow: elide;
+                    }
+
+                    UiText {
+                        x: parent.width - 232px;
+                        y: 15px;
+                        text: "Mock Server Status:";
+                        width: 122px;
+                        height: 22px;
+                        color: Theme.on_surface_variant;
+                        font-size: 12px;
+                        vertical-alignment: center;
+                        overflow: elide;
+                    }
 
                     ActionButton {
-                        text: root.server_running ? "Stop Server" : "Start Server";
-                        button_width: 128px;
+                        x: parent.width - 108px;
+                        y: 14px;
+                        text: root.server_running ? "Running" : "Start";
+                        button_width: 90px;
                         primary: !root.server_running;
                         warning: root.server_running;
                         enabled: !root.busy && (root.server_running || root.routes.length > 0);
@@ -2701,20 +2852,102 @@ component MockManagerPage inherits Rectangle {
                         }
                     }
 
-                    TextField {
-                        text <=> root.mock_log_filter;
-                        placeholder: "Filter traffic";
-                        mono: true;
-                        enabled: !root.busy;
-                        edited => {
-                            root.filter_mock_logs(root.mock_log_filter);
-                        }
+                    UiText {
+                        x: parent.width - 232px;
+                        y: 42px;
+                        text: root.server_running ? root.server_status : "Stopped";
+                        width: 214px;
+                        height: 18px;
+                        color: root.server_running ? Theme.secondary : Theme.outline;
+                        font-family: "JetBrains Mono";
+                        font-size: 11px;
+                        horizontal-alignment: right;
+                        vertical-alignment: center;
+                        overflow: elide;
                     }
                 }
 
-                DataPanel {
-                    title: "Route Configuration";
-                    body: root.routes.length == 0 ? "Import routes before starting the mock server." : "Selected route response configuration will be edited here.";
+                Rectangle {
+                    height: 1px;
+                    horizontal-stretch: 1;
+                    background: Theme.outline_variant;
+                }
+
+                HorizontalLayout {
+                    height: 76px;
+                    padding-left: 18px;
+                    padding-right: 18px;
+                    spacing: 24px;
+                    alignment: center;
+
+                    MockConfigField {
+                        label: "Status Code";
+                        value: root.selected_mock_path == "" ? "--" : "200 OK";
+                    }
+
+                    MockConfigField {
+                        label: "Delay";
+                        value: "0 ms";
+                    }
+
+                    MockConfigField {
+                        label: "Response Body";
+                        value: root.selected_mock_path == "" ? "--" : "OpenAPI mock";
+                    }
+
+                    Rectangle {
+                        horizontal-stretch: 1;
+                    }
+                }
+
+                Rectangle {
+                    height: 1px;
+                    horizontal-stretch: 1;
+                    background: Theme.outline_variant;
+                }
+
+                Rectangle {
+                    height: 46px;
+                    horizontal-stretch: 1;
+                    background: Theme.surface_container_lowest;
+
+                    UiText {
+                        x: 18px;
+                        text: "Response Body";
+                        width: 150px;
+                        height: parent.height;
+                        color: Theme.primary;
+                        font-size: 13px;
+                        font-weight: 800;
+                        vertical-alignment: center;
+                        overflow: elide;
+                    }
+
+                    UiText {
+                        x: 172px;
+                        text: "Headers generated by mock server";
+                        width: parent.width - 190px;
+                        height: parent.height;
+                        color: Theme.on_surface_variant;
+                        font-size: 12px;
+                        vertical-alignment: center;
+                        overflow: elide;
+                    }
+                }
+
+                Rectangle {
+                    horizontal-stretch: 1;
+                    vertical-stretch: 1;
+                    background: Theme.surface_container_lowest;
+
+                    CodePane {
+                        x: 0px;
+                        y: 0px;
+                        width: parent.width;
+                        height: parent.height;
+                        text: root.selected_mock_body == "" ? (root.routes.length == 0 ? "Import an OpenAPI document to generate mock route responses." : "Select an endpoint to preview its generated mock response.") : root.selected_mock_body;
+                        read_only: true;
+                    }
                 }
             }
         }
@@ -2725,65 +2958,132 @@ component MockManagerPage inherits Rectangle {
             background: Theme.surface_container_lowest;
 
             VerticalLayout {
-                padding: 16px;
-                spacing: 12px;
+                padding: 0px;
+                spacing: 0px;
 
-                UiText {
-                    text: "LIVE TRAFFIC";
-                    height: 24px;
+                Rectangle {
+                    height: 250px;
                     horizontal-stretch: 1;
-                    color: Theme.on_surface;
-                    font-size: 13px;
-                    font-weight: 800;
-                    vertical-alignment: center;
-                    overflow: elide;
-                }
+                    background: Theme.surface_container_low;
 
-                if root.mock_logs.length == 0: DataPanel {
-                    title: "No requests";
-                    body: "Incoming mock traffic appears here.";
-                }
+                    VerticalLayout {
+                        padding: 14px;
+                        spacing: 10px;
 
-                if root.mock_logs.length != 0: ListView {
-                    horizontal-stretch: 1;
-                    vertical-stretch: 1;
-                    vertical-scrollbar-policy: ScrollBarPolicy.as-needed;
-                    horizontal-scrollbar-policy: ScrollBarPolicy.as-needed;
+                        UiText {
+                            text: "ROUTING RULES";
+                            height: 20px;
+                            horizontal-stretch: 1;
+                            color: Theme.on_surface;
+                            font-size: 12px;
+                            font-weight: 800;
+                            vertical-alignment: center;
+                            overflow: elide;
+                        }
 
-                    for log in root.mock_logs: MockLogLine {
-                        method: log.method;
-                        path: log.path;
-                        status: log.status;
-                    }
-                }
+                        MockRuleCard {
+                            kind: "Default";
+                            expression: root.selected_mock_path == "" ? "method + path match" : root.selected_mock_method + " " + root.selected_mock_path;
+                            result: "OpenAPI mock response";
+                        }
 
-                HorizontalLayout {
-                    height: 34px;
-                    spacing: 8px;
-
-                    TextField {
-                        text <=> root.mock_log_path;
-                        placeholder: "mock-logs.json";
-                        mono: true;
-                        enabled: !root.busy;
-                    }
-
-                    ActionButton {
-                        text: "Save";
-                        button_width: 62px;
-                        enabled: !root.busy && root.mock_logs.length > 0;
-                        clicked => {
-                            root.save_mock_logs(root.mock_log_path);
+                        MockRuleCard {
+                            kind: "Fallback";
+                            expression: "unmatched request";
+                            result: "404 Not Found";
                         }
                     }
+                }
 
-                    ActionButton {
-                        text: "Clear";
-                        button_width: 62px;
-                        warning: true;
-                        enabled: !root.busy && root.mock_logs.length > 0;
-                        clicked => {
-                            root.clear_mock_logs();
+                Rectangle {
+                    height: 1px;
+                    horizontal-stretch: 1;
+                    background: Theme.outline_variant;
+                }
+
+                Rectangle {
+                    vertical-stretch: 1;
+                    horizontal-stretch: 1;
+                    background: Theme.surface_container_lowest;
+
+                    VerticalLayout {
+                        padding: 14px;
+                        spacing: 10px;
+
+                        HorizontalLayout {
+                            height: 34px;
+                            spacing: 8px;
+                            alignment: center;
+
+                            UiText {
+                                text: "LIVE TRAFFIC";
+                                height: parent.height;
+                                horizontal-stretch: 1;
+                                color: Theme.on_surface;
+                                font-size: 12px;
+                                font-weight: 800;
+                                vertical-alignment: center;
+                                overflow: elide;
+                            }
+
+                            ActionButton {
+                                text: "Clear";
+                                button_width: 62px;
+                                warning: true;
+                                enabled: !root.busy && root.mock_logs.length > 0;
+                                clicked => {
+                                    root.clear_mock_logs();
+                                }
+                            }
+                        }
+
+                        TextField {
+                            text <=> root.mock_log_filter;
+                            placeholder: "Filter traffic";
+                            mono: true;
+                            enabled: !root.busy;
+                            edited => {
+                                root.filter_mock_logs(root.mock_log_filter);
+                            }
+                        }
+
+                        if root.mock_logs.length == 0: DataPanel {
+                            title: "No requests";
+                            body: "Incoming mock traffic appears here.";
+                        }
+
+                        if root.mock_logs.length != 0: ListView {
+                            horizontal-stretch: 1;
+                            vertical-stretch: 1;
+                            vertical-scrollbar-policy: ScrollBarPolicy.as-needed;
+                            horizontal-scrollbar-policy: ScrollBarPolicy.as-needed;
+
+                            for log in root.mock_logs: MockLogLine {
+                                method: log.method;
+                                path: log.path;
+                                status: log.status;
+                            }
+                        }
+
+                        HorizontalLayout {
+                            height: 34px;
+                            spacing: 8px;
+
+                            TextField {
+                                text <=> root.mock_log_path;
+                                placeholder: "mock-logs.json";
+                                mono: true;
+                                enabled: !root.busy;
+                            }
+
+                            ActionButton {
+                                text: "Save";
+                                button_width: 62px;
+                                enabled: !root.busy && root.mock_logs.length > 0;
+                                clicked => {
+                                    root.save_mock_logs(root.mock_log_path);
+                                }
+                            }
                         }
                     }
                 }
@@ -5136,6 +5436,10 @@ export component AppWindow inherits Window {
     in-out property <string> history_filter;
     in-out property <string> mock_log_filter;
     in-out property <string> mock_log_path: "mock-logs.json";
+    in-out property <string> selected_mock_method: "";
+    in-out property <string> selected_mock_path: "";
+    in-out property <string> selected_mock_summary: "";
+    in-out property <string> selected_mock_body: "";
     in-out property <int> total_route_count: 0;
     in-out property <int> selected_collection_request: -1;
     in-out property <string> collection_request_name: "";
@@ -5468,19 +5772,23 @@ export component AppWindow inherits Window {
                 if root.active_page == "mocks": ScrollView {
                     width: parent.width;
                     height: parent.height;
-                    viewport-width: max(self.visible-width, 1040px);
+                    viewport-width: max(self.visible-width, 1160px);
                     viewport-height: max(self.visible-height, 620px);
                     vertical-scrollbar-policy: ScrollBarPolicy.as-needed;
                     horizontal-scrollbar-policy: ScrollBarPolicy.as-needed;
 
                     MockManagerPage {
-                        width: max(parent.visible-width, 1040px);
+                        width: max(parent.visible-width, 1160px);
                         height: max(parent.visible-height, 620px);
                         routes <=> root.routes;
                         mock_logs <=> root.mock_logs;
                         selected_route <=> root.selected_route;
                         mock_log_filter <=> root.mock_log_filter;
                         mock_log_path <=> root.mock_log_path;
+                        selected_mock_method: root.selected_mock_method;
+                        selected_mock_path: root.selected_mock_path;
+                        selected_mock_summary: root.selected_mock_summary;
+                        selected_mock_body: root.selected_mock_body;
                         busy: root.busy;
                         server_running: root.server_running;
                         server_status: root.server_status;
