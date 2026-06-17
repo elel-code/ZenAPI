@@ -4,6 +4,23 @@ export struct RouteRow {
     summary: string,
 }
 
+export struct CollectionRow {
+    id: int,
+    method: string,
+    name: string,
+    url: string,
+    is_folder: bool,
+    folder_path: string,
+}
+
+export struct RunnerRow {
+    method: string,
+    name: string,
+    status: string,
+    detail: string,
+    tone: string,
+}
+
 export struct MockLogRow {
     method: string,
     path: string,
