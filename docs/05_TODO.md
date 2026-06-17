@@ -1,6 +1,6 @@
 # ZenAPI Slint Migration TODO
 
-> Last updated: 2026-06-17
+> Last updated: 2026-06-18
 > This roadmap tracks the current Rust + Slint rewrite. Completed items use
 > `[x]`, in-progress items use `[~]`, and remaining items use `[ ]`.
 
@@ -41,8 +41,10 @@
 - [~] Keep the request body editor and response viewer usable as Slint text
   controls; response Pretty, Raw, Headers, and Set-Cookie-derived Cookies tabs
   are visible, and the response toolbar now wires Copy, JSON Format,
-  per-tab Fold/Open, Fold All, and Open All actions.
-  Selection-aware copy and structural JSON folding still need parity work.
+  per-tab Fold/Open, Fold All, and Open All actions. JSON response folding now
+  renders top-level object/array structure while collapsing nested containers,
+  with line-count summaries for non-JSON tabs. Selection-aware copy still needs
+  parity work.
 
 ## Phase 3: Slint UI Parity Backlog
 

@@ -1836,9 +1836,13 @@ fn wire_request_sender(app: &AppWindow, runtime: Arc<Runtime>, state: Arc<Mutex<
                             response_tone,
                             &response_body,
                         );
-                        app.set_response_raw_body(response_raw_body.into());
-                        app.set_response_headers(response_headers.into());
-                        app.set_response_cookies(response_cookies.into());
+                        set_response_payload(
+                            &app,
+                            &response_body,
+                            &response_raw_body,
+                            &response_headers,
+                            &response_cookies,
+                        );
                     }
                     Err(error) => {
                         let body = error.to_string();
@@ -1903,8 +1907,18 @@ fn wire_response_actions(app: &AppWindow) {
         match format_json_response_text(&current) {
             Ok(formatted) => {
                 match tab.as_str() {
-                    "pretty" => app.set_response_body(formatted.into()),
-                    "raw" => app.set_response_raw_body(formatted.into()),
+                    "pretty" => {
+                        app.set_response_body(formatted.clone().into());
+                        app.set_folded_response_body(
+                            folded_response_view_text("pretty", &formatted).into(),
+                        );
+                    }
+                    "raw" => {
+                        app.set_response_raw_body(formatted.clone().into());
+                        app.set_folded_response_raw_body(
+                            folded_response_view_text("raw", &formatted).into(),
+                        );
+                    }
                     _ => {}
                 }
                 app.set_activity(format!("Formatted {} response", response_tab_label(&tab)).into());
@@ -2968,10 +2982,18 @@ fn set_response(app: &AppWindow, status: &str, meta: &str, tone: &str, body: &st
     app.set_response_time(response_time.into());
     app.set_response_size(response_size.into());
     app.set_response_tone(tone.into());
+    set_response_payload(app, body, body, "", "No cookies");
+}
+
+fn set_response_payload(app: &AppWindow, body: &str, raw_body: &str, headers: &str, cookies: &str) {
     app.set_response_body(body.into());
-    app.set_response_raw_body(body.into());
-    app.set_response_headers("".into());
-    app.set_response_cookies("No cookies".into());
+    app.set_response_raw_body(raw_body.into());
+    app.set_response_headers(headers.into());
+    app.set_response_cookies(cookies.into());
+    app.set_folded_response_body(folded_response_view_text("pretty", body).into());
+    app.set_folded_response_raw_body(folded_response_view_text("raw", raw_body).into());
+    app.set_folded_response_headers(folded_response_view_text("headers", headers).into());
+    app.set_folded_response_cookies(folded_response_view_text("cookies", cookies).into());
 }
 
 fn copy_text_to_clipboard(text: &str) -> Result<()> {
@@ -2999,6 +3021,126 @@ fn format_json_response_text(text: &str) -> Result<String> {
     let value: Value = serde_json::from_str(trimmed)
         .map_err(|error| anyhow!("response is not valid JSON: {error}"))?;
     serde_json::to_string_pretty(&value).map_err(|error| anyhow!("failed to format JSON: {error}"))
+}
+
+fn folded_response_view_text(tab: &str, text: &str) -> String {
+    match tab {
+        "pretty" | "raw" => fold_json_response_text(text)
+            .unwrap_or_else(|_| folded_line_summary(response_tab_label(tab), text)),
+        "headers" | "cookies" => folded_line_summary(response_tab_label(tab), text),
+        _ => folded_line_summary("Response", text),
+    }
+}
+
+fn fold_json_response_text(text: &str) -> Result<String> {
+    let trimmed = text.trim();
+    if trimmed.is_empty() {
+        bail!("response is empty");
+    }
+
+    let value: Value = serde_json::from_str(trimmed)
+        .map_err(|error| anyhow!("response is not valid JSON: {error}"))?;
+    Ok(render_folded_json_value(&value))
+}
+
+fn render_folded_json_value(value: &Value) -> String {
+    match value {
+        Value::Object(map) => {
+            if map.is_empty() {
+                return "{}".to_string();
+            }
+
+            let mut lines = Vec::with_capacity(map.len() + 2);
+            lines.push("{".to_string());
+            let last = map.len().saturating_sub(1);
+            for (index, (key, value)) in map.iter().enumerate() {
+                let comma = if index == last { "" } else { "," };
+                lines.push(format!(
+                    "  {}: {}{}",
+                    json_string(key),
+                    collapsed_json_value(value),
+                    comma
+                ));
+            }
+            lines.push("}".to_string());
+            lines.join("\n")
+        }
+        Value::Array(items) => {
+            if items.is_empty() {
+                return "[]".to_string();
+            }
+
+            let mut lines = Vec::with_capacity(items.len() + 2);
+            lines.push("[".to_string());
+            let last = items.len().saturating_sub(1);
+            for (index, value) in items.iter().enumerate() {
+                let comma = if index == last { "" } else { "," };
+                lines.push(format!("  {}{}", collapsed_json_value(value), comma));
+            }
+            lines.push("]".to_string());
+            lines.join("\n")
+        }
+        _ => json_value(value),
+    }
+}
+
+fn collapsed_json_value(value: &Value) -> String {
+    match value {
+        Value::Object(map) => {
+            if map.is_empty() {
+                "{}".to_string()
+            } else {
+                "{ ... }".to_string()
+            }
+        }
+        Value::Array(items) => {
+            if items.is_empty() {
+                "[]".to_string()
+            } else {
+                "[ ... ]".to_string()
+            }
+        }
+        _ => json_value(value),
+    }
+}
+
+fn json_string(value: &str) -> String {
+    serde_json::to_string(value).unwrap_or_else(|_| "\"\"".to_string())
+}
+
+fn json_value(value: &Value) -> String {
+    serde_json::to_string(value).unwrap_or_else(|_| "null".to_string())
+}
+
+fn folded_line_summary(label: &str, text: &str) -> String {
+    let trimmed = text.trim();
+    if trimmed.is_empty() {
+        return format!("{label} folded\n0 lines");
+    }
+
+    let line_count = trimmed.lines().count();
+    let byte_count = trimmed.len();
+    let first_line = trimmed.lines().next().unwrap_or_default();
+    format!(
+        "{label} folded\n{line_count} line(s), {byte_count} byte(s)\n\n{}",
+        truncate_summary_line(first_line, 160)
+    )
+}
+
+fn truncate_summary_line(line: &str, max_chars: usize) -> String {
+    let mut chars = line.chars();
+    let mut truncated = String::new();
+    for _ in 0..max_chars {
+        let Some(ch) = chars.next() else {
+            return line.to_string();
+        };
+        truncated.push(ch);
+    }
+
+    if chars.next().is_some() {
+        truncated.push_str("...");
+    }
+    truncated
 }
 
 fn response_tab_label(tab: &str) -> &'static str {
@@ -5481,6 +5623,35 @@ mod tests {
         );
         assert!(format_json_response_text("not json").is_err());
         assert!(format_json_response_text("").is_err());
+    }
+
+    #[test]
+    fn folds_json_response_text_for_viewer() {
+        assert_eq!(
+            fold_json_response_text(
+                r#"{"user":{"id":1,"name":"Ada"},"roles":["admin","dev"],"ok":true}"#
+            )
+            .expect("fold object"),
+            "{\n  \"ok\": true,\n  \"roles\": [ ... ],\n  \"user\": { ... }\n}"
+        );
+        assert_eq!(
+            fold_json_response_text(r#"[{"id":1},2,[]]"#).expect("fold array"),
+            "[\n  { ... },\n  2,\n  []\n]"
+        );
+        assert!(fold_json_response_text("not json").is_err());
+    }
+
+    #[test]
+    fn summarizes_non_json_folded_response_text() {
+        assert_eq!(
+            folded_response_view_text("headers", "Content-Type: application/json\nX-Trace: 42"),
+            "Headers folded\n2 line(s), 42 byte(s)\n\nContent-Type: application/json"
+        );
+        assert_eq!(
+            folded_response_view_text("cookies", ""),
+            "Cookies folded\n0 lines"
+        );
+        assert!(folded_response_view_text("pretty", "not json").starts_with("Pretty folded\n"));
     }
 
     #[test]

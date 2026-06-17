@@ -2698,6 +2698,10 @@ component ResponsePanel inherits Rectangle {
     in-out property <string> response_raw_body;
     in-out property <string> response_headers;
     in-out property <string> response_cookies;
+    in-out property <string> folded_response_body;
+    in-out property <string> folded_response_raw_body;
+    in-out property <string> folded_response_headers;
+    in-out property <string> folded_response_cookies;
     in-out property <string> codegen_language;
     in-out property <string> codegen_output;
     in-out property <string> codegen_path;
@@ -2952,15 +2956,32 @@ component ResponsePanel inherits Rectangle {
             horizontal-stretch: 1;
             background: Theme.surface_container_lowest;
 
-            if root.active_response_folded: UiText {
-                text: root.active_tab == "headers" ? "Headers folded" : root.active_tab == "cookies" ? "Cookies folded" : "Response body folded";
+            if root.active_response_folded && root.active_tab == "pretty": CodePane {
                 width: parent.width;
                 height: parent.height;
-                color: Theme.outline;
-                font-size: 12px;
-                horizontal-alignment: center;
-                vertical-alignment: center;
-                overflow: elide;
+                text <=> root.folded_response_body;
+                read_only: true;
+            }
+
+            if root.active_response_folded && root.active_tab == "raw": CodePane {
+                width: parent.width;
+                height: parent.height;
+                text <=> root.folded_response_raw_body;
+                read_only: true;
+            }
+
+            if root.active_response_folded && root.active_tab == "headers": CodePane {
+                width: parent.width;
+                height: parent.height;
+                text <=> root.folded_response_headers;
+                read_only: true;
+            }
+
+            if root.active_response_folded && root.active_tab == "cookies": CodePane {
+                width: parent.width;
+                height: parent.height;
+                text <=> root.folded_response_cookies;
+                read_only: true;
             }
 
             if !root.active_response_folded && !root.response_ready && (root.active_tab == "pretty" || root.active_tab == "raw"): UiText {
@@ -5767,6 +5788,10 @@ export component AppWindow inherits Window {
     in-out property <string> response_raw_body: "Import an OpenAPI or Swagger document to begin.";
     in-out property <string> response_headers: "";
     in-out property <string> response_cookies: "No cookies";
+    in-out property <string> folded_response_body: "Import an OpenAPI or Swagger document to begin.";
+    in-out property <string> folded_response_raw_body: "Import an OpenAPI or Swagger document to begin.";
+    in-out property <string> folded_response_headers: "No headers";
+    in-out property <string> folded_response_cookies: "No cookies";
     in-out property <string> codegen_language: "curl";
     in-out property <string> codegen_output: "";
     in-out property <string> codegen_metadata: "No snippet generated";
@@ -6202,6 +6227,10 @@ export component AppWindow inherits Window {
                             response_raw_body <=> root.response_raw_body;
                             response_headers <=> root.response_headers;
                             response_cookies <=> root.response_cookies;
+                            folded_response_body <=> root.folded_response_body;
+                            folded_response_raw_body <=> root.folded_response_raw_body;
+                            folded_response_headers <=> root.folded_response_headers;
+                            folded_response_cookies <=> root.folded_response_cookies;
                             codegen_language <=> root.codegen_language;
                             codegen_output <=> root.codegen_output;
                             codegen_path <=> root.codegen_path;
