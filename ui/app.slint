@@ -122,7 +122,9 @@ component KeyValueTablePanel inherits Rectangle {
     in property <string> value_header: "Value";
     in property <string> helper: "";
     in property <bool> busy: false;
+    in property <bool> show_paste: false;
     callback add_row();
+    callback paste_rows();
     callback update_row(int, string, string);
     callback delete_row(int);
 
@@ -156,6 +158,15 @@ component KeyValueTablePanel inherits Rectangle {
                 enabled: !root.busy;
                 clicked => {
                     root.add_row();
+                }
+            }
+
+            if root.show_paste: ActionButton {
+                text: "Paste";
+                button_width: 58px;
+                enabled: !root.busy;
+                clicked => {
+                    root.paste_rows();
                 }
             }
         }
@@ -495,6 +506,7 @@ component HeaderEditorPanel inherits Rectangle {
     in property <bool> busy;
     callback apply_header_preset(string);
     callback add_header();
+    callback paste_headers();
     callback update_header_row(int, string, string);
     callback delete_header_row(int);
     callback copy_headers();
@@ -556,6 +568,15 @@ component HeaderEditorPanel inherits Rectangle {
                 enabled: root.request_headers != "";
                 clicked => {
                     root.copy_headers();
+                }
+            }
+
+            ActionButton {
+                text: "Paste";
+                button_width: 58px;
+                enabled: !root.busy;
+                clicked => {
+                    root.paste_headers();
                 }
             }
         }
@@ -2276,9 +2297,11 @@ component RequestPanel inherits Rectangle {
     callback copy_sse_events();
     callback clear_sse_events();
     callback add_query_param();
+    callback paste_query_params();
     callback update_query_param_row(int, string, string);
     callback delete_query_param_row(int);
     callback add_header();
+    callback paste_headers();
     callback update_header_row(int, string, string);
     callback delete_header_row(int);
     callback copy_headers();
@@ -2446,8 +2469,12 @@ component RequestPanel inherits Rectangle {
                 value_header: "Value";
                 helper: "Stored as key=value lines for transport compatibility.";
                 busy: root.busy;
+                show_paste: true;
                 add_row => {
                     root.add_query_param();
+                }
+                paste_rows => {
+                    root.paste_query_params();
                 }
                 update_row(row_id, key, value) => {
                     root.update_query_param_row(row_id, key, value);
@@ -2470,6 +2497,9 @@ component RequestPanel inherits Rectangle {
                 }
                 add_header => {
                     root.add_header();
+                }
+                paste_headers => {
+                    root.paste_headers();
                 }
                 update_header_row(row_id, key, value) => {
                     root.update_header_row(row_id, key, value);
@@ -6208,9 +6238,11 @@ export component AppWindow inherits Window {
     callback save_mock_logs(string);
     callback clear_mock_logs();
     callback add_query_param();
+    callback paste_query_params();
     callback update_query_param_row(int, string, string);
     callback delete_query_param_row(int);
     callback add_header();
+    callback paste_headers();
     callback update_header_row(int, string, string);
     callback delete_header_row(int);
     callback copy_headers();
@@ -6452,6 +6484,9 @@ export component AppWindow inherits Window {
                                     add_query_param => {
                                         root.add_query_param();
                                     }
+                                    paste_query_params => {
+                                        root.paste_query_params();
+                                    }
                                     update_query_param_row(row_id, key, value) => {
                                         root.update_query_param_row(row_id, key, value);
                                     }
@@ -6460,6 +6495,9 @@ export component AppWindow inherits Window {
                                     }
                                     add_header => {
                                         root.add_header();
+                                    }
+                                    paste_headers => {
+                                        root.paste_headers();
                                     }
                                     update_header_row(row_id, key, value) => {
                                         root.update_header_row(row_id, key, value);

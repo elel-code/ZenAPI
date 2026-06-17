@@ -160,7 +160,9 @@ X-Mode: test
 ```
 
 Header presets add or update common values: `Accept`, `Content`, and `Bearer`.
-Use `Copy` in the Headers toolbar to copy the current header lines.
+Use `Copy` in the Headers toolbar to copy the current header lines. Use
+`Paste` on Params or Headers to merge `key=value` or `key: value` rows from the
+clipboard into the current table.
 
 ## Request Body
 

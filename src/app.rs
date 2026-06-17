@@ -973,6 +973,42 @@ fn wire_header_helpers(app: &AppWindow) {
     });
 
     let weak_app = app.as_weak();
+    app.on_paste_headers(move || {
+        let Some(app) = weak_app.upgrade() else {
+            return;
+        };
+        if app.get_busy() {
+            return;
+        }
+
+        let result = read_text_from_clipboard().and_then(|clipboard| {
+            merge_key_value_text(
+                app.get_request_headers().as_str(),
+                clipboard.as_str(),
+                "header",
+                true,
+                true,
+            )
+        });
+        match result {
+            Ok((headers, count)) => {
+                app.set_request_headers(headers.into());
+                refresh_header_rows(&app);
+                set_response(
+                    &app,
+                    "Headers pasted",
+                    "",
+                    "success",
+                    &format!("{count} header rows imported from clipboard."),
+                );
+            }
+            Err(error) => {
+                set_response(&app, "Header paste failed", "", "error", &error.to_string())
+            }
+        }
+    });
+
+    let weak_app = app.as_weak();
     app.on_add_header(move || {
         let Some(app) = weak_app.upgrade() else {
             return;
@@ -1021,6 +1057,42 @@ fn wire_header_helpers(app: &AppWindow) {
 }
 
 fn wire_query_param_actions(app: &AppWindow) {
+    let weak_app = app.as_weak();
+    app.on_paste_query_params(move || {
+        let Some(app) = weak_app.upgrade() else {
+            return;
+        };
+        if app.get_busy() {
+            return;
+        }
+
+        let result = read_text_from_clipboard().and_then(|clipboard| {
+            merge_key_value_text(
+                app.get_query_params().as_str(),
+                clipboard.as_str(),
+                "query param",
+                false,
+                false,
+            )
+        });
+        match result {
+            Ok((params, count)) => {
+                app.set_query_params(params.into());
+                refresh_query_param_rows(&app);
+                set_response(
+                    &app,
+                    "Params pasted",
+                    "",
+                    "success",
+                    &format!("{count} query parameter rows imported from clipboard."),
+                );
+            }
+            Err(error) => {
+                set_response(&app, "Params paste failed", "", "error", &error.to_string())
+            }
+        }
+    });
+
     let weak_app = app.as_weak();
     app.on_add_query_param(move || {
         let Some(app) = weak_app.upgrade() else {
@@ -2606,6 +2678,14 @@ fn copy_text_to_clipboard(text: &str) -> Result<()> {
         .map_err(|error| anyhow!("failed to write clipboard: {error}"))
 }
 
+fn read_text_from_clipboard() -> Result<String> {
+    let mut clipboard =
+        ClipboardContext::new().map_err(|error| anyhow!("failed to access clipboard: {error}"))?;
+    clipboard
+        .get_contents()
+        .map_err(|error| anyhow!("failed to read clipboard: {error}"))
+}
+
 fn format_json_response_text(text: &str) -> Result<String> {
     let trimmed = text.trim();
     if trimmed.is_empty() {
@@ -3775,6 +3855,32 @@ fn update_key_value_text(input: &str, row_id: i32, key: &str, value: &str) -> St
 fn add_key_value_text(input: &str, base_key: &str) -> String {
     let key = unique_key_value_name(input, base_key);
     append_key_value_line(input, &format!("{key}="))
+}
+
+fn merge_key_value_text(
+    input: &str,
+    imported: &str,
+    field_name: &str,
+    case_insensitive: bool,
+    colon_output: bool,
+) -> Result<(String, usize)> {
+    let mut values = parse_key_value_lines(input, field_name)?;
+    let imported_values = parse_key_value_lines(imported, field_name)?;
+    if imported_values.is_empty() {
+        bail!("clipboard does not contain any {field_name} rows");
+    }
+
+    let count = imported_values.len();
+    for (name, value) in imported_values {
+        upsert_pair(&mut values, name, value, case_insensitive);
+    }
+
+    let output = if colon_output {
+        format_header_lines(&values)
+    } else {
+        format_key_value_preview(&values)
+    };
+    Ok((output, count))
 }
 
 fn delete_key_value_text(input: &str, row_id: i32) -> String {
@@ -5291,6 +5397,37 @@ mod tests {
         assert_eq!(
             add_key_value_text("param=one", "param"),
             "param=one\nparam_2="
+        );
+        assert_eq!(
+            merge_key_value_text(
+                "search=slint\nlimit=20",
+                "limit=50\nsort: desc",
+                "query param",
+                false,
+                false,
+            )
+            .expect("merge params"),
+            ("search=slint\nlimit=50\nsort=desc".to_string(), 2)
+        );
+        assert_eq!(
+            merge_key_value_text(
+                "Accept: application/json\nX-Trace=one",
+                "accept: text/plain\nAuthorization=Bearer token",
+                "header",
+                true,
+                true,
+            )
+            .expect("merge headers"),
+            (
+                "Accept: text/plain\nX-Trace: one\nAuthorization: Bearer token".to_string(),
+                2
+            )
+        );
+        assert!(
+            merge_key_value_text("search=slint", "   \n# none", "query param", false, false)
+                .expect_err("empty clipboard")
+                .to_string()
+                .contains("does not contain any query param rows")
         );
         assert_eq!(delete_key_value_text(input, 0), "# keep\nlimit=20");
     }
