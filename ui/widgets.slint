@@ -692,6 +692,43 @@ export component CodePane inherits Rectangle {
     }
 }
 
+export component ReadOnlyCodeBlock inherits Rectangle {
+    in property <string> text;
+
+    horizontal-stretch: 1;
+    vertical-stretch: 1;
+    border-radius: 8px;
+    border-width: 1px;
+    border-color: Theme.outline_variant;
+    background: Theme.surface_container_lowest;
+
+    ScrollView {
+        x: 1px;
+        y: 1px;
+        width: parent.width - 2px;
+        height: parent.height - 2px;
+        viewport-width: max(self.visible-width, code_text.preferred-width + 28px);
+        viewport-height: max(self.visible-height, code_text.preferred-height + 24px);
+        vertical-scrollbar-policy: ScrollBarPolicy.as-needed;
+        horizontal-scrollbar-policy: ScrollBarPolicy.as-needed;
+
+        code_text := UiText {
+            x: 14px;
+            y: 12px;
+            width: max(parent.visible-width - 28px, self.preferred-width);
+            height: max(parent.visible-height - 24px, self.preferred-height);
+            text: root.text;
+            font-family: "JetBrains Mono";
+            font-size: 13px;
+            font-weight: 400;
+            letter-spacing: 0px;
+            color: Theme.on_surface;
+            wrap: word-wrap;
+            vertical-alignment: top;
+        }
+    }
+}
+
 export component LabeledEditor inherits Rectangle {
     in-out property <string> text;
     in property <string> label;

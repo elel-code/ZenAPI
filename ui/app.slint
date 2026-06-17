@@ -1,6 +1,6 @@
 import { ListView, ScrollView } from "std-widgets.slint";
 import { Theme } from "theme.slint";
-import { ActionButton, BodyModeButton, CodePane, LabeledEditor, MethodChip, MethodSelector, StatusDot, TextField, UiText } from "widgets.slint";
+import { ActionButton, BodyModeButton, CodePane, LabeledEditor, MethodChip, MethodSelector, ReadOnlyCodeBlock, StatusDot, TextField, UiText } from "widgets.slint";
 
 export struct RouteRow {
     method: string,
@@ -4077,10 +4077,9 @@ component VariableDetailsPanel inherits Rectangle {
             overflow: elide;
         }
 
-        CodePane {
+        ReadOnlyCodeBlock {
             height: 230px;
             text: root.preview;
-            read_only: true;
         }
 
         Rectangle {
@@ -5252,10 +5251,9 @@ component DocumentationPage inherits Rectangle {
                     BodyModeButton { mode: "node"; label: "Node.js"; selected: false; button_width: 84px; }
                 }
 
-                CodePane {
+                ReadOnlyCodeBlock {
                     height: 144px;
                     text: "curl \"" + (root.url == "" ? "https://api.example.com/v1/users/usr_12345" : root.url) + "\" \\\n  -H \"Authorization: Bearer sk_test_...\"";
-                    read_only: true;
                 }
 
                 DataPanel {
@@ -5431,14 +5429,12 @@ component ApiKeysPage inherits Rectangle {
                     overflow: elide;
                 }
 
-                CodePane {
+                ReadOnlyCodeBlock {
                     text: "curl -X GET \"https://api.example.com/v1/data\" \\\n  -H \"Authorization: Bearer sk_prod_8f92...\"";
-                    read_only: true;
                 }
 
-                CodePane {
+                ReadOnlyCodeBlock {
                     text: "const axios = require('axios');\n\naxios.get('/v1/data', {\n  headers: {\n    Authorization: 'Bearer sk_prod_8f92...'\n  }\n});";
-                    read_only: true;
                 }
             }
         }
