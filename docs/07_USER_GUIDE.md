@@ -253,16 +253,16 @@ Var scopes:
 - `Global`.
 - `Env` for the active env.
 
-Use the `dev`, `test`, `prod`, and `local` rows to switch the active
-environment quickly, or edit the env name field and press Enter or `Use`.
-During the app session, each environment name keeps its own env-variable text
-when you switch away and back. The Environments page shows editable variable
-rows with `Global` and `Env` scopes, row add/delete actions, and a masked JSON
-preview. The backing storage is still line-based `key=value` text, so env
-variables override globals with the same name. Global variables and
-per-environment values are loaded from and saved to `.zenapi-environments.json`
-in the current working directory. Full environment list management is still
-future work.
+Use the environment list to switch the active environment, or edit the env name
+field and press Enter or `Use`. `Add` saves the named environment into the list;
+`Del` removes the selected environment and switches to the next saved entry.
+Each environment name keeps its own env-variable text when you switch away and
+back. The Environments page shows editable variable rows with `Global` and `Env`
+scopes, row add/delete actions, and a masked JSON preview. The backing storage
+is still line-based `key=value` text, so env variables override globals with the
+same name. Global variables and per-environment values are loaded from and saved
+to `.zenapi-environments.json` in the current working directory. Environment
+rename/reorder controls are still future work.
 
 ## Collections
 

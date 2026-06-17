@@ -34,8 +34,8 @@ use zenapi::{
 };
 
 use crate::ui::{
-    AppWindow, CollectionRow, HistoryRow, KeyValueTableRow, MockLogRow, RouteRow, RunnerRow,
-    TestAssertionRow, VariableTableRow,
+    AppWindow, CollectionRow, EnvironmentRow, HistoryRow, KeyValueTableRow, MockLogRow, RouteRow,
+    RunnerRow, TestAssertionRow, VariableTableRow,
 };
 
 const HISTORY_FILE_NAME: &str = ".zenapi-history.json";
@@ -55,8 +55,8 @@ pub fn run() -> Result<()> {
         }
     };
     let app = AppWindow::new().map_err(|err| anyhow!(err.to_string()))?;
-    if let Some(workspace) = environment_workspace {
-        apply_environment_workspace(&app, &workspace);
+    if let Some(workspace) = &environment_workspace {
+        apply_environment_workspace(&app, workspace);
     }
     refresh_variable_table(&app);
     refresh_query_param_rows(&app);
@@ -100,7 +100,7 @@ pub fn run() -> Result<()> {
     wire_auth_key_actions(&app);
     wire_body_field_actions(&app);
     wire_test_assertion_actions(&app);
-    wire_environment_actions(&app);
+    wire_environment_actions(&app, environment_workspace);
     wire_request_sender(&app, runtime.clone(), state.clone());
     wire_response_actions(&app);
     wire_graphql_helpers(&app);
@@ -168,6 +168,32 @@ impl EnvironmentProfiles {
         profiles
     }
 
+    fn from_workspace(
+        workspace: Option<EnvironmentWorkspace>,
+        fallback_name: &str,
+        fallback_values: &str,
+    ) -> Self {
+        let Some(workspace) = workspace else {
+            return Self::new(fallback_name, fallback_values);
+        };
+
+        let mut profiles = Self {
+            active_name: workspace.active_name.trim().to_string(),
+            values_by_name: workspace.values_by_name,
+        };
+        if profiles.active_name.is_empty() {
+            profiles.active_name = fallback_name.trim().to_string();
+        }
+        if !profiles.active_name.is_empty()
+            && !profiles.values_by_name.contains_key(&profiles.active_name)
+        {
+            profiles
+                .values_by_name
+                .insert(profiles.active_name.clone(), fallback_values.to_string());
+        }
+        profiles
+    }
+
     fn switch_to(&mut self, next_name: &str, current_values: &str) -> String {
         self.save_active(current_values);
         self.active_name = next_name.trim().to_string();
@@ -187,6 +213,32 @@ impl EnvironmentProfiles {
 
     fn set_active_name(&mut self, active_name: &str) {
         self.active_name = active_name.trim().to_string();
+    }
+
+    fn delete(&mut self, name: &str, current_values: &str) -> Option<(String, String)> {
+        let name = name.trim();
+        if name.is_empty() {
+            return None;
+        }
+
+        self.save_active(current_values);
+        self.values_by_name.remove(name)?;
+
+        if self.active_name == name {
+            self.active_name = self
+                .values_by_name
+                .keys()
+                .next()
+                .cloned()
+                .unwrap_or_default();
+        }
+
+        let values = self
+            .values_by_name
+            .get(&self.active_name)
+            .cloned()
+            .unwrap_or_default();
+        Some((self.active_name.clone(), values))
     }
 }
 
@@ -250,6 +302,55 @@ fn persist_environment_workspace(
 
     if let Err(error) = result {
         app.set_activity(format!("Environment save failed: {error}").into());
+    }
+}
+
+fn refresh_environment_rows(app: &AppWindow, profiles: &Arc<Mutex<EnvironmentProfiles>>) {
+    if let Ok(profiles) = profiles.lock() {
+        app.set_environment_rows(environment_rows_model(&profiles));
+    }
+}
+
+fn environment_rows_model(profiles: &EnvironmentProfiles) -> ModelRc<EnvironmentRow> {
+    let mut names = profiles.values_by_name.keys().cloned().collect::<Vec<_>>();
+    if !profiles.active_name.trim().is_empty()
+        && !names.iter().any(|name| name == &profiles.active_name)
+    {
+        names.push(profiles.active_name.clone());
+    }
+    names.sort();
+
+    ModelRc::new(VecModel::from_iter(names.into_iter().map(|name| {
+        let values = profiles
+            .values_by_name
+            .get(&name)
+            .map_or("", String::as_str);
+        let variable_count = variable_ui_entries(values).len();
+        EnvironmentRow {
+            label: environment_display_label(&name).into(),
+            detail: format!("{variable_count} env variable(s)").into(),
+            tone: environment_tone(&name).into(),
+            name: name.into(),
+        }
+    })))
+}
+
+fn environment_display_label(name: &str) -> String {
+    match name.trim() {
+        "dev" => "Development".to_string(),
+        "test" => "Staging".to_string(),
+        "prod" => "Production".to_string(),
+        "local" => "Local".to_string(),
+        other if other.is_empty() => "No Environment".to_string(),
+        other => other.to_string(),
+    }
+}
+
+fn environment_tone(name: &str) -> &'static str {
+    if name.trim() == "prod" {
+        "error"
+    } else {
+        "inactive"
     }
 }
 
@@ -1708,12 +1809,14 @@ fn wire_test_assertion_actions(app: &AppWindow) {
     });
 }
 
-fn wire_environment_actions(app: &AppWindow) {
-    let environment_profiles = Arc::new(Mutex::new(EnvironmentProfiles::new(
+fn wire_environment_actions(app: &AppWindow, initial_workspace: Option<EnvironmentWorkspace>) {
+    let environment_profiles = Arc::new(Mutex::new(EnvironmentProfiles::from_workspace(
+        initial_workspace,
         app.get_environment_name().as_str(),
         app.get_environment_variables().as_str(),
     )));
     let environment_path = Arc::new(PathBuf::from(ENVIRONMENT_FILE_NAME));
+    refresh_environment_rows(app, &environment_profiles);
 
     let weak_app = app.as_weak();
     let profiles = environment_profiles.clone();
@@ -1739,6 +1842,7 @@ fn wire_environment_actions(app: &AppWindow) {
         app.set_environment_variables(variables.into());
         refresh_variable_table(&app);
         persist_environment_workspace(&app, &profiles, path.as_path());
+        refresh_environment_rows(&app, &profiles);
     });
 
     let weak_app = app.as_weak();
@@ -1765,6 +1869,65 @@ fn wire_environment_actions(app: &AppWindow) {
         app.set_environment_variables(variables.into());
         refresh_variable_table(&app);
         persist_environment_workspace(&app, &profiles, path.as_path());
+        refresh_environment_rows(&app, &profiles);
+    });
+
+    let weak_app = app.as_weak();
+    let profiles = environment_profiles.clone();
+    let path = environment_path.clone();
+    app.on_add_environment(move |environment| {
+        let Some(app) = weak_app.upgrade() else {
+            return;
+        };
+        if app.get_busy() {
+            return;
+        }
+
+        let environment = environment.trim().to_string();
+        if environment.is_empty() {
+            app.set_activity("Enter an environment name before adding it.".into());
+            return;
+        }
+
+        let variables = profiles
+            .lock()
+            .map(|mut profiles| {
+                profiles.switch_to(&environment, app.get_environment_variables().as_str())
+            })
+            .unwrap_or_default();
+        app.set_environment_name(environment.into());
+        app.set_environment_variables(variables.into());
+        refresh_variable_table(&app);
+        persist_environment_workspace(&app, &profiles, path.as_path());
+        refresh_environment_rows(&app, &profiles);
+    });
+
+    let weak_app = app.as_weak();
+    let profiles = environment_profiles.clone();
+    let path = environment_path.clone();
+    app.on_delete_environment(move |environment| {
+        let Some(app) = weak_app.upgrade() else {
+            return;
+        };
+        if app.get_busy() {
+            return;
+        }
+
+        let Some((next_name, next_values)) = profiles.lock().ok().and_then(|mut profiles| {
+            profiles.delete(
+                environment.as_str(),
+                app.get_environment_variables().as_str(),
+            )
+        }) else {
+            app.set_activity("Select a saved environment before deleting it.".into());
+            return;
+        };
+
+        app.set_environment_name(next_name.into());
+        app.set_environment_variables(next_values.into());
+        refresh_variable_table(&app);
+        persist_environment_workspace(&app, &profiles, path.as_path());
+        refresh_environment_rows(&app, &profiles);
     });
 
     let weak_app = app.as_weak();
@@ -1797,6 +1960,7 @@ fn wire_environment_actions(app: &AppWindow) {
         }
         refresh_variable_table(&app);
         persist_environment_workspace(&app, &profiles, path.as_path());
+        refresh_environment_rows(&app, &profiles);
     });
 
     let weak_app = app.as_weak();
@@ -1825,6 +1989,7 @@ fn wire_environment_actions(app: &AppWindow) {
         }
         refresh_variable_table(&app);
         persist_environment_workspace(&app, &profiles, path.as_path());
+        refresh_environment_rows(&app, &profiles);
     });
 
     let weak_app = app.as_weak();
@@ -1847,6 +2012,7 @@ fn wire_environment_actions(app: &AppWindow) {
         }
         refresh_variable_table(&app);
         persist_environment_workspace(&app, &profiles, path.as_path());
+        refresh_environment_rows(&app, &profiles);
     });
 }
 
@@ -6107,6 +6273,74 @@ mod tests {
             profiles.switch_to("local", "baseUrl=https://api.example.com"),
             ""
         );
+    }
+
+    #[test]
+    fn builds_environment_rows_from_saved_profiles() {
+        use slint::Model;
+
+        let mut values_by_name = BTreeMap::new();
+        values_by_name.insert(
+            "dev".to_string(),
+            "baseUrl=http://127.0.0.1:8080".to_string(),
+        );
+        values_by_name.insert(
+            "prod".to_string(),
+            "baseUrl=https://api.example.com\ntoken=secret".to_string(),
+        );
+        let profiles = EnvironmentProfiles {
+            active_name: "prod".to_string(),
+            values_by_name,
+        };
+
+        let rows = environment_rows_model(&profiles);
+        assert_eq!(rows.row_count(), 2);
+
+        let dev = rows.row_data(0).expect("dev row");
+        assert_eq!(dev.name.as_str(), "dev");
+        assert_eq!(dev.label.as_str(), "Development");
+        assert_eq!(dev.detail.as_str(), "1 env variable(s)");
+        assert_eq!(dev.tone.as_str(), "inactive");
+
+        let prod = rows.row_data(1).expect("prod row");
+        assert_eq!(prod.name.as_str(), "prod");
+        assert_eq!(prod.label.as_str(), "Production");
+        assert_eq!(prod.detail.as_str(), "2 env variable(s)");
+        assert_eq!(prod.tone.as_str(), "error");
+    }
+
+    #[test]
+    fn deletes_environment_profiles_and_keeps_workspace_values() {
+        let mut values_by_name = BTreeMap::new();
+        values_by_name.insert(
+            "dev".to_string(),
+            "baseUrl=http://127.0.0.1:8080".to_string(),
+        );
+        values_by_name.insert(
+            "prod".to_string(),
+            "baseUrl=https://api.example.com".to_string(),
+        );
+        let workspace = EnvironmentWorkspace {
+            active_name: "prod".to_string(),
+            global_variables: "token=secret".to_string(),
+            values_by_name,
+        };
+
+        let mut profiles = EnvironmentProfiles::from_workspace(Some(workspace), "dev", "");
+        assert_eq!(
+            profiles.switch_to("dev", "baseUrl=https://api.example.com"),
+            "baseUrl=http://127.0.0.1:8080"
+        );
+        assert_eq!(
+            profiles.delete("dev", "baseUrl=http://127.0.0.1:8081"),
+            Some((
+                "prod".to_string(),
+                "baseUrl=https://api.example.com".to_string()
+            ))
+        );
+        assert!(!profiles.values_by_name.contains_key("dev"));
+        assert_eq!(profiles.active_name, "prod");
+        assert!(profiles.delete("missing", "").is_none());
     }
 
     #[test]

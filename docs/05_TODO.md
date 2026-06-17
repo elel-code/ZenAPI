@@ -72,12 +72,12 @@
   still pending.
 - [~] Rebuild Environments and Variables UI on top of `variables::VariableStore`;
   current Slint baseline uses the reference three-pane Environments page with
-  dev/test/prod/local quick selectors, editable global/env variable rows,
-  add/delete row actions, scope badges, per-environment value preservation
-  during switches, a masked JSON preview, and local `.zenapi-environments.json`
-  persistence for global variables plus per-environment values, still backed by
-  the existing `key=value` text storage. Full environment list management
-  remains pending.
+  a persisted dynamic environment list, editable global/env variable rows,
+  add/delete variable row actions, environment add/delete actions, scope badges,
+  per-environment value preservation during switches, a masked JSON preview,
+  and local `.zenapi-environments.json` persistence for global variables plus
+  per-environment values, still backed by the existing `key=value` text
+  storage. Environment rename/reorder controls remain pending.
 - [~] Rebuild Collections UI for native JSON/Postman import/export, saving
   current requests, nested folders, rename/delete/copy, and drag/drop; current
   Slint baseline loads native/Postman JSON, saves the current editor request,
@@ -148,7 +148,7 @@
 | OpenAPI import | Implemented | JSON/YAML parser and Slint route list wired |
 | HTTP client | Core implemented | Slint wires method, URL, params, headers, auth, variables, and body modes |
 | Mock server | Core implemented | Slint start/stop toggle wired |
-| Variables | Domain implemented | Slint baseline has a three-pane environment page with editable variable rows, add/delete, scope badges, masked preview, and local persistence for global/per-environment values |
+| Variables | Domain implemented | Slint baseline has a three-pane environment page with dynamic persisted environment rows, environment add/delete, editable variable rows, scope badges, masked preview, and local persistence for global/per-environment values |
 | Collections | Domain implemented | Slint baseline supports load/save/export, folder row display/selection, root and nested folder creation, and request restore/rename/duplicate/delete |
 | History | Domain implemented | Slint baseline records, filters, deletes, restores, and persists recent requests |
 | Codegen | Domain + Slint page implemented | Dedicated page generates, copies, and saves snippets |

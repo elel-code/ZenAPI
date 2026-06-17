@@ -46,6 +46,13 @@ export struct VariableTableRow {
     current_value: string,
 }
 
+export struct EnvironmentRow {
+    name: string,
+    label: string,
+    detail: string,
+    tone: string,
+}
+
 export struct KeyValueTableRow {
     row_id: int,
     key: string,
@@ -3959,6 +3966,8 @@ component EnvironmentVariableTable inherits Rectangle {
     in-out property <string> environment_name;
     in property <bool> busy;
     callback environment_name_changed(string);
+    callback add_environment(string);
+    callback delete_environment(string);
     callback update_variable_row(int, string, string, string);
     callback add_variable(string);
     callback delete_variable_row(int, string);
@@ -4033,6 +4042,25 @@ component EnvironmentVariableTable inherits Rectangle {
                     enabled: !root.busy;
                     clicked => {
                         root.environment_name_changed(root.environment_name);
+                    }
+                }
+
+                ActionButton {
+                    text: "Add";
+                    button_width: 54px;
+                    enabled: !root.busy && root.environment_name != "";
+                    clicked => {
+                        root.add_environment(root.environment_name);
+                    }
+                }
+
+                ActionButton {
+                    text: "Del";
+                    button_width: 54px;
+                    warning: true;
+                    enabled: !root.busy && root.environment_name != "";
+                    clicked => {
+                        root.delete_environment(root.environment_name);
                     }
                 }
 
@@ -4292,6 +4320,7 @@ component VariableDetailsPanel inherits Rectangle {
 }
 
 component EnvironmentPage inherits Rectangle {
+    in-out property <[EnvironmentRow]> environment_rows;
     in-out property <[VariableTableRow]> variable_rows;
     in-out property <string> global_variables;
     in-out property <string> environment_name;
@@ -4300,6 +4329,8 @@ component EnvironmentPage inherits Rectangle {
     in property <bool> busy;
     callback select_environment(string);
     callback environment_name_changed(string);
+    callback add_environment(string);
+    callback delete_environment(string);
     callback update_variable_row(int, string, string, string);
     callback add_variable(string);
     callback delete_variable_row(int, string);
@@ -4353,19 +4384,31 @@ component EnvironmentPage inherits Rectangle {
                         padding: 10px;
                         spacing: 6px;
 
-                        for item in [
-                            { mode: "dev", label: "Development", detail: "Local development", tone: "inactive" },
-                            { mode: "test", label: "Staging", detail: "Shared staging scope", tone: "inactive" },
-                            { mode: "prod", label: "Production", detail: "Production values", tone: "error" },
-                            { mode: "local", label: "Local", detail: "Machine overrides", tone: "inactive" },
-                        ]: EnvironmentNavRow {
-                            mode: item.mode;
-                            label: item.label;
-                            detail: item.detail;
-                            tone: item.tone;
-                            selected: root.environment_name == item.mode;
-                            picked(mode) => {
-                                root.select_environment(mode);
+                        if root.environment_rows.length == 0: UiText {
+                            text: "No environments";
+                            height: 28px;
+                            horizontal-stretch: 1;
+                            color: Theme.outline;
+                            font-size: 12px;
+                            vertical-alignment: center;
+                            overflow: elide;
+                        }
+
+                        if root.environment_rows.length != 0: ListView {
+                            horizontal-stretch: 1;
+                            vertical-stretch: 1;
+                            vertical-scrollbar-policy: ScrollBarPolicy.as-needed;
+                            horizontal-scrollbar-policy: ScrollBarPolicy.as-needed;
+
+                            for item in root.environment_rows: EnvironmentNavRow {
+                                mode: item.name;
+                                label: item.label;
+                                detail: item.detail;
+                                tone: item.tone;
+                                selected: root.environment_name == item.name;
+                                picked(mode) => {
+                                    root.select_environment(mode);
+                                }
                             }
                         }
                     }
@@ -4385,6 +4428,12 @@ component EnvironmentPage inherits Rectangle {
             busy: root.busy;
             environment_name_changed(name) => {
                 root.environment_name_changed(name);
+            }
+            add_environment(name) => {
+                root.add_environment(name);
+            }
+            delete_environment(name) => {
+                root.delete_environment(name);
             }
             update_variable_row(row_id, scope, name, value) => {
                 root.update_variable_row(row_id, scope, name, value);
@@ -5769,6 +5818,7 @@ export component AppWindow inherits Window {
     in-out property <string> global_variables: "baseUrl=https://api.example.com";
     in-out property <string> environment_name: "dev";
     in-out property <string> environment_variables: "baseUrl=http://127.0.0.1:8080";
+    in-out property <[EnvironmentRow]> environment_rows;
     in-out property <[VariableTableRow]> variable_rows;
     in-out property <string> variables_json_preview: "{}";
     in-out property <string> query_params;
@@ -5917,6 +5967,8 @@ export component AppWindow inherits Window {
     callback clear_sse_events();
     callback select_environment(string);
     callback environment_name_changed(string);
+    callback add_environment(string);
+    callback delete_environment(string);
     callback update_variable_row(int, string, string, string);
     callback add_variable(string);
     callback delete_variable_row(int, string);
@@ -6380,6 +6432,7 @@ export component AppWindow inherits Window {
                     EnvironmentPage {
                         width: max(parent.visible-width, 1180px);
                         height: max(parent.visible-height, 620px);
+                        environment_rows <=> root.environment_rows;
                         variable_rows <=> root.variable_rows;
                         global_variables <=> root.global_variables;
                         environment_name <=> root.environment_name;
@@ -6391,6 +6444,12 @@ export component AppWindow inherits Window {
                         }
                         environment_name_changed(name) => {
                             root.environment_name_changed(name);
+                        }
+                        add_environment(name) => {
+                            root.add_environment(name);
+                        }
+                        delete_environment(name) => {
+                            root.delete_environment(name);
                         }
                         update_variable_row(row_id, scope, name, value) => {
                             root.update_variable_row(row_id, scope, name, value);
