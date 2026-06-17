@@ -1,0 +1,49 @@
+import { Theme } from "theme.slint";
+
+export global MethodStyle {
+    public pure function text_color(method: string) -> color {
+        return method == "GET" ? #60a5fa : method == "POST" ? #4ade80 : method == "PUT" ? #facc15 : method == "PATCH" ? #facc15 : method == "DELETE" ? #f87171 : Theme.outline;
+    }
+
+    public pure function background(method: string) -> color {
+        return method == "GET" ? #1d3d66 : method == "POST" ? #17452c : method == "PUT" ? #4a3b12 : method == "PATCH" ? #4a3b12 : method == "DELETE" ? #4f1d22 : #242430;
+    }
+
+    public pure function border(method: string) -> color {
+        return method == "GET" ? #3b82f6 : method == "POST" ? #22c55e : method == "PUT" ? #eab308 : method == "PATCH" ? #eab308 : method == "DELETE" ? #ef4444 : Theme.outline_variant;
+    }
+}
+
+export component MethodChip inherits Rectangle {
+    in property <string> method;
+
+    width: 62px;
+    height: 22px;
+    border-radius: 4px;
+    border-width: 1px;
+    border-color: MethodStyle.border(root.method);
+    background: MethodStyle.background(root.method);
+
+    Text {
+        text: root.method;
+        width: parent.width;
+        height: parent.height;
+        font-family: "JetBrains Mono";
+        font-size: 12px;
+        font-weight: 800;
+        color: MethodStyle.text_color(root.method);
+        horizontal-alignment: center;
+        vertical-alignment: center;
+        overflow: elide;
+        letter-spacing: 0px;
+    }
+}
+
+export component StatusDot inherits Rectangle {
+    in property <string> tone: "inactive";
+
+    width: 8px;
+    height: 8px;
+    border-radius: 4px;
+    background: root.tone == "active" ? Theme.secondary : root.tone == "error" ? Theme.error : Theme.outline_variant;
+}
