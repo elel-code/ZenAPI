@@ -2023,12 +2023,28 @@ fn wire_mock_server(app: &AppWindow, runtime: Arc<Runtime>, state: Arc<Mutex<App
 }
 
 fn set_response(app: &AppWindow, status: &str, meta: &str, tone: &str, body: &str) {
+    let (response_time, response_size) = split_response_meta(meta);
     app.set_response_status(status.into());
     app.set_response_meta(meta.into());
+    app.set_response_time(response_time.into());
+    app.set_response_size(response_size.into());
     app.set_response_tone(tone.into());
     app.set_response_body(body.into());
     app.set_response_raw_body(body.into());
     app.set_response_headers("".into());
+}
+
+fn split_response_meta(meta: &str) -> (String, String) {
+    let meta = meta.trim();
+    if meta.is_empty() {
+        return (String::new(), String::new());
+    }
+
+    if let Some((time, size)) = meta.split_once(" / ") {
+        (time.trim().to_string(), size.trim().to_string())
+    } else {
+        (meta.to_string(), String::new())
+    }
 }
 
 fn display_spec_name(spec: &ApiSpec) -> String {
@@ -3775,6 +3791,19 @@ mod tests {
         assert_eq!(response_tone(302), "success");
         assert_eq!(response_tone(100), "neutral");
         assert_eq!(response_tone(404), "error");
+    }
+
+    #[test]
+    fn splits_response_meta_for_header_columns() {
+        assert_eq!(
+            split_response_meta("142 ms / 842 B"),
+            ("142 ms".to_string(), "842 B".to_string())
+        );
+        assert_eq!(
+            split_response_meta("17 ms"),
+            ("17 ms".to_string(), String::new())
+        );
+        assert_eq!(split_response_meta(""), (String::new(), String::new()));
     }
 
     #[test]

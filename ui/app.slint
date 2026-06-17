@@ -2167,31 +2167,6 @@ component ResponseTab inherits Rectangle {
     }
 }
 
-component ToolGlyphButton inherits Rectangle {
-    in property <string> glyph;
-
-    width: 30px;
-    height: 30px;
-    border-radius: 6px;
-    background: touch.has-hover ? Theme.surface_variant : transparent;
-
-    touch := TouchArea {
-        mouse-cursor: pointer;
-    }
-
-    UiText {
-        text: root.glyph;
-        width: parent.width;
-        height: parent.height;
-        color: Theme.on_surface_variant;
-        font-size: 16px;
-        font-weight: 800;
-        horizontal-alignment: center;
-        vertical-alignment: center;
-        overflow: elide;
-    }
-}
-
 component ResponsePanel inherits Rectangle {
     in-out property <string> response_body;
     in-out property <string> response_raw_body;
@@ -2207,6 +2182,8 @@ component ResponsePanel inherits Rectangle {
     in-out property <bool> runner_active;
     in property <string> response_status;
     in property <string> response_meta;
+    in property <string> response_time;
+    in property <string> response_size;
     in property <string> response_tone;
     in property <bool> busy;
     callback generate_code();
@@ -2225,18 +2202,18 @@ component ResponsePanel inherits Rectangle {
         spacing: 0px;
 
         Rectangle {
-            height: 138px;
+            height: 112px;
             horizontal-stretch: 1;
             background: Theme.surface_container_low;
 
             UiText {
                 x: 20px;
-                y: 18px;
+                y: 14px;
                 text: "Response";
                 width: 180px;
-                height: 34px;
+                height: 30px;
                 color: Theme.on_surface;
-                font-size: 28px;
+                font-size: 24px;
                 font-weight: 800;
                 overflow: elide;
                 vertical-alignment: center;
@@ -2244,9 +2221,9 @@ component ResponsePanel inherits Rectangle {
 
             Rectangle {
                 x: parent.width - 148px;
-                y: 20px;
+                y: 15px;
                 width: 128px;
-                height: 32px;
+                height: 30px;
                 border-radius: 4px;
                 border-width: 1px;
                 border-color: root.response_tone == "error" ? Theme.error : #00a572;
@@ -2268,7 +2245,7 @@ component ResponsePanel inherits Rectangle {
 
             UiText {
                 x: 20px;
-                y: 66px;
+                y: 60px;
                 text: "TIME";
                 width: 80px;
                 height: 18px;
@@ -2280,8 +2257,8 @@ component ResponsePanel inherits Rectangle {
             }
 
             UiText {
-                x: 102px;
-                y: 66px;
+                x: 150px;
+                y: 60px;
                 text: "SIZE";
                 width: 80px;
                 height: 18px;
@@ -2294,9 +2271,22 @@ component ResponsePanel inherits Rectangle {
 
             UiText {
                 x: 20px;
-                y: 88px;
-                text: root.response_meta == "" ? "--" : root.response_meta;
-                width: parent.width - 40px;
+                y: 80px;
+                text: root.response_time == "" ? "--" : root.response_time;
+                width: 116px;
+                height: 20px;
+                color: Theme.on_surface;
+                font-family: "JetBrains Mono";
+                font-size: 13px;
+                vertical-alignment: center;
+                overflow: elide;
+            }
+
+            UiText {
+                x: 150px;
+                y: 80px;
+                text: root.response_size == "" ? "--" : root.response_size;
+                width: parent.width - 170px;
                 height: 22px;
                 color: Theme.on_surface;
                 font-family: "JetBrains Mono";
@@ -2341,31 +2331,6 @@ component ResponsePanel inherits Rectangle {
         Rectangle {
             height: 1px;
             background: Theme.outline_variant;
-        }
-
-        Rectangle {
-            height: 42px;
-            horizontal-stretch: 1;
-            background: Theme.surface_container;
-
-            HorizontalLayout {
-                padding-left: 12px;
-                padding-right: 12px;
-                spacing: 8px;
-                alignment: center;
-
-                Rectangle {
-                    horizontal-stretch: 1;
-                }
-
-                ToolGlyphButton {
-                    glyph: "=";
-                }
-
-                ToolGlyphButton {
-                    glyph: "[]";
-                }
-            }
         }
 
         Rectangle {
@@ -5153,6 +5118,8 @@ export component AppWindow inherits Window {
     in-out property <string> grpc_message: "{}";
     in-out property <string> response_status: "Idle";
     in-out property <string> response_meta: "";
+    in-out property <string> response_time: "";
+    in-out property <string> response_size: "";
     in-out property <string> response_tone: "neutral";
     in-out property <string> response_body: "Import an OpenAPI or Swagger document to begin.";
     in-out property <string> response_raw_body: "Import an OpenAPI or Swagger document to begin.";
@@ -5448,6 +5415,8 @@ export component AppWindow inherits Window {
                                         runner_active <=> root.runner_active;
                                         response_status: root.response_status;
                                         response_meta: root.response_meta;
+                                        response_time: root.response_time;
+                                        response_size: root.response_size;
                                         response_tone: root.response_tone;
                                         busy: root.busy;
                                         generate_code => {
