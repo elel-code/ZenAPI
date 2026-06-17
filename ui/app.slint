@@ -2029,6 +2029,7 @@ component RequestPanel inherits Rectangle {
     in-out property <string> auth_config;
     in-out property <string> body_mode;
     in-out property <string> request_body;
+    in-out property <[KeyValueTableRow]> body_field_rows;
     in-out property <string> graphql_variables;
     in-out property <string> pre_request_script;
     in-out property <string> request_tests;
@@ -2054,6 +2055,10 @@ component RequestPanel inherits Rectangle {
     callback add_header();
     callback update_header_row(int, string, string);
     callback delete_header_row(int);
+    callback body_mode_changed(string);
+    callback add_body_field();
+    callback update_body_field_row(int, string, string);
+    callback delete_body_field_row(int);
     callback apply_graphql_template(string);
     callback apply_header_preset(string);
     callback build_grpc_draft();
@@ -2127,6 +2132,7 @@ component RequestPanel inherits Rectangle {
                     enabled: !root.busy;
                     picked(mode) => {
                         root.body_mode = mode;
+                        root.body_mode_changed(mode);
                     }
                 }
 
@@ -2226,28 +2232,48 @@ component RequestPanel inherits Rectangle {
                 }
             }
 
-            if root.active_tab == "body" && root.body_mode == "form": KeyValueEditorPanel {
+            if root.active_tab == "body" && root.body_mode == "form": KeyValueTablePanel {
                 x: 16px;
                 y: 16px;
                 width: parent.width - 32px;
                 height: parent.height - 32px;
-                text <=> root.request_body;
+                rows <=> root.body_field_rows;
                 title: "Form Data";
                 key_header: "Field";
                 value_header: "Value";
-                helper: "One field per line. Prefix file values with @path, for example avatar=@/tmp/avatar.png.";
+                helper: "Values are stored as key=value lines. Prefix file values with @path.";
+                busy: root.busy;
+                add_row => {
+                    root.add_body_field();
+                }
+                update_row(row_id, key, value) => {
+                    root.update_body_field_row(row_id, key, value);
+                }
+                delete_row(row_id) => {
+                    root.delete_body_field_row(row_id);
+                }
             }
 
-            if root.active_tab == "body" && root.body_mode == "urlenc": KeyValueEditorPanel {
+            if root.active_tab == "body" && root.body_mode == "urlenc": KeyValueTablePanel {
                 x: 16px;
                 y: 16px;
                 width: parent.width - 32px;
                 height: parent.height - 32px;
-                text <=> root.request_body;
+                rows <=> root.body_field_rows;
                 title: "URL Encoded";
                 key_header: "Field";
                 value_header: "Value";
-                helper: "One x-www-form-urlencoded field per line, formatted as key=value.";
+                helper: "Stored as key=value lines for transport compatibility.";
+                busy: root.busy;
+                add_row => {
+                    root.add_body_field();
+                }
+                update_row(row_id, key, value) => {
+                    root.update_body_field_row(row_id, key, value);
+                }
+                delete_row(row_id) => {
+                    root.delete_body_field_row(row_id);
+                }
             }
 
             if root.active_tab == "body" && root.body_mode == "binary": Rectangle {
@@ -5644,6 +5670,7 @@ export component AppWindow inherits Window {
     in-out property <string> auth_config;
     in-out property <string> body_mode: "none";
     in-out property <string> request_body;
+    in-out property <[KeyValueTableRow]> body_field_rows;
     in-out property <string> graphql_variables: "{}";
     in-out property <string> pre_request_script;
     in-out property <string> request_tests;
@@ -5716,6 +5743,10 @@ export component AppWindow inherits Window {
     callback add_header();
     callback update_header_row(int, string, string);
     callback delete_header_row(int);
+    callback body_mode_changed(string);
+    callback add_body_field();
+    callback update_body_field_row(int, string, string);
+    callback delete_body_field_row(int);
     callback send_request();
     callback toggle_server();
     callback generate_code();
@@ -5907,6 +5938,7 @@ export component AppWindow inherits Window {
                                         auth_config <=> root.auth_config;
                                         body_mode <=> root.body_mode;
                                         request_body <=> root.request_body;
+                                        body_field_rows <=> root.body_field_rows;
                                         graphql_variables <=> root.graphql_variables;
                                         pre_request_script <=> root.pre_request_script;
                                         request_tests <=> root.request_tests;
@@ -5937,6 +5969,18 @@ export component AppWindow inherits Window {
                                         }
                                         delete_header_row(row_id) => {
                                             root.delete_header_row(row_id);
+                                        }
+                                        body_mode_changed(mode) => {
+                                            root.body_mode_changed(mode);
+                                        }
+                                        add_body_field => {
+                                            root.add_body_field();
+                                        }
+                                        update_body_field_row(row_id, key, value) => {
+                                            root.update_body_field_row(row_id, key, value);
+                                        }
+                                        delete_body_field_row(row_id) => {
+                                            root.delete_body_field_row(row_id);
                                         }
                                         open_websocket => {
                                             root.open_websocket();

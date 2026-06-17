@@ -43,6 +43,7 @@ pub fn run() -> Result<()> {
     refresh_variable_table(&app);
     refresh_query_param_rows(&app);
     refresh_header_rows(&app);
+    refresh_body_field_rows(&app);
     app.set_history_rows(filtered_history_model(&initial_state.history, ""));
     if let Some(error) = history_load_error {
         set_response(
@@ -65,6 +66,7 @@ pub fn run() -> Result<()> {
     wire_mock_log_filter(&app, state.clone());
     wire_header_helpers(&app);
     wire_query_param_actions(&app);
+    wire_body_field_actions(&app);
     wire_environment_actions(&app);
     wire_request_sender(&app, runtime.clone(), state.clone());
     wire_graphql_helpers(&app);
@@ -297,6 +299,7 @@ fn wire_route_selection(app: &AppWindow, state: Arc<Mutex<AppState>>) {
             refresh_header_rows(&app);
             app.set_body_mode(default_body_mode(&app.get_method()).into());
             app.set_request_body(default_request_body(&app.get_method()).into());
+            refresh_body_field_rows(&app);
             app.set_graphql_variables("{}".into());
             set_response(
                 &app,
@@ -338,6 +341,7 @@ fn wire_history_selection(app: &AppWindow, state: Arc<Mutex<AppState>>) {
             app.set_auth_config(entry.request.auth_config.into());
             app.set_body_mode(entry.request.body_kind.into());
             app.set_request_body(entry.request.body_preview.into());
+            refresh_body_field_rows(&app);
             app.set_graphql_variables("{}".into());
             app.set_pre_request_script(entry.request.pre_request_script.into());
             app.set_request_tests(entry.request.request_tests.into());
@@ -1020,6 +1024,63 @@ fn wire_query_param_actions(app: &AppWindow) {
     });
 }
 
+fn wire_body_field_actions(app: &AppWindow) {
+    let weak_app = app.as_weak();
+    app.on_body_mode_changed(move |_mode| {
+        let Some(app) = weak_app.upgrade() else {
+            return;
+        };
+        refresh_body_field_rows(&app);
+    });
+
+    let weak_app = app.as_weak();
+    app.on_add_body_field(move || {
+        let Some(app) = weak_app.upgrade() else {
+            return;
+        };
+        if app.get_busy() {
+            return;
+        }
+
+        let updated = add_key_value_text(app.get_request_body().as_str(), "field");
+        app.set_request_body(updated.into());
+        refresh_body_field_rows(&app);
+    });
+
+    let weak_app = app.as_weak();
+    app.on_update_body_field_row(move |row_id, key, value| {
+        let Some(app) = weak_app.upgrade() else {
+            return;
+        };
+        if app.get_busy() {
+            return;
+        }
+
+        let updated = update_key_value_text(
+            app.get_request_body().as_str(),
+            row_id,
+            key.as_str(),
+            value.as_str(),
+        );
+        app.set_request_body(updated.into());
+        refresh_body_field_rows(&app);
+    });
+
+    let weak_app = app.as_weak();
+    app.on_delete_body_field_row(move |row_id| {
+        let Some(app) = weak_app.upgrade() else {
+            return;
+        };
+        if app.get_busy() {
+            return;
+        }
+
+        let updated = delete_key_value_text(app.get_request_body().as_str(), row_id);
+        app.set_request_body(updated.into());
+        refresh_body_field_rows(&app);
+    });
+}
+
 fn wire_environment_actions(app: &AppWindow) {
     let weak_app = app.as_weak();
     app.on_select_environment(move |environment| {
@@ -1535,6 +1596,7 @@ fn wire_graphql_helpers(app: &AppWindow) {
 
         app.set_body_mode("graphql".into());
         app.set_request_body(template.query.into());
+        refresh_body_field_rows(&app);
         app.set_graphql_variables(template.variables.into());
         set_response(
             &app,
@@ -2481,6 +2543,7 @@ fn restore_collection_request(app: &AppWindow, request: &CollectionRequest) {
     app.set_auth_config("".into());
     app.set_body_mode(body_mode.into());
     app.set_request_body(request_body.into());
+    refresh_body_field_rows(app);
     app.set_graphql_variables("{}".into());
     app.set_pre_request_script(request.pre_request_script.clone().into());
     app.set_request_tests(format_response_assertions(&request.tests).into());
@@ -3076,6 +3139,10 @@ fn refresh_query_param_rows(app: &AppWindow) {
 
 fn refresh_header_rows(app: &AppWindow) {
     app.set_header_rows(key_value_table_model(app.get_request_headers().as_str()));
+}
+
+fn refresh_body_field_rows(app: &AppWindow) {
+    app.set_body_field_rows(key_value_table_model(app.get_request_body().as_str()));
 }
 
 fn key_value_table_model(input: &str) -> ModelRc<KeyValueTableRow> {

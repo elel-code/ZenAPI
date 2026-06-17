@@ -177,15 +177,15 @@ Supported body modes:
 - `binary`
 
 The Body toolbar exposes `none`, `form-data`, `urlenc`, `raw`, `graphql`, and
-`binary`. Form-data and URL-encoded modes use table-shaped line editors that
-store one `key=value` pair per line. Form-data file fields use an `@path`
-prefix.
+`binary`. Form-data and URL-encoded modes use editable rows with add/delete
+controls and store one `key=value` pair per line. Form-data file fields use an
+`@path` prefix.
 
 Raw mode uses the code editor. GraphQL mode builds a payload with `query` and
 `variables`; use `Query` and `Mutation` to fill starter GraphQL documents and
-matching variables. Binary mode accepts a local file path. Row add/delete, raw
-subtype selection, dedicated form file picker controls, and GraphQL schema
-response helpers are still future work.
+matching variables. Binary mode accepts a local file path. Raw subtype
+selection, dedicated form file picker controls, and GraphQL schema response
+helpers are still future work.
 
 ## WebSocket
 
