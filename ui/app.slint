@@ -4517,6 +4517,7 @@ component EnvironmentPage inherits Rectangle {
     callback environment_name_changed(string);
     callback add_environment(string);
     callback rename_environment(string, string);
+    callback move_environment(string, int);
     callback delete_environment(string);
     callback update_variable_row(int, string, string, string);
     callback add_variable(string);
@@ -4587,14 +4588,39 @@ component EnvironmentPage inherits Rectangle {
                             vertical-scrollbar-policy: ScrollBarPolicy.as-needed;
                             horizontal-scrollbar-policy: ScrollBarPolicy.as-needed;
 
-                            for item in root.environment_rows: EnvironmentNavRow {
-                                mode: item.name;
-                                label: item.label;
-                                detail: item.detail;
-                                tone: item.tone;
-                                selected: root.environment_name == item.name;
-                                picked(mode) => {
-                                    root.select_environment(mode);
+                            for item[i] in root.environment_rows: HorizontalLayout {
+                                height: 52px;
+                                horizontal-stretch: 1;
+                                spacing: 4px;
+                                alignment: center;
+
+                                EnvironmentNavRow {
+                                    mode: item.name;
+                                    label: item.label;
+                                    detail: item.detail;
+                                    tone: item.tone;
+                                    selected: root.environment_name == item.name;
+                                    picked(mode) => {
+                                        root.select_environment(mode);
+                                    }
+                                }
+
+                                ActionButton {
+                                    text: "^";
+                                    button_width: 30px;
+                                    enabled: !root.busy && i > 0;
+                                    clicked => {
+                                        root.move_environment(item.name, -1);
+                                    }
+                                }
+
+                                ActionButton {
+                                    text: "v";
+                                    button_width: 30px;
+                                    enabled: !root.busy && i < root.environment_rows.length - 1;
+                                    clicked => {
+                                        root.move_environment(item.name, 1);
+                                    }
                                 }
                             }
                         }
@@ -6171,6 +6197,7 @@ export component AppWindow inherits Window {
     callback environment_name_changed(string);
     callback add_environment(string);
     callback rename_environment(string, string);
+    callback move_environment(string, int);
     callback delete_environment(string);
     callback update_variable_row(int, string, string, string);
     callback add_variable(string);
@@ -6676,6 +6703,9 @@ export component AppWindow inherits Window {
                         }
                         rename_environment(old_name, new_name) => {
                             root.rename_environment(old_name, new_name);
+                        }
+                        move_environment(name, delta) => {
+                            root.move_environment(name, delta);
                         }
                         delete_environment(name) => {
                             root.delete_environment(name);

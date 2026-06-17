@@ -150,6 +150,8 @@ struct RequestProjectionInput {
 struct EnvironmentProfiles {
     active_name: String,
     values_by_name: BTreeMap<String, String>,
+    #[serde(default)]
+    order: Vec<String>,
 }
 
 #[derive(Debug, Clone, Default, Deserialize, Serialize, PartialEq, Eq)]
@@ -157,6 +159,8 @@ struct EnvironmentWorkspace {
     active_name: String,
     global_variables: String,
     values_by_name: BTreeMap<String, String>,
+    #[serde(default)]
+    order: Vec<String>,
 }
 
 impl EnvironmentProfiles {
@@ -164,6 +168,7 @@ impl EnvironmentProfiles {
         let mut profiles = Self {
             active_name: active_name.trim().to_string(),
             values_by_name: BTreeMap::new(),
+            order: Vec::new(),
         };
         profiles.save_active(active_values);
         profiles
@@ -181,6 +186,7 @@ impl EnvironmentProfiles {
         let mut profiles = Self {
             active_name: workspace.active_name.trim().to_string(),
             values_by_name: workspace.values_by_name,
+            order: workspace.order,
         };
         if profiles.active_name.is_empty() {
             profiles.active_name = fallback_name.trim().to_string();
@@ -192,12 +198,14 @@ impl EnvironmentProfiles {
                 .values_by_name
                 .insert(profiles.active_name.clone(), fallback_values.to_string());
         }
+        profiles.normalize_order();
         profiles
     }
 
     fn switch_to(&mut self, next_name: &str, current_values: &str) -> String {
         self.save_active(current_values);
         self.active_name = next_name.trim().to_string();
+        self.ensure_ordered_name(&self.active_name.clone());
         self.values_by_name
             .get(&self.active_name)
             .cloned()
@@ -207,8 +215,10 @@ impl EnvironmentProfiles {
     fn save_active(&mut self, values: &str) {
         let active_name = self.active_name.trim();
         if !active_name.is_empty() {
+            let active_name = active_name.to_string();
             self.values_by_name
-                .insert(active_name.to_string(), values.to_string());
+                .insert(active_name.clone(), values.to_string());
+            self.ensure_ordered_name(&active_name);
         }
     }
 
@@ -224,14 +234,10 @@ impl EnvironmentProfiles {
 
         self.save_active(current_values);
         self.values_by_name.remove(name)?;
+        self.order.retain(|ordered_name| ordered_name != name);
 
         if self.active_name == name {
-            self.active_name = self
-                .values_by_name
-                .keys()
-                .next()
-                .cloned()
-                .unwrap_or_default();
+            self.active_name = self.ordered_names().into_iter().next().unwrap_or_default();
         }
 
         let values = self
@@ -261,11 +267,70 @@ impl EnvironmentProfiles {
         let values = self.values_by_name.remove(old_name)?;
         self.values_by_name
             .insert(new_name.to_string(), values.clone());
+        if let Some(index) = self.order.iter().position(|name| name == old_name) {
+            self.order[index] = new_name.to_string();
+        } else {
+            self.ensure_ordered_name(new_name);
+        }
         if self.active_name == old_name {
             self.active_name = new_name.to_string();
         }
 
         Some((new_name.to_string(), values))
+    }
+
+    fn move_profile(&mut self, name: &str, delta: i32, current_values: &str) -> bool {
+        let name = name.trim();
+        if name.is_empty() || delta == 0 {
+            return false;
+        }
+
+        self.save_active(current_values);
+        self.normalize_order();
+        let Some(index) = self
+            .order
+            .iter()
+            .position(|ordered_name| ordered_name == name)
+        else {
+            return false;
+        };
+        let next_index = index as i32 + delta;
+        if next_index < 0 || next_index >= self.order.len() as i32 {
+            return false;
+        }
+        self.order.swap(index, next_index as usize);
+        true
+    }
+
+    fn ordered_names(&self) -> Vec<String> {
+        let mut names = Vec::new();
+        for name in &self.order {
+            if self.values_by_name.contains_key(name) && !names.iter().any(|saved| saved == name) {
+                names.push(name.clone());
+            }
+        }
+        for name in self.values_by_name.keys() {
+            if !names.iter().any(|saved| saved == name) {
+                names.push(name.clone());
+            }
+        }
+        if !self.active_name.trim().is_empty()
+            && !names.iter().any(|saved| saved == &self.active_name)
+        {
+            names.push(self.active_name.clone());
+        }
+        names
+    }
+
+    fn normalize_order(&mut self) {
+        self.order = self.ordered_names();
+    }
+
+    fn ensure_ordered_name(&mut self, name: &str) {
+        let name = name.trim();
+        if !name.is_empty() && !self.order.iter().any(|ordered_name| ordered_name == name) {
+            self.order.push(name.to_string());
+        }
     }
 }
 
@@ -275,6 +340,7 @@ impl EnvironmentWorkspace {
             active_name: profiles.active_name.trim().to_string(),
             global_variables: global_variables.to_string(),
             values_by_name: profiles.values_by_name.clone(),
+            order: profiles.ordered_names(),
         }
     }
 }
@@ -340,14 +406,7 @@ fn refresh_environment_rows(app: &AppWindow, profiles: &Arc<Mutex<EnvironmentPro
 }
 
 fn environment_rows_model(profiles: &EnvironmentProfiles) -> ModelRc<EnvironmentRow> {
-    let mut names = profiles.values_by_name.keys().cloned().collect::<Vec<_>>();
-    if !profiles.active_name.trim().is_empty()
-        && !names.iter().any(|name| name == &profiles.active_name)
-    {
-        names.push(profiles.active_name.clone());
-    }
-    names.sort();
-
+    let names = profiles.ordered_names();
     ModelRc::new(VecModel::from_iter(names.into_iter().map(|name| {
         let values = profiles
             .values_by_name
@@ -2111,6 +2170,36 @@ fn wire_environment_actions(app: &AppWindow, initial_workspace: Option<Environme
         app.set_environment_draft_name(app.get_environment_name());
         app.set_environment_variables(values.into());
         refresh_variable_table(&app);
+        persist_environment_workspace(&app, &profiles, path.as_path());
+        refresh_environment_rows(&app, &profiles);
+    });
+
+    let weak_app = app.as_weak();
+    let profiles = environment_profiles.clone();
+    let path = environment_path.clone();
+    app.on_move_environment(move |environment, delta| {
+        let Some(app) = weak_app.upgrade() else {
+            return;
+        };
+        if app.get_busy() {
+            return;
+        }
+
+        let moved = profiles
+            .lock()
+            .map(|mut profiles| {
+                profiles.move_profile(
+                    environment.as_str(),
+                    delta,
+                    app.get_environment_variables().as_str(),
+                )
+            })
+            .unwrap_or(false);
+        if !moved {
+            app.set_activity("Environment cannot move further in that direction.".into());
+            return;
+        }
+
         persist_environment_workspace(&app, &profiles, path.as_path());
         refresh_environment_rows(&app, &profiles);
     });
@@ -6742,22 +6831,23 @@ mod tests {
         let profiles = EnvironmentProfiles {
             active_name: "prod".to_string(),
             values_by_name,
+            order: vec!["prod".to_string(), "dev".to_string()],
         };
 
         let rows = environment_rows_model(&profiles);
         assert_eq!(rows.row_count(), 2);
 
-        let dev = rows.row_data(0).expect("dev row");
-        assert_eq!(dev.name.as_str(), "dev");
-        assert_eq!(dev.label.as_str(), "Development");
-        assert_eq!(dev.detail.as_str(), "1 env variable(s)");
-        assert_eq!(dev.tone.as_str(), "inactive");
-
-        let prod = rows.row_data(1).expect("prod row");
+        let prod = rows.row_data(0).expect("prod row");
         assert_eq!(prod.name.as_str(), "prod");
         assert_eq!(prod.label.as_str(), "Production");
         assert_eq!(prod.detail.as_str(), "2 env variable(s)");
         assert_eq!(prod.tone.as_str(), "error");
+
+        let dev = rows.row_data(1).expect("dev row");
+        assert_eq!(dev.name.as_str(), "dev");
+        assert_eq!(dev.label.as_str(), "Development");
+        assert_eq!(dev.detail.as_str(), "1 env variable(s)");
+        assert_eq!(dev.tone.as_str(), "inactive");
     }
 
     #[test]
@@ -6775,6 +6865,7 @@ mod tests {
             active_name: "prod".to_string(),
             global_variables: "token=secret".to_string(),
             values_by_name,
+            order: vec!["dev".to_string(), "prod".to_string()],
         };
 
         let mut profiles = EnvironmentProfiles::from_workspace(Some(workspace), "dev", "");
@@ -6791,6 +6882,7 @@ mod tests {
         );
         assert!(!profiles.values_by_name.contains_key("dev"));
         assert_eq!(profiles.active_name, "prod");
+        assert_eq!(profiles.order, vec!["prod".to_string()]);
         assert!(profiles.delete("missing", "").is_none());
     }
 
@@ -6808,6 +6900,7 @@ mod tests {
         let mut profiles = EnvironmentProfiles {
             active_name: "dev".to_string(),
             values_by_name,
+            order: vec!["prod".to_string(), "dev".to_string()],
         };
 
         assert_eq!(
@@ -6818,6 +6911,10 @@ mod tests {
             ))
         );
         assert_eq!(profiles.active_name, "local");
+        assert_eq!(
+            profiles.order,
+            vec!["prod".to_string(), "local".to_string()]
+        );
         assert!(!profiles.values_by_name.contains_key("dev"));
         assert_eq!(
             profiles.values_by_name.get("local").map(String::as_str),
@@ -6832,6 +6929,44 @@ mod tests {
             profiles.values_by_name.get("local").map(String::as_str),
             Some("baseUrl=http://127.0.0.1:8081")
         );
+    }
+
+    #[test]
+    fn reorders_environment_profiles_and_backfills_missing_order() {
+        let workspace: EnvironmentWorkspace = serde_json::from_str(
+            r#"{
+                "active_name": "prod",
+                "global_variables": "token=secret",
+                "values_by_name": {
+                    "dev": "baseUrl=http://127.0.0.1:8080",
+                    "prod": "baseUrl=https://api.example.com",
+                    "test": "baseUrl=https://staging.example.com"
+                }
+            }"#,
+        )
+        .expect("legacy workspace");
+        let mut profiles = EnvironmentProfiles::from_workspace(Some(workspace), "dev", "");
+
+        assert_eq!(
+            profiles.order,
+            vec!["dev".to_string(), "prod".to_string(), "test".to_string()]
+        );
+        assert!(profiles.move_profile("test", -1, "baseUrl=https://api.example.com"));
+        assert_eq!(
+            profiles.order,
+            vec!["dev".to_string(), "test".to_string(), "prod".to_string()]
+        );
+        assert_eq!(
+            profiles.values_by_name.get("prod").map(String::as_str),
+            Some("baseUrl=https://api.example.com")
+        );
+        assert!(profiles.move_profile("dev", 1, "baseUrl=https://api.example.com"));
+        assert_eq!(
+            profiles.order,
+            vec!["test".to_string(), "dev".to_string(), "prod".to_string()]
+        );
+        assert!(!profiles.move_profile("test", -1, ""));
+        assert!(!profiles.move_profile("missing", 1, ""));
     }
 
     #[test]
@@ -6863,6 +6998,7 @@ mod tests {
             active_name: "prod".to_string(),
             global_variables: "token=secret".to_string(),
             values_by_name,
+            order: vec!["prod".to_string(), "dev".to_string()],
         };
 
         save_environment_workspace(&path, &workspace).expect("save env workspace");
