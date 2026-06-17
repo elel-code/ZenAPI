@@ -1009,6 +1009,43 @@ fn wire_header_helpers(app: &AppWindow) {
     });
 
     let weak_app = app.as_weak();
+    app.on_import_headers(move |path| {
+        let Some(app) = weak_app.upgrade() else {
+            return;
+        };
+        if app.get_busy() {
+            return;
+        }
+
+        match merge_key_value_file(
+            app.get_request_headers().as_str(),
+            path.as_str(),
+            "header",
+            true,
+            true,
+        ) {
+            Ok((headers, count)) => {
+                app.set_request_headers(headers.into());
+                refresh_header_rows(&app);
+                set_response(
+                    &app,
+                    "Headers imported",
+                    path.as_str(),
+                    "success",
+                    &format!("{count} header rows imported."),
+                );
+            }
+            Err(error) => set_response(
+                &app,
+                "Header import failed",
+                path.as_str(),
+                "error",
+                &error.to_string(),
+            ),
+        }
+    });
+
+    let weak_app = app.as_weak();
     app.on_add_header(move || {
         let Some(app) = weak_app.upgrade() else {
             return;
@@ -1090,6 +1127,43 @@ fn wire_query_param_actions(app: &AppWindow) {
             Err(error) => {
                 set_response(&app, "Params paste failed", "", "error", &error.to_string())
             }
+        }
+    });
+
+    let weak_app = app.as_weak();
+    app.on_import_query_params(move |path| {
+        let Some(app) = weak_app.upgrade() else {
+            return;
+        };
+        if app.get_busy() {
+            return;
+        }
+
+        match merge_key_value_file(
+            app.get_query_params().as_str(),
+            path.as_str(),
+            "query param",
+            false,
+            false,
+        ) {
+            Ok((params, count)) => {
+                app.set_query_params(params.into());
+                refresh_query_param_rows(&app);
+                set_response(
+                    &app,
+                    "Params imported",
+                    path.as_str(),
+                    "success",
+                    &format!("{count} query parameter rows imported."),
+                );
+            }
+            Err(error) => set_response(
+                &app,
+                "Params import failed",
+                path.as_str(),
+                "error",
+                &error.to_string(),
+            ),
         }
     });
 
@@ -3883,6 +3957,23 @@ fn merge_key_value_text(
     Ok((output, count))
 }
 
+fn merge_key_value_file(
+    input: &str,
+    path: &str,
+    field_name: &str,
+    case_insensitive: bool,
+    colon_output: bool,
+) -> Result<(String, usize)> {
+    let contents = read_text_file(path, &format!("{field_name} import"))?;
+    merge_key_value_text(
+        input,
+        contents.as_str(),
+        field_name,
+        case_insensitive,
+        colon_output,
+    )
+}
+
 fn delete_key_value_text(input: &str, row_id: i32) -> String {
     let mut lines = input.lines().map(str::to_string).collect::<Vec<_>>();
     let entries = key_value_ui_entries(input);
@@ -4945,6 +5036,17 @@ fn write_text_file(path: &str, contents: &str, label: &str) -> Result<()> {
         .map_err(|err| anyhow!("write {label} {}: {err}", output_path.display()))
 }
 
+fn read_text_file(path: &str, label: &str) -> Result<String> {
+    let path = path.trim();
+    if path.is_empty() {
+        bail!("{label} path is required");
+    }
+
+    let input_path = Path::new(path);
+    fs::read_to_string(input_path)
+        .map_err(|err| anyhow!("read {label} {}: {err}", input_path.display()))
+}
+
 fn pretty_json(value: &serde_json::Value) -> String {
     serde_json::to_string_pretty(value).unwrap_or_else(|_| value.to_string())
 }
@@ -5429,6 +5531,27 @@ mod tests {
                 .to_string()
                 .contains("does not contain any query param rows")
         );
+        let import_path =
+            std::env::temp_dir().join(format!("zenapi-query-import-{}.txt", std::process::id()));
+        fs::write(&import_path, "limit=50\nsort: desc").expect("write import fixture");
+        assert_eq!(
+            merge_key_value_file(
+                "search=slint\nlimit=20",
+                import_path.to_str().expect("utf-8 import path"),
+                "query param",
+                false,
+                false,
+            )
+            .expect("merge params from file"),
+            ("search=slint\nlimit=50\nsort=desc".to_string(), 2)
+        );
+        assert!(
+            merge_key_value_file("search=slint", " ", "query param", false, false)
+                .expect_err("empty import path")
+                .to_string()
+                .contains("query param import path is required")
+        );
+        let _ = fs::remove_file(import_path);
         assert_eq!(delete_key_value_text(input, 0), "# keep\nlimit=20");
     }
 

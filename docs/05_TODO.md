@@ -51,8 +51,7 @@
   controls for Params and Headers backed by line-based text storage, plus
   table-shaped line-based editors for API-key pairs. Parsing supports
   `key=value` / `key: value` plus common header presets and header clipboard
-  copy, and Params/Headers now support clipboard bulk paste; file import
-  affordances are still pending.
+  copy; Params/Headers now support clipboard bulk paste and local file import.
 - [~] Rebuild Body mode controls for none, form-data, URL-encoded, raw, GraphQL,
   and binary bodies; current Slint baseline has dedicated visible panels for
   no-body, raw text, form-data, URL-encoded, GraphQL query/variables, and
