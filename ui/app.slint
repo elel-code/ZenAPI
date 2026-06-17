@@ -4852,139 +4852,6 @@ component KeyCard inherits Rectangle {
     }
 }
 
-component TeamMemberLine inherits Rectangle {
-    in property <string> name;
-    in property <string> initial;
-    in property <string> email;
-    in property <string> role;
-    in property <bool> selected;
-
-    height: 54px;
-    horizontal-stretch: 1;
-    border-radius: 8px;
-    border-width: root.selected ? 1px : 0px;
-    border-color: Theme.primary;
-    background: root.selected ? Theme.surface_variant : touch.has-hover ? Theme.surface_container_high : transparent;
-
-    touch := TouchArea {}
-
-    Rectangle {
-        x: 10px;
-        y: 11px;
-        width: 32px;
-        height: 32px;
-        border-radius: 16px;
-        background: Theme.surface_container_highest;
-
-        UiText {
-            text: root.initial;
-            width: parent.width;
-            height: parent.height;
-            color: Theme.primary;
-            font-weight: 800;
-            horizontal-alignment: center;
-            vertical-alignment: center;
-            overflow: elide;
-        }
-    }
-
-    UiText {
-        x: 52px;
-        y: 8px;
-        text: root.name;
-        width: parent.width - 138px;
-        height: 20px;
-        color: root.selected ? Theme.primary : Theme.on_surface;
-        font-size: 13px;
-        font-weight: 800;
-        vertical-alignment: center;
-        overflow: elide;
-    }
-
-    UiText {
-        x: 52px;
-        y: 29px;
-        text: root.email;
-        width: parent.width - 138px;
-        height: 16px;
-        color: Theme.on_surface_variant;
-        font-family: "JetBrains Mono";
-        font-size: 11px;
-        vertical-alignment: center;
-        overflow: elide;
-    }
-
-    Badge {
-        x: parent.width - 76px;
-        y: 16px;
-        text: root.role;
-        badge_width: 66px;
-        tone: root.role == "Admin" ? "warning" : "neutral";
-    }
-}
-
-component PermissionCell inherits Rectangle {
-    in property <bool> checked;
-
-    width: 58px;
-    height: 34px;
-    background: transparent;
-
-    Rectangle {
-        x: 20px;
-        y: 8px;
-        width: 18px;
-        height: 18px;
-        border-radius: 4px;
-        border-width: 1px;
-        border-color: root.checked ? Theme.primary : Theme.outline_variant;
-        background: root.checked ? Theme.inverse_primary : Theme.surface_container_lowest;
-
-        UiText {
-            text: root.checked ? "Y" : "";
-            width: parent.width;
-            height: parent.height;
-            color: Theme.on_surface;
-            font-size: 10px;
-            font-weight: 800;
-            horizontal-alignment: center;
-            vertical-alignment: center;
-            overflow: elide;
-        }
-    }
-}
-
-component PermissionRow inherits Rectangle {
-    in property <string> resource;
-    in property <bool> read;
-    in property <bool> write;
-    in property <bool> delete_access;
-    in property <bool> manage;
-
-    height: 38px;
-    horizontal-stretch: 1;
-    background: touch.has-hover ? Theme.surface_container_high : transparent;
-
-    touch := TouchArea {}
-
-    UiText {
-        x: 12px;
-        text: root.resource;
-        width: parent.width - 244px;
-        height: parent.height;
-        color: Theme.on_surface;
-        font-family: "JetBrains Mono";
-        font-size: 12px;
-        vertical-alignment: center;
-        overflow: elide;
-    }
-
-    PermissionCell { x: parent.width - 232px; checked: root.read; }
-    PermissionCell { x: parent.width - 174px; checked: root.write; }
-    PermissionCell { x: parent.width - 116px; checked: root.delete_access; }
-    PermissionCell { x: parent.width - 58px; checked: root.manage; }
-}
-
 component AuditLine inherits Rectangle {
     in property <string> title;
     in property <string> meta;
@@ -5393,6 +5260,11 @@ component ApiKeysPage inherits Rectangle {
 }
 
 component TeamPage inherits Rectangle {
+    in property <string> spec_label;
+    in property <bool> spec_loaded;
+    in property <string> collection_name;
+    in property <int> route_count;
+
     horizontal-stretch: 1;
     vertical-stretch: 1;
     background: Theme.background;
@@ -5410,22 +5282,26 @@ component TeamPage inherits Rectangle {
                 spacing: 12px;
 
                 PageTitle {
-                    title: "Organization";
-                    subtitle: "Teams and groups";
+                    title: "Team";
+                    subtitle: "Local workspace";
                 }
 
-                SidebarFolderRow { label: "Engineering"; selected: false; }
-                SidebarFolderRow { label: "Backend Core"; selected: true; }
-                SidebarFolderRow { label: "Frontend"; selected: false; }
-                SidebarFolderRow { label: "Product"; selected: false; }
-                SidebarFolderRow { label: "QA"; selected: false; }
+                SidebarFolderRow {
+                    label: "Local Session";
+                    selected: true;
+                }
+
+                DataPanel {
+                    title: "Collaboration";
+                    body: "Team accounts, invites, and shared roles are not implemented in the local Slint app.";
+                }
             }
         }
 
         Rectangle { width: 1px; background: Theme.outline_variant; }
 
         Rectangle {
-            width: 340px;
+            width: 360px;
             vertical-stretch: 1;
             background: Theme.surface;
 
@@ -5438,7 +5314,7 @@ component TeamPage inherits Rectangle {
                     spacing: 8px;
 
                     UiText {
-                        text: "Backend Core";
+                        text: root.spec_loaded ? root.spec_label : "No OpenAPI Loaded";
                         horizontal-stretch: 1;
                         height: parent.height;
                         color: Theme.on_surface;
@@ -5449,10 +5325,15 @@ component TeamPage inherits Rectangle {
                     }
                 }
 
-                TeamMemberLine { name: "Alex Chen"; initial: "A"; email: "alex.chen@api.arch"; role: "Admin"; selected: true; }
-                TeamMemberLine { name: "Sarah Jenkins"; initial: "S"; email: "s.jenkins@api.arch"; role: "Editor"; selected: false; }
-                TeamMemberLine { name: "Maya Patel"; initial: "M"; email: "mpatel@api.arch"; role: "Viewer"; selected: false; }
-                TeamMemberLine { name: "Pending Invite"; initial: "P"; email: "dev@external.io"; role: "Viewer"; selected: false; }
+                DataPanel {
+                    title: "Workspace Access";
+                    body: "This workstation is local-first. Imported specs, collections, variables, request history, and mock logs are stored for the local user only.";
+                }
+
+                DataPanel {
+                    title: "Collection";
+                    body: root.collection_name == "" ? "No collection loaded." : root.collection_name;
+                }
             }
         }
 
@@ -5472,42 +5353,28 @@ component TeamPage inherits Rectangle {
                     spacing: 12px;
 
                     PageTitle {
-                        title: "Alex Chen";
-                        subtitle: "Backend Core / Global Admin";
+                        title: "Access Model";
+                        subtitle: "No remote team backend is connected.";
                     }
                 }
 
                 DataPanel {
-                    title: "Collections Access";
-                    body: "Resource permissions are scoped per collection.";
+                    title: "Current Scope";
+                    body: "Routes imported: " + root.route_count + "\nSpec: " + (root.spec_loaded ? root.spec_label : "None") + "\nCollection: " + (root.collection_name == "" ? "None" : root.collection_name);
                 }
 
-                Rectangle {
-                    height: 160px;
-                    horizontal-stretch: 1;
-                    border-radius: 8px;
-                    border-width: 1px;
-                    border-color: Theme.outline_variant;
-                    background: Theme.surface_container;
-                    clip: true;
-
-                    VerticalLayout {
-                        padding: 0px;
-                        spacing: 0px;
-
-                        PermissionRow { resource: "/users"; read: true; write: true; delete_access: false; manage: false; }
-                        PermissionRow { resource: "/payments"; read: true; write: false; delete_access: false; manage: false; }
-                        PermissionRow { resource: "/system/logs"; read: true; write: true; delete_access: true; manage: true; }
-                    }
+                DataPanel {
+                    title: "Roles";
+                    body: "No organization members or role assignments are available. Future collaboration work should add real account and permission storage before exposing controls.";
                 }
 
                 HorizontalLayout {
                     height: 126px;
                     spacing: 14px;
 
-                    DataPanel { title: "Development"; body: "Full Access"; }
-                    DataPanel { title: "Staging"; body: "Read Only"; }
-                    DataPanel { title: "Production"; body: "No Access"; }
+                    DataPanel { title: "Local Files"; body: "Read/write by current OS user."; }
+                    DataPanel { title: "Remote Sync"; body: "Not configured."; }
+                    DataPanel { title: "Invites"; body: "Not available."; }
                 }
             }
         }
@@ -6593,6 +6460,10 @@ export component AppWindow inherits Window {
                     TeamPage {
                         width: max(parent.visible-width, 1040px);
                         height: max(parent.visible-height, 620px);
+                        spec_label: root.spec_label;
+                        spec_loaded: root.spec_loaded;
+                        collection_name: root.collection_name;
+                        route_count: root.total_route_count;
                     }
                 }
 

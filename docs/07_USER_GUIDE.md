@@ -326,6 +326,12 @@ count, request history count, mock log count, and the latest response status,
 time, and size. Its traffic stream is backed by the same in-memory mock request
 log model used by the Mocks page.
 
+## Team
+
+The Team page is currently a local-only workspace overview. It shows the active
+spec, collection, and route count, and explicitly avoids account, invite, or
+role controls until a real collaboration backend exists.
+
 ## Error Feedback
 
 Import, collection import/export, request build, request send, test
