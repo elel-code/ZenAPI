@@ -1590,6 +1590,8 @@ component AuthEditorPanel inherits Rectangle {
 component RealtimeEditorPanel inherits Rectangle {
     in-out property <string> realtime_mode;
     in-out property <string> realtime_message;
+    in-out property <string> websocket_message_mode;
+    in-out property <string> websocket_protocols;
     in-out property <string> sse_max_events;
     in-out property <string> sse_last_event_id;
     in-out property <bool> sse_streaming;
@@ -1646,9 +1648,55 @@ component RealtimeEditorPanel inherits Rectangle {
             spacing: 12px;
             vertical-stretch: 1;
 
-            LabeledEditor {
-                label: "WebSocket Message";
-                text <=> root.realtime_message;
+            Rectangle {
+                horizontal-stretch: 1;
+                vertical-stretch: 1;
+                background: transparent;
+
+                VerticalLayout {
+                    padding: 0px;
+                    spacing: 10px;
+
+                    HorizontalLayout {
+                        height: 34px;
+                        spacing: 8px;
+                        alignment: center;
+
+                        BodyModeButton {
+                            mode: "text";
+                            label: "Text";
+                            button_width: 58px;
+                            selected: root.websocket_message_mode == "text";
+                            enabled: !root.busy;
+                            picked(mode) => {
+                                root.websocket_message_mode = mode;
+                            }
+                        }
+
+                        BodyModeButton {
+                            mode: "binary";
+                            label: "Binary";
+                            button_width: 72px;
+                            selected: root.websocket_message_mode == "binary";
+                            enabled: !root.busy;
+                            picked(mode) => {
+                                root.websocket_message_mode = mode;
+                            }
+                        }
+
+                        TextField {
+                            text <=> root.websocket_protocols;
+                            placeholder: "subprotocols: chat, superchat";
+                            mono: true;
+                            enabled: !root.busy;
+                        }
+                    }
+
+                    LabeledEditor {
+                        label: root.websocket_message_mode == "binary" ? "WebSocket Binary Bytes" : "WebSocket Message";
+                        text <=> root.realtime_message;
+                    }
+                }
             }
 
             Rectangle {
@@ -1704,7 +1752,7 @@ component RealtimeEditorPanel inherits Rectangle {
                     }
 
                     UiText {
-                        text: "Uses the request URL and request headers.";
+                        text: root.websocket_message_mode == "binary" ? "Binary mode sends hex bytes over an open session." : "Open uses request headers and subprotocols.";
                         horizontal-stretch: 1;
                         vertical-stretch: 1;
                         color: Theme.outline;
@@ -2147,6 +2195,8 @@ component RequestPanel inherits Rectangle {
     in-out property <[TestAssertionRow]> test_assertion_rows;
     in-out property <string> realtime_mode;
     in-out property <string> realtime_message;
+    in-out property <string> websocket_message_mode;
+    in-out property <string> websocket_protocols;
     in-out property <string> sse_max_events;
     in-out property <string> sse_last_event_id;
     in-out property <bool> sse_streaming;
@@ -5964,6 +6014,8 @@ export component AppWindow inherits Window {
     in-out property <[TestAssertionRow]> test_assertion_rows;
     in-out property <string> realtime_mode: "ws";
     in-out property <string> realtime_message: "hello";
+    in-out property <string> websocket_message_mode: "text";
+    in-out property <string> websocket_protocols: "";
     in-out property <string> sse_max_events: "3";
     in-out property <string> sse_last_event_id: "";
     in-out property <bool> sse_streaming: false;
@@ -6247,6 +6299,8 @@ export component AppWindow inherits Window {
                                     test_assertion_rows <=> root.test_assertion_rows;
                                     realtime_mode <=> root.realtime_mode;
                                     realtime_message <=> root.realtime_message;
+                                    websocket_message_mode <=> root.websocket_message_mode;
+                                    websocket_protocols <=> root.websocket_protocols;
                                     sse_max_events <=> root.sse_max_events;
                                     sse_last_event_id <=> root.sse_last_event_id;
                                     sse_streaming <=> root.sse_streaming;

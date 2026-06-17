@@ -1844,10 +1844,8 @@ fn wire_realtime_actions(app: &AppWindow, runtime: Arc<Runtime>) {
                 return;
             }
         };
-        let options = client::WebSocketSessionOptions {
-            headers,
-            protocols: Vec::new(),
-        };
+        let protocols = parse_websocket_protocols(&app.get_websocket_protocols());
+        let options = client::WebSocketSessionOptions { headers, protocols };
 
         let (command_tx, command_rx) = mpsc::unbounded_channel();
         let (event_tx, mut event_rx) = mpsc::unbounded_channel();
@@ -1925,15 +1923,32 @@ fn wire_realtime_actions(app: &AppWindow, runtime: Arc<Runtime>) {
 
         let url = app.get_url().to_string();
         let message = app.get_realtime_message().to_string();
+        let message_mode = app.get_websocket_message_mode().to_string();
         if let Some(sender) = send_session.lock().ok().and_then(|session| session.clone()) {
-            match sender.send(client::WebSocketSessionCommand::SendText(message.clone())) {
+            let command = match websocket_session_command(&message_mode, &message) {
+                Ok(command) => command,
+                Err(error) => {
+                    set_response(
+                        &app,
+                        "WebSocket send failed",
+                        "",
+                        "error",
+                        &error.to_string(),
+                    );
+                    return;
+                }
+            };
+            match sender.send(command) {
                 Ok(()) => {
                     set_response(
                         &app,
                         "WebSocket queued",
                         "",
                         "busy",
-                        &format!("Queued session message\n\n{message}"),
+                        &format!(
+                            "Queued {} session message\n\n{message}",
+                            websocket_message_mode_label(&message_mode)
+                        ),
                     );
                 }
                 Err(error) => {
@@ -1946,6 +1961,27 @@ fn wire_realtime_actions(app: &AppWindow, runtime: Arc<Runtime>) {
                     );
                 }
             }
+            return;
+        }
+
+        if normalize_websocket_message_mode(&message_mode) == "binary" {
+            set_response(
+                &app,
+                "WebSocket session required",
+                "",
+                "neutral",
+                "Open a WebSocket session before sending binary messages.",
+            );
+            return;
+        }
+        if !parse_websocket_protocols(&app.get_websocket_protocols()).is_empty() {
+            set_response(
+                &app,
+                "WebSocket session required",
+                "",
+                "neutral",
+                "Open a WebSocket session before using subprotocols.",
+            );
             return;
         }
 
@@ -3030,6 +3066,67 @@ fn parse_positive_usize(input: &str, field_name: &str) -> Result<usize> {
         bail!("{field_name} must be greater than zero");
     }
     Ok(parsed)
+}
+
+fn parse_websocket_protocols(input: &str) -> Vec<String> {
+    input
+        .split([',', '\n'])
+        .map(str::trim)
+        .filter(|protocol| !protocol.is_empty())
+        .map(str::to_string)
+        .collect()
+}
+
+fn normalize_websocket_message_mode(mode: &str) -> &'static str {
+    if mode.trim().eq_ignore_ascii_case("binary") {
+        "binary"
+    } else {
+        "text"
+    }
+}
+
+fn websocket_message_mode_label(mode: &str) -> &'static str {
+    match normalize_websocket_message_mode(mode) {
+        "binary" => "binary",
+        _ => "text",
+    }
+}
+
+fn websocket_session_command(mode: &str, message: &str) -> Result<client::WebSocketSessionCommand> {
+    match normalize_websocket_message_mode(mode) {
+        "binary" => Ok(client::WebSocketSessionCommand::SendBinary(
+            parse_websocket_binary_message(message)?,
+        )),
+        _ => Ok(client::WebSocketSessionCommand::SendText(
+            message.to_string(),
+        )),
+    }
+}
+
+fn parse_websocket_binary_message(input: &str) -> Result<Vec<u8>> {
+    let tokens = input
+        .split(|character: char| character.is_whitespace() || character == ',')
+        .map(str::trim)
+        .filter(|token| !token.is_empty())
+        .collect::<Vec<_>>();
+    if tokens.is_empty() {
+        bail!("WebSocket binary message is empty");
+    }
+
+    tokens
+        .into_iter()
+        .map(|token| {
+            let token = token
+                .strip_prefix("0x")
+                .or_else(|| token.strip_prefix("0X"))
+                .unwrap_or(token);
+            if token.is_empty() || token.len() > 2 {
+                bail!("invalid WebSocket binary byte: {token}");
+            }
+            u8::from_str_radix(token, 16)
+                .map_err(|_| anyhow!("invalid WebSocket binary byte: {token}"))
+        })
+        .collect()
 }
 
 fn format_websocket_exchange(exchange: &client::WebSocketExchange) -> String {
@@ -5582,6 +5679,32 @@ mod tests {
                 .expect_err("invalid")
                 .to_string()
                 .contains("positive integer")
+        );
+    }
+
+    #[test]
+    fn parses_websocket_protocols_and_binary_messages() {
+        assert_eq!(
+            parse_websocket_protocols("chat, superchat\ntrace"),
+            vec![
+                "chat".to_string(),
+                "superchat".to_string(),
+                "trace".to_string()
+            ]
+        );
+        assert_eq!(
+            parse_websocket_binary_message("00 01 ff,0x10").unwrap(),
+            vec![0, 1, 255, 16]
+        );
+        assert!(parse_websocket_binary_message("").is_err());
+        assert!(parse_websocket_binary_message("100").is_err());
+        assert_eq!(
+            websocket_session_command("text", "hello").unwrap(),
+            client::WebSocketSessionCommand::SendText("hello".to_string())
+        );
+        assert_eq!(
+            websocket_session_command("binary", "0a ff").unwrap(),
+            client::WebSocketSessionCommand::SendBinary(vec![10, 255])
         );
     }
 

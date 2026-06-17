@@ -195,9 +195,11 @@ controls and GraphQL schema response helpers are still future work.
 Open the Requests page, select the Realtime tab, and choose `WebSocket`. Use
 `Open` to establish a persistent `ws://` or `wss://` session, `Send` to send
 messages repeatedly, and `End` to close the connection. Request headers are
-sent during the handshake. Sent and received text messages are mirrored in the
-response viewer. Subprotocol entry, binary message controls, and dedicated
-WebSocket history actions are still future work.
+sent during the handshake, and comma- or newline-separated subprotocols are
+sent when opening a persistent session. `Text` sends normal text messages.
+`Binary` sends hex bytes such as `00 01 ff` or `0x00,0x01,0xff` over an open
+session. Sent and received messages are mirrored in the response viewer.
+Dedicated WebSocket history actions are still future work.
 
 ## SSE
 

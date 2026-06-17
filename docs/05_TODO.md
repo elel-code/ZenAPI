@@ -98,10 +98,10 @@
   assertion builders are still pending.
 - [~] Rebuild WebSocket and SSE panels using the restored client modules;
   current Slint Request Builder has a visible Realtime tab with WebSocket
-  one-shot send, persistent open/send/close text sessions, plus SSE bounded
-  previews and persistent stream/stop controls with Last-Event-ID resume plus
-  SSE event history copy/clear controls, with richer WebSocket binary/protocol
-  controls still pending.
+  one-shot text send, persistent open/send/close text and binary sessions with
+  subprotocol entry, plus SSE bounded previews and persistent stream/stop
+  controls with Last-Event-ID resume plus SSE event history copy/clear
+  controls. Dedicated WebSocket history actions are still pending.
 - [~] Add GraphQL and gRPC UI surfaces after REST parity is stable; current
   Slint baseline has GraphQL query/variables editing plus a visible Realtime
   gRPC draft surface backed by the domain model, with gRPC descriptor
@@ -140,7 +140,7 @@
 | Codegen | Domain + Slint page implemented | Dedicated page generates, copies, and saves snippets |
 | Runner | Domain + Slint page + CLI implemented | Dedicated page runs/cancels collections and saves reports; CLI remains stable |
 | Assertions/scripts | Domain implemented | Slint baseline edits, saves, restores, and evaluates native scripts/tests |
-| WebSocket/SSE | Client modules restored | Realtime tab supports one-shot and persistent WS text sends plus SSE previews, streams, history copy, and clear |
+| WebSocket/SSE | Client modules restored | Realtime tab supports one-shot WS text, persistent WS text/binary sends with subprotocols, plus SSE previews, streams, history copy, and clear |
 | Mock logs | Core implemented | Slint baseline shows, filters, clears, and exports recent mock requests |
 | GraphQL | Payload builder implemented | Slint baseline edits query/variables and applies helper templates |
 | gRPC | Domain draft model implemented | Realtime tab exposes draft surface; descriptor loading and unary transport pending |
