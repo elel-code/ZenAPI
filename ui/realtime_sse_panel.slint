@@ -1,0 +1,130 @@
+import { DataPanel } from "cards.slint";
+import { CodePane } from "editors.slint";
+import { Theme } from "theme.slint";
+import { TextField } from "text_field.slint";
+import { ActionButton } from "action_button.slint";
+import { UiText } from "widgets.slint";
+
+export component RealtimeSsePanel inherits HorizontalLayout {
+    in-out property <string> sse_max_events;
+    in-out property <string> sse_last_event_id;
+    in-out property <bool> sse_streaming;
+    in-out property <string> sse_event_history;
+    in property <bool> busy;
+    callback run_sse();
+    callback open_sse_stream();
+    callback close_sse_stream();
+    callback copy_sse_events();
+    callback clear_sse_events();
+
+    spacing: 12px;
+    vertical-stretch: 1;
+
+    Rectangle {
+        horizontal-stretch: 1;
+        vertical-stretch: 1;
+        background: transparent;
+
+        VerticalLayout {
+            padding: 0px;
+            spacing: 10px;
+
+            TextField {
+                text <=> root.sse_max_events;
+                placeholder: "Preview event count";
+                mono: true;
+                enabled: !root.busy && !root.sse_streaming;
+            }
+
+            TextField {
+                text <=> root.sse_last_event_id;
+                placeholder: "Last-Event-ID";
+                mono: true;
+                enabled: !root.busy;
+            }
+
+            if root.sse_event_history == "": DataPanel {
+                title: root.sse_streaming ? "SSE Streaming" : "SSE Preview";
+                body: "Uses the request URL and request headers.\nLast-Event-ID is updated from incoming events when available.";
+            }
+
+            if root.sse_event_history != "": CodePane {
+                text: root.sse_event_history;
+                read_only: true;
+            }
+        }
+    }
+
+    Rectangle {
+        width: 190px;
+        vertical-stretch: 1;
+        background: Theme.surface_container;
+        border-radius: 8px;
+        border-width: 1px;
+        border-color: Theme.outline_variant;
+
+        VerticalLayout {
+            padding: 14px;
+            spacing: 10px;
+
+            UiText {
+                text: "EVENT STREAM";
+                height: 20px;
+                horizontal-stretch: 1;
+                color: Theme.on_surface_variant;
+                font-size: 12px;
+                font-weight: 800;
+                vertical-alignment: center;
+                overflow: elide;
+            }
+
+            ActionButton {
+                text: "Once";
+                button_width: 162px;
+                enabled: !root.busy && !root.sse_streaming;
+                clicked => {
+                    root.run_sse();
+                }
+            }
+
+            ActionButton {
+                text: "Stream";
+                button_width: 162px;
+                primary: true;
+                enabled: !root.busy && !root.sse_streaming;
+                clicked => {
+                    root.open_sse_stream();
+                }
+            }
+
+            ActionButton {
+                text: "Stop";
+                button_width: 162px;
+                warning: true;
+                enabled: root.sse_streaming;
+                clicked => {
+                    root.close_sse_stream();
+                }
+            }
+
+            ActionButton {
+                text: "Copy";
+                button_width: 162px;
+                enabled: root.sse_event_history != "";
+                clicked => {
+                    root.copy_sse_events();
+                }
+            }
+
+            ActionButton {
+                text: "Clear";
+                button_width: 162px;
+                warning: true;
+                enabled: !root.sse_streaming && root.sse_event_history != "";
+                clicked => {
+                    root.clear_sse_events();
+                }
+            }
+        }
+    }
+}
