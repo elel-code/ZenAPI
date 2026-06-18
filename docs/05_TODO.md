@@ -198,8 +198,9 @@
   shared Key/Value table controls, shared Key/Value table row,
   request editor pane, request sidebar pane,
   sidebar rows, sidebar OpenAPI import panel, sidebar Collections panel,
-  sidebar Collections file panel, sidebar Collections tree, and sidebar History
-  panel now live in dedicated Slint files; additional large panels still need
+  sidebar Collections panel workbench, sidebar Collections file panel,
+  sidebar Collections tree, and sidebar History panel now live in dedicated
+  Slint files; additional large panels still need
   extraction.
 
 ## Phase 4: Verification And Release
