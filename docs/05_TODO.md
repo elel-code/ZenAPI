@@ -153,7 +153,7 @@
   business panel, Realtime WebSocket panel, Realtime SSE panel, Realtime gRPC
   panel, shared Key/Value table panel, Body editor panel, Body mode toolbar,
   Body content panel, Header editor panel, Auth editor panel, Auth mode toolbar,
-  Auth token panel, Scripts editor panel, Tests assertion panel,
+  Auth token panel, Auth basic panel, Scripts editor panel, Tests assertion panel,
   Tests assertion row,
   Request Builder page, Request panel, Request tab strip, Request tab content,
   Request params tab, Request headers tab,
