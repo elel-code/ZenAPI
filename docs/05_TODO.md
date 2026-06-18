@@ -169,8 +169,9 @@
   Mock Manager config panel, Mock Manager rules panel, Mock Manager traffic panel,
   request editor pane, request sidebar pane,
   sidebar rows, sidebar OpenAPI import panel, sidebar Collections panel,
-  sidebar Collections tree, and sidebar History panel now live in dedicated
-  Slint files; additional large panels still need extraction.
+  sidebar Collections file panel, sidebar Collections tree, and sidebar History
+  panel now live in dedicated Slint files; additional large panels still need
+  extraction.
 
 ## Phase 4: Verification And Release
 
