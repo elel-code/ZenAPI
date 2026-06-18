@@ -1,0 +1,91 @@
+import { Theme } from "theme.slint";
+import { ActionButton } from "action_button.slint";
+import { UiText } from "widgets.slint";
+
+export component RealtimeGrpcActionsPanel inherits Rectangle {
+    in property <string> grpc_endpoint;
+    in property <string> grpc_method;
+    in property <bool> grpc_streaming;
+    in property <bool> busy;
+    callback invoke_grpc_unary();
+    callback invoke_grpc_server_streaming();
+    callback stop_grpc_stream();
+    callback build_grpc_draft();
+    callback load_grpc_reflection();
+
+    width: 190px;
+    vertical-stretch: 1;
+    background: Theme.surface_container;
+    border-radius: 8px;
+    border-width: 1px;
+    border-color: Theme.outline_variant;
+
+    VerticalLayout {
+        padding: 14px;
+        spacing: 10px;
+
+        UiText {
+            text: "REQUEST";
+            height: 20px;
+            horizontal-stretch: 1;
+            color: Theme.on_surface_variant;
+            font-size: 12px;
+            font-weight: 800;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+
+        ActionButton {
+            text: "Invoke";
+            button_width: 162px;
+            primary: true;
+            enabled: !root.busy && !root.grpc_streaming && root.grpc_endpoint != "" && root.grpc_method != "";
+            clicked => {
+                root.invoke_grpc_unary();
+            }
+        }
+
+        ActionButton {
+            text: "Stream";
+            button_width: 162px;
+            enabled: !root.busy && !root.grpc_streaming && root.grpc_endpoint != "" && root.grpc_method != "";
+            clicked => {
+                root.invoke_grpc_server_streaming();
+            }
+        }
+
+        ActionButton {
+            text: "Stop";
+            button_width: 162px;
+            warning: true;
+            enabled: root.grpc_streaming;
+            clicked => {
+                root.stop_grpc_stream();
+            }
+        }
+
+        ActionButton {
+            text: "Build";
+            button_width: 162px;
+            enabled: !root.busy && !root.grpc_streaming;
+            clicked => {
+                root.build_grpc_draft();
+            }
+        }
+
+        ActionButton {
+            text: "Reflect";
+            button_width: 162px;
+            enabled: !root.busy && !root.grpc_streaming && root.grpc_endpoint != "";
+            clicked => {
+                root.load_grpc_reflection();
+            }
+        }
+
+        Rectangle {
+            horizontal-stretch: 1;
+            vertical-stretch: 1;
+            background: transparent;
+        }
+    }
+}

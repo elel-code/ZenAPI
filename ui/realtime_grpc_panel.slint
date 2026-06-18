@@ -1,8 +1,7 @@
 import { LabeledEditor } from "editors.slint";
-import { Theme } from "theme.slint";
 import { TextField } from "text_field.slint";
 import { ActionButton } from "action_button.slint";
-import { UiText } from "widgets.slint";
+import { RealtimeGrpcActionsPanel } from "realtime_grpc_actions_panel.slint";
 
 export component RealtimeGrpcPanel inherits HorizontalLayout {
     in-out property <string> grpc_endpoint;
@@ -140,81 +139,25 @@ export component RealtimeGrpcPanel inherits HorizontalLayout {
         }
     }
 
-    Rectangle {
-        width: 190px;
-        vertical-stretch: 1;
-        background: Theme.surface_container;
-        border-radius: 8px;
-        border-width: 1px;
-        border-color: Theme.outline_variant;
-
-        VerticalLayout {
-            padding: 14px;
-            spacing: 10px;
-
-            UiText {
-                text: "REQUEST";
-                height: 20px;
-                horizontal-stretch: 1;
-                color: Theme.on_surface_variant;
-                font-size: 12px;
-                font-weight: 800;
-                vertical-alignment: center;
-                overflow: elide;
-            }
-
-            ActionButton {
-                text: "Invoke";
-                button_width: 162px;
-                primary: true;
-                enabled: !root.busy && !root.grpc_streaming && root.grpc_endpoint != "" && root.grpc_method != "";
-                clicked => {
-                    root.invoke_grpc_unary();
-                }
-            }
-
-            ActionButton {
-                text: "Stream";
-                button_width: 162px;
-                enabled: !root.busy && !root.grpc_streaming && root.grpc_endpoint != "" && root.grpc_method != "";
-                clicked => {
-                    root.invoke_grpc_server_streaming();
-                }
-            }
-
-            ActionButton {
-                text: "Stop";
-                button_width: 162px;
-                warning: true;
-                enabled: root.grpc_streaming;
-                clicked => {
-                    root.stop_grpc_stream();
-                }
-            }
-
-            ActionButton {
-                text: "Build";
-                button_width: 162px;
-                enabled: !root.busy && !root.grpc_streaming;
-                clicked => {
-                    root.build_grpc_draft();
-                }
-            }
-
-            ActionButton {
-                text: "Reflect";
-                button_width: 162px;
-                enabled: !root.busy && !root.grpc_streaming && root.grpc_endpoint != "";
-                clicked => {
-                    root.load_grpc_reflection();
-                }
-            }
-
-            Rectangle {
-                horizontal-stretch: 1;
-                vertical-stretch: 1;
-                background: transparent;
-            }
+    RealtimeGrpcActionsPanel {
+        grpc_endpoint: root.grpc_endpoint;
+        grpc_method: root.grpc_method;
+        grpc_streaming: root.grpc_streaming;
+        busy: root.busy;
+        invoke_grpc_unary => {
+            root.invoke_grpc_unary();
+        }
+        invoke_grpc_server_streaming => {
+            root.invoke_grpc_server_streaming();
+        }
+        stop_grpc_stream => {
+            root.stop_grpc_stream();
+        }
+        build_grpc_draft => {
+            root.build_grpc_draft();
+        }
+        load_grpc_reflection => {
+            root.load_grpc_reflection();
         }
     }
 }
