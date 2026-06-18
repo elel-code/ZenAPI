@@ -4,6 +4,7 @@ import { Theme } from "theme.slint";
 import { TextField } from "text_field.slint";
 import { KeyValueTableRow } from "types.slint";
 import { AuthModeToolbar } from "auth_mode_toolbar.slint";
+import { AuthTokenPanel } from "auth_token_panel.slint";
 import { UiText } from "widgets.slint";
 
 export component AuthEditorPanel inherits Rectangle {
@@ -40,121 +41,28 @@ export component AuthEditorPanel inherits Rectangle {
             body: "Requests are sent without generated Authorization headers or API key query parameters.";
         }
 
-        if root.auth_mode == "bearer": Rectangle {
-            height: 92px;
-            horizontal-stretch: 1;
-            background: transparent;
-
-            VerticalLayout {
-                padding: 0px;
-                spacing: 8px;
-
-                UiText {
-                    text: "Bearer Token";
-                    height: 20px;
-                    horizontal-stretch: 1;
-                    color: Theme.on_surface_variant;
-                    font-size: 12px;
-                    font-weight: 800;
-                    vertical-alignment: center;
-                    overflow: elide;
-                }
-
-                TextField {
-                    text <=> root.auth_config;
-                    placeholder: "token or {{token}}";
-                    mono: true;
-                    enabled: !root.busy;
-                }
-
-                UiText {
-                    text: "Sends Authorization: Bearer <token>.";
-                    height: 18px;
-                    horizontal-stretch: 1;
-                    color: Theme.outline;
-                    font-size: 12px;
-                    vertical-alignment: center;
-                    overflow: elide;
-                }
-            }
+        if root.auth_mode == "bearer": AuthTokenPanel {
+            label: "Bearer Token";
+            token <=> root.auth_config;
+            placeholder: "token or {{token}}";
+            helper: "Sends Authorization: Bearer <token>.";
+            busy: root.busy;
         }
 
-        if root.auth_mode == "jwt": Rectangle {
-            height: 92px;
-            horizontal-stretch: 1;
-            background: transparent;
-
-            VerticalLayout {
-                padding: 0px;
-                spacing: 8px;
-
-                UiText {
-                    text: "JWT";
-                    height: 20px;
-                    horizontal-stretch: 1;
-                    color: Theme.on_surface_variant;
-                    font-size: 12px;
-                    font-weight: 800;
-                    vertical-alignment: center;
-                    overflow: elide;
-                }
-
-                TextField {
-                    text <=> root.auth_config;
-                    placeholder: "eyJhbGciOi...";
-                    mono: true;
-                    enabled: !root.busy;
-                }
-
-                UiText {
-                    text: "JWT is sent as Authorization: Bearer <token>.";
-                    height: 18px;
-                    horizontal-stretch: 1;
-                    color: Theme.outline;
-                    font-size: 12px;
-                    vertical-alignment: center;
-                    overflow: elide;
-                }
-            }
+        if root.auth_mode == "jwt": AuthTokenPanel {
+            label: "JWT";
+            token <=> root.auth_config;
+            placeholder: "eyJhbGciOi...";
+            helper: "JWT is sent as Authorization: Bearer <token>.";
+            busy: root.busy;
         }
 
-        if root.auth_mode == "oauth2": Rectangle {
-            height: 92px;
-            horizontal-stretch: 1;
-            background: transparent;
-
-            VerticalLayout {
-                padding: 0px;
-                spacing: 8px;
-
-                UiText {
-                    text: "OAuth2 Access Token";
-                    height: 20px;
-                    horizontal-stretch: 1;
-                    color: Theme.on_surface_variant;
-                    font-size: 12px;
-                    font-weight: 800;
-                    vertical-alignment: center;
-                    overflow: elide;
-                }
-
-                TextField {
-                    text <=> root.auth_config;
-                    placeholder: "access token or {{oauthToken}}";
-                    mono: true;
-                    enabled: !root.busy;
-                }
-
-                UiText {
-                    text: "Uses an existing OAuth2 access token as Authorization: Bearer <token>.";
-                    height: 18px;
-                    horizontal-stretch: 1;
-                    color: Theme.outline;
-                    font-size: 12px;
-                    vertical-alignment: center;
-                    overflow: elide;
-                }
-            }
+        if root.auth_mode == "oauth2": AuthTokenPanel {
+            label: "OAuth2 Access Token";
+            token <=> root.auth_config;
+            placeholder: "access token or {{oauthToken}}";
+            helper: "Uses an existing OAuth2 access token as Authorization: Bearer <token>.";
+            busy: root.busy;
         }
 
         if root.auth_mode == "basic": Rectangle {

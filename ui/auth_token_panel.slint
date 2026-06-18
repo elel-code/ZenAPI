@@ -1,0 +1,48 @@
+import { Theme } from "theme.slint";
+import { TextField } from "text_field.slint";
+import { UiText } from "widgets.slint";
+
+export component AuthTokenPanel inherits Rectangle {
+    in property <string> label;
+    in-out property <string> token;
+    in property <string> placeholder;
+    in property <string> helper;
+    in property <bool> busy;
+
+    height: 92px;
+    horizontal-stretch: 1;
+    background: transparent;
+
+    VerticalLayout {
+        padding: 0px;
+        spacing: 8px;
+
+        UiText {
+            text: root.label;
+            height: 20px;
+            horizontal-stretch: 1;
+            color: Theme.on_surface_variant;
+            font-size: 12px;
+            font-weight: 800;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+
+        TextField {
+            text <=> root.token;
+            placeholder: root.placeholder;
+            mono: true;
+            enabled: !root.busy;
+        }
+
+        UiText {
+            text: root.helper;
+            height: 18px;
+            horizontal-stretch: 1;
+            color: Theme.outline;
+            font-size: 12px;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+    }
+}
