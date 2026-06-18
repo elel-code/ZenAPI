@@ -4,7 +4,8 @@ import { TextField } from "text_field.slint";
 import { CollectionRow, HistoryRow, RouteRow } from "types.slint";
 import { ActionButton } from "action_button.slint";
 import { UiText } from "widgets.slint";
-import { SidebarFolderRow, SidebarHistoryLink, SidebarProfile, SidebarRequestLink } from "sidebar_rows.slint";
+import { SidebarFolderRow, SidebarProfile, SidebarRequestLink } from "sidebar_rows.slint";
+import { SidebarHistoryPanel } from "sidebar_history_panel.slint";
 
 export component Sidebar inherits Rectangle {
     in-out property <[RouteRow]> routes;
@@ -416,82 +417,21 @@ export component Sidebar inherits Rectangle {
             }
         }
 
-        Rectangle {
-            height: 148px;
-            horizontal-stretch: 1;
-            background: transparent;
-
-            VerticalLayout {
-                padding: 0px;
-                spacing: 8px;
-
-                HorizontalLayout {
-                    height: 24px;
-                    spacing: 8px;
-                    alignment: center;
-
-                    UiText {
-                        text: "HISTORY";
-                        horizontal-stretch: 1;
-                        height: parent.height;
-                        color: Theme.on_surface_variant;
-                        font-size: 12px;
-                        font-weight: 800;
-                        vertical-alignment: center;
-                        overflow: elide;
-                    }
-
-                    ActionButton {
-                        text: "...";
-                        button_width: 34px;
-                        enabled: !root.busy && root.history_rows.length > 0;
-                        clicked => {
-                            root.clear_history();
-                        }
-                    }
-                }
-
-                TextField {
-                    text <=> root.history_filter;
-                    placeholder: "filter history";
-                    mono: true;
-                    enabled: !root.busy;
-                    edited => {
-                        root.filter_history(root.history_filter);
-                    }
-                    accepted => {
-                        root.filter_history(root.history_filter);
-                    }
-                }
-
-                if root.history_rows.length == 0: UiText {
-                    text: "No requests yet";
-                    height: 26px;
-                    horizontal-stretch: 1;
-                    color: Theme.outline;
-                    font-size: 12px;
-                    vertical-alignment: center;
-                    overflow: elide;
-                }
-
-                if root.history_rows.length != 0: ListView {
-                    horizontal-stretch: 1;
-                    vertical-stretch: 1;
-                    vertical-scrollbar-policy: ScrollBarPolicy.as-needed;
-                    horizontal-scrollbar-policy: ScrollBarPolicy.as-needed;
-
-                    for entry in root.history_rows: SidebarHistoryLink {
-                        row_id: entry.id;
-                        method: entry.method;
-                        label: entry.url;
-                        picked => {
-                            root.select_history(entry.id);
-                        }
-                        delete_entry(row_id) => {
-                            root.delete_history(row_id);
-                        }
-                    }
-                }
+        SidebarHistoryPanel {
+            history_rows: root.history_rows;
+            history_filter <=> root.history_filter;
+            busy: root.busy;
+            select_history(row_id) => {
+                root.select_history(row_id);
+            }
+            filter_history(query) => {
+                root.filter_history(query);
+            }
+            delete_history(row_id) => {
+                root.delete_history(row_id);
+            }
+            clear_history => {
+                root.clear_history();
             }
         }
     }

@@ -1,0 +1,94 @@
+import { ListView } from "std-widgets.slint";
+import { Theme } from "theme.slint";
+import { ActionButton } from "action_button.slint";
+import { TextField } from "text_field.slint";
+import { HistoryRow } from "types.slint";
+import { UiText } from "widgets.slint";
+import { SidebarHistoryLink } from "sidebar_rows.slint";
+
+export component SidebarHistoryPanel inherits Rectangle {
+    in property <[HistoryRow]> history_rows;
+    in-out property <string> history_filter;
+    in property <bool> busy;
+    callback select_history(int);
+    callback filter_history(string);
+    callback delete_history(int);
+    callback clear_history();
+
+    height: 148px;
+    horizontal-stretch: 1;
+    background: transparent;
+
+    VerticalLayout {
+        padding: 0px;
+        spacing: 8px;
+
+        HorizontalLayout {
+            height: 24px;
+            spacing: 8px;
+            alignment: center;
+
+            UiText {
+                text: "HISTORY";
+                horizontal-stretch: 1;
+                height: parent.height;
+                color: Theme.on_surface_variant;
+                font-size: 12px;
+                font-weight: 800;
+                vertical-alignment: center;
+                overflow: elide;
+            }
+
+            ActionButton {
+                text: "...";
+                button_width: 34px;
+                enabled: !root.busy && root.history_rows.length > 0;
+                clicked => {
+                    root.clear_history();
+                }
+            }
+        }
+
+        TextField {
+            text <=> root.history_filter;
+            placeholder: "filter history";
+            mono: true;
+            enabled: !root.busy;
+            edited => {
+                root.filter_history(root.history_filter);
+            }
+            accepted => {
+                root.filter_history(root.history_filter);
+            }
+        }
+
+        if root.history_rows.length == 0: UiText {
+            text: "No requests yet";
+            height: 26px;
+            horizontal-stretch: 1;
+            color: Theme.outline;
+            font-size: 12px;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+
+        if root.history_rows.length != 0: ListView {
+            horizontal-stretch: 1;
+            vertical-stretch: 1;
+            vertical-scrollbar-policy: ScrollBarPolicy.as-needed;
+            horizontal-scrollbar-policy: ScrollBarPolicy.as-needed;
+
+            for entry in root.history_rows: SidebarHistoryLink {
+                row_id: entry.id;
+                method: entry.method;
+                label: entry.url;
+                picked => {
+                    root.select_history(entry.id);
+                }
+                delete_entry(row_id) => {
+                    root.delete_history(row_id);
+                }
+            }
+        }
+    }
+}
