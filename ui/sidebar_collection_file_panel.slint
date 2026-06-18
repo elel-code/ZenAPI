@@ -1,0 +1,94 @@
+import { Theme } from "theme.slint";
+import { ActionButton } from "action_button.slint";
+import { TextField } from "text_field.slint";
+import { UiText } from "widgets.slint";
+
+export component SidebarCollectionFilePanel inherits Rectangle {
+    in-out property <string> collection_path;
+    in property <string> collection_status;
+    in property <bool> busy;
+    callback import_collection(string);
+    callback pick_collection_import_file();
+    callback pick_collection_save_path();
+    callback pick_postman_collection_path();
+
+    height: 72px;
+    horizontal-stretch: 1;
+    background: transparent;
+
+    VerticalLayout {
+        padding: 0px;
+        spacing: 8px;
+
+        HorizontalLayout {
+            height: 34px;
+            spacing: 6px;
+            alignment: center;
+
+            TextField {
+                text <=> root.collection_path;
+                placeholder: "collection json";
+                mono: true;
+                enabled: !root.busy;
+                horizontal-stretch: 1;
+                accepted => {
+                    if !root.busy && root.collection_path != "" {
+                        root.import_collection(root.collection_path);
+                    }
+                }
+            }
+
+            ActionButton {
+                text: "Open";
+                button_width: 52px;
+                enabled: !root.busy;
+                clicked => {
+                    root.pick_collection_import_file();
+                }
+            }
+
+            ActionButton {
+                text: "Load";
+                button_width: 50px;
+                enabled: !root.busy && root.collection_path != "";
+                clicked => {
+                    root.import_collection(root.collection_path);
+                }
+            }
+        }
+
+        HorizontalLayout {
+            height: 30px;
+            spacing: 6px;
+            alignment: center;
+
+            UiText {
+                text: root.collection_status == "" ? "Native/Postman JSON" : root.collection_status;
+                horizontal-stretch: 1;
+                height: parent.height;
+                color: Theme.outline;
+                font-size: 11px;
+                vertical-alignment: center;
+                overflow: elide;
+            }
+
+            ActionButton {
+                text: "Save";
+                button_width: 48px;
+                enabled: !root.busy;
+                clicked => {
+                    root.pick_collection_save_path();
+                }
+            }
+
+            ActionButton {
+                text: "PM";
+                button_width: 38px;
+                enabled: !root.busy;
+                clicked => {
+                    root.pick_postman_collection_path();
+                }
+            }
+        }
+    }
+}

@@ -4,6 +4,7 @@ import { TextField } from "text_field.slint";
 import { CollectionRow, RouteRow } from "types.slint";
 import { UiText } from "widgets.slint";
 import { SidebarFolderRow } from "sidebar_rows.slint";
+import { SidebarCollectionFilePanel } from "sidebar_collection_file_panel.slint";
 import { SidebarCollectionTree } from "sidebar_collection_tree.slint";
 
 export component SidebarCollectionsPanel inherits Rectangle {
@@ -79,74 +80,21 @@ export component SidebarCollectionsPanel inherits Rectangle {
             }
         }
 
-        HorizontalLayout {
-            height: 34px;
-            spacing: 6px;
-            alignment: center;
-
-            TextField {
-                text <=> root.collection_path;
-                placeholder: "collection json";
-                mono: true;
-                enabled: !root.busy;
-                horizontal-stretch: 1;
-                accepted => {
-                    if !root.busy && root.collection_path != "" {
-                        root.import_collection(root.collection_path);
-                    }
-                }
+        SidebarCollectionFilePanel {
+            collection_path <=> root.collection_path;
+            collection_status: root.collection_status;
+            busy: root.busy;
+            import_collection(path) => {
+                root.import_collection(path);
             }
-
-            ActionButton {
-                text: "Open";
-                button_width: 52px;
-                enabled: !root.busy;
-                clicked => {
-                    root.pick_collection_import_file();
-                }
+            pick_collection_import_file => {
+                root.pick_collection_import_file();
             }
-
-            ActionButton {
-                text: "Load";
-                button_width: 50px;
-                enabled: !root.busy && root.collection_path != "";
-                clicked => {
-                    root.import_collection(root.collection_path);
-                }
+            pick_collection_save_path => {
+                root.pick_collection_save_path();
             }
-        }
-
-        HorizontalLayout {
-            height: 30px;
-            spacing: 6px;
-            alignment: center;
-
-            UiText {
-                text: root.collection_status == "" ? "Native/Postman JSON" : root.collection_status;
-                horizontal-stretch: 1;
-                height: parent.height;
-                color: Theme.outline;
-                font-size: 11px;
-                vertical-alignment: center;
-                overflow: elide;
-            }
-
-            ActionButton {
-                text: "Save";
-                button_width: 48px;
-                enabled: !root.busy;
-                clicked => {
-                    root.pick_collection_save_path();
-                }
-            }
-
-            ActionButton {
-                text: "PM";
-                button_width: 38px;
-                enabled: !root.busy;
-                clicked => {
-                    root.pick_postman_collection_path();
-                }
+            pick_postman_collection_path => {
+                root.pick_postman_collection_path();
             }
         }
 
