@@ -6319,6 +6319,9 @@ fn response_assertion_ui_fields(assertion: &ResponseAssertion) -> (String, Strin
         ResponseAssertionKind::BodyContains { text } => {
             ("body_contains".to_string(), text.clone(), String::new())
         }
+        ResponseAssertionKind::JsonPathExists { path } => {
+            ("json_path_exists".to_string(), path.clone(), String::new())
+        }
         ResponseAssertionKind::JsonPathEquals { path, value } => (
             "json_path_equals".to_string(),
             path.clone(),
@@ -6391,6 +6394,7 @@ fn test_assertion_template(template: &str) -> Option<(&'static str, &'static str
         "range" | "status_in_range" => Some(("status_in_range", "200", "299")),
         "header" | "header_equals" => Some(("header_equals", "content-type", "application/json")),
         "body" | "body_contains" => Some(("body_contains", "ok", "")),
+        "json_exists" | "json_path_exists" => Some(("json_path_exists", "data.id", "")),
         "json" | "json_path" | "json_path_equals" => Some(("json_path_equals", "data.id", "1")),
         _ => None,
     }
@@ -6404,7 +6408,8 @@ fn next_test_assertion_template(kind: &str) -> (&'static str, &'static str, &'st
             ("header_equals", "content-type", "application/json")
         }
         "header_equals" | "header=" => ("body_contains", "ok", ""),
-        "body" | "body_contains" | "body?" => ("json_path_equals", "data.id", "1"),
+        "body" | "body_contains" | "body?" => ("json_path_exists", "data.id", ""),
+        "json_exists" | "json_path_exists" | "json?" => ("json_path_equals", "data.id", "1"),
         "json" | "json_path_equals" | "json=" => ("status_equals", "200", ""),
         _ => ("status_equals", "200", ""),
     }
@@ -7485,6 +7490,9 @@ fn parse_response_assertion_line(line: &str) -> Result<ResponseAssertion> {
         "body" | "body_contains" | "body?" => ResponseAssertionKind::BodyContains {
             text: require_assertion_arg(args, kind)?,
         },
+        "json_exists" | "json_path_exists" | "json?" => ResponseAssertionKind::JsonPathExists {
+            path: require_assertion_arg(args, kind)?,
+        },
         "json" | "json_path_equals" | "json=" => {
             let (path, value) = split_first_arg(args, kind)?;
             ResponseAssertionKind::JsonPathEquals {
@@ -7630,8 +7638,8 @@ fn parse_pm_body_assertion(body: &str) -> Option<ResponseAssertionKind> {
 }
 
 fn parse_pm_json_assertion(body: &str) -> Option<ResponseAssertionKind> {
-    if let Some((path, value)) = parse_pm_json_property_assertion(body) {
-        return Some(ResponseAssertionKind::JsonPathEquals { path, value });
+    if let Some(kind) = parse_pm_json_property_assertion(body) {
+        return Some(kind);
     }
 
     let (path, after_path) = parse_pm_json_expect_subject(body)?;
@@ -7645,10 +7653,15 @@ fn parse_pm_json_assertion(body: &str) -> Option<ResponseAssertionKind> {
     } else if chain.starts_with(".to.be.null") {
         Value::Null
     } else {
-        return None;
+        return parse_pm_json_exists_assertion(path, chain);
     };
 
     Some(ResponseAssertionKind::JsonPathEquals { path, value })
+}
+
+fn parse_pm_json_exists_assertion(path: String, chain: &str) -> Option<ResponseAssertionKind> {
+    (chain.starts_with(".to.exist") || chain.starts_with(".to.not.be.undefined"))
+        .then_some(ResponseAssertionKind::JsonPathExists { path })
 }
 
 fn parse_pm_json_expect_subject(body: &str) -> Option<(String, &str)> {
@@ -7849,7 +7862,7 @@ fn parse_pm_json_assertion_value(value: &str) -> Value {
         .unwrap_or_else(|| parse_json_assertion_value(value.trim()))
 }
 
-fn parse_pm_json_property_assertion(body: &str) -> Option<(String, Value)> {
+fn parse_pm_json_property_assertion(body: &str) -> Option<ResponseAssertionKind> {
     if let Some(subject) = parse_pm_json_direct_subject(body, true) {
         if let Some(assertion) = parse_pm_json_property_from_subject(subject) {
             return Some(assertion);
@@ -7861,15 +7874,22 @@ fn parse_pm_json_property_assertion(body: &str) -> Option<(String, Value)> {
 
 fn parse_pm_json_property_from_subject(
     (base_path, after_subject): (String, &str),
-) -> Option<(String, Value)> {
+) -> Option<ResponseAssertionKind> {
     let args = call_argument_after_subject(after_subject, ".to.have.property(")?;
     let parts = split_js_arguments(args);
-    if parts.len() < 2 {
+    if parts.is_empty() {
         return None;
     }
     let property = strip_js_string_value(parts[0]);
     let path = join_json_path(&base_path, &property);
-    Some((path, parse_pm_json_assertion_value(parts[1])))
+    if let Some(value) = parts.get(1) {
+        Some(ResponseAssertionKind::JsonPathEquals {
+            path,
+            value: parse_pm_json_assertion_value(value),
+        })
+    } else {
+        Some(ResponseAssertionKind::JsonPathExists { path })
+    }
 }
 
 fn parse_pm_json_direct_subject(body: &str, allow_empty_path: bool) -> Option<(String, &str)> {
@@ -8061,6 +8081,9 @@ fn format_response_assertions(assertions: &[ResponseAssertion]) -> String {
                 format!("header_equals {name} {value}")
             }
             ResponseAssertionKind::BodyContains { text } => format!("body_contains {text}"),
+            ResponseAssertionKind::JsonPathExists { path } => {
+                format!("json_path_exists {path}")
+            }
             ResponseAssertionKind::JsonPathEquals { path, value } => {
                 format!("json_path_equals {path} {value}")
             }
@@ -9271,6 +9294,14 @@ mod tests {
             ("status_equals", "200", "")
         );
         assert_eq!(
+            next_test_assertion_template("body_contains"),
+            ("json_path_exists", "data.id", "")
+        );
+        assert_eq!(
+            next_test_assertion_template("json_path_exists"),
+            ("json_path_equals", "data.id", "1")
+        );
+        assert_eq!(
             add_test_assertion_text("status_equals 200"),
             "status_equals 200\nstatus_equals 200"
         );
@@ -9285,6 +9316,10 @@ mod tests {
         assert_eq!(
             add_test_assertion_template_text("status_equals 200", "json").unwrap(),
             "status_equals 200\njson_path_equals data.id 1"
+        );
+        assert_eq!(
+            add_test_assertion_template_text("status_equals 200", "json_exists").unwrap(),
+            "status_equals 200\njson_path_exists data.id"
         );
         assert_eq!(
             add_custom_test_assertion_text("status_equals 200", "status_in_range", "200", "299",)
@@ -9402,7 +9437,7 @@ mod tests {
     #[test]
     fn parses_and_formats_native_test_assertions() {
         let assertions = parse_response_assertions(
-            "status_equals 200\nheader_equals Content-Type application/json\njson_path_equals ok true",
+            "status_equals 200\nheader_equals Content-Type application/json\njson_path_exists data.id\njson_path_equals ok true",
         )
         .expect("assertions");
 
@@ -9421,6 +9456,12 @@ mod tests {
                     },
                 },
                 ResponseAssertion {
+                    name: "json_path_exists data.id".to_string(),
+                    kind: ResponseAssertionKind::JsonPathExists {
+                        path: "data.id".to_string(),
+                    },
+                },
+                ResponseAssertion {
                     name: "json_path_equals ok true".to_string(),
                     kind: ResponseAssertionKind::JsonPathEquals {
                         path: "ok".to_string(),
@@ -9431,7 +9472,7 @@ mod tests {
         );
         assert_eq!(
             format_response_assertions(&assertions),
-            "status_equals 200\nheader_equals Content-Type application/json\njson_path_equals ok true"
+            "status_equals 200\nheader_equals Content-Type application/json\njson_path_exists data.id\njson_path_equals ok true"
         );
     }
 
@@ -9497,6 +9538,8 @@ pm.test("body string", () => { pm.expect(pm.response.text()).to.have.string("rea
 pm.test("legacy body", () => { pm.expect(responseBody).to.contain("ok"); })
 pm.test("json bracket", () => { pm.expect(pm.response.json().data[0]["id"]).to.eql(42); })
 pm.test("json property", () => { pm.expect(pm.response.json().data).to.have.property("name", "Zen"); })
+pm.test("json property exists", () => { pm.expect(pm.response.json().data).to.have.property("name"); })
+pm.test("json exists", () => { pm.expect(pm.response.json().data.id).to.exist; })
 pm.test("json bool", () => { pm.expect(pm.response.json().ok).to.be.true; })
 pm.test("json null", () => { pm.expect(pm.response.json().error).to.be.null; })"#,
         )
@@ -9556,6 +9599,18 @@ pm.test("json null", () => { pm.expect(pm.response.json().error).to.be.null; })"
                     },
                 },
                 ResponseAssertion {
+                    name: "json property exists".to_string(),
+                    kind: ResponseAssertionKind::JsonPathExists {
+                        path: "data.name".to_string(),
+                    },
+                },
+                ResponseAssertion {
+                    name: "json exists".to_string(),
+                    kind: ResponseAssertionKind::JsonPathExists {
+                        path: "data.id".to_string(),
+                    },
+                },
+                ResponseAssertion {
                     name: "json bool".to_string(),
                     kind: ResponseAssertionKind::JsonPathEquals {
                         path: "ok".to_string(),
@@ -9579,7 +9634,8 @@ pm.test("json null", () => { pm.expect(pm.response.json().error).to.be.null; })"
             r#"pm.test("json alias equals", () => { const jsonData = pm.response.json(); pm.expect(jsonData.data.id).to.eql(42); })
 pm.test("json alias property", () => { let payload = pm.response.json(); pm.expect(payload.data).to.have.property("name", "Zen"); })
 pm.test("json alias bool", () => { var body = pm.response.json(); pm.expect(body.ok).to.be.true; })
-pm.test("json alias root property", () => { const json = pm.response.json(); pm.expect(json).to.have.property("count", 3); })"#,
+pm.test("json alias root property", () => { const json = pm.response.json(); pm.expect(json).to.have.property("count", 3); })
+pm.test("json alias exists", () => { const json = pm.response.json(); pm.expect(json.data.id).to.not.be.undefined; })"#,
         )
         .expect("pm json alias assertions");
 
@@ -9612,6 +9668,12 @@ pm.test("json alias root property", () => { const json = pm.response.json(); pm.
                     kind: ResponseAssertionKind::JsonPathEquals {
                         path: "count".to_string(),
                         value: Value::from(3),
+                    },
+                },
+                ResponseAssertion {
+                    name: "json alias exists".to_string(),
+                    kind: ResponseAssertionKind::JsonPathExists {
+                        path: "data.id".to_string(),
                     },
                 },
             ]

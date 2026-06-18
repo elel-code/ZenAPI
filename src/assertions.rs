@@ -18,6 +18,7 @@ pub enum ResponseAssertionKind {
     HeaderExists { name: String },
     HeaderEquals { name: String, value: String },
     BodyContains { text: String },
+    JsonPathExists { path: String },
     JsonPathEquals { path: String, value: Value },
 }
 
@@ -63,6 +64,14 @@ pub fn evaluate_response_assertion(
         },
         ResponseAssertionKind::BodyContains { text } => (!response.raw_body.contains(text))
             .then(|| format!("response body does not contain {text:?}")),
+        ResponseAssertionKind::JsonPathExists { path } => {
+            match serde_json::from_str::<Value>(&response.raw_body) {
+                Ok(json) => json_path_value(&json, path)
+                    .is_none()
+                    .then(|| format!("missing JSON path {path}")),
+                Err(error) => Some(format!("failed to parse response JSON: {error}")),
+            }
+        }
         ResponseAssertionKind::JsonPathEquals { path, value } => {
             match serde_json::from_str::<Value>(&response.raw_body) {
                 Ok(json) => match json_path_value(&json, path) {
@@ -150,6 +159,12 @@ mod tests {
 
     #[test]
     fn evaluates_json_path_assertions() {
+        let exists = ResponseAssertion {
+            name: "exists".to_string(),
+            kind: ResponseAssertionKind::JsonPathExists {
+                path: "user.name".to_string(),
+            },
+        };
         let passing = ResponseAssertion {
             name: "json".to_string(),
             kind: ResponseAssertionKind::JsonPathEquals {
@@ -165,6 +180,7 @@ mod tests {
             },
         };
 
+        assert!(evaluate_response_assertion(&response(), &exists).passed);
         assert!(evaluate_response_assertion(&response(), &passing).passed);
         let result = evaluate_response_assertion(&response(), &failing);
         assert!(!result.passed);
