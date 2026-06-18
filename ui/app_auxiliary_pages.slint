@@ -96,11 +96,46 @@ export component AppAuxiliaryPages inherits Rectangle {
     callback save_codegen(string);
     callback pick_codegen_path();
     callback send_request();
+    property <bool> dashboard_mounted: false;
+    property <bool> mock_manager_mounted: false;
+    property <bool> environment_mounted: false;
+    property <bool> runner_mounted: false;
+    property <bool> codegen_mounted: false;
+    property <bool> analytics_mounted: false;
+    property <bool> documentation_mounted: false;
+    property <bool> api_keys_mounted: false;
+    property <bool> team_mounted: false;
+    property <bool> settings_mounted: false;
 
     background: transparent;
     clip: true;
 
-    if root.active_page_index == 0: ScrollView {
+    changed active_page_index => {
+        if (root.active_page_index == 0) {
+            root.dashboard_mounted = true;
+        } else if (root.active_page_index == 2) {
+            root.mock_manager_mounted = true;
+        } else if (root.active_page_index == 3) {
+            root.runner_mounted = true;
+        } else if (root.active_page_index == 4) {
+            root.environment_mounted = true;
+        } else if (root.active_page_index == 5) {
+            root.analytics_mounted = true;
+        } else if (root.active_page_index == 6) {
+            root.documentation_mounted = true;
+        } else if (root.active_page_index == 7) {
+            root.api_keys_mounted = true;
+        } else if (root.active_page_index == 8) {
+            root.team_mounted = true;
+        } else if (root.active_page_index == 9) {
+            root.settings_mounted = true;
+        } else if (root.active_page_index == 10) {
+            root.codegen_mounted = true;
+        }
+    }
+
+    if root.dashboard_mounted: ScrollView {
+        visible: root.active_page_index == 0;
         width: parent.width;
         height: parent.height;
         viewport-width: max(self.visible-width, 1040px);
@@ -124,7 +159,8 @@ export component AppAuxiliaryPages inherits Rectangle {
         }
     }
 
-    if root.active_page_index == 2: ScrollView {
+    if root.mock_manager_mounted: ScrollView {
+        visible: root.active_page_index == 2;
         width: parent.width;
         height: parent.height;
         viewport-width: max(self.visible-width, 1160px);
@@ -189,7 +225,8 @@ export component AppAuxiliaryPages inherits Rectangle {
         }
     }
 
-    if root.active_page_index == 4: ScrollView {
+    if root.environment_mounted: ScrollView {
+        visible: root.active_page_index == 4;
         width: parent.width;
         height: parent.height;
         viewport-width: max(self.visible-width, 1180px);
@@ -238,7 +275,8 @@ export component AppAuxiliaryPages inherits Rectangle {
         }
     }
 
-    if root.active_page_index == 3: ScrollView {
+    if root.runner_mounted: ScrollView {
+        visible: root.active_page_index == 3;
         width: parent.width;
         height: parent.height;
         viewport-width: max(self.visible-width, 1040px);
@@ -273,7 +311,8 @@ export component AppAuxiliaryPages inherits Rectangle {
         }
     }
 
-    if root.active_page_index == 10: ScrollView {
+    if root.codegen_mounted: ScrollView {
+        visible: root.active_page_index == 10;
         width: parent.width;
         height: parent.height;
         viewport-width: max(self.visible-width, 840px);
@@ -304,7 +343,8 @@ export component AppAuxiliaryPages inherits Rectangle {
         }
     }
 
-    if root.active_page_index == 5: ScrollView {
+    if root.analytics_mounted: ScrollView {
+        visible: root.active_page_index == 5;
         width: parent.width;
         height: parent.height;
         viewport-width: max(self.visible-width, 1040px);
@@ -324,7 +364,8 @@ export component AppAuxiliaryPages inherits Rectangle {
         }
     }
 
-    if root.active_page_index == 6: ScrollView {
+    if root.documentation_mounted: ScrollView {
+        visible: root.active_page_index == 6;
         width: parent.width;
         height: parent.height;
         viewport-width: max(self.visible-width, 1040px);
@@ -350,7 +391,8 @@ export component AppAuxiliaryPages inherits Rectangle {
         }
     }
 
-    if root.active_page_index == 7: ScrollView {
+    if root.api_keys_mounted: ScrollView {
+        visible: root.active_page_index == 7;
         width: parent.width;
         height: parent.height;
         viewport-width: max(self.visible-width, 1040px);
@@ -369,7 +411,8 @@ export component AppAuxiliaryPages inherits Rectangle {
         }
     }
 
-    if root.active_page_index == 8: ScrollView {
+    if root.team_mounted: ScrollView {
+        visible: root.active_page_index == 8;
         width: parent.width;
         height: parent.height;
         viewport-width: max(self.visible-width, 1040px);
@@ -387,7 +430,8 @@ export component AppAuxiliaryPages inherits Rectangle {
         }
     }
 
-    if root.active_page_index == 9: ScrollView {
+    if root.settings_mounted: ScrollView {
+        visible: root.active_page_index == 9;
         width: parent.width;
         height: parent.height;
         viewport-width: max(self.visible-width, 1040px);
