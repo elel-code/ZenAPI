@@ -4,7 +4,7 @@ import { KeyValueTableRow, TestAssertionRow } from "types.slint";
 import { RequestAuthTabHost } from "request_auth_tab_host.slint";
 import { RequestBodyTabHost } from "request_body_tab_host.slint";
 import { RequestHeadersTab } from "request_headers_tab.slint";
-import { RequestParamsTab } from "request_params_tab.slint";
+import { RequestParamsTabHost } from "request_params_tab_host.slint";
 import { RequestRealtimeTabHost } from "request_realtime_tab_host.slint";
 import { ScriptsEditorPanel } from "scripts_panel.slint";
 
@@ -111,29 +111,29 @@ export component RequestTabContent inherits ScrollView {
         height: max(parent.visible-height, 720px);
         background: Theme.surface_container_lowest;
 
-        if root.preload_tabs || root.active_tab == "params": RequestParamsTab {
+        if root.preload_tabs || root.active_tab == "params": RequestParamsTabHost {
             visible: root.active_tab == "params";
             width: parent.width;
             height: parent.height;
-            query_param_rows <=> root.query_param_rows;
-            query_param_import_path <=> root.query_param_import_path;
-            busy: root.busy;
-            add_query_param => {
+            workspace_query_param_rows <=> root.query_param_rows;
+            workspace_query_param_import_path <=> root.query_param_import_path;
+            workspace_busy: root.busy;
+            workspace_add_query_param => {
                 root.add_query_param();
             }
-            paste_query_params => {
+            workspace_paste_query_params => {
                 root.paste_query_params();
             }
-            import_query_params(path) => {
+            workspace_import_query_params(path) => {
                 root.import_query_params(path);
             }
-            pick_query_param_import_file => {
+            workspace_pick_query_param_import_file => {
                 root.pick_query_param_import_file();
             }
-            update_query_param_row(row_id, key, value) => {
+            workspace_update_query_param_row(row_id, key, value) => {
                 root.update_query_param_row(row_id, key, value);
             }
-            delete_query_param_row(row_id) => {
+            workspace_delete_query_param_row(row_id) => {
                 root.delete_query_param_row(row_id);
             }
         }

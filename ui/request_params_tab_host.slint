@@ -1,0 +1,36 @@
+import { RequestParamsTab } from "request_params_tab.slint";
+import { KeyValueTableRow } from "types.slint";
+
+export component RequestParamsTabHost inherits RequestParamsTab {
+    in-out property <[KeyValueTableRow]> workspace_query_param_rows;
+    in-out property <string> workspace_query_param_import_path;
+    in property <bool> workspace_busy;
+    callback workspace_add_query_param();
+    callback workspace_paste_query_params();
+    callback workspace_import_query_params(string);
+    callback workspace_pick_query_param_import_file();
+    callback workspace_update_query_param_row(int, string, string);
+    callback workspace_delete_query_param_row(int);
+
+    query_param_rows <=> root.workspace_query_param_rows;
+    query_param_import_path <=> root.workspace_query_param_import_path;
+    busy: root.workspace_busy;
+    add_query_param => {
+        root.workspace_add_query_param();
+    }
+    paste_query_params => {
+        root.workspace_paste_query_params();
+    }
+    import_query_params(path) => {
+        root.workspace_import_query_params(path);
+    }
+    pick_query_param_import_file => {
+        root.workspace_pick_query_param_import_file();
+    }
+    update_query_param_row(row_id, key, value) => {
+        root.workspace_update_query_param_row(row_id, key, value);
+    }
+    delete_query_param_row(row_id) => {
+        root.workspace_delete_query_param_row(row_id);
+    }
+}
