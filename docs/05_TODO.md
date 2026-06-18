@@ -167,7 +167,8 @@
   Runner sidebar panel, Runner results panel, Runner report panel,
   Mock Manager page, Mock Manager row components, Mock Manager endpoint panel,
   Mock Manager config panel, Mock Manager rules panel, Mock Manager traffic panel,
-  shared Key/Value table row, request editor pane, request sidebar pane,
+  shared Key/Value table controls, shared Key/Value table row,
+  request editor pane, request sidebar pane,
   sidebar rows, sidebar OpenAPI import panel, sidebar Collections panel,
   sidebar Collections file panel, sidebar Collections tree, and sidebar History
   panel now live in dedicated Slint files; additional large panels still need
