@@ -1,0 +1,352 @@
+import { ListView } from "std-widgets.slint";
+import { Theme } from "theme.slint";
+import { TextField } from "text_field.slint";
+import { VariableTableRow } from "types.slint";
+import { ActionButton } from "action_button.slint";
+import { UiText } from "widgets.slint";
+
+component VariableScopePill inherits Rectangle {
+    in property <string> scope;
+
+    width: 46px;
+    height: 22px;
+    border-radius: 4px;
+    border-width: 1px;
+    border-color: root.scope == "global" ? Theme.primary : Theme.secondary;
+    background: root.scope == "global" ? #25264a : #123627;
+
+    UiText {
+        text: root.scope == "global" ? "Glb" : "Env";
+        width: parent.width;
+        height: parent.height;
+        color: root.scope == "global" ? Theme.primary : Theme.secondary;
+        font-family: "JetBrains Mono";
+        font-size: 11px;
+        font-weight: 800;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+}
+
+component EnvironmentVariableRow inherits Rectangle {
+    in property <int> row_id;
+    in property <string> scope;
+    in-out property <string> name;
+    in-out property <string> initial_value;
+    in-out property <string> current_value;
+    in property <bool> enabled: true;
+    callback edited(int, string, string, string);
+    callback delete_requested(int, string);
+
+    height: 48px;
+    horizontal-stretch: 1;
+    border-radius: 6px;
+    border-width: 1px;
+    border-color: Theme.outline_variant;
+    background: row_touch.has-hover ? Theme.surface_container_high : Theme.surface_container_low;
+
+    row_touch := TouchArea {}
+
+    TextField {
+        x: 10px;
+        y: 6px;
+        width: 142px;
+        height: 34px;
+        text <=> root.name;
+        placeholder: "VARIABLE";
+        mono: true;
+        enabled: root.enabled;
+        edited => {
+            root.edited(root.row_id, root.scope, root.name, root.current_value);
+        }
+    }
+
+    TextField {
+        x: 164px;
+        y: 6px;
+        width: 170px;
+        height: 34px;
+        text <=> root.initial_value;
+        placeholder: "Initial";
+        mono: true;
+        enabled: root.enabled;
+        edited => {
+            root.current_value = root.initial_value;
+            root.edited(root.row_id, root.scope, root.name, root.initial_value);
+        }
+    }
+
+    TextField {
+        x: 346px;
+        y: 6px;
+        width: parent.width - 472px;
+        height: 34px;
+        text <=> root.current_value;
+        placeholder: "Current";
+        mono: true;
+        enabled: root.enabled;
+        edited => {
+            root.initial_value = root.current_value;
+            root.edited(root.row_id, root.scope, root.name, root.current_value);
+        }
+    }
+
+    VariableScopePill {
+        x: parent.width - 112px;
+        y: 13px;
+        scope: root.scope;
+    }
+
+    ActionButton {
+        x: parent.width - 54px;
+        y: 7px;
+        text: "Del";
+        button_width: 44px;
+        warning: true;
+        enabled: root.enabled;
+        clicked => {
+            root.delete_requested(root.row_id, root.scope);
+        }
+    }
+}
+
+export component EnvironmentVariableTable inherits Rectangle {
+    in-out property <[VariableTableRow]> variable_rows;
+    in-out property <string> environment_name;
+    in-out property <string> environment_draft_name;
+    in property <bool> busy;
+    callback environment_name_changed(string);
+    callback add_environment(string);
+    callback rename_environment(string, string);
+    callback delete_environment(string);
+    callback update_variable_row(int, string, string, string);
+    callback add_variable(string);
+    callback delete_variable_row(int, string);
+
+    property <string> environment_label: root.environment_name == "test" ? "Staging" : root.environment_name == "prod" ? "Production" : root.environment_name == "dev" ? "Development" : root.environment_name == "local" ? "Local" : root.environment_name == "" ? "No Environment" : root.environment_name;
+
+    horizontal-stretch: 1;
+    vertical-stretch: 1;
+    background: Theme.surface;
+
+    VerticalLayout {
+        padding: 0px;
+        spacing: 0px;
+
+        Rectangle {
+            height: 88px;
+            horizontal-stretch: 1;
+            background: Theme.surface;
+
+            HorizontalLayout {
+                padding-left: 18px;
+                padding-right: 18px;
+                spacing: 12px;
+                alignment: center;
+
+                Rectangle {
+                    horizontal-stretch: 1;
+                    height: 58px;
+                    background: transparent;
+
+                    UiText {
+                        x: 0px;
+                        y: 2px;
+                        text: root.environment_label + " Variables";
+                        width: parent.width;
+                        height: 30px;
+                        color: Theme.on_surface;
+                        font-size: 22px;
+                        font-weight: 800;
+                        vertical-alignment: center;
+                        overflow: elide;
+                    }
+
+                    UiText {
+                        x: 0px;
+                        y: 34px;
+                        text: "Variable / Initial Value / Current Value / Scope";
+                        width: parent.width;
+                        height: 18px;
+                        color: Theme.on_surface_variant;
+                        font-size: 12px;
+                        vertical-alignment: center;
+                        overflow: elide;
+                    }
+                }
+
+                TextField {
+                    width: 132px;
+                    height: 34px;
+                    text <=> root.environment_draft_name;
+                    placeholder: "env name";
+                    mono: true;
+                    enabled: !root.busy;
+                    accepted => {
+                        root.environment_name_changed(root.environment_draft_name);
+                    }
+                }
+
+                ActionButton {
+                    text: "Use";
+                    button_width: 48px;
+                    enabled: !root.busy && root.environment_draft_name != "";
+                    clicked => {
+                        root.environment_name_changed(root.environment_draft_name);
+                    }
+                }
+
+                ActionButton {
+                    text: "Add";
+                    button_width: 48px;
+                    enabled: !root.busy && root.environment_draft_name != "";
+                    clicked => {
+                        root.add_environment(root.environment_draft_name);
+                    }
+                }
+
+                ActionButton {
+                    text: "Ren";
+                    button_width: 48px;
+                    enabled: !root.busy && root.environment_name != "" && root.environment_draft_name != "" && root.environment_draft_name != root.environment_name;
+                    clicked => {
+                        root.rename_environment(root.environment_name, root.environment_draft_name);
+                    }
+                }
+
+                ActionButton {
+                    text: "Del";
+                    button_width: 48px;
+                    warning: true;
+                    enabled: !root.busy && root.environment_name != "";
+                    clicked => {
+                        root.delete_environment(root.environment_name);
+                    }
+                }
+
+                ActionButton {
+                    text: "+ Global";
+                    button_width: 86px;
+                    enabled: !root.busy;
+                    clicked => {
+                        root.add_variable("global");
+                    }
+                }
+
+                ActionButton {
+                    text: "+ Env";
+                    button_width: 70px;
+                    primary: true;
+                    enabled: !root.busy && root.environment_name != "";
+                    clicked => {
+                        root.add_variable("environment");
+                    }
+                }
+            }
+        }
+
+        Rectangle {
+            height: 1px;
+            horizontal-stretch: 1;
+            background: Theme.outline_variant;
+        }
+
+        Rectangle {
+            height: 34px;
+            horizontal-stretch: 1;
+            background: Theme.surface_container_lowest;
+
+            UiText {
+                x: 28px;
+                text: "Variable";
+                width: 126px;
+                height: parent.height;
+                color: Theme.on_surface_variant;
+                font-size: 11px;
+                font-weight: 800;
+                vertical-alignment: center;
+                overflow: elide;
+            }
+
+            UiText {
+                x: 182px;
+                text: "Initial Value";
+                width: 150px;
+                height: parent.height;
+                color: Theme.on_surface_variant;
+                font-size: 11px;
+                font-weight: 800;
+                vertical-alignment: center;
+                overflow: elide;
+            }
+
+            UiText {
+                x: 364px;
+                text: "Current Value";
+                width: parent.width - 494px;
+                height: parent.height;
+                color: Theme.on_surface_variant;
+                font-size: 11px;
+                font-weight: 800;
+                vertical-alignment: center;
+                overflow: elide;
+            }
+
+            UiText {
+                x: parent.width - 112px;
+                text: "Scope";
+                width: 46px;
+                height: parent.height;
+                color: Theme.on_surface_variant;
+                font-size: 11px;
+                font-weight: 800;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+                overflow: elide;
+            }
+        }
+
+        Rectangle {
+            horizontal-stretch: 1;
+            vertical-stretch: 1;
+            background: Theme.surface;
+
+            if root.variable_rows.length == 0: UiText {
+                x: 18px;
+                y: 16px;
+                text: "No variables yet";
+                width: parent.width - 36px;
+                height: 28px;
+                color: Theme.outline;
+                font-size: 13px;
+                vertical-alignment: center;
+                overflow: elide;
+            }
+
+            if root.variable_rows.length != 0: ListView {
+                x: 18px;
+                y: 16px;
+                width: parent.width - 36px;
+                height: parent.height - 32px;
+                vertical-scrollbar-policy: ScrollBarPolicy.as-needed;
+                horizontal-scrollbar-policy: ScrollBarPolicy.as-needed;
+
+                for row in root.variable_rows: EnvironmentVariableRow {
+                    row_id: row.row_id;
+                    scope: row.scope;
+                    name: row.name;
+                    initial_value: row.initial_value;
+                    current_value: row.current_value;
+                    enabled: !root.busy;
+                    edited(row_id, scope, name, value) => {
+                        root.update_variable_row(row_id, scope, name, value);
+                    }
+                    delete_requested(row_id, scope) => {
+                        root.delete_variable_row(row_id, scope);
+                    }
+                }
+            }
+        }
+    }
+}
