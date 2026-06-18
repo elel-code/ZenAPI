@@ -1,0 +1,544 @@
+import { ScrollView } from "std-widgets.slint";
+import { Theme } from "theme.slint";
+import { CollectionRow, HistoryRow, KeyValueTableRow, RouteRow, RunnerRow, TestAssertionRow } from "types.slint";
+import { RequestBuilderEditorHost } from "request_builder_editor_host.slint";
+import { RequestBuilderResponseHost } from "request_builder_response_host.slint";
+import { RequestSidebarPane } from "request_sidebar_pane.slint";
+
+export component RequestBuilderWorkbench inherits ScrollView {
+    in-out property <[RouteRow]> routes;
+    in-out property <[CollectionRow]> collection_rows;
+    in-out property <[HistoryRow]> history_rows;
+    in-out property <[RunnerRow]> runner_rows;
+    in-out property <int> selected_route;
+    in-out property <int> selected_collection_request;
+    in-out property <string> selected_collection_folder;
+    in-out property <string> collection_move_target_label;
+    in-out property <string> collection_request_name;
+    in-out property <string> collection_folder_name;
+    in-out property <string> collection_name;
+    in-out property <string> collection_path;
+    in-out property <string> history_filter;
+    in-out property <string> file_path;
+    in-out property <string> method;
+    in-out property <string> url;
+    in-out property <string> global_variables;
+    in-out property <string> environment_name;
+    in-out property <string> environment_variables;
+    in-out property <string> query_params;
+    in-out property <[KeyValueTableRow]> query_param_rows;
+    in-out property <string> query_param_import_path;
+    in-out property <string> request_headers;
+    in-out property <[KeyValueTableRow]> header_rows;
+    in-out property <string> header_import_path;
+    in-out property <string> auth_mode;
+    in-out property <string> auth_config;
+    in-out property <string> auth_basic_username;
+    in-out property <string> auth_basic_password;
+    in-out property <[KeyValueTableRow]> auth_key_rows;
+    in-out property <string> body_mode;
+    in-out property <string> raw_body_subtype;
+    in-out property <string> request_body;
+    in-out property <[KeyValueTableRow]> body_field_rows;
+    in-out property <string> form_file_field;
+    in-out property <string> form_file_path;
+    in-out property <string> graphql_variables;
+    in-out property <string> pre_request_script;
+    in-out property <string> request_tests;
+    in-out property <[TestAssertionRow]> test_assertion_rows;
+    in-out property <string> realtime_mode;
+    in-out property <string> realtime_message;
+    in-out property <string> websocket_message_mode;
+    in-out property <string> websocket_protocols;
+    in-out property <string> websocket_event_history;
+    in-out property <string> sse_max_events;
+    in-out property <string> sse_last_event_id;
+    in-out property <bool> sse_streaming;
+    in-out property <string> sse_event_history;
+    in-out property <string> grpc_endpoint;
+    in-out property <string> grpc_method;
+    in-out property <string> grpc_metadata;
+    in-out property <string> grpc_message;
+    in-out property <string> grpc_method_catalog;
+    in-out property <string> grpc_descriptor_path;
+    in-out property <string> grpc_protoc_path;
+    in-out property <bool> grpc_streaming;
+    in-out property <string> response_body;
+    in-out property <string> response_raw_body;
+    in-out property <string> response_headers;
+    in-out property <string> response_cookies;
+    in-out property <string> folded_response_body;
+    in-out property <string> folded_response_raw_body;
+    in-out property <string> folded_response_headers;
+    in-out property <string> folded_response_cookies;
+    in-out property <string> codegen_language;
+    in-out property <string> codegen_output;
+    in-out property <string> codegen_path;
+    in-out property <string> runner_summary;
+    in-out property <string> runner_delay_ms;
+    in-out property <string> runner_report_path;
+    in-out property <string> runner_report_format;
+    in-out property <bool> runner_stop_on_failure;
+    in-out property <bool> runner_active;
+    in property <string> collection_status;
+    in property <string> spec_label;
+    in property <bool> spec_loaded;
+    in property <int> total_route_count;
+    in property <string> response_status;
+    in property <string> response_meta;
+    in property <string> response_time;
+    in property <string> response_size;
+    in property <string> response_tone;
+    in property <bool> busy;
+    callback import_openapi(string);
+    callback pick_openapi_file();
+    callback select_route(int);
+    callback select_collection_request(int);
+    callback rename_collection_request(int, string);
+    callback duplicate_collection_request(int);
+    callback delete_collection_request(int);
+    callback move_collection_request(int, string);
+    callback import_collection(string);
+    callback add_collection_folder(string);
+    callback save_current_request();
+    callback save_collection(string);
+    callback export_postman_collection(string);
+    callback pick_collection_import_file();
+    callback pick_collection_save_path();
+    callback pick_postman_collection_path();
+    callback select_history(int);
+    callback filter_history(string);
+    callback delete_history(int);
+    callback clear_history();
+    callback add_query_param();
+    callback paste_query_params();
+    callback import_query_params(string);
+    callback pick_query_param_import_file();
+    callback update_query_param_row(int, string, string);
+    callback delete_query_param_row(int);
+    callback add_header();
+    callback paste_headers();
+    callback import_headers(string);
+    callback pick_header_import_file();
+    callback update_header_row(int, string, string);
+    callback delete_header_row(int);
+    callback copy_headers();
+    callback auth_mode_changed(string);
+    callback update_basic_auth(string, string);
+    callback add_auth_key();
+    callback update_auth_key_row(int, string, string);
+    callback delete_auth_key_row(int);
+    callback body_mode_changed(string);
+    callback add_body_field();
+    callback add_body_file_field(string, string);
+    callback pick_form_file();
+    callback update_body_field_row(int, string, string);
+    callback delete_body_field_row(int);
+    callback add_test_assertion();
+    callback add_test_assertion_template(string);
+    callback add_custom_test_assertion(string, string, string);
+    callback update_test_assertion_row(int, string, string, string);
+    callback cycle_test_assertion_kind(int, string);
+    callback delete_test_assertion_row(int);
+    callback send_request();
+    callback generate_code();
+    callback save_codegen(string);
+    callback pick_codegen_path();
+    callback run_collection();
+    callback cancel_collection_run();
+    callback save_runner_report(string);
+    callback pick_runner_report_path();
+    callback copy_response(string, string, int, int);
+    callback format_response(string);
+    callback summarize_graphql_schema(string, string);
+    callback open_websocket();
+    callback run_websocket();
+    callback close_websocket();
+    callback copy_websocket_events();
+    callback clear_websocket_events();
+    callback run_sse();
+    callback open_sse_stream();
+    callback close_sse_stream();
+    callback copy_sse_events();
+    callback clear_sse_events();
+    callback apply_graphql_template(string);
+    callback apply_header_preset(string);
+    callback invoke_grpc_unary();
+    callback invoke_grpc_server_streaming();
+    callback stop_grpc_stream();
+    callback build_grpc_draft();
+    callback pick_grpc_descriptor_file();
+    callback load_grpc_descriptor_set(string);
+    callback load_grpc_proto_file(string, string);
+    callback load_grpc_reflection();
+    property <length> layout_min_width: 1240px;
+    property <length> layout_min_height: 560px;
+    property <length> sidebar_width: 240px;
+    property <length> response_width: 400px;
+    property <length> divider_width: 1px;
+    property <length> request_min_width: 560px;
+    property <length> fixed_pane_width: root.sidebar_width + root.divider_width + root.response_width + root.divider_width;
+
+    viewport-width: max(self.visible-width, root.layout_min_width);
+    viewport-height: max(self.visible-height, root.layout_min_height);
+    vertical-scrollbar-policy: ScrollBarPolicy.as-needed;
+    horizontal-scrollbar-policy: ScrollBarPolicy.as-needed;
+
+    HorizontalLayout {
+        width: max(parent.visible-width, root.layout_min_width);
+        height: max(parent.visible-height, root.layout_min_height);
+        spacing: 0px;
+
+        RequestSidebarPane {
+            width: root.sidebar_width;
+            workspace_routes <=> root.routes;
+            workspace_collection_rows <=> root.collection_rows;
+            workspace_history_rows <=> root.history_rows;
+            workspace_selected_route <=> root.selected_route;
+            workspace_selected_collection_request <=> root.selected_collection_request;
+            workspace_selected_collection_folder <=> root.selected_collection_folder;
+            workspace_collection_move_target_label <=> root.collection_move_target_label;
+            workspace_collection_request_name <=> root.collection_request_name;
+            workspace_collection_folder_name <=> root.collection_folder_name;
+            workspace_collection_name <=> root.collection_name;
+            workspace_collection_path <=> root.collection_path;
+            workspace_history_filter <=> root.history_filter;
+            workspace_file_path <=> root.file_path;
+            workspace_collection_status: root.collection_status;
+            workspace_spec_label: root.spec_label;
+            workspace_spec_loaded: root.spec_loaded;
+            workspace_total_route_count: root.total_route_count;
+            workspace_busy: root.busy;
+            workspace_import_openapi(path) => {
+                root.import_openapi(path);
+            }
+            workspace_pick_openapi_file => {
+                root.pick_openapi_file();
+            }
+            workspace_select_route(index) => {
+                root.select_route(index);
+            }
+            workspace_select_collection_request(id) => {
+                root.select_collection_request(id);
+            }
+            workspace_rename_collection_request(id, name) => {
+                root.rename_collection_request(id, name);
+            }
+            workspace_duplicate_collection_request(id) => {
+                root.duplicate_collection_request(id);
+            }
+            workspace_delete_collection_request(id) => {
+                root.delete_collection_request(id);
+            }
+            workspace_move_collection_request(id, folder_path) => {
+                root.move_collection_request(id, folder_path);
+            }
+            workspace_import_collection(path) => {
+                root.import_collection(path);
+            }
+            workspace_add_collection_folder(name) => {
+                root.add_collection_folder(name);
+            }
+            workspace_save_current_request => {
+                root.save_current_request();
+            }
+            workspace_save_collection(path) => {
+                root.save_collection(path);
+            }
+            workspace_export_postman_collection(path) => {
+                root.export_postman_collection(path);
+            }
+            workspace_pick_collection_import_file => {
+                root.pick_collection_import_file();
+            }
+            workspace_pick_collection_save_path => {
+                root.pick_collection_save_path();
+            }
+            workspace_pick_postman_collection_path => {
+                root.pick_postman_collection_path();
+            }
+            workspace_select_history(id) => {
+                root.select_history(id);
+            }
+            workspace_filter_history(query) => {
+                root.filter_history(query);
+            }
+            workspace_delete_history(id) => {
+                root.delete_history(id);
+            }
+            workspace_clear_history => {
+                root.clear_history();
+            }
+        }
+
+        Rectangle {
+            width: root.divider_width;
+            background: Theme.outline_variant;
+        }
+
+        RequestBuilderEditorHost {
+            width: max(root.request_min_width, parent.width - root.fixed_pane_width);
+            vertical-stretch: 1;
+            workspace_method <=> root.method;
+            workspace_url <=> root.url;
+            workspace_global_variables <=> root.global_variables;
+            workspace_environment_name <=> root.environment_name;
+            workspace_environment_variables <=> root.environment_variables;
+            workspace_query_params <=> root.query_params;
+            workspace_query_param_rows <=> root.query_param_rows;
+            workspace_query_param_import_path <=> root.query_param_import_path;
+            workspace_request_headers <=> root.request_headers;
+            workspace_header_rows <=> root.header_rows;
+            workspace_header_import_path <=> root.header_import_path;
+            workspace_auth_mode <=> root.auth_mode;
+            workspace_auth_config <=> root.auth_config;
+            workspace_auth_basic_username <=> root.auth_basic_username;
+            workspace_auth_basic_password <=> root.auth_basic_password;
+            workspace_auth_key_rows <=> root.auth_key_rows;
+            workspace_body_mode <=> root.body_mode;
+            workspace_raw_body_subtype <=> root.raw_body_subtype;
+            workspace_request_body <=> root.request_body;
+            workspace_body_field_rows <=> root.body_field_rows;
+            workspace_form_file_field <=> root.form_file_field;
+            workspace_form_file_path <=> root.form_file_path;
+            workspace_graphql_variables <=> root.graphql_variables;
+            workspace_pre_request_script <=> root.pre_request_script;
+            workspace_request_tests <=> root.request_tests;
+            workspace_test_assertion_rows <=> root.test_assertion_rows;
+            workspace_realtime_mode <=> root.realtime_mode;
+            workspace_realtime_message <=> root.realtime_message;
+            workspace_websocket_message_mode <=> root.websocket_message_mode;
+            workspace_websocket_protocols <=> root.websocket_protocols;
+            workspace_websocket_event_history <=> root.websocket_event_history;
+            workspace_sse_max_events <=> root.sse_max_events;
+            workspace_sse_last_event_id <=> root.sse_last_event_id;
+            workspace_sse_streaming <=> root.sse_streaming;
+            workspace_sse_event_history <=> root.sse_event_history;
+            workspace_grpc_endpoint <=> root.grpc_endpoint;
+            workspace_grpc_method <=> root.grpc_method;
+            workspace_grpc_metadata <=> root.grpc_metadata;
+            workspace_grpc_message <=> root.grpc_message;
+            workspace_grpc_method_catalog <=> root.grpc_method_catalog;
+            workspace_grpc_descriptor_path <=> root.grpc_descriptor_path;
+            workspace_grpc_protoc_path <=> root.grpc_protoc_path;
+            workspace_grpc_streaming <=> root.grpc_streaming;
+            workspace_busy: root.busy;
+            workspace_send_request => {
+                root.send_request();
+            }
+            workspace_add_query_param => {
+                root.add_query_param();
+            }
+            workspace_paste_query_params => {
+                root.paste_query_params();
+            }
+            workspace_import_query_params(path) => {
+                root.import_query_params(path);
+            }
+            workspace_pick_query_param_import_file => {
+                root.pick_query_param_import_file();
+            }
+            workspace_update_query_param_row(row_id, key, value) => {
+                root.update_query_param_row(row_id, key, value);
+            }
+            workspace_delete_query_param_row(row_id) => {
+                root.delete_query_param_row(row_id);
+            }
+            workspace_add_header => {
+                root.add_header();
+            }
+            workspace_paste_headers => {
+                root.paste_headers();
+            }
+            workspace_import_headers(path) => {
+                root.import_headers(path);
+            }
+            workspace_pick_header_import_file => {
+                root.pick_header_import_file();
+            }
+            workspace_update_header_row(row_id, key, value) => {
+                root.update_header_row(row_id, key, value);
+            }
+            workspace_delete_header_row(row_id) => {
+                root.delete_header_row(row_id);
+            }
+            workspace_copy_headers => {
+                root.copy_headers();
+            }
+            workspace_auth_mode_changed(mode) => {
+                root.auth_mode_changed(mode);
+            }
+            workspace_update_basic_auth(username, password) => {
+                root.update_basic_auth(username, password);
+            }
+            workspace_add_auth_key => {
+                root.add_auth_key();
+            }
+            workspace_update_auth_key_row(row_id, key, value) => {
+                root.update_auth_key_row(row_id, key, value);
+            }
+            workspace_delete_auth_key_row(row_id) => {
+                root.delete_auth_key_row(row_id);
+            }
+            workspace_body_mode_changed(mode) => {
+                root.body_mode_changed(mode);
+            }
+            workspace_add_body_field => {
+                root.add_body_field();
+            }
+            workspace_add_body_file_field(field, path) => {
+                root.add_body_file_field(field, path);
+            }
+            workspace_pick_form_file => {
+                root.pick_form_file();
+            }
+            workspace_update_body_field_row(row_id, key, value) => {
+                root.update_body_field_row(row_id, key, value);
+            }
+            workspace_delete_body_field_row(row_id) => {
+                root.delete_body_field_row(row_id);
+            }
+            workspace_add_test_assertion => {
+                root.add_test_assertion();
+            }
+            workspace_add_test_assertion_template(template) => {
+                root.add_test_assertion_template(template);
+            }
+            workspace_add_custom_test_assertion(kind, target, expected) => {
+                root.add_custom_test_assertion(kind, target, expected);
+            }
+            workspace_update_test_assertion_row(row_id, kind, target, expected) => {
+                root.update_test_assertion_row(row_id, kind, target, expected);
+            }
+            workspace_cycle_test_assertion_kind(row_id, kind) => {
+                root.cycle_test_assertion_kind(row_id, kind);
+            }
+            workspace_delete_test_assertion_row(row_id) => {
+                root.delete_test_assertion_row(row_id);
+            }
+            workspace_open_websocket => {
+                root.open_websocket();
+            }
+            workspace_run_websocket => {
+                root.run_websocket();
+            }
+            workspace_close_websocket => {
+                root.close_websocket();
+            }
+            workspace_copy_websocket_events => {
+                root.copy_websocket_events();
+            }
+            workspace_clear_websocket_events => {
+                root.clear_websocket_events();
+            }
+            workspace_run_sse => {
+                root.run_sse();
+            }
+            workspace_open_sse_stream => {
+                root.open_sse_stream();
+            }
+            workspace_close_sse_stream => {
+                root.close_sse_stream();
+            }
+            workspace_copy_sse_events => {
+                root.copy_sse_events();
+            }
+            workspace_clear_sse_events => {
+                root.clear_sse_events();
+            }
+            workspace_invoke_grpc_unary => {
+                root.invoke_grpc_unary();
+            }
+            workspace_invoke_grpc_server_streaming => {
+                root.invoke_grpc_server_streaming();
+            }
+            workspace_stop_grpc_stream => {
+                root.stop_grpc_stream();
+            }
+            workspace_apply_graphql_template(template) => {
+                root.apply_graphql_template(template);
+            }
+            workspace_apply_header_preset(preset) => {
+                root.apply_header_preset(preset);
+            }
+            workspace_build_grpc_draft => {
+                root.build_grpc_draft();
+            }
+            workspace_pick_grpc_descriptor_file => {
+                root.pick_grpc_descriptor_file();
+            }
+            workspace_load_grpc_descriptor_set(path) => {
+                root.load_grpc_descriptor_set(path);
+            }
+            workspace_load_grpc_proto_file(path, protoc_path) => {
+                root.load_grpc_proto_file(path, protoc_path);
+            }
+            workspace_load_grpc_reflection => {
+                root.load_grpc_reflection();
+            }
+        }
+
+        Rectangle {
+            width: root.divider_width;
+            background: Theme.outline_variant;
+        }
+
+        RequestBuilderResponseHost {
+            width: root.response_width;
+            workspace_response_body <=> root.response_body;
+            workspace_response_raw_body <=> root.response_raw_body;
+            workspace_response_headers <=> root.response_headers;
+            workspace_response_cookies <=> root.response_cookies;
+            workspace_folded_response_body <=> root.folded_response_body;
+            workspace_folded_response_raw_body <=> root.folded_response_raw_body;
+            workspace_folded_response_headers <=> root.folded_response_headers;
+            workspace_folded_response_cookies <=> root.folded_response_cookies;
+            workspace_codegen_language <=> root.codegen_language;
+            workspace_codegen_output <=> root.codegen_output;
+            workspace_codegen_path <=> root.codegen_path;
+            workspace_runner_rows <=> root.runner_rows;
+            workspace_runner_summary <=> root.runner_summary;
+            workspace_runner_delay_ms <=> root.runner_delay_ms;
+            workspace_runner_report_path <=> root.runner_report_path;
+            workspace_runner_report_format <=> root.runner_report_format;
+            workspace_runner_stop_on_failure <=> root.runner_stop_on_failure;
+            workspace_runner_active <=> root.runner_active;
+            workspace_response_status: root.response_status;
+            workspace_response_meta: root.response_meta;
+            workspace_response_time: root.response_time;
+            workspace_response_size: root.response_size;
+            workspace_response_tone: root.response_tone;
+            workspace_busy: root.busy;
+            workspace_generate_code => {
+                root.generate_code();
+            }
+            workspace_save_codegen(path) => {
+                root.save_codegen(path);
+            }
+            workspace_pick_codegen_path => {
+                root.pick_codegen_path();
+            }
+            workspace_run_collection => {
+                root.run_collection();
+            }
+            workspace_cancel_collection_run => {
+                root.cancel_collection_run();
+            }
+            workspace_save_runner_report(path) => {
+                root.save_runner_report(path);
+            }
+            workspace_pick_runner_report_path => {
+                root.pick_runner_report_path();
+            }
+            workspace_copy_response(tab, text, anchor, cursor) => {
+                root.copy_response(tab, text, anchor, cursor);
+            }
+            workspace_format_response(tab) => {
+                root.format_response(tab);
+            }
+            workspace_summarize_graphql_schema(tab, text) => {
+                root.summarize_graphql_schema(tab, text);
+            }
+        }
+    }
+}
