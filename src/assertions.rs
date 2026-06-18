@@ -19,6 +19,7 @@ pub enum ResponseAssertionKind {
     HeaderEquals { name: String, value: String },
     BodyContains { text: String },
     JsonPathExists { path: String },
+    JsonPathType { path: String, value_type: String },
     JsonPathEquals { path: String, value: Value },
 }
 
@@ -68,7 +69,24 @@ pub fn evaluate_response_assertion(
             match serde_json::from_str::<Value>(&response.raw_body) {
                 Ok(json) => json_path_value(&json, path)
                     .is_none()
-                    .then(|| format!("missing JSON path {path}")),
+                    .then(|| format!("missing JSON path {}", display_json_path(path))),
+                Err(error) => Some(format!("failed to parse response JSON: {error}")),
+            }
+        }
+        ResponseAssertionKind::JsonPathType { path, value_type } => {
+            match serde_json::from_str::<Value>(&response.raw_body) {
+                Ok(json) => match normalize_json_value_type(value_type) {
+                    Some(expected) => match json_path_value(&json, path) {
+                        Some(actual) if json_value_type(actual) == expected => None,
+                        Some(actual) => Some(format!(
+                            "expected JSON path {} to be {expected}, got {}",
+                            display_json_path(path),
+                            json_value_type(actual)
+                        )),
+                        None => Some(format!("missing JSON path {}", display_json_path(path))),
+                    },
+                    None => Some(format!("unsupported JSON value type {value_type}")),
+                },
                 Err(error) => Some(format!("failed to parse response JSON: {error}")),
             }
         }
@@ -77,9 +95,10 @@ pub fn evaluate_response_assertion(
                 Ok(json) => match json_path_value(&json, path) {
                     Some(actual) if actual == value => None,
                     Some(actual) => Some(format!(
-                        "expected JSON path {path} to equal {value}, got {actual}"
+                        "expected JSON path {} to equal {value}, got {actual}",
+                        display_json_path(path)
                     )),
-                    None => Some(format!("missing JSON path {path}")),
+                    None => Some(format!("missing JSON path {}", display_json_path(path))),
                 },
                 Err(error) => Some(format!("failed to parse response JSON: {error}")),
             }
@@ -103,6 +122,10 @@ fn find_header<'a>(response: &'a ClientResponse, name: &str) -> Option<&'a str> 
 
 fn json_path_value<'a>(value: &'a Value, path: &str) -> Option<&'a Value> {
     let mut current = value;
+    let path = normalize_json_path(path);
+    if path.is_empty() {
+        return Some(current);
+    }
 
     for segment in path.split('.').filter(|segment| !segment.is_empty()) {
         current = if let Ok(index) = segment.parse::<usize>() {
@@ -113,6 +136,44 @@ fn json_path_value<'a>(value: &'a Value, path: &str) -> Option<&'a Value> {
     }
 
     Some(current)
+}
+
+fn normalize_json_path(path: &str) -> &str {
+    let path = path.trim();
+    if path.is_empty() || path == "$" || path == "." {
+        return "";
+    }
+    path.strip_prefix("$.")
+        .or_else(|| path.strip_prefix('.'))
+        .unwrap_or(path)
+}
+
+fn display_json_path(path: &str) -> &str {
+    let path = path.trim();
+    if path.is_empty() { "$" } else { path }
+}
+
+fn normalize_json_value_type(value_type: &str) -> Option<&'static str> {
+    match value_type.trim().to_ascii_lowercase().as_str() {
+        "array" => Some("array"),
+        "bool" | "boolean" => Some("boolean"),
+        "integer" | "int" | "number" | "num" => Some("number"),
+        "null" => Some("null"),
+        "object" => Some("object"),
+        "string" | "str" => Some("string"),
+        _ => None,
+    }
+}
+
+fn json_value_type(value: &Value) -> &'static str {
+    match value {
+        Value::Array(_) => "array",
+        Value::Bool(_) => "boolean",
+        Value::Null => "null",
+        Value::Number(_) => "number",
+        Value::Object(_) => "object",
+        Value::String(_) => "string",
+    }
 }
 
 #[cfg(test)]
@@ -172,6 +233,13 @@ mod tests {
                 value: Value::from(1),
             },
         };
+        let typed = ResponseAssertion {
+            name: "type".to_string(),
+            kind: ResponseAssertionKind::JsonPathType {
+                path: "$.items".to_string(),
+                value_type: "array".to_string(),
+            },
+        };
         let failing = ResponseAssertion {
             name: "wrong".to_string(),
             kind: ResponseAssertionKind::JsonPathEquals {
@@ -182,6 +250,7 @@ mod tests {
 
         assert!(evaluate_response_assertion(&response(), &exists).passed);
         assert!(evaluate_response_assertion(&response(), &passing).passed);
+        assert!(evaluate_response_assertion(&response(), &typed).passed);
         let result = evaluate_response_assertion(&response(), &failing);
         assert!(!result.passed);
         assert!(
