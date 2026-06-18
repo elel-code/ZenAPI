@@ -155,6 +155,7 @@
   Auth editor panel, Scripts editor panel, Tests assertion panel,
   Tests assertion row,
   Request Builder page, Request panel, Request tab strip, Request tab content,
+  Request params tab,
   Response panel, Response header strip, Response tab strip, Response toolbar,
   Response viewer, Sidebar, App navigation, Address bar,
   Dashboard page, Codegen page, Settings page, Team page, API Keys page,
