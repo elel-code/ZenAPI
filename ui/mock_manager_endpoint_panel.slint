@@ -1,0 +1,55 @@
+import { ListView } from "std-widgets.slint";
+import { Theme } from "theme.slint";
+import { RouteRow } from "types.slint";
+import { MockRouteLine } from "mock_manager_components.slint";
+import { UiText } from "widgets.slint";
+
+export component MockManagerEndpointPanel inherits Rectangle {
+    in property <[RouteRow]> routes;
+    in-out property <int> selected_route;
+    callback select_route(int);
+
+    width: 288px;
+    vertical-stretch: 1;
+    background: Theme.surface;
+
+    VerticalLayout {
+        padding: 0px;
+        spacing: 0px;
+
+        Rectangle {
+            height: 56px;
+            horizontal-stretch: 1;
+            background: Theme.surface_container_lowest;
+
+            UiText {
+                x: 16px;
+                text: "ENDPOINTS";
+                width: parent.width - 56px;
+                height: parent.height;
+                color: Theme.on_surface;
+                font-size: 12px;
+                font-weight: 800;
+                vertical-alignment: center;
+                overflow: elide;
+            }
+        }
+
+        ListView {
+            horizontal-stretch: 1;
+            vertical-stretch: 1;
+            vertical-scrollbar-policy: ScrollBarPolicy.as-needed;
+            horizontal-scrollbar-policy: ScrollBarPolicy.as-needed;
+
+            for route[i] in root.routes: MockRouteLine {
+                method: route.method;
+                path: route.path;
+                selected: root.selected_route == i;
+                picked => {
+                    root.selected_route = i;
+                    root.select_route(i);
+                }
+            }
+        }
+    }
+}

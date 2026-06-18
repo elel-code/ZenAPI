@@ -1,11 +1,11 @@
-import { ListView } from "std-widgets.slint";
 import { CodePane } from "editors.slint";
 import { Theme } from "theme.slint";
 import { MockLogRow, MockRuleRow, RouteRow } from "types.slint";
 import { ActionButton } from "action_button.slint";
 import { MethodChip } from "status_components.slint";
 import { UiText } from "widgets.slint";
-import { MockConfigField, MockRouteLine } from "mock_manager_components.slint";
+import { MockConfigField } from "mock_manager_components.slint";
+import { MockManagerEndpointPanel } from "mock_manager_endpoint_panel.slint";
 import { MockManagerRulesPanel } from "mock_manager_rules_panel.slint";
 import { MockManagerTrafficPanel } from "mock_manager_traffic_panel.slint";
 
@@ -47,49 +47,11 @@ export component MockManagerPage inherits Rectangle {
     HorizontalLayout {
         spacing: 0px;
 
-        Rectangle {
-            width: 288px;
-            vertical-stretch: 1;
-            background: Theme.surface;
-
-            VerticalLayout {
-                padding: 0px;
-                spacing: 0px;
-
-                Rectangle {
-                    height: 56px;
-                    horizontal-stretch: 1;
-                    background: Theme.surface_container_lowest;
-
-                    UiText {
-                        x: 16px;
-                        text: "ENDPOINTS";
-                        width: parent.width - 56px;
-                        height: parent.height;
-                        color: Theme.on_surface;
-                        font-size: 12px;
-                        font-weight: 800;
-                        vertical-alignment: center;
-                        overflow: elide;
-                    }
-                }
-
-                ListView {
-                    horizontal-stretch: 1;
-                    vertical-stretch: 1;
-                    vertical-scrollbar-policy: ScrollBarPolicy.as-needed;
-                    horizontal-scrollbar-policy: ScrollBarPolicy.as-needed;
-
-                    for route[i] in root.routes: MockRouteLine {
-                        method: route.method;
-                        path: route.path;
-                        selected: root.selected_route == i;
-                        picked => {
-                            root.selected_route = i;
-                            root.select_route(i);
-                        }
-                    }
-                }
+        MockManagerEndpointPanel {
+            routes: root.routes;
+            selected_route <=> root.selected_route;
+            select_route(index) => {
+                root.select_route(index);
             }
         }
 
