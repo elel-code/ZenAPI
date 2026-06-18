@@ -6,6 +6,7 @@ import { ActionButton } from "action_button.slint";
 import { UiText } from "widgets.slint";
 import { SidebarFolderRow, SidebarProfile, SidebarRequestLink } from "sidebar_rows.slint";
 import { SidebarHistoryPanel } from "sidebar_history_panel.slint";
+import { SidebarOpenApiPanel } from "sidebar_openapi_panel.slint";
 
 export component Sidebar inherits Rectangle {
     in-out property <[RouteRow]> routes;
@@ -60,63 +61,14 @@ export component Sidebar inherits Rectangle {
             subtitle: root.spec_loaded ? "OpenAPI imported" : "No OpenAPI loaded";
         }
 
-        Rectangle {
-            height: 72px;
-            horizontal-stretch: 1;
-            background: transparent;
-
-            VerticalLayout {
-                padding: 0px;
-                spacing: 8px;
-
-                UiText {
-                    text: "OPENAPI";
-                    height: 18px;
-                    horizontal-stretch: 1;
-                    color: Theme.on_surface_variant;
-                    font-size: 12px;
-                    font-weight: 800;
-                    vertical-alignment: center;
-                    overflow: elide;
-                }
-
-                HorizontalLayout {
-                    height: 36px;
-                    spacing: 8px;
-                    alignment: center;
-
-                    TextField {
-                        text <=> root.file_path;
-                        placeholder: "spec path";
-                        mono: true;
-                        enabled: !root.busy;
-                        horizontal-stretch: 1;
-                        accepted => {
-                            if !root.busy && root.file_path != "" {
-                                root.import_openapi(root.file_path);
-                            }
-                        }
-                    }
-
-                    ActionButton {
-                        text: "Open";
-                        enabled: !root.busy;
-                        button_width: 54px;
-                        clicked => {
-                            root.pick_openapi_file();
-                        }
-                    }
-
-                    ActionButton {
-                        text: "Import";
-                        primary: true;
-                        enabled: !root.busy && root.file_path != "";
-                        button_width: 66px;
-                        clicked => {
-                            root.import_openapi(root.file_path);
-                        }
-                    }
-                }
+        SidebarOpenApiPanel {
+            file_path <=> root.file_path;
+            busy: root.busy;
+            import_openapi(path) => {
+                root.import_openapi(path);
+            }
+            pick_openapi_file => {
+                root.pick_openapi_file();
             }
         }
 
