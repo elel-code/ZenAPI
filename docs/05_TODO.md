@@ -159,7 +159,7 @@
   Auth API key panel, Scripts editor panel, Tests assertion panel,
   Tests assertion row,
   Request Builder page, Request Builder workbench, Request panel,
-  Request tab strip,
+  Request panel workbench, Request tab strip,
   Request builder editor host,
   Request builder response host,
   Request tab content with preloaded tab switching,
