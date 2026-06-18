@@ -3,9 +3,9 @@ import { Theme } from "theme.slint";
 import { KeyValueTableRow, TestAssertionRow } from "types.slint";
 import { AuthEditorPanel } from "auth_panel.slint";
 import { BodyEditorPanel } from "body_panel.slint";
-import { RealtimeEditorPanel } from "realtime_editor_panel.slint";
 import { RequestHeadersTab } from "request_headers_tab.slint";
 import { RequestParamsTab } from "request_params_tab.slint";
+import { RequestRealtimeTab } from "request_realtime_tab.slint";
 import { ScriptsEditorPanel } from "scripts_panel.slint";
 
 export component RequestTabContent inherits ScrollView {
@@ -231,11 +231,9 @@ export component RequestTabContent inherits ScrollView {
             }
         }
 
-        if root.active_tab == "realtime": RealtimeEditorPanel {
-            x: 16px;
-            y: 16px;
-            width: parent.width - 32px;
-            height: parent.height - 32px;
+        if root.active_tab == "realtime": RequestRealtimeTab {
+            width: parent.width;
+            height: parent.height;
             realtime_mode <=> root.realtime_mode;
             realtime_message <=> root.realtime_message;
             websocket_message_mode <=> root.websocket_message_mode;

@@ -1,0 +1,123 @@
+import { RealtimeEditorPanel } from "realtime_editor_panel.slint";
+
+export component RequestRealtimeTab inherits Rectangle {
+    in-out property <string> realtime_mode;
+    in-out property <string> realtime_message;
+    in-out property <string> websocket_message_mode;
+    in-out property <string> websocket_protocols;
+    in-out property <string> websocket_event_history;
+    in-out property <string> sse_max_events;
+    in-out property <string> sse_last_event_id;
+    in-out property <bool> sse_streaming;
+    in-out property <string> sse_event_history;
+    in-out property <string> grpc_endpoint;
+    in-out property <string> grpc_method;
+    in-out property <string> grpc_metadata;
+    in-out property <string> grpc_message;
+    in-out property <string> grpc_method_catalog;
+    in-out property <string> grpc_descriptor_path;
+    in-out property <string> grpc_protoc_path;
+    in-out property <bool> grpc_streaming;
+    in property <bool> busy;
+    callback open_websocket();
+    callback run_websocket();
+    callback close_websocket();
+    callback copy_websocket_events();
+    callback clear_websocket_events();
+    callback run_sse();
+    callback open_sse_stream();
+    callback close_sse_stream();
+    callback copy_sse_events();
+    callback clear_sse_events();
+    callback invoke_grpc_unary();
+    callback invoke_grpc_server_streaming();
+    callback stop_grpc_stream();
+    callback build_grpc_draft();
+    callback pick_grpc_descriptor_file();
+    callback load_grpc_descriptor_set(string);
+    callback load_grpc_proto_file(string, string);
+    callback load_grpc_reflection();
+
+    horizontal-stretch: 1;
+    vertical-stretch: 1;
+    background: transparent;
+
+    RealtimeEditorPanel {
+        x: 16px;
+        y: 16px;
+        width: parent.width - 32px;
+        height: parent.height - 32px;
+        realtime_mode <=> root.realtime_mode;
+        realtime_message <=> root.realtime_message;
+        websocket_message_mode <=> root.websocket_message_mode;
+        websocket_protocols <=> root.websocket_protocols;
+        websocket_event_history <=> root.websocket_event_history;
+        sse_max_events <=> root.sse_max_events;
+        sse_last_event_id <=> root.sse_last_event_id;
+        sse_streaming <=> root.sse_streaming;
+        sse_event_history <=> root.sse_event_history;
+        grpc_endpoint <=> root.grpc_endpoint;
+        grpc_method <=> root.grpc_method;
+        grpc_metadata <=> root.grpc_metadata;
+        grpc_message <=> root.grpc_message;
+        grpc_method_catalog <=> root.grpc_method_catalog;
+        grpc_descriptor_path <=> root.grpc_descriptor_path;
+        grpc_protoc_path <=> root.grpc_protoc_path;
+        grpc_streaming <=> root.grpc_streaming;
+        busy: root.busy;
+        open_websocket => {
+            root.open_websocket();
+        }
+        run_websocket => {
+            root.run_websocket();
+        }
+        close_websocket => {
+            root.close_websocket();
+        }
+        copy_websocket_events => {
+            root.copy_websocket_events();
+        }
+        clear_websocket_events => {
+            root.clear_websocket_events();
+        }
+        run_sse => {
+            root.run_sse();
+        }
+        open_sse_stream => {
+            root.open_sse_stream();
+        }
+        close_sse_stream => {
+            root.close_sse_stream();
+        }
+        copy_sse_events => {
+            root.copy_sse_events();
+        }
+        clear_sse_events => {
+            root.clear_sse_events();
+        }
+        invoke_grpc_unary => {
+            root.invoke_grpc_unary();
+        }
+        invoke_grpc_server_streaming => {
+            root.invoke_grpc_server_streaming();
+        }
+        stop_grpc_stream => {
+            root.stop_grpc_stream();
+        }
+        build_grpc_draft => {
+            root.build_grpc_draft();
+        }
+        pick_grpc_descriptor_file => {
+            root.pick_grpc_descriptor_file();
+        }
+        load_grpc_descriptor_set(path) => {
+            root.load_grpc_descriptor_set(path);
+        }
+        load_grpc_proto_file(path, protoc_path) => {
+            root.load_grpc_proto_file(path, protoc_path);
+        }
+        load_grpc_reflection => {
+            root.load_grpc_reflection();
+        }
+    }
+}
