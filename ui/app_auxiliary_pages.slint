@@ -100,8 +100,7 @@ export component AppAuxiliaryPages inherits Rectangle {
     background: transparent;
     clip: true;
 
-    ScrollView {
-        visible: root.active_page_index == 0;
+    if root.active_page_index == 0: ScrollView {
         width: parent.width;
         height: parent.height;
         viewport-width: max(self.visible-width, 1040px);
@@ -125,8 +124,7 @@ export component AppAuxiliaryPages inherits Rectangle {
         }
     }
 
-    ScrollView {
-        visible: root.active_page_index == 2;
+    if root.active_page_index == 2: ScrollView {
         width: parent.width;
         height: parent.height;
         viewport-width: max(self.visible-width, 1160px);
@@ -191,8 +189,7 @@ export component AppAuxiliaryPages inherits Rectangle {
         }
     }
 
-    ScrollView {
-        visible: root.active_page_index == 4;
+    if root.active_page_index == 4: ScrollView {
         width: parent.width;
         height: parent.height;
         viewport-width: max(self.visible-width, 1180px);
@@ -241,8 +238,7 @@ export component AppAuxiliaryPages inherits Rectangle {
         }
     }
 
-    ScrollView {
-        visible: root.active_page_index == 3;
+    if root.active_page_index == 3: ScrollView {
         width: parent.width;
         height: parent.height;
         viewport-width: max(self.visible-width, 1040px);
@@ -277,8 +273,7 @@ export component AppAuxiliaryPages inherits Rectangle {
         }
     }
 
-    ScrollView {
-        visible: root.active_page_index == 10;
+    if root.active_page_index == 10: ScrollView {
         width: parent.width;
         height: parent.height;
         viewport-width: max(self.visible-width, 840px);
@@ -309,8 +304,7 @@ export component AppAuxiliaryPages inherits Rectangle {
         }
     }
 
-    ScrollView {
-        visible: root.active_page_index == 5;
+    if root.active_page_index == 5: ScrollView {
         width: parent.width;
         height: parent.height;
         viewport-width: max(self.visible-width, 1040px);
@@ -330,8 +324,7 @@ export component AppAuxiliaryPages inherits Rectangle {
         }
     }
 
-    ScrollView {
-        visible: root.active_page_index == 6;
+    if root.active_page_index == 6: ScrollView {
         width: parent.width;
         height: parent.height;
         viewport-width: max(self.visible-width, 1040px);
@@ -357,8 +350,7 @@ export component AppAuxiliaryPages inherits Rectangle {
         }
     }
 
-    ScrollView {
-        visible: root.active_page_index == 7;
+    if root.active_page_index == 7: ScrollView {
         width: parent.width;
         height: parent.height;
         viewport-width: max(self.visible-width, 1040px);
@@ -377,8 +369,7 @@ export component AppAuxiliaryPages inherits Rectangle {
         }
     }
 
-    ScrollView {
-        visible: root.active_page_index == 8;
+    if root.active_page_index == 8: ScrollView {
         width: parent.width;
         height: parent.height;
         viewport-width: max(self.visible-width, 1040px);
@@ -396,8 +387,7 @@ export component AppAuxiliaryPages inherits Rectangle {
         }
     }
 
-    ScrollView {
-        visible: root.active_page_index == 9;
+    if root.active_page_index == 9: ScrollView {
         width: parent.width;
         height: parent.height;
         viewport-width: max(self.visible-width, 1040px);
