@@ -20,6 +20,7 @@ pub enum ResponseAssertionKind {
     BodyContains { text: String },
     JsonPathExists { path: String },
     JsonPathType { path: String, value_type: String },
+    JsonPathLength { path: String, length: usize },
     JsonPathEquals { path: String, value: Value },
 }
 
@@ -86,6 +87,25 @@ pub fn evaluate_response_assertion(
                         None => Some(format!("missing JSON path {}", display_json_path(path))),
                     },
                     None => Some(format!("unsupported JSON value type {value_type}")),
+                },
+                Err(error) => Some(format!("failed to parse response JSON: {error}")),
+            }
+        }
+        ResponseAssertionKind::JsonPathLength { path, length } => {
+            match serde_json::from_str::<Value>(&response.raw_body) {
+                Ok(json) => match json_path_value(&json, path) {
+                    Some(actual) => match json_value_length(actual) {
+                        Some(actual_length) if actual_length == *length => None,
+                        Some(actual_length) => Some(format!(
+                            "expected JSON path {} length to be {length}, got {actual_length}",
+                            display_json_path(path)
+                        )),
+                        None => Some(format!(
+                            "JSON path {} has no length",
+                            display_json_path(path)
+                        )),
+                    },
+                    None => Some(format!("missing JSON path {}", display_json_path(path))),
                 },
                 Err(error) => Some(format!("failed to parse response JSON: {error}")),
             }
@@ -176,6 +196,15 @@ fn json_value_type(value: &Value) -> &'static str {
     }
 }
 
+fn json_value_length(value: &Value) -> Option<usize> {
+    match value {
+        Value::Array(values) => Some(values.len()),
+        Value::Object(values) => Some(values.len()),
+        Value::String(value) => Some(value.chars().count()),
+        _ => None,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -240,6 +269,13 @@ mod tests {
                 value_type: "array".to_string(),
             },
         };
+        let length = ResponseAssertion {
+            name: "length".to_string(),
+            kind: ResponseAssertionKind::JsonPathLength {
+                path: "items".to_string(),
+                length: 1,
+            },
+        };
         let failing = ResponseAssertion {
             name: "wrong".to_string(),
             kind: ResponseAssertionKind::JsonPathEquals {
@@ -251,6 +287,7 @@ mod tests {
         assert!(evaluate_response_assertion(&response(), &exists).passed);
         assert!(evaluate_response_assertion(&response(), &passing).passed);
         assert!(evaluate_response_assertion(&response(), &typed).passed);
+        assert!(evaluate_response_assertion(&response(), &length).passed);
         let result = evaluate_response_assertion(&response(), &failing);
         assert!(!result.passed);
         assert!(
