@@ -161,6 +161,7 @@
   Request Builder page, Request panel, Request tab strip,
   Request tab content with preloaded tab switching,
   Request Builder pane size constraints, Bottom navigation,
+  Request auth tab host,
   Request body tab host,
   Request params tab,
   Request headers tab, Request realtime tab,
