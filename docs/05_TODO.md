@@ -200,7 +200,7 @@
   Mock Manager rules panel, Mock Manager rules panel workbench,
   Mock Manager traffic panel,
   shared Key/Value table controls, shared Key/Value table row,
-  request editor pane, request sidebar pane,
+  request editor pane, request editor pane workbench, request sidebar pane,
   sidebar rows, sidebar OpenAPI import panel, sidebar Collections panel,
   sidebar Collections panel workbench, sidebar Collections file panel,
   sidebar Collections tree, and sidebar History panel now live in dedicated
