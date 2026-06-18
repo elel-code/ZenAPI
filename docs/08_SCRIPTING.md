@@ -76,7 +76,8 @@ header exists/header equality, body contains/string, JSON dot/bracket path
 existence/equality, JSON property existence/equality, `const`/`let`/`var`
 aliases assigned from `pm.response.json()`, JSON value type checks such as
 `to.be.an("array")`, JSON length checks such as `to.have.lengthOf(2)`, and
-JSON boolean/null checks, while full Postman compatibility still requires a
+JSON include/contain checks such as `to.deep.include({"id":1})`, and JSON
+boolean/null checks, while full Postman compatibility still requires a
 dedicated sandboxed scripting engine and compatibility tests.
 
 ## Result Model
@@ -161,6 +162,7 @@ Supported assertion kinds:
 | `json_path_exists` | Dot-path JSON presence check, including numeric array indexes |
 | `json_path_type` | Dot-path JSON value type check; `$` targets the JSON root |
 | `json_path_length` | Dot-path JSON array, object, or string length check |
+| `json_path_contains` | Dot-path JSON array element, object subset/key, or string contains check |
 | `json_path_equals` | Dot-path JSON value comparison, including numeric array indexes |
 
 Runner behavior:
@@ -175,8 +177,8 @@ Runner behavior:
 - Common single-line `pm.test(...)` status, status-range, header exists/header
   equality, body contains/string, JSON dot/bracket path existence/equality,
   JSON property existence/equality, `const`/`let`/`var` JSON aliases, JSON
-  value type checks, JSON length checks, and JSON boolean/null checks are
-  converted to the same native assertions.
+  value type checks, JSON length checks, JSON include/contain checks, and JSON
+  boolean/null checks are converted to the same native assertions.
 - Saving a request to a collection preserves configured assertions, and
   restoring a collection request brings them back into the Tests panel.
 
