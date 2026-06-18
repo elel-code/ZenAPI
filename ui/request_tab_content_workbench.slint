@@ -98,7 +98,13 @@ export component RequestTabContentWorkbench inherits ScrollView {
     callback load_grpc_descriptor_set(string);
     callback load_grpc_proto_file(string, string);
     callback load_grpc_reflection();
-    in property <bool> preload_tabs: true;
+    in property <bool> preload_tabs: false;
+    property <bool> params_tab_mounted: false;
+    property <bool> headers_tab_mounted: false;
+    property <bool> body_tab_mounted: true;
+    property <bool> auth_tab_mounted: false;
+    property <bool> realtime_tab_mounted: false;
+    property <bool> scripts_tab_mounted: false;
 
     vertical-stretch: 1;
     horizontal-stretch: 1;
@@ -107,12 +113,28 @@ export component RequestTabContentWorkbench inherits ScrollView {
     vertical-scrollbar-policy: ScrollBarPolicy.as-needed;
     horizontal-scrollbar-policy: ScrollBarPolicy.as-needed;
 
+    changed active_tab => {
+        if (root.active_tab == "params") {
+            root.params_tab_mounted = true;
+        } else if (root.active_tab == "headers") {
+            root.headers_tab_mounted = true;
+        } else if (root.active_tab == "body") {
+            root.body_tab_mounted = true;
+        } else if (root.active_tab == "auth") {
+            root.auth_tab_mounted = true;
+        } else if (root.active_tab == "realtime") {
+            root.realtime_tab_mounted = true;
+        } else if (root.active_tab == "scripts") {
+            root.scripts_tab_mounted = true;
+        }
+    }
+
     Rectangle {
         width: max(parent.visible-width, 1040px);
         height: max(parent.visible-height, 720px);
         background: Theme.surface_container_lowest;
 
-        if root.preload_tabs || root.active_tab == "params": RequestParamsTabHost {
+        if root.preload_tabs || root.params_tab_mounted: RequestParamsTabHost {
             visible: root.active_tab == "params";
             width: parent.width;
             height: parent.height;
@@ -139,7 +161,7 @@ export component RequestTabContentWorkbench inherits ScrollView {
             }
         }
 
-        if root.preload_tabs || root.active_tab == "headers": RequestHeadersTabHost {
+        if root.preload_tabs || root.headers_tab_mounted: RequestHeadersTabHost {
             visible: root.active_tab == "headers";
             width: parent.width;
             height: parent.height;
@@ -173,7 +195,7 @@ export component RequestTabContentWorkbench inherits ScrollView {
             }
         }
 
-        if root.preload_tabs || root.active_tab == "body": RequestBodyTabHost {
+        if root.preload_tabs || root.body_tab_mounted: RequestBodyTabHost {
             visible: root.active_tab == "body";
             width: parent.width;
             height: parent.height;
@@ -208,7 +230,7 @@ export component RequestTabContentWorkbench inherits ScrollView {
             }
         }
 
-        if root.preload_tabs || root.active_tab == "auth": RequestAuthTabHost {
+        if root.preload_tabs || root.auth_tab_mounted: RequestAuthTabHost {
             visible: root.active_tab == "auth";
             x: 16px;
             y: 16px;
@@ -240,7 +262,7 @@ export component RequestTabContentWorkbench inherits ScrollView {
             }
         }
 
-        if root.preload_tabs || root.active_tab == "realtime": RequestRealtimeTabHost {
+        if root.preload_tabs || root.realtime_tab_mounted: RequestRealtimeTabHost {
             visible: root.active_tab == "realtime";
             width: parent.width;
             height: parent.height;
@@ -318,7 +340,7 @@ export component RequestTabContentWorkbench inherits ScrollView {
             }
         }
 
-        if root.preload_tabs || root.active_tab == "scripts": RequestScriptsTabHost {
+        if root.preload_tabs || root.scripts_tab_mounted: RequestScriptsTabHost {
             visible: root.active_tab == "scripts";
             x: 16px;
             y: 16px;
