@@ -169,7 +169,7 @@
   Request panel workbench, Request tab strip,
   Request builder editor host, Request builder editor host workbench,
   Request builder response host, Request builder response host workbench,
-  Request tab content with preloaded tab switching,
+  Request tab content with lazy request tab mounting and visited-tab caching,
   Request tab content workbench,
   Request Builder pane size constraints, Bottom navigation,
   Request auth tab host,

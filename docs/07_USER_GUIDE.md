@@ -26,6 +26,8 @@ bottom navigation for the primary pages.
 The Requests page keeps the three-pane request builder: collection/history
 sidebar, request editor, and response viewer. Long lists, code panes, and
 narrow-window page content use Slint scrollbars instead of clipping overflow.
+Request tab panels are mounted on demand and kept alive after first visit so
+returning to a tab does not rebuild its controls.
 OpenAPI import lives inside the request sidebar while the app chrome is reserved
 for a later redesign.
 Reference pages only expose controls that perform a visible action; API Docs
