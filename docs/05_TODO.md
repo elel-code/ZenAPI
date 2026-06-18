@@ -8,9 +8,9 @@
 
 - The desktop UI framework is Slint.
 - UI source lives in `ui/*.slint` and is compiled by `slint-build`.
-- Rust modules keep reusable product logic: OpenAPI parsing, request transport,
-  mock server, collections, variables, history, codegen, runners, SSE, and
-  WebSocket.
+- Rust modules keep reusable product logic: auth request mapping and OAuth2
+  token exchange, OpenAPI parsing, request transport, mock server, collections,
+  variables, history, codegen, runners, SSE, and WebSocket.
 - Do not add GPUI adapters, compatibility shims, generated GPUI modules, or old
   toolkit build steps.
 
