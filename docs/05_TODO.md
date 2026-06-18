@@ -180,7 +180,7 @@
   App auxiliary pages workbench, Address bar,
   Dashboard page, Dashboard auxiliary host, Codegen page,
   Codegen auxiliary host, Settings page, Settings auxiliary host,
-  Team page, API Keys page,
+  Team page, Team page workbench, API Keys page,
   API Keys auxiliary host, Team auxiliary host,
   API Keys shared components, API Keys list panel, API Keys detail panel,
   API Keys integration panel, Analytics page, Analytics auxiliary host,
