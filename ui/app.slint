@@ -274,7 +274,8 @@ export component AppWindow inherits Window {
                 background: Theme.background;
                 clip: true;
 
-                if root.active_page_index == 1: RequestBuilderPage {
+                RequestBuilderPage {
+                    visible: root.active_page_index == 1;
                     width: parent.width;
                     height: parent.height;
                     routes <=> root.routes;
@@ -606,7 +607,8 @@ export component AppWindow inherits Window {
                     }
                 }
 
-                if root.active_page_index != 1: AppAuxiliaryPages {
+                AppAuxiliaryPages {
+                    visible: root.active_page_index != 1;
                     width: parent.width;
                     height: parent.height;
                     active_page_index: root.active_page_index;
