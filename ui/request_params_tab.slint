@@ -1,0 +1,50 @@
+import { KeyValueTableRow } from "types.slint";
+import { KeyValueTablePanel } from "key_value_table_panel.slint";
+
+export component RequestParamsTab inherits Rectangle {
+    in-out property <[KeyValueTableRow]> query_param_rows;
+    in-out property <string> query_param_import_path;
+    in property <bool> busy;
+    callback add_query_param();
+    callback paste_query_params();
+    callback import_query_params(string);
+    callback pick_query_param_import_file();
+    callback update_query_param_row(int, string, string);
+    callback delete_query_param_row(int);
+
+    background: transparent;
+
+    KeyValueTablePanel {
+        x: 16px;
+        y: 16px;
+        width: parent.width - 32px;
+        height: parent.height - 32px;
+        rows <=> root.query_param_rows;
+        title: "Query Parameters";
+        key_header: "Param";
+        value_header: "Value";
+        helper: "Stored as key=value lines for transport compatibility.";
+        busy: root.busy;
+        show_paste: true;
+        show_import: true;
+        import_path <=> root.query_param_import_path;
+        add_row => {
+            root.add_query_param();
+        }
+        paste_rows => {
+            root.paste_query_params();
+        }
+        import_rows(path) => {
+            root.import_query_params(path);
+        }
+        pick_import_file => {
+            root.pick_query_param_import_file();
+        }
+        update_row(row_id, key, value) => {
+            root.update_query_param_row(row_id, key, value);
+        }
+        delete_row(row_id) => {
+            root.delete_query_param_row(row_id);
+        }
+    }
+}

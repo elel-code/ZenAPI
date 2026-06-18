@@ -4,8 +4,8 @@ import { KeyValueTableRow, TestAssertionRow } from "types.slint";
 import { AuthEditorPanel } from "auth_panel.slint";
 import { BodyEditorPanel } from "body_panel.slint";
 import { HeaderEditorPanel } from "header_panel.slint";
-import { KeyValueTablePanel } from "key_value_table_panel.slint";
 import { RealtimeEditorPanel } from "realtime_editor_panel.slint";
+import { RequestParamsTab } from "request_params_tab.slint";
 import { ScriptsEditorPanel } from "scripts_panel.slint";
 
 export component RequestTabContent inherits ScrollView {
@@ -110,36 +110,28 @@ export component RequestTabContent inherits ScrollView {
         height: max(parent.visible-height, 720px);
         background: Theme.surface_container_lowest;
 
-        if root.active_tab == "params": KeyValueTablePanel {
-            x: 16px;
-            y: 16px;
-            width: parent.width - 32px;
-            height: parent.height - 32px;
-            rows <=> root.query_param_rows;
-            title: "Query Parameters";
-            key_header: "Param";
-            value_header: "Value";
-            helper: "Stored as key=value lines for transport compatibility.";
+        if root.active_tab == "params": RequestParamsTab {
+            width: parent.width;
+            height: parent.height;
+            query_param_rows <=> root.query_param_rows;
+            query_param_import_path <=> root.query_param_import_path;
             busy: root.busy;
-            show_paste: true;
-            show_import: true;
-            import_path <=> root.query_param_import_path;
-            add_row => {
+            add_query_param => {
                 root.add_query_param();
             }
-            paste_rows => {
+            paste_query_params => {
                 root.paste_query_params();
             }
-            import_rows(path) => {
+            import_query_params(path) => {
                 root.import_query_params(path);
             }
-            pick_import_file => {
+            pick_query_param_import_file => {
                 root.pick_query_param_import_file();
             }
-            update_row(row_id, key, value) => {
+            update_query_param_row(row_id, key, value) => {
                 root.update_query_param_row(row_id, key, value);
             }
-            delete_row(row_id) => {
+            delete_query_param_row(row_id) => {
                 root.delete_query_param_row(row_id);
             }
         }
