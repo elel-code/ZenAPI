@@ -1,0 +1,220 @@
+import { LabeledEditor } from "editors.slint";
+import { Theme } from "theme.slint";
+import { TextField } from "text_field.slint";
+import { ActionButton } from "action_button.slint";
+import { UiText } from "widgets.slint";
+
+export component RealtimeGrpcPanel inherits HorizontalLayout {
+    in-out property <string> grpc_endpoint;
+    in-out property <string> grpc_method;
+    in-out property <string> grpc_metadata;
+    in-out property <string> grpc_message;
+    in-out property <string> grpc_method_catalog;
+    in-out property <string> grpc_descriptor_path;
+    in-out property <string> grpc_protoc_path;
+    in-out property <bool> grpc_streaming;
+    in property <bool> busy;
+    callback invoke_grpc_unary();
+    callback invoke_grpc_server_streaming();
+    callback stop_grpc_stream();
+    callback build_grpc_draft();
+    callback pick_grpc_descriptor_file();
+    callback load_grpc_descriptor_set(string);
+    callback load_grpc_proto_file(string, string);
+    callback load_grpc_reflection();
+
+    spacing: 12px;
+    vertical-stretch: 1;
+
+    Rectangle {
+        horizontal-stretch: 1;
+        vertical-stretch: 1;
+        background: transparent;
+
+        VerticalLayout {
+            padding: 0px;
+            spacing: 10px;
+
+            HorizontalLayout {
+                height: 36px;
+                spacing: 10px;
+
+                TextField {
+                    text <=> root.grpc_endpoint;
+                    placeholder: "http://localhost:50051";
+                    mono: true;
+                    enabled: !root.busy;
+                }
+
+                TextField {
+                    text <=> root.grpc_method;
+                    placeholder: "package.Service/Method";
+                    mono: true;
+                    enabled: !root.busy;
+                }
+            }
+
+            HorizontalLayout {
+                spacing: 12px;
+                vertical-stretch: 1;
+
+                LabeledEditor {
+                    label: "Metadata";
+                    text <=> root.grpc_metadata;
+                }
+
+                LabeledEditor {
+                    label: "Message";
+                    text <=> root.grpc_message;
+                }
+            }
+
+            LabeledEditor {
+                label: "Method Catalog";
+                text <=> root.grpc_method_catalog;
+                height: 92px;
+            }
+
+            HorizontalLayout {
+                height: 34px;
+                spacing: 8px;
+
+                TextField {
+                    text <=> root.grpc_descriptor_path;
+                    placeholder: "/absolute/path/to/schema.protoset or schema.proto";
+                    mono: true;
+                    enabled: !root.busy;
+                    horizontal-stretch: 1;
+                    accepted => {
+                        if !root.busy && root.grpc_descriptor_path != "" {
+                            root.load_grpc_descriptor_set(root.grpc_descriptor_path);
+                        }
+                    }
+                }
+
+                ActionButton {
+                    text: "Open";
+                    button_width: 54px;
+                    enabled: !root.busy && !root.grpc_streaming;
+                    clicked => {
+                        root.pick_grpc_descriptor_file();
+                    }
+                }
+
+                ActionButton {
+                    text: "Set";
+                    button_width: 46px;
+                    enabled: !root.busy && !root.grpc_streaming && root.grpc_descriptor_path != "";
+                    clicked => {
+                        root.load_grpc_descriptor_set(root.grpc_descriptor_path);
+                    }
+                }
+
+                ActionButton {
+                    text: "Proto";
+                    button_width: 58px;
+                    enabled: !root.busy && !root.grpc_streaming && root.grpc_descriptor_path != "";
+                    clicked => {
+                        root.load_grpc_proto_file(root.grpc_descriptor_path, root.grpc_protoc_path);
+                    }
+                }
+            }
+
+            HorizontalLayout {
+                height: 34px;
+                spacing: 8px;
+
+                TextField {
+                    text <=> root.grpc_protoc_path;
+                    placeholder: "protoc";
+                    mono: true;
+                    enabled: !root.busy;
+                    horizontal-stretch: 1;
+                    accepted => {
+                        if !root.busy && root.grpc_descriptor_path != "" {
+                            root.load_grpc_proto_file(root.grpc_descriptor_path, root.grpc_protoc_path);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    Rectangle {
+        width: 190px;
+        vertical-stretch: 1;
+        background: Theme.surface_container;
+        border-radius: 8px;
+        border-width: 1px;
+        border-color: Theme.outline_variant;
+
+        VerticalLayout {
+            padding: 14px;
+            spacing: 10px;
+
+            UiText {
+                text: "REQUEST";
+                height: 20px;
+                horizontal-stretch: 1;
+                color: Theme.on_surface_variant;
+                font-size: 12px;
+                font-weight: 800;
+                vertical-alignment: center;
+                overflow: elide;
+            }
+
+            ActionButton {
+                text: "Invoke";
+                button_width: 162px;
+                primary: true;
+                enabled: !root.busy && !root.grpc_streaming && root.grpc_endpoint != "" && root.grpc_method != "";
+                clicked => {
+                    root.invoke_grpc_unary();
+                }
+            }
+
+            ActionButton {
+                text: "Stream";
+                button_width: 162px;
+                enabled: !root.busy && !root.grpc_streaming && root.grpc_endpoint != "" && root.grpc_method != "";
+                clicked => {
+                    root.invoke_grpc_server_streaming();
+                }
+            }
+
+            ActionButton {
+                text: "Stop";
+                button_width: 162px;
+                warning: true;
+                enabled: root.grpc_streaming;
+                clicked => {
+                    root.stop_grpc_stream();
+                }
+            }
+
+            ActionButton {
+                text: "Build";
+                button_width: 162px;
+                enabled: !root.busy && !root.grpc_streaming;
+                clicked => {
+                    root.build_grpc_draft();
+                }
+            }
+
+            ActionButton {
+                text: "Reflect";
+                button_width: 162px;
+                enabled: !root.busy && !root.grpc_streaming && root.grpc_endpoint != "";
+                clicked => {
+                    root.load_grpc_reflection();
+                }
+            }
+
+            Rectangle {
+                horizontal-stretch: 1;
+                vertical-stretch: 1;
+                background: transparent;
+            }
+        }
+    }
+}
