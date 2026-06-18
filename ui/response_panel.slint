@@ -3,7 +3,7 @@ import { Theme } from "theme.slint";
 import { RunnerRow } from "types.slint";
 import { ActionButton } from "action_button.slint";
 import { ResponseHeader } from "response_header.slint";
-import { ResponseTab } from "tab_controls.slint";
+import { ResponseTabStrip } from "response_tab_strip.slint";
 import { UiText } from "widgets.slint";
 
 export component ResponsePanel inherits Rectangle {
@@ -142,31 +142,10 @@ export component ResponsePanel inherits Rectangle {
             background: Theme.outline_variant;
         }
 
-        Rectangle {
-            height: 44px;
-            horizontal-stretch: 1;
-            background: Theme.surface_container_low;
-
-            HorizontalLayout {
-                padding-left: 12px;
-                padding-right: 12px;
-                spacing: 8px;
-                alignment: center;
-
-                for item in [
-                    { mode: "pretty", label: "Pretty" },
-                    { mode: "raw", label: "Raw" },
-                    { mode: "headers", label: "Headers" },
-                    { mode: "cookies", label: "Cookies" },
-                ]: ResponseTab {
-                    mode: item.mode;
-                    label: item.label;
-                    selected: root.active_tab == item.mode;
-                    picked(mode) => {
-                        root.active_tab = mode;
-                        root.clear_response_selection(mode);
-                    }
-                }
+        ResponseTabStrip {
+            active_tab <=> root.active_tab;
+            picked(mode) => {
+                root.clear_response_selection(mode);
             }
         }
 
