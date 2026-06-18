@@ -1,0 +1,94 @@
+import { ListView } from "std-widgets.slint";
+import { Theme } from "theme.slint";
+import { CollectionRow, RouteRow } from "types.slint";
+import { UiText } from "widgets.slint";
+import { SidebarFolderRow, SidebarRequestLink } from "sidebar_rows.slint";
+
+export component SidebarCollectionTree inherits Rectangle {
+    in property <[RouteRow]> routes;
+    in property <[CollectionRow]> collection_rows;
+    in-out property <int> selected_route;
+    in-out property <int> selected_collection_request;
+    in-out property <string> selected_collection_folder;
+    in-out property <string> collection_move_target_label;
+    in-out property <string> collection_request_name;
+    in property <int> total_route_count;
+    callback select_route(int);
+    callback select_collection_request(int);
+
+    height: root.collection_rows.length == 0 && root.routes.length == 0 ? 34px : 170px;
+    horizontal-stretch: 1;
+    background: transparent;
+
+    Rectangle {
+        x: 19px;
+        width: 1px;
+        height: parent.height;
+        background: Theme.outline_variant;
+    }
+
+    if root.collection_rows.length == 0 && root.routes.length == 0: UiText {
+        x: 32px;
+        text: root.total_route_count == 0 ? "No requests" : "No matching routes";
+        width: parent.width - 32px;
+        height: 30px;
+        color: Theme.outline;
+        font-size: 12px;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+
+    if root.collection_rows.length != 0: ListView {
+        x: 32px;
+        width: parent.width - 32px;
+        height: parent.height;
+        vertical-scrollbar-policy: ScrollBarPolicy.as-needed;
+        horizontal-scrollbar-policy: ScrollBarPolicy.as-needed;
+
+        for entry in root.collection_rows: Rectangle {
+            height: entry.is_folder ? 36px : 30px;
+            horizontal-stretch: 1;
+            background: transparent;
+
+            if entry.is_folder: SidebarFolderRow {
+                label: entry.name;
+                selected: root.selected_collection_folder == entry.folder_path;
+                interactive: true;
+                picked => {
+                    root.selected_collection_folder = entry.folder_path;
+                    root.collection_move_target_label = entry.name;
+                    root.selected_collection_request = -1;
+                    root.collection_request_name = "";
+                }
+            }
+
+            if !entry.is_folder: SidebarRequestLink {
+                method: entry.method;
+                label: entry.name;
+                selected: root.selected_collection_request == entry.id;
+                picked => {
+                    root.selected_collection_request = entry.id;
+                    root.select_collection_request(entry.id);
+                }
+            }
+        }
+    }
+
+    if root.collection_rows.length == 0 && root.routes.length != 0: ListView {
+        x: 32px;
+        width: parent.width - 32px;
+        height: parent.height;
+        vertical-scrollbar-policy: ScrollBarPolicy.as-needed;
+        horizontal-scrollbar-policy: ScrollBarPolicy.as-needed;
+
+        for route[i] in root.routes: SidebarRequestLink {
+            method: route.method;
+            label: route.summary == "" ? route.path : route.summary;
+            selected: root.selected_route == i;
+            picked => {
+                root.selected_route = i;
+                root.select_route(i);
+            }
+        }
+    }
+}
