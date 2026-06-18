@@ -1,0 +1,33 @@
+import { ScrollView } from "std-widgets.slint";
+import { DashboardPage } from "dashboard_page.slint";
+
+export component AppDashboardPageHost inherits ScrollView {
+    in property <int> route_count;
+    in property <int> history_count;
+    in property <int> mock_count;
+    in property <string> runner_summary;
+    in property <bool> server_running;
+    in property <string> server_status;
+    in property <string> response_status;
+    callback open_page(int);
+
+    viewport-width: max(self.visible-width, 1040px);
+    viewport-height: max(self.visible-height, 680px);
+    vertical-scrollbar-policy: ScrollBarPolicy.as-needed;
+    horizontal-scrollbar-policy: ScrollBarPolicy.as-needed;
+
+    DashboardPage {
+        width: max(parent.visible-width, 1040px);
+        height: max(parent.visible-height, 680px);
+        route_count: root.route_count;
+        history_count: root.history_count;
+        mock_count: root.mock_count;
+        runner_summary: root.runner_summary;
+        server_running: root.server_running;
+        server_status: root.server_status;
+        response_status: root.response_status;
+        open_page(page_index) => {
+            root.open_page(page_index);
+        }
+    }
+}

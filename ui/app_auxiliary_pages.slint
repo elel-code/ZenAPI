@@ -1,8 +1,8 @@
 import { ScrollView } from "std-widgets.slint";
 import { AnalyticsPage } from "analytics_page.slint";
 import { ApiKeysPage } from "api_keys_page.slint";
+import { AppDashboardPageHost } from "app_dashboard_page_host.slint";
 import { CodegenPage } from "codegen_page.slint";
-import { DashboardPage } from "dashboard_page.slint";
 import { DocumentationPage } from "documentation_page.slint";
 import { EnvironmentPage } from "environment_page.slint";
 import { MockManagerPage } from "mock_manager_page.slint";
@@ -135,28 +135,19 @@ export component AppAuxiliaryPages inherits Rectangle {
         }
     }
 
-    if root.preload_pages || root.dashboard_mounted: ScrollView {
+    if root.preload_pages || root.dashboard_mounted: AppDashboardPageHost {
         visible: root.active_page_index == 0;
         width: parent.width;
         height: parent.height;
-        viewport-width: max(self.visible-width, 1040px);
-        viewport-height: max(self.visible-height, 680px);
-        vertical-scrollbar-policy: ScrollBarPolicy.as-needed;
-        horizontal-scrollbar-policy: ScrollBarPolicy.as-needed;
-
-        DashboardPage {
-            width: max(parent.visible-width, 1040px);
-            height: max(parent.visible-height, 680px);
-            route_count: root.total_route_count;
-            history_count: root.history_rows.length;
-            mock_count: root.mock_logs.length;
-            runner_summary: root.runner_summary;
-            server_running: root.server_running;
-            server_status: root.server_status;
-            response_status: root.response_status;
-            open_page(page_index) => {
-                root.open_page(page_index);
-            }
+        route_count: root.total_route_count;
+        history_count: root.history_rows.length;
+        mock_count: root.mock_logs.length;
+        runner_summary: root.runner_summary;
+        server_running: root.server_running;
+        server_status: root.server_status;
+        response_status: root.response_status;
+        open_page(page_index) => {
+            root.open_page(page_index);
         }
     }
 
