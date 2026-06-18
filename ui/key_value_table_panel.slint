@@ -4,64 +4,7 @@ import { TextField } from "text_field.slint";
 import { KeyValueTableRow } from "types.slint";
 import { ActionButton } from "action_button.slint";
 import { UiText } from "widgets.slint";
-
-component KeyValueTableLine inherits Rectangle {
-    in property <int> row_id;
-    in-out property <string> key;
-    in-out property <string> value;
-    in property <bool> enabled: true;
-    callback edited(int, string, string);
-    callback delete_requested(int);
-
-    height: 44px;
-    horizontal-stretch: 1;
-    border-radius: 6px;
-    border-width: 1px;
-    border-color: Theme.outline_variant;
-    background: row_touch.has-hover ? Theme.surface_container_high : Theme.surface_container_low;
-
-    row_touch := TouchArea {}
-
-    TextField {
-        x: 10px;
-        y: 5px;
-        width: 154px;
-        height: 34px;
-        text <=> root.key;
-        placeholder: "key";
-        mono: true;
-        enabled: root.enabled;
-        edited => {
-            root.edited(root.row_id, root.key, root.value);
-        }
-    }
-
-    TextField {
-        x: 176px;
-        y: 5px;
-        width: parent.width - 240px;
-        height: 34px;
-        text <=> root.value;
-        placeholder: "value";
-        mono: true;
-        enabled: root.enabled;
-        edited => {
-            root.edited(root.row_id, root.key, root.value);
-        }
-    }
-
-    ActionButton {
-        x: parent.width - 54px;
-        y: 5px;
-        text: "Del";
-        button_width: 44px;
-        warning: true;
-        enabled: root.enabled;
-        clicked => {
-            root.delete_requested(root.row_id);
-        }
-    }
-}
+import { KeyValueTableLine } from "key_value_table_row.slint";
 
 export component KeyValueTablePanel inherits Rectangle {
     in-out property <[KeyValueTableRow]> rows;
