@@ -159,11 +159,12 @@
   Dashboard page, Codegen page, Settings page, Team page, API Keys page,
   Analytics page, Documentation page, Environment page, Environment navigation
   panel, Environment variable table, Environment details panel, Runner page,
-  Mock Manager page, Mock Manager row components, Mock Manager rules panel, Mock
-  Manager traffic panel, request editor pane, request sidebar pane, sidebar
-  rows, sidebar OpenAPI import panel, sidebar Collections panel, and sidebar
-  History panel now live in dedicated Slint files; additional large panels
-  still need extraction.
+  Runner sidebar panel, Runner results panel, Runner report panel,
+  Mock Manager page, Mock Manager row components, Mock Manager rules panel,
+  Mock Manager traffic panel, request editor pane, request sidebar pane,
+  sidebar rows, sidebar OpenAPI import panel, sidebar Collections panel, and
+  sidebar History panel now live in dedicated Slint files; additional large
+  panels still need extraction.
 
 ## Phase 4: Verification And Release
 
