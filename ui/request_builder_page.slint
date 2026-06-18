@@ -1,9 +1,9 @@
 import { ScrollView } from "std-widgets.slint";
 import { Theme } from "theme.slint";
 import { CollectionRow, HistoryRow, KeyValueTableRow, RouteRow, RunnerRow, TestAssertionRow } from "types.slint";
+import { RequestBuilderResponseHost } from "request_builder_response_host.slint";
 import { RequestEditorPane } from "request_editor_pane.slint";
 import { RequestSidebarPane } from "request_sidebar_pane.slint";
-import { ResponsePanel } from "response_panel.slint";
 
 export component RequestBuilderPage inherits ScrollView {
     in-out property <[RouteRow]> routes;
@@ -483,60 +483,60 @@ export component RequestBuilderPage inherits ScrollView {
             background: Theme.outline_variant;
         }
 
-        ResponsePanel {
+        RequestBuilderResponseHost {
             width: root.response_width;
-            response_body <=> root.response_body;
-            response_raw_body <=> root.response_raw_body;
-            response_headers <=> root.response_headers;
-            response_cookies <=> root.response_cookies;
-            folded_response_body <=> root.folded_response_body;
-            folded_response_raw_body <=> root.folded_response_raw_body;
-            folded_response_headers <=> root.folded_response_headers;
-            folded_response_cookies <=> root.folded_response_cookies;
-            codegen_language <=> root.codegen_language;
-            codegen_output <=> root.codegen_output;
-            codegen_path <=> root.codegen_path;
-            runner_rows <=> root.runner_rows;
-            runner_summary <=> root.runner_summary;
-            runner_delay_ms <=> root.runner_delay_ms;
-            runner_report_path <=> root.runner_report_path;
-            runner_report_format <=> root.runner_report_format;
-            runner_stop_on_failure <=> root.runner_stop_on_failure;
-            runner_active <=> root.runner_active;
-            response_status: root.response_status;
-            response_meta: root.response_meta;
-            response_time: root.response_time;
-            response_size: root.response_size;
-            response_tone: root.response_tone;
-            busy: root.busy;
-            generate_code => {
+            workspace_response_body <=> root.response_body;
+            workspace_response_raw_body <=> root.response_raw_body;
+            workspace_response_headers <=> root.response_headers;
+            workspace_response_cookies <=> root.response_cookies;
+            workspace_folded_response_body <=> root.folded_response_body;
+            workspace_folded_response_raw_body <=> root.folded_response_raw_body;
+            workspace_folded_response_headers <=> root.folded_response_headers;
+            workspace_folded_response_cookies <=> root.folded_response_cookies;
+            workspace_codegen_language <=> root.codegen_language;
+            workspace_codegen_output <=> root.codegen_output;
+            workspace_codegen_path <=> root.codegen_path;
+            workspace_runner_rows <=> root.runner_rows;
+            workspace_runner_summary <=> root.runner_summary;
+            workspace_runner_delay_ms <=> root.runner_delay_ms;
+            workspace_runner_report_path <=> root.runner_report_path;
+            workspace_runner_report_format <=> root.runner_report_format;
+            workspace_runner_stop_on_failure <=> root.runner_stop_on_failure;
+            workspace_runner_active <=> root.runner_active;
+            workspace_response_status: root.response_status;
+            workspace_response_meta: root.response_meta;
+            workspace_response_time: root.response_time;
+            workspace_response_size: root.response_size;
+            workspace_response_tone: root.response_tone;
+            workspace_busy: root.busy;
+            workspace_generate_code => {
                 root.generate_code();
             }
-            save_codegen(path) => {
+            workspace_save_codegen(path) => {
                 root.save_codegen(path);
             }
-            pick_codegen_path => {
+            workspace_pick_codegen_path => {
                 root.pick_codegen_path();
             }
-            run_collection => {
+            workspace_run_collection => {
                 root.run_collection();
             }
-            cancel_collection_run => {
+            workspace_cancel_collection_run => {
                 root.cancel_collection_run();
             }
-            save_runner_report(path) => {
+            workspace_save_runner_report(path) => {
                 root.save_runner_report(path);
             }
-            pick_runner_report_path => {
+            workspace_pick_runner_report_path => {
                 root.pick_runner_report_path();
             }
-            copy_response(tab, text, anchor, cursor) => {
+            workspace_copy_response(tab, text, anchor, cursor) => {
                 root.copy_response(tab, text, anchor, cursor);
             }
-            format_response(tab) => {
+            workspace_format_response(tab) => {
                 root.format_response(tab);
             }
-            summarize_graphql_schema(tab, text) => {
+            workspace_summarize_graphql_schema(tab, text) => {
                 root.summarize_graphql_schema(tab, text);
             }
         }
