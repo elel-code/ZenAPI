@@ -73,8 +73,9 @@ pm.test("status is 200", () => {
 
 The parser is not a JavaScript runtime. It accepts common status/status-range,
 header exists/header equality, body contains/string, JSON dot/bracket path
-equality, JSON property equality, and JSON boolean/null checks, while full
-Postman compatibility still requires a dedicated sandboxed scripting engine and
+equality, JSON property equality, `const`/`let`/`var` aliases assigned from
+`pm.response.json()`, and JSON boolean/null checks, while full Postman
+compatibility still requires a dedicated sandboxed scripting engine and
 compatibility tests.
 
 ## Result Model
@@ -169,8 +170,8 @@ Runner behavior:
   assertions without a script engine.
 - Common single-line `pm.test(...)` status, status-range, header exists/header
   equality, body contains/string, JSON dot/bracket path equality, JSON property
-  equality, and JSON boolean/null checks are converted to the same native
-  assertions.
+  equality, `const`/`let`/`var` JSON aliases, and JSON boolean/null checks are
+  converted to the same native assertions.
 - Saving a request to a collection preserves configured assertions, and
   restoring a collection request brings them back into the Tests panel.
 

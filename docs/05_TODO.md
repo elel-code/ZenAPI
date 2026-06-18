@@ -118,8 +118,9 @@
   Kind/Target/Expect builder that validates against the native assertion parser.
   Common single-line `pm.test(...)` status, status-range, header exists/header
   equals, body contains/string, JSON dot/bracket path equality, JSON property,
-  and boolean/null expectations are mapped into native assertions; a full
-  JavaScript runtime and complete Postman `pm.*` compatibility remain pending.
+  `const`/`let`/`var` JSON aliases, and boolean/null expectations are mapped
+  into native assertions; a full JavaScript runtime and complete Postman `pm.*`
+  compatibility remain pending.
 - [~] Rebuild WebSocket and SSE panels using the restored client modules;
   current Slint Request Builder has a visible Realtime tab with WebSocket
   one-shot text send, persistent open/send/close text and binary sessions with

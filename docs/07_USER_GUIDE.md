@@ -151,9 +151,9 @@ cycling fills the next supported assertion template.
 The parser also accepts common single-line Postman-style `pm.test(...)`
 assertions for response status/status ranges, response headers, response text
 contains/string checks, JSON dot or bracket path equality, JSON property
-equality, and JSON boolean/null expectations. These are converted to native
-assertions; arbitrary JavaScript and full `pm.*` runtime compatibility are not
-implemented.
+equality, `const`/`let`/`var` aliases assigned from `pm.response.json()`, and
+JSON boolean/null expectations. These are converted to native assertions;
+arbitrary JavaScript and full `pm.*` runtime compatibility are not implemented.
 
 Tests run when a request is sent and when a collection is run. Tests are saved
 with collection requests and restored with them.
