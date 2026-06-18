@@ -1,6 +1,6 @@
 import { ScrollView } from "std-widgets.slint";
-import { ApiKeysPage } from "api_keys_page.slint";
 import { AppAnalyticsPageHost } from "app_analytics_page_host.slint";
+import { AppApiKeysPageHost } from "app_api_keys_page_host.slint";
 import { AppCodegenPageHost } from "app_codegen_page_host.slint";
 import { AppDashboardPageHost } from "app_dashboard_page_host.slint";
 import { AppDocumentationPageHost } from "app_documentation_page_host.slint";
@@ -347,24 +347,15 @@ export component AppAuxiliaryPages inherits Rectangle {
         }
     }
 
-    if root.preload_pages || root.api_keys_mounted: ScrollView {
+    if root.preload_pages || root.api_keys_mounted: AppApiKeysPageHost {
         visible: root.active_page_index == 7;
         width: parent.width;
         height: parent.height;
-        viewport-width: max(self.visible-width, 1040px);
-        viewport-height: max(self.visible-height, 620px);
-        vertical-scrollbar-policy: ScrollBarPolicy.as-needed;
-        horizontal-scrollbar-policy: ScrollBarPolicy.as-needed;
-
-        ApiKeysPage {
-            width: max(parent.visible-width, 1040px);
-            height: max(parent.visible-height, 620px);
-            auth_mode: root.auth_mode;
-            auth_config: root.auth_config;
-            auth_basic_username: root.auth_basic_username;
-            auth_key_row_count: root.auth_key_row_count;
-            url: root.url;
-        }
+        auth_mode: root.auth_mode;
+        auth_config: root.auth_config;
+        auth_basic_username: root.auth_basic_username;
+        auth_key_row_count: root.auth_key_row_count;
+        url: root.url;
     }
 
     if root.preload_pages || root.team_mounted: ScrollView {

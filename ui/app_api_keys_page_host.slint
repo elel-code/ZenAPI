@@ -1,0 +1,25 @@
+import { ScrollView } from "std-widgets.slint";
+import { ApiKeysPage } from "api_keys_page.slint";
+
+export component AppApiKeysPageHost inherits ScrollView {
+    in property <string> auth_mode;
+    in property <string> auth_config;
+    in property <string> auth_basic_username;
+    in property <int> auth_key_row_count;
+    in property <string> url;
+
+    viewport-width: max(self.visible-width, 1040px);
+    viewport-height: max(self.visible-height, 620px);
+    vertical-scrollbar-policy: ScrollBarPolicy.as-needed;
+    horizontal-scrollbar-policy: ScrollBarPolicy.as-needed;
+
+    ApiKeysPage {
+        width: max(parent.visible-width, 1040px);
+        height: max(parent.visible-height, 620px);
+        auth_mode: root.auth_mode;
+        auth_config: root.auth_config;
+        auth_basic_username: root.auth_basic_username;
+        auth_key_row_count: root.auth_key_row_count;
+        url: root.url;
+    }
+}
