@@ -1,0 +1,125 @@
+import { CodePane } from "editors.slint";
+import { Theme } from "theme.slint";
+import { UiText } from "widgets.slint";
+
+export component ResponseViewer inherits Rectangle {
+    in-out property <string> response_body;
+    in-out property <string> response_raw_body;
+    in-out property <string> response_headers;
+    in-out property <string> response_cookies;
+    in-out property <string> folded_response_body;
+    in-out property <string> folded_response_raw_body;
+    in-out property <string> folded_response_headers;
+    in-out property <string> folded_response_cookies;
+    in property <string> active_tab;
+    in property <bool> active_response_folded;
+    in property <bool> response_ready;
+    callback set_response_selection(string, int, int);
+
+    vertical-stretch: 1;
+    horizontal-stretch: 1;
+    background: Theme.surface_container_lowest;
+
+    if root.active_response_folded && root.active_tab == "pretty": CodePane {
+        width: parent.width;
+        height: parent.height;
+        text <=> root.folded_response_body;
+        read_only: true;
+        selection_changed(anchor, cursor) => {
+            root.set_response_selection("pretty", anchor, cursor);
+        }
+    }
+
+    if root.active_response_folded && root.active_tab == "raw": CodePane {
+        width: parent.width;
+        height: parent.height;
+        text <=> root.folded_response_raw_body;
+        read_only: true;
+        selection_changed(anchor, cursor) => {
+            root.set_response_selection("raw", anchor, cursor);
+        }
+    }
+
+    if root.active_response_folded && root.active_tab == "headers": CodePane {
+        width: parent.width;
+        height: parent.height;
+        text <=> root.folded_response_headers;
+        read_only: true;
+        selection_changed(anchor, cursor) => {
+            root.set_response_selection("headers", anchor, cursor);
+        }
+    }
+
+    if root.active_response_folded && root.active_tab == "cookies": CodePane {
+        width: parent.width;
+        height: parent.height;
+        text <=> root.folded_response_cookies;
+        read_only: true;
+        selection_changed(anchor, cursor) => {
+            root.set_response_selection("cookies", anchor, cursor);
+        }
+    }
+
+    if !root.active_response_folded && !root.response_ready && (root.active_tab == "pretty" || root.active_tab == "raw"): UiText {
+        text: root.active_tab == "raw" ? root.response_raw_body : root.response_body;
+        width: parent.width - 32px;
+        height: parent.height;
+        x: 16px;
+        color: Theme.outline;
+        font-size: 12px;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+
+    if !root.active_response_folded && root.response_ready && root.active_tab == "pretty": CodePane {
+        width: parent.width;
+        height: parent.height;
+        text <=> root.response_body;
+        read_only: true;
+        selection_changed(anchor, cursor) => {
+            root.set_response_selection("pretty", anchor, cursor);
+        }
+    }
+
+    if !root.active_response_folded && root.response_ready && root.active_tab == "raw": CodePane {
+        width: parent.width;
+        height: parent.height;
+        text <=> root.response_raw_body;
+        read_only: true;
+        selection_changed(anchor, cursor) => {
+            root.set_response_selection("raw", anchor, cursor);
+        }
+    }
+
+    if !root.active_response_folded && root.active_tab == "headers": CodePane {
+        width: parent.width;
+        height: parent.height;
+        text <=> root.response_headers;
+        read_only: true;
+        selection_changed(anchor, cursor) => {
+            root.set_response_selection("headers", anchor, cursor);
+        }
+    }
+
+    if !root.active_response_folded && root.active_tab == "cookies" && root.response_cookies == "No cookies": UiText {
+        text: root.response_cookies;
+        width: parent.width;
+        height: parent.height;
+        color: Theme.outline;
+        font-size: 12px;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+
+    if !root.active_response_folded && root.active_tab == "cookies" && root.response_cookies != "No cookies": CodePane {
+        width: parent.width;
+        height: parent.height;
+        text <=> root.response_cookies;
+        read_only: true;
+        selection_changed(anchor, cursor) => {
+            root.set_response_selection("cookies", anchor, cursor);
+        }
+    }
+}
