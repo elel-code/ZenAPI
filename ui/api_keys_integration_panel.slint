@@ -1,3 +1,4 @@
+import { ActionButton } from "action_button.slint";
 import { ReadOnlyCodeBlock } from "editors.slint";
 import { Theme } from "theme.slint";
 import { UiText } from "widgets.slint";
@@ -6,6 +7,7 @@ export component ApiKeysIntegrationPanel inherits Rectangle {
     in property <bool> has_auth;
     in property <string> curl_hint;
     in property <string> integration_hint;
+    callback copy_api_key_integration(string, string);
 
     width: 320px;
     vertical-stretch: 1;
@@ -42,6 +44,29 @@ export component ApiKeysIntegrationPanel inherits Rectangle {
 
         ReadOnlyCodeBlock {
             text: root.integration_hint;
+        }
+
+        HorizontalLayout {
+            height: 34px;
+            spacing: 10px;
+
+            ActionButton {
+                text: "Copy cURL";
+                button_width: 116px;
+                primary: true;
+                clicked => {
+                    root.copy_api_key_integration("curl", root.curl_hint);
+                }
+            }
+
+            ActionButton {
+                text: "Copy Auth";
+                button_width: 116px;
+                enabled: root.has_auth;
+                clicked => {
+                    root.copy_api_key_integration("auth", root.integration_hint);
+                }
+            }
         }
     }
 }

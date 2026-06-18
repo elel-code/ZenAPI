@@ -7,6 +7,7 @@ export component AppApiKeysPageHost inherits ScrollView {
     in property <string> auth_basic_username;
     in property <int> auth_key_row_count;
     in property <string> url;
+    callback copy_api_key_integration(string, string);
 
     viewport-width: max(self.visible-width, 1040px);
     viewport-height: max(self.visible-height, 620px);
@@ -21,5 +22,8 @@ export component AppApiKeysPageHost inherits ScrollView {
         auth_basic_username: root.auth_basic_username;
         auth_key_row_count: root.auth_key_row_count;
         url: root.url;
+        copy_api_key_integration(kind, text) => {
+            root.copy_api_key_integration(kind, text);
+        }
     }
 }

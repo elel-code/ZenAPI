@@ -201,6 +201,7 @@ export component AppWindow inherits Window {
     callback copy_codegen();
     callback save_codegen(string);
     callback pick_codegen_path();
+    callback copy_api_key_integration(string, string);
     callback run_collection();
     callback cancel_collection_run();
     callback save_runner_report(string);
@@ -772,6 +773,9 @@ export component AppWindow inherits Window {
                     }
                     pick_codegen_path => {
                         root.pick_codegen_path();
+                    }
+                    copy_api_key_integration(kind, text) => {
+                        root.copy_api_key_integration(kind, text);
                     }
                     send_request => {
                         root.send_request();

@@ -95,6 +95,7 @@ export component AppAuxiliaryPagesWorkbench inherits Rectangle {
     callback save_codegen(string);
     callback pick_codegen_path();
     callback send_request();
+    callback copy_api_key_integration(string, string);
     in property <bool> preload_pages: false;
     property <bool> dashboard_mounted: false;
     property <bool> mock_manager_mounted: false;
@@ -337,6 +338,9 @@ export component AppAuxiliaryPagesWorkbench inherits Rectangle {
         auth_basic_username: root.auth_basic_username;
         auth_key_row_count: root.auth_key_row_count;
         url: root.url;
+        copy_api_key_integration(kind, text) => {
+            root.copy_api_key_integration(kind, text);
+        }
     }
 
     if root.preload_pages || root.team_mounted: AppTeamPageHost {

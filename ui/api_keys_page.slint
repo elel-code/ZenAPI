@@ -9,6 +9,7 @@ export component ApiKeysPage inherits Rectangle {
     in property <string> auth_basic_username;
     in property <int> auth_key_row_count;
     in property <string> url;
+    callback copy_api_key_integration(string, string);
 
     property <bool> has_auth: root.auth_mode != "none" && (root.auth_config != "" || root.auth_key_row_count > 0 || root.auth_basic_username != "");
     property <string> mode_title: root.auth_mode == "bearer" ? "Bearer Token" : root.auth_mode == "oauth2" ? "OAuth2 Access Token" : root.auth_mode == "jwt" ? "JWT Bearer" : root.auth_mode == "basic" ? "Basic Auth" : root.auth_mode == "api-header" ? "API Key Header" : root.auth_mode == "api-query" ? "API Key Query" : "No Auth";
@@ -50,6 +51,9 @@ export component ApiKeysPage inherits Rectangle {
             has_auth: root.has_auth;
             curl_hint: root.curl_hint;
             integration_hint: root.integration_hint;
+            copy_api_key_integration(kind, text) => {
+                root.copy_api_key_integration(kind, text);
+            }
         }
     }
 }
