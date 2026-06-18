@@ -71,9 +71,11 @@ pm.test("status is 200", () => {
 })
 ```
 
-The parser is not a JavaScript runtime. It accepts common status, header, body
-contains, and JSON dot-path equality checks, while full Postman compatibility
-still requires a dedicated sandboxed scripting engine and compatibility tests.
+The parser is not a JavaScript runtime. It accepts common status/status-range,
+header exists/header equality, body contains/string, JSON dot/bracket path
+equality, JSON property equality, and JSON boolean/null checks, while full
+Postman compatibility still requires a dedicated sandboxed scripting engine and
+compatibility tests.
 
 ## Result Model
 
@@ -165,8 +167,10 @@ Runner behavior:
 - Assertion failures appear in runner summaries and response summary text.
 - The Slint request editor includes a native Tests panel that configures these
   assertions without a script engine.
-- Common single-line `pm.test(...)` status, header, body contains, and JSON
-  equality checks are converted to the same native assertions.
+- Common single-line `pm.test(...)` status, status-range, header exists/header
+  equality, body contains/string, JSON dot/bracket path equality, JSON property
+  equality, and JSON boolean/null checks are converted to the same native
+  assertions.
 - Saving a request to a collection preserves configured assertions, and
   restoring a collection request brings them back into the Tests panel.
 

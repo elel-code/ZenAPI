@@ -149,9 +149,11 @@ expected values can be JSON literals such as `true`, `42`, or `"name"`. Kind
 cycling fills the next supported assertion template.
 
 The parser also accepts common single-line Postman-style `pm.test(...)`
-assertions for response status, response headers, response text contains, and
-`pm.response.json().path` equality. These are converted to native assertions;
-arbitrary JavaScript and full `pm.*` compatibility are not implemented.
+assertions for response status/status ranges, response headers, response text
+contains/string checks, JSON dot or bracket path equality, JSON property
+equality, and JSON boolean/null expectations. These are converted to native
+assertions; arbitrary JavaScript and full `pm.*` runtime compatibility are not
+implemented.
 
 Tests run when a request is sent and when a collection is run. Tests are saved
 with collection requests and restored with them.
@@ -435,8 +437,9 @@ zenapi run collection.json --delay-ms 100
 - OAuth2 manual access token auth is available. Token acquisition, redirect
   handling, refresh, and secure state storage are not implemented yet.
 - Pre-request script-lite and native response assertions are available in
-  collection JSON, but a full script engine and `pm.*` compatibility are not
-  implemented yet.
+  collection JSON. Common single-line `pm.test(...)` assertions are mapped into
+  native assertions, but a full script engine and complete Postman `pm.*`
+  compatibility are not implemented yet.
 - GraphQL query and variables payload editing, query/mutation/introspection
   templates, and introspection response schema summaries are available.
 - WebSocket one-shot sends, persistent WS text sessions, WebSocket history
