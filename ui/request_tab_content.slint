@@ -2,7 +2,7 @@ import { ScrollView } from "std-widgets.slint";
 import { Theme } from "theme.slint";
 import { KeyValueTableRow, TestAssertionRow } from "types.slint";
 import { AuthEditorPanel } from "auth_panel.slint";
-import { BodyEditorPanel } from "body_panel.slint";
+import { RequestBodyTabHost } from "request_body_tab_host.slint";
 import { RequestHeadersTab } from "request_headers_tab.slint";
 import { RequestParamsTab } from "request_params_tab.slint";
 import { RequestRealtimeTab } from "request_realtime_tab.slint";
@@ -172,37 +172,37 @@ export component RequestTabContent inherits ScrollView {
             }
         }
 
-        if root.preload_tabs || root.active_tab == "body": BodyEditorPanel {
+        if root.preload_tabs || root.active_tab == "body": RequestBodyTabHost {
             visible: root.active_tab == "body";
             width: parent.width;
             height: parent.height;
-            body_mode <=> root.body_mode;
-            raw_body_subtype <=> root.raw_body_subtype;
-            request_body <=> root.request_body;
-            body_field_rows <=> root.body_field_rows;
-            form_file_field <=> root.form_file_field;
-            form_file_path <=> root.form_file_path;
-            graphql_variables <=> root.graphql_variables;
-            busy: root.busy;
-            body_mode_changed(mode) => {
+            workspace_body_mode <=> root.body_mode;
+            workspace_raw_body_subtype <=> root.raw_body_subtype;
+            workspace_request_body <=> root.request_body;
+            workspace_body_field_rows <=> root.body_field_rows;
+            workspace_form_file_field <=> root.form_file_field;
+            workspace_form_file_path <=> root.form_file_path;
+            workspace_graphql_variables <=> root.graphql_variables;
+            workspace_busy: root.busy;
+            workspace_body_mode_changed(mode) => {
                 root.body_mode_changed(mode);
             }
-            add_body_field => {
+            workspace_add_body_field => {
                 root.add_body_field();
             }
-            add_body_file_field(field, path) => {
+            workspace_add_body_file_field(field, path) => {
                 root.add_body_file_field(field, path);
             }
-            pick_form_file => {
+            workspace_pick_form_file => {
                 root.pick_form_file();
             }
-            update_body_field_row(row_id, key, value) => {
+            workspace_update_body_field_row(row_id, key, value) => {
                 root.update_body_field_row(row_id, key, value);
             }
-            delete_body_field_row(row_id) => {
+            workspace_delete_body_field_row(row_id) => {
                 root.delete_body_field_row(row_id);
             }
-            apply_graphql_template(template) => {
+            workspace_apply_graphql_template(template) => {
                 root.apply_graphql_template(template);
             }
         }
