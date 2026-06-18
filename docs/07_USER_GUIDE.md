@@ -1,8 +1,9 @@
 # ZenAPI User Guide
 
 > Status: current local guide for the Slint rewrite. Some advanced roadmap
-> features such as OAuth2 token acquisition/refresh, full `pm.*` script
-> compatibility, plugins, and multi-protocol sessions are still future work.
+> features such as OAuth2 browser redirects/automatic refresh, full `pm.*`
+> script compatibility, plugins, and multi-protocol sessions are still future
+> work.
 
 ## Overview
 
@@ -273,17 +274,36 @@ Supported auth modes:
 
 - None
 - Bearer
-- OAuth2 access token
+- OAuth2 token/config
 - Basic
 - JWT
 - API key header
 - API key query
 
-Bearer, OAuth2 access token, and JWT modes send
-`Authorization: Bearer <token>`. OAuth2 mode uses an existing access token that
-you paste or resolve from variables; token acquisition, redirect handling,
-refresh, and secure token storage remain future work. Basic auth exposes
-separate username and password fields, then saves them as the existing
+Bearer, OAuth2, and JWT modes send `Authorization: Bearer <token>`. OAuth2
+mode still accepts a plain pasted access token or variable-resolved token for
+backward compatibility. It also accepts key/value token endpoint config and can
+fetch JSON token responses from client-credentials or refresh-token grants.
+
+Minimal OAuth2 client-credentials config:
+
+```text
+token_endpoint=https://auth.example.com/oauth/token
+client_id={{clientId}}
+client_secret={{clientSecret}}
+scope=read write
+grant_type=client_credentials
+```
+
+Use `refresh_token=...` with `grant_type=refresh_token`, or omit `grant_type`
+when a refresh token is present. Fetching stores or updates `access_token`,
+`token_type`, `expires_in`, and `refresh_token` in the same config field. The
+request sender uses `access_token` first, then `token`, as the bearer token.
+Browser authorization-code redirects, automatic refresh before expiry, and
+secure token storage remain future work.
+
+Basic auth exposes separate username and password fields, then saves them as
+the existing
 `username:password` config string. API key modes use editable add/delete rows
 for header or query pairs, while still storing the saved config as line-based
 `key=value` text. The Slint auth panel changes its label, placeholder, and
@@ -461,8 +481,9 @@ zenapi run collection.json --delay-ms 100
 
 ## Current Limits
 
-- OAuth2 manual access token auth is available. Token acquisition, redirect
-  handling, refresh, and secure state storage are not implemented yet.
+- OAuth2 pasted access token auth and token endpoint fetching are available.
+  Browser authorization-code redirect handling, automatic refresh before
+  expiry, and secure state storage are not implemented yet.
 - Pre-request script-lite and native response assertions are available in
   collection JSON. Common single-line `pm.test(...)` assertions are mapped into
   native assertions, but a full script engine and complete Postman `pm.*`

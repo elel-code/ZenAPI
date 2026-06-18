@@ -72,10 +72,12 @@
   mode-specific config panels wired to transport mapping. API key header/query
   modes now use editable add/delete rows backed by the existing `key=value`
   config storage, and Basic auth uses split username/password fields while
-  preserving the existing `username:password` config format. Manual OAuth2
-  access-token mode is wired as `Authorization: Bearer <token>`; browser token
-  acquisition, redirect handling, refresh, and secure token storage remain
-  pending.
+  preserving the existing `username:password` config format. OAuth2 accepts
+  either a pasted legacy access token or key/value token endpoint config; client
+  credentials and refresh-token grant exchanges are wired to fetch JSON token
+  responses and upsert `access_token`, `token_type`, `expires_in`, and
+  `refresh_token` in the config. Browser authorization-code redirects,
+  automatic refresh, and secure token storage remain pending.
 - [~] Rebuild Environments and Variables UI on top of `variables::VariableStore`;
   current Slint baseline uses the reference three-pane Environments page with
   a persisted dynamic environment list, editable global/env variable rows,
@@ -159,8 +161,9 @@
   panel, Realtime gRPC editor panel, Realtime gRPC actions panel,
   shared Key/Value table panel, Body editor panel, Body mode toolbar,
   Body content panel, Header editor panel, Auth editor panel,
-  Auth mode toolbar, Auth token panel, Auth basic panel,
-  Auth API key panel, Scripts editor panel, Tests assertion panel,
+  Auth mode toolbar, Auth token panel, Auth OAuth2 panel,
+  Auth basic panel, Auth API key panel, Scripts editor panel,
+  Tests assertion panel,
   Tests assertion panel workbench, Tests assertion row,
   Request Builder page, Request Builder workbench, Request panel,
   Request panel workbench, Request tab strip,
