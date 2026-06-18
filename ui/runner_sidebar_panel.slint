@@ -1,0 +1,129 @@
+import { ListView } from "std-widgets.slint";
+import { DataPanel } from "cards.slint";
+import { Theme } from "theme.slint";
+import { CollectionRow } from "types.slint";
+import { UiText } from "widgets.slint";
+
+component RunnerSidebarFolderRow inherits Rectangle {
+    in property <string> label;
+
+    height: 36px;
+    horizontal-stretch: 1;
+    background: transparent;
+
+    Rectangle {
+        x: 8px;
+        y: 12px;
+        width: 16px;
+        height: 11px;
+        border-radius: 2px;
+        border-width: 1px;
+        border-color: Theme.on_surface_variant;
+        background: transparent;
+    }
+
+    Rectangle {
+        x: 8px;
+        y: 9px;
+        width: 8px;
+        height: 4px;
+        border-radius: 1px;
+        background: Theme.on_surface_variant;
+    }
+
+    UiText {
+        x: 34px;
+        text: root.label;
+        width: parent.width - 44px;
+        height: parent.height;
+        color: Theme.on_surface;
+        font-size: 12px;
+        font-weight: 800;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+}
+
+component RunnerSidebarRequestLink inherits Rectangle {
+    in property <string> method;
+    in property <string> label;
+
+    height: 30px;
+    horizontal-stretch: 1;
+    background: transparent;
+
+    UiText {
+        x: 8px;
+        text: root.method;
+        width: 44px;
+        height: parent.height;
+        color: Theme.secondary;
+        font-family: "JetBrains Mono";
+        font-size: 10px;
+        font-weight: 800;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+
+    UiText {
+        x: 58px;
+        text: root.label;
+        width: parent.width - 68px;
+        height: parent.height;
+        color: Theme.on_surface_variant;
+        font-size: 12px;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+}
+
+export component RunnerSidebarPanel inherits Rectangle {
+    in property <[CollectionRow]> collection_rows;
+
+    width: 300px;
+    vertical-stretch: 1;
+    background: Theme.surface_container;
+
+    VerticalLayout {
+        padding: 16px;
+        spacing: 10px;
+
+        UiText {
+            text: "Test Collections";
+            height: 32px;
+            horizontal-stretch: 1;
+            color: Theme.on_surface;
+            font-size: 18px;
+            font-weight: 800;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+
+        if root.collection_rows.length == 0: DataPanel {
+            title: "No collection";
+            body: "Save requests before running a suite.";
+        }
+
+        if root.collection_rows.length != 0: ListView {
+            horizontal-stretch: 1;
+            vertical-stretch: 1;
+            vertical-scrollbar-policy: ScrollBarPolicy.as-needed;
+            horizontal-scrollbar-policy: ScrollBarPolicy.as-needed;
+
+            for entry in root.collection_rows: Rectangle {
+                height: entry.is_folder ? 36px : 30px;
+                horizontal-stretch: 1;
+                background: transparent;
+
+                if entry.is_folder: RunnerSidebarFolderRow {
+                    label: entry.name;
+                }
+
+                if !entry.is_folder: RunnerSidebarRequestLink {
+                    method: entry.method;
+                    label: entry.name;
+                }
+            }
+        }
+    }
+}
