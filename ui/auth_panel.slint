@@ -3,6 +3,7 @@ import { KeyValueTableRow } from "types.slint";
 import { AuthApiKeyPanel } from "auth_api_key_panel.slint";
 import { AuthBasicPanel } from "auth_basic_panel.slint";
 import { AuthModeToolbar } from "auth_mode_toolbar.slint";
+import { AuthOAuth2Panel } from "auth_oauth2_panel.slint";
 import { AuthTokenPanel } from "auth_token_panel.slint";
 
 export component AuthEditorPanel inherits Rectangle {
@@ -17,6 +18,7 @@ export component AuthEditorPanel inherits Rectangle {
     callback add_auth_key();
     callback update_auth_key_row(int, string, string);
     callback delete_auth_key_row(int);
+    callback fetch_oauth2_token();
 
     horizontal-stretch: 1;
     vertical-stretch: 1;
@@ -55,12 +57,12 @@ export component AuthEditorPanel inherits Rectangle {
             busy: root.busy;
         }
 
-        if root.auth_mode == "oauth2": AuthTokenPanel {
-            label: "OAuth2 Access Token";
-            token <=> root.auth_config;
-            placeholder: "access token or {{oauthToken}}";
-            helper: "Uses an existing OAuth2 access token as Authorization: Bearer <token>.";
+        if root.auth_mode == "oauth2": AuthOAuth2Panel {
+            config <=> root.auth_config;
             busy: root.busy;
+            fetch_oauth2_token => {
+                root.fetch_oauth2_token();
+            }
         }
 
         if root.auth_mode == "basic": AuthBasicPanel {

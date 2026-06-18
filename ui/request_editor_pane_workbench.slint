@@ -68,6 +68,7 @@ export component RequestEditorPaneWorkbench inherits Rectangle {
     callback add_auth_key();
     callback update_auth_key_row(int, string, string);
     callback delete_auth_key_row(int);
+    callback fetch_oauth2_token();
     callback body_mode_changed(string);
     callback add_body_field();
     callback add_body_file_field(string, string);
@@ -214,6 +215,9 @@ export component RequestEditorPaneWorkbench inherits Rectangle {
             }
             delete_auth_key_row(row_id) => {
                 root.delete_auth_key_row(row_id);
+            }
+            fetch_oauth2_token => {
+                root.fetch_oauth2_token();
             }
             body_mode_changed(mode) => {
                 root.body_mode_changed(mode);

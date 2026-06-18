@@ -65,6 +65,7 @@ export component RequestBuilderEditorHostWorkbench inherits RequestEditorPane {
     callback workspace_add_auth_key();
     callback workspace_update_auth_key_row(int, string, string);
     callback workspace_delete_auth_key_row(int);
+    callback workspace_fetch_oauth2_token();
     callback workspace_body_mode_changed(string);
     callback workspace_add_body_field();
     callback workspace_add_body_file_field(string, string);
@@ -198,6 +199,9 @@ export component RequestBuilderEditorHostWorkbench inherits RequestEditorPane {
     }
     delete_auth_key_row(row_id) => {
         root.workspace_delete_auth_key_row(row_id);
+    }
+    fetch_oauth2_token => {
+        root.workspace_fetch_oauth2_token();
     }
     body_mode_changed(mode) => {
         root.workspace_body_mode_changed(mode);

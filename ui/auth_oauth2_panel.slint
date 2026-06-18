@@ -1,0 +1,59 @@
+import { Theme } from "theme.slint";
+import { ActionButton } from "action_button.slint";
+import { CodePane } from "editors.slint";
+import { UiText } from "widgets.slint";
+
+export component AuthOAuth2Panel inherits Rectangle {
+    in-out property <string> config;
+    in property <bool> busy;
+    callback fetch_oauth2_token();
+
+    height: 260px;
+    horizontal-stretch: 1;
+    background: transparent;
+
+    VerticalLayout {
+        padding: 0px;
+        spacing: 8px;
+
+        HorizontalLayout {
+            height: 34px;
+            spacing: 12px;
+
+            UiText {
+                text: "OAuth2";
+                horizontal-stretch: 1;
+                color: Theme.on_surface_variant;
+                font-size: 12px;
+                font-weight: 800;
+                vertical-alignment: center;
+                overflow: elide;
+            }
+
+            ActionButton {
+                text: root.busy ? "Fetching" : "Fetch";
+                button_width: 92px;
+                primary: true;
+                enabled: !root.busy && root.config != "";
+                clicked => {
+                    root.fetch_oauth2_token();
+                }
+            }
+        }
+
+        CodePane {
+            text <=> root.config;
+            read_only: root.busy;
+        }
+
+        UiText {
+            text: "Use access_token=... or token_endpoint/client_id/client_secret/scope.";
+            height: 18px;
+            horizontal-stretch: 1;
+            color: Theme.outline;
+            font-size: 12px;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+    }
+}

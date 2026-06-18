@@ -13,6 +13,7 @@ export component RequestAuthTabHost inherits AuthEditorPanel {
     callback workspace_add_auth_key();
     callback workspace_update_auth_key_row(int, string, string);
     callback workspace_delete_auth_key_row(int);
+    callback workspace_fetch_oauth2_token();
 
     auth_mode <=> root.workspace_auth_mode;
     auth_config <=> root.workspace_auth_config;
@@ -34,5 +35,8 @@ export component RequestAuthTabHost inherits AuthEditorPanel {
     }
     delete_auth_key_row(row_id) => {
         root.workspace_delete_auth_key_row(row_id);
+    }
+    fetch_oauth2_token => {
+        root.workspace_fetch_oauth2_token();
     }
 }
