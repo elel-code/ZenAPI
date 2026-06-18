@@ -173,6 +173,7 @@
   Documentation page, Documentation auxiliary host,
   Documentation sidebar panel,
   Documentation detail panel, Documentation try-it panel, Environment page,
+  Environment auxiliary host,
   Environment navigation panel, Environment variable table,
   Environment variable toolbar, Environment variable row,
   Environment details panel, Runner page,
