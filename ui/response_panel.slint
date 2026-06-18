@@ -1,9 +1,9 @@
 import { CodePane } from "editors.slint";
 import { Theme } from "theme.slint";
 import { RunnerRow } from "types.slint";
-import { ActionButton } from "action_button.slint";
 import { ResponseHeader } from "response_header.slint";
 import { ResponseTabStrip } from "response_tab_strip.slint";
+import { ResponseToolbar } from "response_toolbar.slint";
 import { UiText } from "widgets.slint";
 
 export component ResponsePanel inherits Rectangle {
@@ -154,86 +154,34 @@ export component ResponsePanel inherits Rectangle {
             background: Theme.outline_variant;
         }
 
-        Rectangle {
-            height: 36px;
-            horizontal-stretch: 1;
-            background: Theme.surface_container;
-
-            HorizontalLayout {
-                padding-left: 8px;
-                padding-right: 8px;
-                spacing: 6px;
-                alignment: center;
-
-                Rectangle {
-                    horizontal-stretch: 1;
-                }
-
-                ActionButton {
-                    text: "Schema";
-                    button_width: 64px;
-                    enabled: !root.busy && root.active_response_text != "" && (root.active_tab == "pretty" || root.active_tab == "raw");
-                    clicked => {
-                        root.summarize_graphql_schema(root.active_tab, root.active_response_text);
-                        root.active_tab = "pretty";
-                    }
-                }
-
-                ActionButton {
-                    text: "Format";
-                    button_width: 62px;
-                    enabled: !root.busy && (root.active_tab == "pretty" || root.active_tab == "raw");
-                    clicked => {
-                        root.format_response(root.active_tab);
-                    }
-                }
-
-                ActionButton {
-                    text: "Copy";
-                    button_width: 52px;
-                    enabled: root.active_response_display_text != "";
-                    clicked => {
-                        root.copy_response(root.active_tab, root.active_response_display_text, root.active_response_selection_anchor, root.active_response_selection_cursor);
-                    }
-                }
-
-                ActionButton {
-                    text: root.active_response_folded ? "Open" : "Fold";
-                    button_width: 52px;
-                    clicked => {
-                        root.pretty_response_folded = root.active_tab == "pretty" ? !root.pretty_response_folded : root.pretty_response_folded;
-                        root.raw_response_folded = root.active_tab == "raw" ? !root.raw_response_folded : root.raw_response_folded;
-                        root.headers_response_folded = root.active_tab == "headers" ? !root.headers_response_folded : root.headers_response_folded;
-                        root.cookies_response_folded = root.active_tab == "cookies" ? !root.cookies_response_folded : root.cookies_response_folded;
-                        root.clear_response_selection(root.active_tab);
-                    }
-                }
-
-                ActionButton {
-                    text: "Fold All";
-                    button_width: 62px;
-                    enabled: !root.all_responses_folded;
-                    clicked => {
-                        root.pretty_response_folded = true;
-                        root.raw_response_folded = true;
-                        root.headers_response_folded = true;
-                        root.cookies_response_folded = true;
-                        root.clear_all_response_selections();
-                    }
-                }
-
-                ActionButton {
-                    text: "Open All";
-                    button_width: 66px;
-                    enabled: root.any_response_folded;
-                    clicked => {
-                        root.pretty_response_folded = false;
-                        root.raw_response_folded = false;
-                        root.headers_response_folded = false;
-                        root.cookies_response_folded = false;
-                        root.clear_all_response_selections();
-                    }
-                }
+        ResponseToolbar {
+            active_tab <=> root.active_tab;
+            pretty_response_folded <=> root.pretty_response_folded;
+            raw_response_folded <=> root.raw_response_folded;
+            headers_response_folded <=> root.headers_response_folded;
+            cookies_response_folded <=> root.cookies_response_folded;
+            active_response_folded: root.active_response_folded;
+            all_responses_folded: root.all_responses_folded;
+            any_response_folded: root.any_response_folded;
+            busy: root.busy;
+            active_response_text: root.active_response_text;
+            active_response_display_text: root.active_response_display_text;
+            active_response_selection_anchor: root.active_response_selection_anchor;
+            active_response_selection_cursor: root.active_response_selection_cursor;
+            summarize_graphql_schema(tab, text) => {
+                root.summarize_graphql_schema(tab, text);
+            }
+            format_response(tab) => {
+                root.format_response(tab);
+            }
+            copy_response(tab, text, anchor, cursor) => {
+                root.copy_response(tab, text, anchor, cursor);
+            }
+            clear_response_selection(tab) => {
+                root.clear_response_selection(tab);
+            }
+            clear_all_response_selections() => {
+                root.clear_all_response_selections();
             }
         }
 
