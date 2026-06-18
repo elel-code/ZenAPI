@@ -11,9 +11,7 @@ import { DashboardPage } from "dashboard_page.slint";
 import { EnvironmentPage } from "environment_page.slint";
 import { RunnerPage } from "runner_page.slint";
 import { MockManagerPage } from "mock_manager_page.slint";
-import { ResponsePanel } from "response_panel.slint";
-import { RequestEditorPane } from "request_editor_pane.slint";
-import { RequestSidebarPane } from "request_sidebar_pane.slint";
+import { RequestBuilderPage } from "request_builder_page.slint";
 import { AppNavigation, BottomNavigation } from "app_navigation.slint";
 
 export component AppWindow inherits Window {
@@ -286,369 +284,336 @@ export component AppWindow inherits Window {
                 background: Theme.background;
                 clip: true;
 
-                ScrollView {
+                RequestBuilderPage {
                     visible: root.active_page_index == 1;
                     width: parent.width;
                     height: parent.height;
-                    viewport-width: max(self.visible-width, 1240px);
-                    viewport-height: max(self.visible-height, 560px);
-                    vertical-scrollbar-policy: ScrollBarPolicy.as-needed;
-                    horizontal-scrollbar-policy: ScrollBarPolicy.as-needed;
-
-                    HorizontalLayout {
-                        width: max(parent.visible-width, 1240px);
-                        height: max(parent.visible-height, 560px);
-                        spacing: 0px;
-
-                        RequestSidebarPane {
-                            workspace_routes <=> root.routes;
-                            workspace_collection_rows <=> root.collection_rows;
-                            workspace_history_rows <=> root.history_rows;
-                            workspace_selected_route <=> root.selected_route;
-                            workspace_selected_collection_request <=> root.selected_collection_request;
-                            workspace_selected_collection_folder <=> root.selected_collection_folder;
-                            workspace_collection_move_target_label <=> root.collection_move_target_label;
-                            workspace_collection_request_name <=> root.collection_request_name;
-                            workspace_collection_folder_name <=> root.collection_folder_name;
-                            workspace_collection_name <=> root.collection_name;
-                            workspace_collection_path <=> root.collection_path;
-                            workspace_history_filter <=> root.history_filter;
-                            workspace_file_path <=> root.file_path;
-                            workspace_collection_status: root.collection_status;
-                            workspace_spec_label: root.spec_label;
-                            workspace_spec_loaded: root.spec_loaded;
-                            workspace_total_route_count: root.total_route_count;
-                            workspace_busy: root.busy;
-                            workspace_import_openapi(path) => {
-                                root.import_openapi(path);
-                            }
-                            workspace_pick_openapi_file => {
-                                root.pick_openapi_file();
-                            }
-                            workspace_select_route(index) => {
-                                root.select_route(index);
-                            }
-                            workspace_select_collection_request(id) => {
-                                root.select_collection_request(id);
-                            }
-                            workspace_rename_collection_request(id, name) => {
-                                root.rename_collection_request(id, name);
-                            }
-                            workspace_duplicate_collection_request(id) => {
-                                root.duplicate_collection_request(id);
-                            }
-                            workspace_delete_collection_request(id) => {
-                                root.delete_collection_request(id);
-                            }
-                            workspace_move_collection_request(id, folder_path) => {
-                                root.move_collection_request(id, folder_path);
-                            }
-                            workspace_import_collection(path) => {
-                                root.import_collection(path);
-                            }
-                            workspace_add_collection_folder(name) => {
-                                root.add_collection_folder(name);
-                            }
-                            workspace_save_current_request => {
-                                root.save_current_request();
-                            }
-                            workspace_save_collection(path) => {
-                                root.save_collection(path);
-                            }
-                            workspace_export_postman_collection(path) => {
-                                root.export_postman_collection(path);
-                            }
-                            workspace_pick_collection_import_file => {
-                                root.pick_collection_import_file();
-                            }
-                            workspace_pick_collection_save_path => {
-                                root.pick_collection_save_path();
-                            }
-                            workspace_pick_postman_collection_path => {
-                                root.pick_postman_collection_path();
-                            }
-                            workspace_select_history(id) => {
-                                root.select_history(id);
-                            }
-                            workspace_filter_history(query) => {
-                                root.filter_history(query);
-                            }
-                            workspace_delete_history(id) => {
-                                root.delete_history(id);
-                            }
-                            workspace_clear_history => {
-                                root.clear_history();
-                            }
-                        }
-
-                        Rectangle {
-                            width: 1px;
-                            background: Theme.outline_variant;
-                        }
-
-                        RequestEditorPane {
-                            width: max(560px, parent.width - 642px);
-                            vertical-stretch: 1;
-                            method <=> root.method;
-                            url <=> root.url;
-                            global_variables <=> root.global_variables;
-                            environment_name <=> root.environment_name;
-                            environment_variables <=> root.environment_variables;
-                            query_params <=> root.query_params;
-                            query_param_rows <=> root.query_param_rows;
-                            query_param_import_path <=> root.query_param_import_path;
-                            request_headers <=> root.request_headers;
-                            header_rows <=> root.header_rows;
-                            header_import_path <=> root.header_import_path;
-                            auth_mode <=> root.auth_mode;
-                            auth_config <=> root.auth_config;
-                            auth_basic_username <=> root.auth_basic_username;
-                            auth_basic_password <=> root.auth_basic_password;
-                            auth_key_rows <=> root.auth_key_rows;
-                            body_mode <=> root.body_mode;
-                            raw_body_subtype <=> root.raw_body_subtype;
-                            request_body <=> root.request_body;
-                            body_field_rows <=> root.body_field_rows;
-                            form_file_field <=> root.form_file_field;
-                            form_file_path <=> root.form_file_path;
-                            graphql_variables <=> root.graphql_variables;
-                            pre_request_script <=> root.pre_request_script;
-                            request_tests <=> root.request_tests;
-                            test_assertion_rows <=> root.test_assertion_rows;
-                            realtime_mode <=> root.realtime_mode;
-                            realtime_message <=> root.realtime_message;
-                            websocket_message_mode <=> root.websocket_message_mode;
-                            websocket_protocols <=> root.websocket_protocols;
-                            websocket_event_history <=> root.websocket_event_history;
-                            sse_max_events <=> root.sse_max_events;
-                            sse_last_event_id <=> root.sse_last_event_id;
-                            sse_streaming <=> root.sse_streaming;
-                            sse_event_history <=> root.sse_event_history;
-                            grpc_endpoint <=> root.grpc_endpoint;
-                            grpc_method <=> root.grpc_method;
-                            grpc_metadata <=> root.grpc_metadata;
-                            grpc_message <=> root.grpc_message;
-                            grpc_method_catalog <=> root.grpc_method_catalog;
-                            grpc_descriptor_path <=> root.grpc_descriptor_path;
-                            grpc_protoc_path <=> root.grpc_protoc_path;
-                            grpc_streaming <=> root.grpc_streaming;
-                            busy: root.busy;
-                            send_request => {
-                                root.send_request();
-                            }
-                            add_query_param => {
-                                root.add_query_param();
-                            }
-                            paste_query_params => {
-                                root.paste_query_params();
-                            }
-                            import_query_params(path) => {
-                                root.import_query_params(path);
-                            }
-                            pick_query_param_import_file => {
-                                root.pick_query_param_import_file();
-                            }
-                            update_query_param_row(row_id, key, value) => {
-                                root.update_query_param_row(row_id, key, value);
-                            }
-                            delete_query_param_row(row_id) => {
-                                root.delete_query_param_row(row_id);
-                            }
-                            add_header => {
-                                root.add_header();
-                            }
-                            paste_headers => {
-                                root.paste_headers();
-                            }
-                            import_headers(path) => {
-                                root.import_headers(path);
-                            }
-                            pick_header_import_file => {
-                                root.pick_header_import_file();
-                            }
-                            update_header_row(row_id, key, value) => {
-                                root.update_header_row(row_id, key, value);
-                            }
-                            delete_header_row(row_id) => {
-                                root.delete_header_row(row_id);
-                            }
-                            copy_headers => {
-                                root.copy_headers();
-                            }
-                            auth_mode_changed(mode) => {
-                                root.auth_mode_changed(mode);
-                            }
-                            update_basic_auth(username, password) => {
-                                root.update_basic_auth(username, password);
-                            }
-                            add_auth_key => {
-                                root.add_auth_key();
-                            }
-                            update_auth_key_row(row_id, key, value) => {
-                                root.update_auth_key_row(row_id, key, value);
-                            }
-                            delete_auth_key_row(row_id) => {
-                                root.delete_auth_key_row(row_id);
-                            }
-                            body_mode_changed(mode) => {
-                                root.body_mode_changed(mode);
-                            }
-                            add_body_field => {
-                                root.add_body_field();
-                            }
-                            add_body_file_field(field, path) => {
-                                root.add_body_file_field(field, path);
-                            }
-                            pick_form_file => {
-                                root.pick_form_file();
-                            }
-                            update_body_field_row(row_id, key, value) => {
-                                root.update_body_field_row(row_id, key, value);
-                            }
-                            delete_body_field_row(row_id) => {
-                                root.delete_body_field_row(row_id);
-                            }
-                            add_test_assertion => {
-                                root.add_test_assertion();
-                            }
-                            add_test_assertion_template(template) => {
-                                root.add_test_assertion_template(template);
-                            }
-                            add_custom_test_assertion(kind, target, expected) => {
-                                root.add_custom_test_assertion(kind, target, expected);
-                            }
-                            update_test_assertion_row(row_id, kind, target, expected) => {
-                                root.update_test_assertion_row(row_id, kind, target, expected);
-                            }
-                            cycle_test_assertion_kind(row_id, kind) => {
-                                root.cycle_test_assertion_kind(row_id, kind);
-                            }
-                            delete_test_assertion_row(row_id) => {
-                                root.delete_test_assertion_row(row_id);
-                            }
-                            open_websocket => {
-                                root.open_websocket();
-                            }
-                            run_websocket => {
-                                root.run_websocket();
-                            }
-                            close_websocket => {
-                                root.close_websocket();
-                            }
-                            copy_websocket_events => {
-                                root.copy_websocket_events();
-                            }
-                            clear_websocket_events => {
-                                root.clear_websocket_events();
-                            }
-                            run_sse => {
-                                root.run_sse();
-                            }
-                            open_sse_stream => {
-                                root.open_sse_stream();
-                            }
-                            close_sse_stream => {
-                                root.close_sse_stream();
-                            }
-                            copy_sse_events => {
-                                root.copy_sse_events();
-                            }
-                            clear_sse_events => {
-                                root.clear_sse_events();
-                            }
-                            invoke_grpc_unary => {
-                                root.invoke_grpc_unary();
-                            }
-                            invoke_grpc_server_streaming => {
-                                root.invoke_grpc_server_streaming();
-                            }
-                            stop_grpc_stream => {
-                                root.stop_grpc_stream();
-                            }
-                            apply_graphql_template(template) => {
-                                root.apply_graphql_template(template);
-                            }
-                            apply_header_preset(preset) => {
-                                root.apply_header_preset(preset);
-                            }
-                            build_grpc_draft => {
-                                root.build_grpc_draft();
-                            }
-                            pick_grpc_descriptor_file => {
-                                root.pick_grpc_descriptor_file();
-                            }
-                            load_grpc_descriptor_set(path) => {
-                                root.load_grpc_descriptor_set(path);
-                            }
-                            load_grpc_proto_file(path, protoc_path) => {
-                                root.load_grpc_proto_file(path, protoc_path);
-                            }
-                            load_grpc_reflection => {
-                                root.load_grpc_reflection();
-                            }
-                        }
-
-                        Rectangle {
-                            width: 1px;
-                            background: Theme.outline_variant;
-                        }
-
-                        ResponsePanel {
-                            response_body <=> root.response_body;
-                            response_raw_body <=> root.response_raw_body;
-                            response_headers <=> root.response_headers;
-                            response_cookies <=> root.response_cookies;
-                            folded_response_body <=> root.folded_response_body;
-                            folded_response_raw_body <=> root.folded_response_raw_body;
-                            folded_response_headers <=> root.folded_response_headers;
-                            folded_response_cookies <=> root.folded_response_cookies;
-                            codegen_language <=> root.codegen_language;
-                            codegen_output <=> root.codegen_output;
-                            codegen_path <=> root.codegen_path;
-                            runner_rows <=> root.runner_rows;
-                            runner_summary <=> root.runner_summary;
-                            runner_delay_ms <=> root.runner_delay_ms;
-                            runner_report_path <=> root.runner_report_path;
-                            runner_report_format <=> root.runner_report_format;
-                            runner_stop_on_failure <=> root.runner_stop_on_failure;
-                            runner_active <=> root.runner_active;
-                            response_status: root.response_status;
-                            response_meta: root.response_meta;
-                            response_time: root.response_time;
-                            response_size: root.response_size;
-                            response_tone: root.response_tone;
-                            busy: root.busy;
-                            generate_code => {
-                                root.generate_code();
-                            }
-                            save_codegen(path) => {
-                                root.save_codegen(path);
-                            }
-                            pick_codegen_path => {
-                                root.pick_codegen_path();
-                            }
-                            run_collection => {
-                                root.run_collection();
-                            }
-                            cancel_collection_run => {
-                                root.cancel_collection_run();
-                            }
-                            save_runner_report(path) => {
-                                root.save_runner_report(path);
-                            }
-                            pick_runner_report_path => {
-                                root.pick_runner_report_path();
-                            }
-                            copy_response(tab, text, anchor, cursor) => {
-                                root.copy_response(tab, text, anchor, cursor);
-                            }
-                            format_response(tab) => {
-                                root.format_response(tab);
-                            }
-                            summarize_graphql_schema(tab, text) => {
-                                root.summarize_graphql_schema(tab, text);
-                            }
-                        }
+                    routes <=> root.routes;
+                    collection_rows <=> root.collection_rows;
+                    history_rows <=> root.history_rows;
+                    runner_rows <=> root.runner_rows;
+                    selected_route <=> root.selected_route;
+                    selected_collection_request <=> root.selected_collection_request;
+                    selected_collection_folder <=> root.selected_collection_folder;
+                    collection_move_target_label <=> root.collection_move_target_label;
+                    collection_request_name <=> root.collection_request_name;
+                    collection_folder_name <=> root.collection_folder_name;
+                    collection_name <=> root.collection_name;
+                    collection_path <=> root.collection_path;
+                    history_filter <=> root.history_filter;
+                    file_path <=> root.file_path;
+                    method <=> root.method;
+                    url <=> root.url;
+                    global_variables <=> root.global_variables;
+                    environment_name <=> root.environment_name;
+                    environment_variables <=> root.environment_variables;
+                    query_params <=> root.query_params;
+                    query_param_rows <=> root.query_param_rows;
+                    query_param_import_path <=> root.query_param_import_path;
+                    request_headers <=> root.request_headers;
+                    header_rows <=> root.header_rows;
+                    header_import_path <=> root.header_import_path;
+                    auth_mode <=> root.auth_mode;
+                    auth_config <=> root.auth_config;
+                    auth_basic_username <=> root.auth_basic_username;
+                    auth_basic_password <=> root.auth_basic_password;
+                    auth_key_rows <=> root.auth_key_rows;
+                    body_mode <=> root.body_mode;
+                    raw_body_subtype <=> root.raw_body_subtype;
+                    request_body <=> root.request_body;
+                    body_field_rows <=> root.body_field_rows;
+                    form_file_field <=> root.form_file_field;
+                    form_file_path <=> root.form_file_path;
+                    graphql_variables <=> root.graphql_variables;
+                    pre_request_script <=> root.pre_request_script;
+                    request_tests <=> root.request_tests;
+                    test_assertion_rows <=> root.test_assertion_rows;
+                    realtime_mode <=> root.realtime_mode;
+                    realtime_message <=> root.realtime_message;
+                    websocket_message_mode <=> root.websocket_message_mode;
+                    websocket_protocols <=> root.websocket_protocols;
+                    websocket_event_history <=> root.websocket_event_history;
+                    sse_max_events <=> root.sse_max_events;
+                    sse_last_event_id <=> root.sse_last_event_id;
+                    sse_streaming <=> root.sse_streaming;
+                    sse_event_history <=> root.sse_event_history;
+                    grpc_endpoint <=> root.grpc_endpoint;
+                    grpc_method <=> root.grpc_method;
+                    grpc_metadata <=> root.grpc_metadata;
+                    grpc_message <=> root.grpc_message;
+                    grpc_method_catalog <=> root.grpc_method_catalog;
+                    grpc_descriptor_path <=> root.grpc_descriptor_path;
+                    grpc_protoc_path <=> root.grpc_protoc_path;
+                    grpc_streaming <=> root.grpc_streaming;
+                    response_body <=> root.response_body;
+                    response_raw_body <=> root.response_raw_body;
+                    response_headers <=> root.response_headers;
+                    response_cookies <=> root.response_cookies;
+                    folded_response_body <=> root.folded_response_body;
+                    folded_response_raw_body <=> root.folded_response_raw_body;
+                    folded_response_headers <=> root.folded_response_headers;
+                    folded_response_cookies <=> root.folded_response_cookies;
+                    codegen_language <=> root.codegen_language;
+                    codegen_output <=> root.codegen_output;
+                    codegen_path <=> root.codegen_path;
+                    runner_summary <=> root.runner_summary;
+                    runner_delay_ms <=> root.runner_delay_ms;
+                    runner_report_path <=> root.runner_report_path;
+                    runner_report_format <=> root.runner_report_format;
+                    runner_stop_on_failure <=> root.runner_stop_on_failure;
+                    runner_active <=> root.runner_active;
+                    collection_status: root.collection_status;
+                    spec_label: root.spec_label;
+                    spec_loaded: root.spec_loaded;
+                    total_route_count: root.total_route_count;
+                    response_status: root.response_status;
+                    response_meta: root.response_meta;
+                    response_time: root.response_time;
+                    response_size: root.response_size;
+                    response_tone: root.response_tone;
+                    busy: root.busy;
+                    import_openapi(path) => {
+                        root.import_openapi(path);
+                    }
+                    pick_openapi_file => {
+                        root.pick_openapi_file();
+                    }
+                    select_route(index) => {
+                        root.select_route(index);
+                    }
+                    select_collection_request(id) => {
+                        root.select_collection_request(id);
+                    }
+                    rename_collection_request(id, name) => {
+                        root.rename_collection_request(id, name);
+                    }
+                    duplicate_collection_request(id) => {
+                        root.duplicate_collection_request(id);
+                    }
+                    delete_collection_request(id) => {
+                        root.delete_collection_request(id);
+                    }
+                    move_collection_request(id, folder_path) => {
+                        root.move_collection_request(id, folder_path);
+                    }
+                    import_collection(path) => {
+                        root.import_collection(path);
+                    }
+                    add_collection_folder(name) => {
+                        root.add_collection_folder(name);
+                    }
+                    save_current_request => {
+                        root.save_current_request();
+                    }
+                    save_collection(path) => {
+                        root.save_collection(path);
+                    }
+                    export_postman_collection(path) => {
+                        root.export_postman_collection(path);
+                    }
+                    pick_collection_import_file => {
+                        root.pick_collection_import_file();
+                    }
+                    pick_collection_save_path => {
+                        root.pick_collection_save_path();
+                    }
+                    pick_postman_collection_path => {
+                        root.pick_postman_collection_path();
+                    }
+                    select_history(id) => {
+                        root.select_history(id);
+                    }
+                    filter_history(query) => {
+                        root.filter_history(query);
+                    }
+                    delete_history(id) => {
+                        root.delete_history(id);
+                    }
+                    clear_history => {
+                        root.clear_history();
+                    }
+                    add_query_param => {
+                        root.add_query_param();
+                    }
+                    paste_query_params => {
+                        root.paste_query_params();
+                    }
+                    import_query_params(path) => {
+                        root.import_query_params(path);
+                    }
+                    pick_query_param_import_file => {
+                        root.pick_query_param_import_file();
+                    }
+                    update_query_param_row(row_id, key, value) => {
+                        root.update_query_param_row(row_id, key, value);
+                    }
+                    delete_query_param_row(row_id) => {
+                        root.delete_query_param_row(row_id);
+                    }
+                    add_header => {
+                        root.add_header();
+                    }
+                    paste_headers => {
+                        root.paste_headers();
+                    }
+                    import_headers(path) => {
+                        root.import_headers(path);
+                    }
+                    pick_header_import_file => {
+                        root.pick_header_import_file();
+                    }
+                    update_header_row(row_id, key, value) => {
+                        root.update_header_row(row_id, key, value);
+                    }
+                    delete_header_row(row_id) => {
+                        root.delete_header_row(row_id);
+                    }
+                    copy_headers => {
+                        root.copy_headers();
+                    }
+                    auth_mode_changed(mode) => {
+                        root.auth_mode_changed(mode);
+                    }
+                    update_basic_auth(username, password) => {
+                        root.update_basic_auth(username, password);
+                    }
+                    add_auth_key => {
+                        root.add_auth_key();
+                    }
+                    update_auth_key_row(row_id, key, value) => {
+                        root.update_auth_key_row(row_id, key, value);
+                    }
+                    delete_auth_key_row(row_id) => {
+                        root.delete_auth_key_row(row_id);
+                    }
+                    body_mode_changed(mode) => {
+                        root.body_mode_changed(mode);
+                    }
+                    add_body_field => {
+                        root.add_body_field();
+                    }
+                    add_body_file_field(field, path) => {
+                        root.add_body_file_field(field, path);
+                    }
+                    pick_form_file => {
+                        root.pick_form_file();
+                    }
+                    update_body_field_row(row_id, key, value) => {
+                        root.update_body_field_row(row_id, key, value);
+                    }
+                    delete_body_field_row(row_id) => {
+                        root.delete_body_field_row(row_id);
+                    }
+                    add_test_assertion => {
+                        root.add_test_assertion();
+                    }
+                    add_test_assertion_template(template) => {
+                        root.add_test_assertion_template(template);
+                    }
+                    add_custom_test_assertion(kind, target, expected) => {
+                        root.add_custom_test_assertion(kind, target, expected);
+                    }
+                    update_test_assertion_row(row_id, kind, target, expected) => {
+                        root.update_test_assertion_row(row_id, kind, target, expected);
+                    }
+                    cycle_test_assertion_kind(row_id, kind) => {
+                        root.cycle_test_assertion_kind(row_id, kind);
+                    }
+                    delete_test_assertion_row(row_id) => {
+                        root.delete_test_assertion_row(row_id);
+                    }
+                    send_request => {
+                        root.send_request();
+                    }
+                    generate_code => {
+                        root.generate_code();
+                    }
+                    save_codegen(path) => {
+                        root.save_codegen(path);
+                    }
+                    pick_codegen_path => {
+                        root.pick_codegen_path();
+                    }
+                    run_collection => {
+                        root.run_collection();
+                    }
+                    cancel_collection_run => {
+                        root.cancel_collection_run();
+                    }
+                    save_runner_report(path) => {
+                        root.save_runner_report(path);
+                    }
+                    pick_runner_report_path => {
+                        root.pick_runner_report_path();
+                    }
+                    copy_response(tab, text, anchor, cursor) => {
+                        root.copy_response(tab, text, anchor, cursor);
+                    }
+                    format_response(tab) => {
+                        root.format_response(tab);
+                    }
+                    summarize_graphql_schema(tab, text) => {
+                        root.summarize_graphql_schema(tab, text);
+                    }
+                    open_websocket => {
+                        root.open_websocket();
+                    }
+                    run_websocket => {
+                        root.run_websocket();
+                    }
+                    close_websocket => {
+                        root.close_websocket();
+                    }
+                    copy_websocket_events => {
+                        root.copy_websocket_events();
+                    }
+                    clear_websocket_events => {
+                        root.clear_websocket_events();
+                    }
+                    run_sse => {
+                        root.run_sse();
+                    }
+                    open_sse_stream => {
+                        root.open_sse_stream();
+                    }
+                    close_sse_stream => {
+                        root.close_sse_stream();
+                    }
+                    copy_sse_events => {
+                        root.copy_sse_events();
+                    }
+                    clear_sse_events => {
+                        root.clear_sse_events();
+                    }
+                    apply_graphql_template(template) => {
+                        root.apply_graphql_template(template);
+                    }
+                    apply_header_preset(preset) => {
+                        root.apply_header_preset(preset);
+                    }
+                    invoke_grpc_unary => {
+                        root.invoke_grpc_unary();
+                    }
+                    invoke_grpc_server_streaming => {
+                        root.invoke_grpc_server_streaming();
+                    }
+                    stop_grpc_stream => {
+                        root.stop_grpc_stream();
+                    }
+                    build_grpc_draft => {
+                        root.build_grpc_draft();
+                    }
+                    pick_grpc_descriptor_file => {
+                        root.pick_grpc_descriptor_file();
+                    }
+                    load_grpc_descriptor_set(path) => {
+                        root.load_grpc_descriptor_set(path);
+                    }
+                    load_grpc_proto_file(path, protoc_path) => {
+                        root.load_grpc_proto_file(path, protoc_path);
+                    }
+                    load_grpc_reflection => {
+                        root.load_grpc_reflection();
                     }
                 }
 
