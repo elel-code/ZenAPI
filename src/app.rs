@@ -7634,23 +7634,25 @@ fn parse_pm_json_assertion(body: &str) -> Option<ResponseAssertionKind> {
         return Some(ResponseAssertionKind::JsonPathEquals { path, value });
     }
 
-    let (path, consumed) = parse_pm_json_path(body)?;
-    let marker = "pm.response.json()";
-    let path_start = body.find(marker)? + marker.len();
-    let after_path = &body[path_start + consumed..];
-    let value = if let Some(value) = expect_equal_argument(after_path, "") {
+    let (path, after_path) = parse_pm_json_expect_subject(body)?;
+    let chain = trim_js_subject_suffix(after_path);
+    let value = if let Some(value) = expect_equal_argument_after_subject(after_path) {
         parse_pm_json_assertion_value(value)
-    } else if after_path.contains(".to.be.true") {
+    } else if chain.starts_with(".to.be.true") {
         Value::Bool(true)
-    } else if after_path.contains(".to.be.false") {
+    } else if chain.starts_with(".to.be.false") {
         Value::Bool(false)
-    } else if after_path.contains(".to.be.null") {
+    } else if chain.starts_with(".to.be.null") {
         Value::Null
     } else {
         return None;
     };
 
     Some(ResponseAssertionKind::JsonPathEquals { path, value })
+}
+
+fn parse_pm_json_expect_subject(body: &str) -> Option<(String, &str)> {
+    parse_pm_json_direct_subject(body, false).or_else(|| parse_pm_json_alias_subject(body, false))
 }
 
 fn expect_equal_argument<'a>(body: &'a str, subject: &str) -> Option<&'a str> {
@@ -7676,6 +7678,25 @@ fn expect_equal_argument<'a>(body: &'a str, subject: &str) -> Option<&'a str> {
     None
 }
 
+fn expect_equal_argument_after_subject(after_subject: &str) -> Option<&str> {
+    let chain = trim_js_subject_suffix(after_subject);
+
+    for marker in [
+        ".to.equal(",
+        ".to.eql(",
+        ".to.be.equal(",
+        ".to.be.eql(",
+        ".to.deep.equal(",
+        ".to.deep.eql(",
+    ] {
+        if let Some(value) = call_argument_at_start(chain, marker) {
+            return Some(value);
+        }
+    }
+
+    None
+}
+
 fn expect_within_arguments<'a>(body: &'a str, subject: &str) -> Option<(&'a str, &'a str)> {
     let haystack = &body[body.find(subject)? + subject.len()..];
     let args = call_argument_after(haystack, ".to.be.within(")?;
@@ -7687,6 +7708,28 @@ fn call_argument_after<'a>(body: &'a str, marker: &str) -> Option<&'a str> {
     let start = body.find(marker)? + marker.len();
     let end = find_js_call_argument_end(body, start)?;
     Some(body[start..end].trim())
+}
+
+fn call_argument_after_subject<'a>(after_subject: &'a str, marker: &str) -> Option<&'a str> {
+    call_argument_at_start(trim_js_subject_suffix(after_subject), marker)
+}
+
+fn call_argument_at_start<'a>(body: &'a str, marker: &str) -> Option<&'a str> {
+    if !body.starts_with(marker) {
+        return None;
+    }
+
+    let start = marker.len();
+    let end = find_js_call_argument_end(body, start)?;
+    Some(body[start..end].trim())
+}
+
+fn trim_js_subject_suffix(after_subject: &str) -> &str {
+    let chain = after_subject.trim_start();
+    chain
+        .strip_prefix(')')
+        .map(str::trim_start)
+        .unwrap_or(chain)
 }
 
 fn find_js_call_argument_end(input: &str, start: usize) -> Option<usize> {
@@ -7807,12 +7850,19 @@ fn parse_pm_json_assertion_value(value: &str) -> Value {
 }
 
 fn parse_pm_json_property_assertion(body: &str) -> Option<(String, Value)> {
-    let marker = "pm.response.json()";
-    let marker_start = body.find(marker)?;
-    let after_json = &body[marker_start + marker.len()..];
-    let (base_path, consumed) = parse_js_member_path(after_json).unwrap_or_default();
-    let after_subject = &after_json[consumed..];
-    let args = call_argument_after(after_subject, ".to.have.property(")?;
+    if let Some(subject) = parse_pm_json_direct_subject(body, true) {
+        if let Some(assertion) = parse_pm_json_property_from_subject(subject) {
+            return Some(assertion);
+        }
+    }
+
+    parse_pm_json_alias_subject(body, true).and_then(parse_pm_json_property_from_subject)
+}
+
+fn parse_pm_json_property_from_subject(
+    (base_path, after_subject): (String, &str),
+) -> Option<(String, Value)> {
+    let args = call_argument_after_subject(after_subject, ".to.have.property(")?;
     let parts = split_js_arguments(args);
     if parts.len() < 2 {
         return None;
@@ -7822,10 +7872,93 @@ fn parse_pm_json_property_assertion(body: &str) -> Option<(String, Value)> {
     Some((path, parse_pm_json_assertion_value(parts[1])))
 }
 
-fn parse_pm_json_path(body: &str) -> Option<(String, usize)> {
+fn parse_pm_json_direct_subject(body: &str, allow_empty_path: bool) -> Option<(String, &str)> {
     let marker = "pm.response.json()";
-    let start = body.find(marker)? + marker.len();
-    parse_js_member_path(&body[start..])
+    let after_json = &body[body.find(marker)? + marker.len()..];
+    let (path, consumed) = parse_js_member_path(after_json).unwrap_or_default();
+    if path.is_empty() && !allow_empty_path {
+        return None;
+    }
+    Some((path, &after_json[consumed..]))
+}
+
+fn parse_pm_json_alias_subject<'a>(
+    body: &'a str,
+    allow_empty_path: bool,
+) -> Option<(String, &'a str)> {
+    for alias in parse_pm_json_aliases(body) {
+        let mut search_start = 0usize;
+        while let Some(relative_start) = body[search_start..].find(alias) {
+            let start = search_start + relative_start;
+            let after_alias_start = start + alias.len();
+            search_start = after_alias_start;
+
+            if !is_js_identifier_boundary(body, start, after_alias_start) {
+                continue;
+            }
+
+            let after_alias = &body[after_alias_start..];
+            let (path, consumed) = parse_js_member_path(after_alias).unwrap_or_default();
+            if path.is_empty() && !allow_empty_path {
+                continue;
+            }
+
+            let after_subject = &after_alias[consumed..];
+            if trim_js_subject_suffix(after_subject).starts_with(".to.") {
+                return Some((path, after_subject));
+            }
+        }
+    }
+
+    None
+}
+
+fn parse_pm_json_aliases(body: &str) -> Vec<&str> {
+    let mut aliases = Vec::new();
+
+    for declaration in ["const ", "let ", "var "] {
+        let mut search_start = 0usize;
+        while let Some(relative_start) = body[search_start..].find(declaration) {
+            let start = search_start + relative_start + declaration.len();
+            search_start = start;
+
+            let rest = body[start..].trim_start();
+            let skipped = body[start..].len() - rest.len();
+            let alias_start = start + skipped;
+            let alias_len = rest
+                .chars()
+                .take_while(|character| {
+                    character.is_ascii_alphanumeric() || *character == '_' || *character == '$'
+                })
+                .map(char::len_utf8)
+                .sum::<usize>();
+            if alias_len == 0 {
+                continue;
+            }
+
+            let alias = &body[alias_start..alias_start + alias_len];
+            let after_alias = body[alias_start + alias_len..].trim_start();
+            let Some(after_equals) = after_alias.strip_prefix('=') else {
+                continue;
+            };
+            if after_equals.trim_start().starts_with("pm.response.json()") {
+                aliases.push(alias);
+            }
+        }
+    }
+
+    aliases
+}
+
+fn is_js_identifier_boundary(input: &str, start: usize, end: usize) -> bool {
+    let before = input[..start].chars().next_back();
+    let after = input[end..].chars().next();
+    !before.is_some_and(is_js_identifier_character)
+        && !after.is_some_and(is_js_identifier_character)
+}
+
+fn is_js_identifier_character(character: char) -> bool {
+    character.is_ascii_alphanumeric() || character == '_' || character == '$'
 }
 
 fn parse_js_member_path(input: &str) -> Option<(String, usize)> {
@@ -9434,6 +9567,51 @@ pm.test("json null", () => { pm.expect(pm.response.json().error).to.be.null; })"
                     kind: ResponseAssertionKind::JsonPathEquals {
                         path: "error".to_string(),
                         value: Value::Null,
+                    },
+                },
+            ]
+        );
+    }
+
+    #[test]
+    fn parses_pm_json_alias_assertions() {
+        let assertions = parse_response_assertions(
+            r#"pm.test("json alias equals", () => { const jsonData = pm.response.json(); pm.expect(jsonData.data.id).to.eql(42); })
+pm.test("json alias property", () => { let payload = pm.response.json(); pm.expect(payload.data).to.have.property("name", "Zen"); })
+pm.test("json alias bool", () => { var body = pm.response.json(); pm.expect(body.ok).to.be.true; })
+pm.test("json alias root property", () => { const json = pm.response.json(); pm.expect(json).to.have.property("count", 3); })"#,
+        )
+        .expect("pm json alias assertions");
+
+        assert_eq!(
+            assertions,
+            vec![
+                ResponseAssertion {
+                    name: "json alias equals".to_string(),
+                    kind: ResponseAssertionKind::JsonPathEquals {
+                        path: "data.id".to_string(),
+                        value: Value::from(42),
+                    },
+                },
+                ResponseAssertion {
+                    name: "json alias property".to_string(),
+                    kind: ResponseAssertionKind::JsonPathEquals {
+                        path: "data.name".to_string(),
+                        value: Value::from("Zen"),
+                    },
+                },
+                ResponseAssertion {
+                    name: "json alias bool".to_string(),
+                    kind: ResponseAssertionKind::JsonPathEquals {
+                        path: "ok".to_string(),
+                        value: Value::Bool(true),
+                    },
+                },
+                ResponseAssertion {
+                    name: "json alias root property".to_string(),
+                    kind: ResponseAssertionKind::JsonPathEquals {
+                        path: "count".to_string(),
+                        value: Value::from(3),
                     },
                 },
             ]
