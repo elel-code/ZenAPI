@@ -213,7 +213,7 @@
 
 | Area | Status | Notes |
 |------|--------|-------|
-| App shell | Multi-page Slint shell restored | Responsive page stack with the Request page kept mounted, request tabs and auxiliary pages preloaded and switched by visibility, compact single-row request address bar, lightweight read-only code blocks, global navigation, compact navigation, request-sidebar OpenAPI import, and overflow scrollbars |
+| App shell | Multi-page Slint shell restored | Responsive page stack with the Request page kept mounted, auxiliary page stack kept mounted, request tabs and auxiliary pages preloaded and switched by visibility, compact single-row request address bar, lightweight read-only code blocks, global navigation, compact navigation, request-sidebar OpenAPI import, and overflow scrollbars |
 | OpenAPI import | Implemented | JSON/YAML parser and Slint route list wired |
 | HTTP client | Core implemented | Slint wires method, URL, params, headers, auth, variables, and body modes |
 | Mock server | Core implemented | Slint start/stop toggle wired |
