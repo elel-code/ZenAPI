@@ -1,9 +1,8 @@
 import { ListView } from "std-widgets.slint";
 import { Theme } from "theme.slint";
-import { TextField } from "text_field.slint";
 import { KeyValueTableRow } from "types.slint";
-import { ActionButton } from "action_button.slint";
 import { UiText } from "widgets.slint";
+import { KeyValueTableControls } from "key_value_table_controls.slint";
 import { KeyValueTableLine } from "key_value_table_row.slint";
 
 export component KeyValueTablePanel inherits Rectangle {
@@ -36,105 +35,32 @@ export component KeyValueTablePanel inherits Rectangle {
         padding: 0px;
         spacing: 8px;
 
-        HorizontalLayout {
-            height: 28px;
-            spacing: 8px;
-            alignment: center;
-
-            UiText {
-                text: root.title;
-                horizontal-stretch: 1;
-                height: parent.height;
-                color: Theme.on_surface_variant;
-                font-size: 12px;
-                font-weight: 800;
-                vertical-alignment: center;
-                overflow: elide;
+        KeyValueTableControls {
+            title: root.title;
+            busy: root.busy;
+            show_paste: root.show_paste;
+            show_import: root.show_import;
+            import_path <=> root.import_path;
+            show_file_attach: root.show_file_attach;
+            file_field <=> root.file_field;
+            file_path <=> root.file_path;
+            add_row => {
+                root.add_row();
             }
-
-            ActionButton {
-                text: "+";
-                button_width: 34px;
-                enabled: !root.busy;
-                clicked => {
-                    root.add_row();
-                }
+            paste_rows => {
+                root.paste_rows();
             }
-
-            if root.show_paste: ActionButton {
-                text: "Paste";
-                button_width: 58px;
-                enabled: !root.busy;
-                clicked => {
-                    root.paste_rows();
-                }
+            import_rows(path) => {
+                root.import_rows(path);
             }
-        }
-
-        if root.show_import: HorizontalLayout {
-            height: 34px;
-            spacing: 8px;
-
-            TextField {
-                text <=> root.import_path;
-                placeholder: "key-value file path";
-                mono: true;
-                enabled: !root.busy;
+            pick_import_file => {
+                root.pick_import_file();
             }
-
-            ActionButton {
-                text: "Open";
-                button_width: 54px;
-                enabled: !root.busy;
-                clicked => {
-                    root.pick_import_file();
-                }
+            add_file_row(field, path) => {
+                root.add_file_row(field, path);
             }
-
-            ActionButton {
-                text: "Import";
-                button_width: 68px;
-                enabled: !root.busy && root.import_path != "";
-                clicked => {
-                    root.import_rows(root.import_path);
-                }
-            }
-        }
-
-        if root.show_file_attach: HorizontalLayout {
-            height: 34px;
-            spacing: 8px;
-
-            TextField {
-                text <=> root.file_field;
-                placeholder: "file field";
-                mono: true;
-                enabled: !root.busy;
-            }
-
-            TextField {
-                text <=> root.file_path;
-                placeholder: "/absolute/path/to/file";
-                mono: true;
-                enabled: !root.busy;
-            }
-
-            ActionButton {
-                text: "Pick";
-                button_width: 50px;
-                enabled: !root.busy;
-                clicked => {
-                    root.pick_file();
-                }
-            }
-
-            ActionButton {
-                text: "Add File";
-                button_width: 76px;
-                enabled: !root.busy && root.file_field != "" && root.file_path != "";
-                clicked => {
-                    root.add_file_row(root.file_field, root.file_path);
-                }
+            pick_file => {
+                root.pick_file();
             }
         }
 
