@@ -311,8 +311,9 @@ for header or query pairs, while still storing the saved config as line-based
 `key=value` text. The Slint auth panel changes its label, placeholder, and
 helper text for the selected mode while preserving the same saved config
 format. The API Keys page mirrors the active request auth configuration with
-hidden secret values; local key creation, rotation, scopes, and server-side key
-management remain future work.
+hidden secret values, and its Integration panel can copy the generated cURL
+hint or auth mapping to the clipboard. Local key creation, rotation, scopes,
+and server-side key management remain future work.
 
 ## Vars And Envs
 
