@@ -333,9 +333,13 @@ Supported actions:
   target row to rename it.
 - Select a folder row and use `Del` in the folder target row to delete that
   folder and its saved requests.
+- Use `Up` and `Dn` in the folder target row to reorder the selected folder
+  within its parent.
 - Restore a collection request into the request builder.
 - Show and select imported collection folders as tree rows in the sidebar.
 - Rename the selected request with the request name field and `Ren`.
+- Use `Up` and `Dn` in the request action row to reorder the selected request
+  within its current folder or collection root.
 - Select a folder as the move target, select a request, then use `Move` to
   append that request to the target folder. Select the collection root first to
   move a request back to the root.
