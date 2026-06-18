@@ -1,0 +1,126 @@
+import { Theme } from "theme.slint";
+import { TextField } from "text_field.slint";
+import { ActionButton } from "action_button.slint";
+import { UiText } from "widgets.slint";
+
+export component EnvironmentVariableToolbar inherits Rectangle {
+    in property <string> environment_label;
+    in-out property <string> environment_name;
+    in-out property <string> environment_draft_name;
+    in property <bool> busy;
+    callback environment_name_changed(string);
+    callback add_environment(string);
+    callback rename_environment(string, string);
+    callback delete_environment(string);
+    callback add_variable(string);
+
+    height: 88px;
+    horizontal-stretch: 1;
+    background: Theme.surface;
+
+    HorizontalLayout {
+        padding-left: 18px;
+        padding-right: 18px;
+        spacing: 12px;
+        alignment: center;
+
+        Rectangle {
+            horizontal-stretch: 1;
+            height: 58px;
+            background: transparent;
+
+            UiText {
+                x: 0px;
+                y: 2px;
+                text: root.environment_label + " Variables";
+                width: parent.width;
+                height: 30px;
+                color: Theme.on_surface;
+                font-size: 22px;
+                font-weight: 800;
+                vertical-alignment: center;
+                overflow: elide;
+            }
+
+            UiText {
+                x: 0px;
+                y: 34px;
+                text: "Variable / Initial Value / Current Value / Scope";
+                width: parent.width;
+                height: 18px;
+                color: Theme.on_surface_variant;
+                font-size: 12px;
+                vertical-alignment: center;
+                overflow: elide;
+            }
+        }
+
+        TextField {
+            width: 132px;
+            height: 34px;
+            text <=> root.environment_draft_name;
+            placeholder: "env name";
+            mono: true;
+            enabled: !root.busy;
+            accepted => {
+                root.environment_name_changed(root.environment_draft_name);
+            }
+        }
+
+        ActionButton {
+            text: "Use";
+            button_width: 48px;
+            enabled: !root.busy && root.environment_draft_name != "";
+            clicked => {
+                root.environment_name_changed(root.environment_draft_name);
+            }
+        }
+
+        ActionButton {
+            text: "Add";
+            button_width: 48px;
+            enabled: !root.busy && root.environment_draft_name != "";
+            clicked => {
+                root.add_environment(root.environment_draft_name);
+            }
+        }
+
+        ActionButton {
+            text: "Ren";
+            button_width: 48px;
+            enabled: !root.busy && root.environment_name != "" && root.environment_draft_name != "" && root.environment_draft_name != root.environment_name;
+            clicked => {
+                root.rename_environment(root.environment_name, root.environment_draft_name);
+            }
+        }
+
+        ActionButton {
+            text: "Del";
+            button_width: 48px;
+            warning: true;
+            enabled: !root.busy && root.environment_name != "";
+            clicked => {
+                root.delete_environment(root.environment_name);
+            }
+        }
+
+        ActionButton {
+            text: "+ Global";
+            button_width: 86px;
+            enabled: !root.busy;
+            clicked => {
+                root.add_variable("global");
+            }
+        }
+
+        ActionButton {
+            text: "+ Env";
+            button_width: 70px;
+            primary: true;
+            enabled: !root.busy && root.environment_name != "";
+            clicked => {
+                root.add_variable("environment");
+            }
+        }
+    }
+}
