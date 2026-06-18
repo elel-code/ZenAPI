@@ -157,7 +157,7 @@
   Body content panel, Header editor panel, Auth editor panel,
   Auth mode toolbar, Auth token panel, Auth basic panel,
   Auth API key panel, Scripts editor panel, Tests assertion panel,
-  Tests assertion row,
+  Tests assertion panel workbench, Tests assertion row,
   Request Builder page, Request Builder workbench, Request panel,
   Request panel workbench, Request tab strip,
   Request builder editor host,
