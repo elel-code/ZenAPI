@@ -168,7 +168,7 @@
   Codegen auxiliary host, Settings page, Team page, API Keys page,
   API Keys shared components, API Keys list panel, API Keys detail panel,
   API Keys integration panel, Analytics page, Analytics auxiliary host,
-  Documentation page,
+  Documentation page, Documentation auxiliary host,
   Documentation sidebar panel,
   Documentation detail panel, Documentation try-it panel, Environment page,
   Environment navigation panel, Environment variable table,
