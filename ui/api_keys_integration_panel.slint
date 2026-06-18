@@ -1,0 +1,47 @@
+import { ReadOnlyCodeBlock } from "editors.slint";
+import { Theme } from "theme.slint";
+import { UiText } from "widgets.slint";
+
+export component ApiKeysIntegrationPanel inherits Rectangle {
+    in property <bool> has_auth;
+    in property <string> curl_hint;
+    in property <string> integration_hint;
+
+    width: 320px;
+    vertical-stretch: 1;
+    background: Theme.surface_container_lowest;
+
+    VerticalLayout {
+        padding: 16px;
+        spacing: 12px;
+
+        UiText {
+            text: "INTEGRATION";
+            height: 22px;
+            horizontal-stretch: 1;
+            color: Theme.on_surface;
+            font-size: 13px;
+            font-weight: 800;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+
+        UiText {
+            text: root.has_auth ? "Equivalent request auth mapping." : "No auth headers or query values will be generated.";
+            height: 36px;
+            horizontal-stretch: 1;
+            color: Theme.on_surface_variant;
+            font-size: 12px;
+            vertical-alignment: top;
+            overflow: elide;
+        }
+
+        ReadOnlyCodeBlock {
+            text: root.curl_hint;
+        }
+
+        ReadOnlyCodeBlock {
+            text: root.integration_hint;
+        }
+    }
+}

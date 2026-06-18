@@ -1,0 +1,43 @@
+import { DataPanel } from "cards.slint";
+import { Theme } from "theme.slint";
+import { ApiKeyCard, ApiKeysPageTitle } from "api_keys_components.slint";
+
+export component ApiKeysListPanel inherits Rectangle {
+    in property <string> auth_mode;
+    in property <string> auth_basic_username;
+    in property <int> auth_key_row_count;
+    in property <bool> has_auth;
+    in property <string> mode_title;
+    in property <string> mode_summary;
+
+    width: 280px;
+    vertical-stretch: 1;
+    background: Theme.surface_container_low;
+
+    VerticalLayout {
+        padding: 16px;
+        spacing: 12px;
+
+        ApiKeysPageTitle {
+            title: "Request Auth";
+            subtitle: "Current request credentials";
+        }
+
+        ApiKeyCard {
+            title: root.mode_title;
+            token: root.has_auth ? root.mode_summary : "No credential material stored for this request.";
+            meta: "Source: Request / Auth tab";
+            selected: true;
+        }
+
+        if root.auth_mode == "api-header" || root.auth_mode == "api-query": DataPanel {
+            title: "Configured Rows";
+            body: root.auth_key_row_count == 0 ? "No key rows configured." : root.auth_key_row_count + " row(s) will be merged into the request.";
+        }
+
+        if root.auth_mode == "basic": DataPanel {
+            title: "Basic Username";
+            body: root.auth_basic_username == "" ? "No username configured." : root.auth_basic_username;
+        }
+    }
+}

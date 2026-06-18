@@ -1,0 +1,61 @@
+import { DataPanel } from "cards.slint";
+import { Theme } from "theme.slint";
+import { ApiKeysBadge, ApiKeysPageTitle } from "api_keys_components.slint";
+
+export component ApiKeysDetailPanel inherits Rectangle {
+    in property <bool> has_auth;
+    in property <string> mode_title;
+    in property <string> mode_summary;
+    in property <string> integration_hint;
+    in property <string> target_url;
+
+    horizontal-stretch: 1;
+    vertical-stretch: 1;
+    background: Theme.surface;
+
+    VerticalLayout {
+        padding: 28px;
+        spacing: 18px;
+
+        HorizontalLayout {
+            height: 58px;
+            spacing: 12px;
+
+            ApiKeysPageTitle {
+                title: root.mode_title;
+                subtitle: root.has_auth ? "Configured in the active request." : "No auth mode is active.";
+            }
+
+            ApiKeysBadge {
+                text: root.has_auth ? "ACTIVE" : "EMPTY";
+                tone: root.has_auth ? "success" : "neutral";
+                badge_width: 74px;
+            }
+        }
+
+        DataPanel {
+            title: "Credential Material";
+            body: root.has_auth ? root.mode_summary + "\nSecret values are hidden in this overview." : "Choose an auth mode in Request / Auth to populate this overview.";
+        }
+
+        HorizontalLayout {
+            height: 148px;
+            spacing: 16px;
+
+            DataPanel {
+                title: "Transport Mapping";
+                body: root.integration_hint;
+            }
+
+            DataPanel {
+                title: "Target Request";
+                body: root.target_url;
+            }
+        }
+
+        DataPanel {
+            title: "Settings";
+            body: "This page mirrors the active request auth configuration. Key rotation, scopes, and server-side key management are not implemented in the local Slint app.";
+        }
+    }
+}

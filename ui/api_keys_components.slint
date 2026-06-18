@@ -1,0 +1,113 @@
+import { Theme } from "theme.slint";
+import { UiText } from "widgets.slint";
+
+export component ApiKeysPageTitle inherits Rectangle {
+    in property <string> title;
+    in property <string> subtitle;
+
+    height: 62px;
+    horizontal-stretch: 1;
+    background: transparent;
+
+    UiText {
+        text: root.title;
+        x: 0px;
+        y: 0px;
+        width: parent.width;
+        height: 34px;
+        color: Theme.on_surface;
+        font-size: 26px;
+        font-weight: 800;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+
+    UiText {
+        text: root.subtitle;
+        x: 0px;
+        y: 36px;
+        width: parent.width;
+        height: 22px;
+        color: Theme.on_surface_variant;
+        font-size: 13px;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+}
+
+export component ApiKeysBadge inherits Rectangle {
+    in property <string> text;
+    in property <string> tone: "neutral";
+    in property <length> badge_width: 72px;
+
+    width: root.badge_width;
+    height: 22px;
+    border-radius: 4px;
+    border-width: 1px;
+    border-color: root.tone == "success" ? Theme.secondary : root.tone == "error" ? Theme.error : root.tone == "warning" ? Theme.tertiary : Theme.outline_variant;
+    background: root.tone == "success" ? #123627 : root.tone == "error" ? #3d1517 : root.tone == "warning" ? #3e2b13 : Theme.surface_container_high;
+
+    UiText {
+        text: root.text;
+        width: parent.width;
+        height: parent.height;
+        color: root.tone == "success" ? Theme.secondary : root.tone == "error" ? Theme.error : root.tone == "warning" ? Theme.tertiary : Theme.on_surface_variant;
+        font-family: "JetBrains Mono";
+        font-size: 11px;
+        font-weight: 800;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+}
+
+export component ApiKeyCard inherits Rectangle {
+    in property <string> title;
+    in property <string> token;
+    in property <string> meta;
+    in property <bool> selected;
+
+    height: 92px;
+    horizontal-stretch: 1;
+    border-radius: 8px;
+    border-width: 1px;
+    border-color: root.selected ? Theme.primary_container : Theme.outline_variant;
+    background: root.selected ? Theme.surface_container_high : Theme.surface_container;
+
+    VerticalLayout {
+        padding: 12px;
+        spacing: 6px;
+
+        UiText {
+            text: root.title;
+            height: 22px;
+            horizontal-stretch: 1;
+            color: Theme.on_surface;
+            font-size: 15px;
+            font-weight: 800;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+
+        UiText {
+            text: root.token;
+            height: 18px;
+            horizontal-stretch: 1;
+            color: Theme.on_surface_variant;
+            font-family: "JetBrains Mono";
+            font-size: 12px;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+
+        UiText {
+            text: root.meta;
+            height: 18px;
+            horizontal-stretch: 1;
+            color: Theme.outline;
+            font-size: 11px;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+    }
+}
