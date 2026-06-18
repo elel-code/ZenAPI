@@ -1,0 +1,23 @@
+import { ScrollView } from "std-widgets.slint";
+import { TeamPage } from "team_page.slint";
+
+export component AppTeamPageHost inherits ScrollView {
+    in property <string> spec_label;
+    in property <bool> spec_loaded;
+    in property <string> collection_name;
+    in property <int> route_count;
+
+    viewport-width: max(self.visible-width, 1040px);
+    viewport-height: max(self.visible-height, 620px);
+    vertical-scrollbar-policy: ScrollBarPolicy.as-needed;
+    horizontal-scrollbar-policy: ScrollBarPolicy.as-needed;
+
+    TeamPage {
+        width: max(parent.visible-width, 1040px);
+        height: max(parent.visible-height, 620px);
+        spec_label: root.spec_label;
+        spec_loaded: root.spec_loaded;
+        collection_name: root.collection_name;
+        route_count: root.route_count;
+    }
+}
