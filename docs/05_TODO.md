@@ -162,7 +162,7 @@
   Request headers tab, Request realtime tab,
   Response panel, Response header strip, Response tab strip, Response toolbar,
   Response viewer, Sidebar, App navigation, App auxiliary pages with active
-  auxiliary page conditional mounting, Address bar,
+  auxiliary page conditional first mounting and visited-page caching, Address bar,
   Dashboard page, Codegen page, Settings page, Team page, API Keys page,
   API Keys shared components, API Keys list panel, API Keys detail panel,
   API Keys integration panel, Analytics page, Documentation page,
@@ -196,7 +196,7 @@
 
 | Area | Status | Notes |
 |------|--------|-------|
-| App shell | Multi-page Slint shell restored | Responsive page stack with page-level ScrollViews kept mounted and switched by visibility, compact single-row request address bar, lightweight read-only code blocks, global navigation, compact navigation, request-sidebar OpenAPI import, and overflow scrollbars |
+| App shell | Multi-page Slint shell restored | Responsive page stack with the Request page kept mounted, auxiliary pages cached after first visit and switched by visibility, compact single-row request address bar, lightweight read-only code blocks, global navigation, compact navigation, request-sidebar OpenAPI import, and overflow scrollbars |
 | OpenAPI import | Implemented | JSON/YAML parser and Slint route list wired |
 | HTTP client | Core implemented | Slint wires method, URL, params, headers, auth, variables, and body modes |
 | Mock server | Core implemented | Slint start/stop toggle wired |
