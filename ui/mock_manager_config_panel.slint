@@ -1,0 +1,211 @@
+import { CodePane } from "editors.slint";
+import { Theme } from "theme.slint";
+import { ActionButton } from "action_button.slint";
+import { MockConfigField } from "mock_manager_components.slint";
+import { MethodChip } from "status_components.slint";
+import { UiText } from "widgets.slint";
+
+export component MockManagerConfigPanel inherits Rectangle {
+    in property <int> route_count;
+    in property <string> selected_mock_method;
+    in property <string> selected_mock_path;
+    in property <string> selected_mock_summary;
+    in-out property <string> selected_mock_body;
+    in property <bool> busy;
+    in property <bool> server_running;
+    in property <string> server_status;
+    callback toggle_server();
+    callback save_mock_response(string);
+
+    horizontal-stretch: 1;
+    vertical-stretch: 1;
+    background: Theme.surface;
+
+    VerticalLayout {
+        padding: 0px;
+        spacing: 0px;
+
+        Rectangle {
+            height: 76px;
+            horizontal-stretch: 1;
+            background: Theme.surface_container_lowest;
+
+            MethodChip {
+                x: 18px;
+                y: 18px;
+                method: root.selected_mock_method == "" ? "GET" : root.selected_mock_method;
+            }
+
+            UiText {
+                x: 90px;
+                y: 14px;
+                text: root.selected_mock_path == "" ? "Select an endpoint" : root.selected_mock_path;
+                width: parent.width - 338px;
+                height: 24px;
+                color: Theme.on_surface;
+                font-family: "JetBrains Mono";
+                font-size: 15px;
+                font-weight: 800;
+                vertical-alignment: center;
+                overflow: elide;
+            }
+
+            UiText {
+                x: 90px;
+                y: 40px;
+                text: root.selected_mock_summary == "" ? (root.route_count == 0 ? "Import routes to configure mock responses." : "Generated OpenAPI mock response preview.") : root.selected_mock_summary;
+                width: parent.width - 338px;
+                height: 18px;
+                color: Theme.on_surface_variant;
+                font-size: 12px;
+                vertical-alignment: center;
+                overflow: elide;
+            }
+
+            UiText {
+                x: parent.width - 232px;
+                y: 15px;
+                text: "Mock Server Status:";
+                width: 122px;
+                height: 22px;
+                color: Theme.on_surface_variant;
+                font-size: 12px;
+                vertical-alignment: center;
+                overflow: elide;
+            }
+
+            ActionButton {
+                x: parent.width - 108px;
+                y: 14px;
+                text: root.server_running ? "Running" : "Start";
+                button_width: 90px;
+                primary: !root.server_running;
+                warning: root.server_running;
+                enabled: !root.busy && (root.server_running || root.route_count > 0);
+                clicked => {
+                    root.toggle_server();
+                }
+            }
+
+            UiText {
+                x: parent.width - 232px;
+                y: 42px;
+                text: root.server_running ? root.server_status : "Stopped";
+                width: 214px;
+                height: 18px;
+                color: root.server_running ? Theme.secondary : Theme.outline;
+                font-family: "JetBrains Mono";
+                font-size: 11px;
+                horizontal-alignment: right;
+                vertical-alignment: center;
+                overflow: elide;
+            }
+        }
+
+        Rectangle {
+            height: 1px;
+            horizontal-stretch: 1;
+            background: Theme.outline_variant;
+        }
+
+        HorizontalLayout {
+            height: 76px;
+            padding-left: 18px;
+            padding-right: 18px;
+            spacing: 24px;
+            alignment: center;
+
+            MockConfigField {
+                label: "Status Code";
+                value: root.selected_mock_path == "" ? "--" : "200 OK";
+            }
+
+            MockConfigField {
+                label: "Delay";
+                value: "0 ms";
+            }
+
+            MockConfigField {
+                label: "Response Body";
+                value: root.selected_mock_path == "" ? "--" : "OpenAPI mock";
+            }
+
+            Rectangle {
+                horizontal-stretch: 1;
+            }
+        }
+
+        Rectangle {
+            height: 1px;
+            horizontal-stretch: 1;
+            background: Theme.outline_variant;
+        }
+
+        Rectangle {
+            height: 46px;
+            horizontal-stretch: 1;
+            background: Theme.surface_container_lowest;
+
+            UiText {
+                x: 18px;
+                text: "Response Body";
+                width: 150px;
+                height: parent.height;
+                color: Theme.primary;
+                font-size: 13px;
+                font-weight: 800;
+                vertical-alignment: center;
+                overflow: elide;
+            }
+
+            UiText {
+                x: 172px;
+                text: "Headers generated by mock server";
+                width: parent.width - 266px;
+                height: parent.height;
+                color: Theme.on_surface_variant;
+                font-size: 12px;
+                vertical-alignment: center;
+                overflow: elide;
+            }
+
+            ActionButton {
+                x: parent.width - 82px;
+                y: 6px;
+                text: "Save";
+                button_width: 64px;
+                enabled: !root.busy && root.selected_mock_path != "";
+                clicked => {
+                    root.save_mock_response(root.selected_mock_body);
+                }
+            }
+        }
+
+        Rectangle {
+            horizontal-stretch: 1;
+            vertical-stretch: 1;
+            background: Theme.surface_container_lowest;
+
+            if root.selected_mock_body == "": UiText {
+                x: 18px;
+                width: parent.width - 36px;
+                height: parent.height;
+                text: root.route_count == 0 ? "Import an OpenAPI document to generate mock route responses." : "Select an endpoint to preview its generated mock response.";
+                color: Theme.outline;
+                font-size: 12px;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+                overflow: elide;
+            }
+
+            if root.selected_mock_body != "": CodePane {
+                x: 0px;
+                y: 0px;
+                width: parent.width;
+                height: parent.height;
+                text <=> root.selected_mock_body;
+                read_only: false;
+            }
+        }
+    }
+}
