@@ -163,7 +163,7 @@
   Request Builder pane size constraints, Bottom navigation,
   Request auth tab host,
   Request body tab host,
-  Request params tab,
+  Request params tab, Request params tab host,
   Request headers tab, Request realtime tab,
   Request realtime tab host,
   Response panel, Response header strip, Response tab strip, Response toolbar,
