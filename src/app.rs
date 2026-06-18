@@ -6323,14 +6323,28 @@ fn response_assertion_ui_fields(assertion: &ResponseAssertion) -> (String, Strin
         ResponseAssertionKind::HeaderExists { name } => {
             ("header_exists".to_string(), name.clone(), String::new())
         }
+        ResponseAssertionKind::HeaderNotExists { name } => {
+            ("header_not_exists".to_string(), name.clone(), String::new())
+        }
         ResponseAssertionKind::HeaderEquals { name, value } => {
             ("header_equals".to_string(), name.clone(), value.clone())
+        }
+        ResponseAssertionKind::BodyEquals { text } => {
+            ("body_equals".to_string(), text.clone(), String::new())
         }
         ResponseAssertionKind::BodyContains { text } => {
             ("body_contains".to_string(), text.clone(), String::new())
         }
+        ResponseAssertionKind::BodyNotContains { text } => {
+            ("body_not_contains".to_string(), text.clone(), String::new())
+        }
         ResponseAssertionKind::JsonPathExists { path } => (
             "json_path_exists".to_string(),
+            json_path_ui_value(path),
+            String::new(),
+        ),
+        ResponseAssertionKind::JsonPathNotExists { path } => (
+            "json_path_not_exists".to_string(),
             json_path_ui_value(path),
             String::new(),
         ),
@@ -6349,8 +6363,18 @@ fn response_assertion_ui_fields(assertion: &ResponseAssertion) -> (String, Strin
             json_path_ui_value(path),
             value.to_string(),
         ),
+        ResponseAssertionKind::JsonPathNotContains { path, value } => (
+            "json_path_not_contains".to_string(),
+            json_path_ui_value(path),
+            value.to_string(),
+        ),
         ResponseAssertionKind::JsonPathEquals { path, value } => (
             "json_path_equals".to_string(),
+            json_path_ui_value(path),
+            value.to_string(),
+        ),
+        ResponseAssertionKind::JsonPathNotEquals { path, value } => (
+            "json_path_not_equals".to_string(),
             json_path_ui_value(path),
             value.to_string(),
         ),
@@ -6434,14 +6458,24 @@ fn test_assertion_template(template: &str) -> Option<(&'static str, &'static str
             Some(("response_size_below", "65536", ""))
         }
         "header" | "header_equals" => Some(("header_equals", "content-type", "application/json")),
+        "header_absent" | "header_not_exists" => Some(("header_not_exists", "x-debug", "")),
+        "body_equals" | "body_exact" => Some(("body_equals", r#"{"ok":true}"#, "")),
         "body" | "body_contains" => Some(("body_contains", "ok", "")),
+        "body_not" | "body_not_contains" => Some(("body_not_contains", "error", "")),
         "json_exists" | "json_path_exists" => Some(("json_path_exists", "data.id", "")),
+        "json_not_exists" | "json_path_not_exists" => Some(("json_path_not_exists", "error", "")),
         "json_type" | "json_path_type" => Some(("json_path_type", "data.items", "array")),
         "json_length" | "json_path_length" => Some(("json_path_length", "data.items", "2")),
         "json_contains" | "json_path_contains" => {
             Some(("json_path_contains", "data.items", r#"{"id":1}"#))
         }
+        "json_not_contains" | "json_path_not_contains" => {
+            Some(("json_path_not_contains", "data.items", r#"{"id":999}"#))
+        }
         "json" | "json_path" | "json_path_equals" => Some(("json_path_equals", "data.id", "1")),
+        "json_not_equals" | "json_path_not_equals" => {
+            Some(("json_path_not_equals", "data.id", "0"))
+        }
         _ => None,
     }
 }
@@ -6455,13 +6489,23 @@ fn next_test_assertion_template(kind: &str) -> (&'static str, &'static str, &'st
         "header" | "header_exists" | "header?" => {
             ("header_equals", "content-type", "application/json")
         }
-        "header_equals" | "header=" => ("body_contains", "ok", ""),
-        "body" | "body_contains" | "body?" => ("json_path_exists", "data.id", ""),
-        "json_exists" | "json_path_exists" | "json?" => ("json_path_type", "data.items", "array"),
+        "header_equals" | "header=" => ("header_not_exists", "x-debug", ""),
+        "header_absent" | "header_not_exists" | "header!" => ("body_equals", r#"{"ok":true}"#, ""),
+        "body_equals" | "body_exact" => ("body_contains", "ok", ""),
+        "body" | "body_contains" | "body?" => ("body_not_contains", "error", ""),
+        "body_not" | "body_not_contains" | "body!" => ("json_path_exists", "data.id", ""),
+        "json_exists" | "json_path_exists" | "json?" => ("json_path_not_exists", "error", ""),
+        "json_not_exists" | "json_path_not_exists" | "json!" => {
+            ("json_path_type", "data.items", "array")
+        }
         "json_type" | "json_path_type" => ("json_path_length", "data.items", "2"),
         "json_length" | "json_path_length" => ("json_path_contains", "data.items", r#"{"id":1}"#),
-        "json_contains" | "json_path_contains" => ("json_path_equals", "data.id", "1"),
-        "json" | "json_path_equals" | "json=" => ("status_equals", "200", ""),
+        "json_contains" | "json_path_contains" => {
+            ("json_path_not_contains", "data.items", r#"{"id":999}"#)
+        }
+        "json_not_contains" | "json_path_not_contains" => ("json_path_equals", "data.id", "1"),
+        "json" | "json_path_equals" | "json=" => ("json_path_not_equals", "data.id", "0"),
+        "json_not_equals" | "json_path_not_equals" | "json!=" => ("status_equals", "200", ""),
         _ => ("status_equals", "200", ""),
     }
 }
@@ -7544,16 +7588,32 @@ fn parse_response_assertion_line(line: &str) -> Result<ResponseAssertion> {
         "header" | "header_exists" | "header?" => ResponseAssertionKind::HeaderExists {
             name: require_assertion_arg(args, kind)?,
         },
+        "header_absent" | "header_not_exists" | "header!" => {
+            ResponseAssertionKind::HeaderNotExists {
+                name: require_assertion_arg(args, kind)?,
+            }
+        }
         "header_equals" | "header=" => {
             let (name, value) = split_first_arg(args, kind)?;
             ResponseAssertionKind::HeaderEquals { name, value }
         }
+        "body_equals" | "body_exact" | "body=" => ResponseAssertionKind::BodyEquals {
+            text: require_assertion_arg(args, kind)?,
+        },
         "body" | "body_contains" | "body?" => ResponseAssertionKind::BodyContains {
+            text: require_assertion_arg(args, kind)?,
+        },
+        "body_not" | "body_not_contains" | "body!" => ResponseAssertionKind::BodyNotContains {
             text: require_assertion_arg(args, kind)?,
         },
         "json_exists" | "json_path_exists" | "json?" => ResponseAssertionKind::JsonPathExists {
             path: require_assertion_arg(args, kind)?,
         },
+        "json_not_exists" | "json_path_not_exists" | "json!" => {
+            ResponseAssertionKind::JsonPathNotExists {
+                path: require_assertion_arg(args, kind)?,
+            }
+        }
         "json_type" | "json_path_type" | "json_type_is" => {
             let (path, value_type) = split_first_arg(args, kind)?;
             let value_type = normalize_pm_json_type_name(&value_type)
@@ -7574,9 +7634,23 @@ fn parse_response_assertion_line(line: &str) -> Result<ResponseAssertion> {
                 value: parse_json_assertion_value(&value),
             }
         }
+        "json_not_contains" | "json_path_not_contains" | "json_excludes" => {
+            let (path, value) = split_first_arg(args, kind)?;
+            ResponseAssertionKind::JsonPathNotContains {
+                path,
+                value: parse_json_assertion_value(&value),
+            }
+        }
         "json" | "json_path_equals" | "json=" => {
             let (path, value) = split_first_arg(args, kind)?;
             ResponseAssertionKind::JsonPathEquals {
+                path,
+                value: parse_json_assertion_value(&value),
+            }
+        }
+        "json_not_equals" | "json_path_not_equals" | "json!=" => {
+            let (path, value) = split_first_arg(args, kind)?;
+            ResponseAssertionKind::JsonPathNotEquals {
                 path,
                 value: parse_json_assertion_value(&value),
             }
@@ -7684,6 +7758,12 @@ fn parse_pm_metric_assertion(body: &str) -> Result<Option<ResponseAssertionKind>
 }
 
 fn parse_pm_header_assertion(body: &str) -> Option<ResponseAssertionKind> {
+    if let Some(args) = call_argument_after(body, "pm.response.to.not.have.header(") {
+        let parts = split_js_arguments(args);
+        let name = parts.first().map(|value| strip_js_string_value(value))?;
+        return Some(ResponseAssertionKind::HeaderNotExists { name });
+    }
+
     if let Some(args) = call_argument_after(body, "pm.response.to.have.header(") {
         let parts = split_js_arguments(args);
         let name = parts.first().map(|value| strip_js_string_value(value))?;
@@ -7697,11 +7777,11 @@ fn parse_pm_header_assertion(body: &str) -> Option<ResponseAssertionKind> {
     }
 
     if let Some(value) = call_argument_after(body, "pm.response.headers.has(") {
-        if !body.contains(".to.be.false") && !body.contains(".to.equal(false)") {
-            return Some(ResponseAssertionKind::HeaderExists {
-                name: strip_js_string_value(value),
-            });
+        let name = strip_js_string_value(value);
+        if body.contains(".to.be.false") || body.contains(".to.equal(false)") {
+            return Some(ResponseAssertionKind::HeaderNotExists { name });
         }
+        return Some(ResponseAssertionKind::HeaderExists { name });
     }
 
     let marker = "pm.response.headers.get(";
@@ -7733,6 +7813,26 @@ fn parse_pm_body_assertion(body: &str) -> Option<ResponseAssertionKind> {
         }
     }
 
+    for marker in [
+        ".to.not.include(",
+        ".to.not.contain(",
+        ".to.not.have.string(",
+    ] {
+        if let Some(value) = call_argument_after(body, marker) {
+            return Some(ResponseAssertionKind::BodyNotContains {
+                text: strip_js_string_value(value),
+            });
+        }
+    }
+
+    for subject in ["pm.response.text()", "pm.response.body", "responseBody"] {
+        if let Some(value) = expect_equal_argument(body, subject) {
+            return Some(ResponseAssertionKind::BodyEquals {
+                text: strip_js_string_value(value),
+            });
+        }
+    }
+
     None
 }
 
@@ -7752,6 +7852,13 @@ fn parse_pm_json_assertion(body: &str) -> Option<ResponseAssertionKind> {
 
     let (path, after_path) = parse_pm_json_expect_subject(body)?;
     let chain = trim_js_subject_suffix(after_path);
+    if let Some(value) = expect_not_equal_argument_after_subject(after_path) {
+        return Some(ResponseAssertionKind::JsonPathNotEquals {
+            path,
+            value: parse_pm_json_assertion_value(value),
+        });
+    }
+
     let value = if let Some(value) = expect_equal_argument_after_subject(after_path) {
         parse_pm_json_assertion_value(value)
     } else if chain.starts_with(".to.be.true") {
@@ -7768,6 +7875,10 @@ fn parse_pm_json_assertion(body: &str) -> Option<ResponseAssertionKind> {
 }
 
 fn parse_pm_json_exists_assertion(path: String, chain: &str) -> Option<ResponseAssertionKind> {
+    if chain.starts_with(".to.not.exist") || chain.starts_with(".to.be.undefined") {
+        return Some(ResponseAssertionKind::JsonPathNotExists { path });
+    }
+
     (chain.starts_with(".to.exist") || chain.starts_with(".to.not.be.undefined"))
         .then_some(ResponseAssertionKind::JsonPathExists { path })
 }
@@ -7850,6 +7961,20 @@ fn parse_pm_json_contains_from_subject(
     (path, after_subject): (String, &str),
 ) -> Option<ResponseAssertionKind> {
     for marker in [
+        ".to.not.deep.include(",
+        ".to.not.deep.contain(",
+        ".to.not.include(",
+        ".to.not.contain(",
+    ] {
+        if let Some(value) = call_argument_after_subject(after_subject, marker) {
+            return Some(ResponseAssertionKind::JsonPathNotContains {
+                path,
+                value: parse_pm_json_assertion_value(value),
+            });
+        }
+    }
+
+    for marker in [
         ".to.deep.include(",
         ".to.deep.contain(",
         ".to.include(",
@@ -7903,6 +8028,25 @@ fn expect_equal_argument_after_subject(after_subject: &str) -> Option<&str> {
         ".to.be.eql(",
         ".to.deep.equal(",
         ".to.deep.eql(",
+    ] {
+        if let Some(value) = call_argument_at_start(chain, marker) {
+            return Some(value);
+        }
+    }
+
+    None
+}
+
+fn expect_not_equal_argument_after_subject(after_subject: &str) -> Option<&str> {
+    let chain = trim_js_subject_suffix(after_subject);
+
+    for marker in [
+        ".to.not.equal(",
+        ".to.not.eql(",
+        ".to.not.be.equal(",
+        ".to.not.be.eql(",
+        ".to.not.deep.equal(",
+        ".to.not.deep.eql(",
     ] {
         if let Some(value) = call_argument_at_start(chain, marker) {
             return Some(value);
@@ -8322,12 +8466,22 @@ fn format_response_assertions(assertions: &[ResponseAssertion]) -> String {
                 format!("response_size_below {max_bytes}")
             }
             ResponseAssertionKind::HeaderExists { name } => format!("header_exists {name}"),
+            ResponseAssertionKind::HeaderNotExists { name } => {
+                format!("header_not_exists {name}")
+            }
             ResponseAssertionKind::HeaderEquals { name, value } => {
                 format!("header_equals {name} {value}")
             }
+            ResponseAssertionKind::BodyEquals { text } => format!("body_equals {text}"),
             ResponseAssertionKind::BodyContains { text } => format!("body_contains {text}"),
+            ResponseAssertionKind::BodyNotContains { text } => {
+                format!("body_not_contains {text}")
+            }
             ResponseAssertionKind::JsonPathExists { path } => {
                 format!("json_path_exists {}", json_path_ui_value(path))
+            }
+            ResponseAssertionKind::JsonPathNotExists { path } => {
+                format!("json_path_not_exists {}", json_path_ui_value(path))
             }
             ResponseAssertionKind::JsonPathType { path, value_type } => {
                 format!("json_path_type {} {value_type}", json_path_ui_value(path))
@@ -8338,8 +8492,17 @@ fn format_response_assertions(assertions: &[ResponseAssertion]) -> String {
             ResponseAssertionKind::JsonPathContains { path, value } => {
                 format!("json_path_contains {} {value}", json_path_ui_value(path))
             }
+            ResponseAssertionKind::JsonPathNotContains { path, value } => {
+                format!(
+                    "json_path_not_contains {} {value}",
+                    json_path_ui_value(path)
+                )
+            }
             ResponseAssertionKind::JsonPathEquals { path, value } => {
                 format!("json_path_equals {} {value}", json_path_ui_value(path))
+            }
+            ResponseAssertionKind::JsonPathNotEquals { path, value } => {
+                format!("json_path_not_equals {} {value}", json_path_ui_value(path))
             }
         })
         .collect::<Vec<_>>()
@@ -9556,15 +9719,39 @@ mod tests {
             "# keep\nstatus_equals 200\nheader_equals content-type application/json\nbody_contains ok"
         );
         assert_eq!(
+            next_test_assertion_template("header_equals"),
+            ("header_not_exists", "x-debug", "")
+        );
+        assert_eq!(
+            next_test_assertion_template("header_not_exists"),
+            ("body_equals", r#"{"ok":true}"#, "")
+        );
+        assert_eq!(
+            next_test_assertion_template("body_equals"),
+            ("body_contains", "ok", "")
+        );
+        assert_eq!(
             next_test_assertion_template("json_path_equals"),
+            ("json_path_not_equals", "data.id", "0")
+        );
+        assert_eq!(
+            next_test_assertion_template("json_path_not_equals"),
             ("status_equals", "200", "")
         );
         assert_eq!(
             next_test_assertion_template("body_contains"),
+            ("body_not_contains", "error", "")
+        );
+        assert_eq!(
+            next_test_assertion_template("body_not_contains"),
             ("json_path_exists", "data.id", "")
         );
         assert_eq!(
             next_test_assertion_template("json_path_exists"),
+            ("json_path_not_exists", "error", "")
+        );
+        assert_eq!(
+            next_test_assertion_template("json_path_not_exists"),
             ("json_path_type", "data.items", "array")
         );
         assert_eq!(
@@ -9577,6 +9764,10 @@ mod tests {
         );
         assert_eq!(
             next_test_assertion_template("json_path_contains"),
+            ("json_path_not_contains", "data.items", r#"{"id":999}"#)
+        );
+        assert_eq!(
+            next_test_assertion_template("json_path_not_contains"),
             ("json_path_equals", "data.id", "1")
         );
         assert_eq!(
@@ -9588,8 +9779,20 @@ mod tests {
             "status_equals 200\nheader_equals content-type application/json"
         );
         assert_eq!(
+            add_test_assertion_template_text("status_equals 200", "header_absent").unwrap(),
+            "status_equals 200\nheader_not_exists x-debug"
+        );
+        assert_eq!(
             add_test_assertion_template_text("status_equals 200", "body").unwrap(),
             "status_equals 200\nbody_contains ok"
+        );
+        assert_eq!(
+            add_test_assertion_template_text("status_equals 200", "body_equals").unwrap(),
+            "status_equals 200\nbody_equals {\"ok\":true}"
+        );
+        assert_eq!(
+            add_test_assertion_template_text("status_equals 200", "body_not").unwrap(),
+            "status_equals 200\nbody_not_contains error"
         );
         assert_eq!(
             add_test_assertion_template_text("status_equals 200", "json").unwrap(),
@@ -9598,6 +9801,10 @@ mod tests {
         assert_eq!(
             add_test_assertion_template_text("status_equals 200", "json_exists").unwrap(),
             "status_equals 200\njson_path_exists data.id"
+        );
+        assert_eq!(
+            add_test_assertion_template_text("status_equals 200", "json_not_exists").unwrap(),
+            "status_equals 200\njson_path_not_exists error"
         );
         assert_eq!(
             add_test_assertion_template_text("status_equals 200", "json_type").unwrap(),
@@ -9610,6 +9817,14 @@ mod tests {
         assert_eq!(
             add_test_assertion_template_text("status_equals 200", "json_contains").unwrap(),
             "status_equals 200\njson_path_contains data.items {\"id\":1}"
+        );
+        assert_eq!(
+            add_test_assertion_template_text("status_equals 200", "json_not_contains").unwrap(),
+            "status_equals 200\njson_path_not_contains data.items {\"id\":999}"
+        );
+        assert_eq!(
+            add_test_assertion_template_text("status_equals 200", "json_not_equals").unwrap(),
+            "status_equals 200\njson_path_not_equals data.id 0"
         );
         assert_eq!(
             add_test_assertion_template_text("status_equals 200", "time").unwrap(),
@@ -9804,6 +10019,62 @@ mod tests {
     }
 
     #[test]
+    fn parses_and_formats_negative_and_exact_test_assertions() {
+        let assertions = parse_response_assertions(
+            "header_not_exists x-debug\nbody_equals {\"ok\":true}\nbody_not_contains error\njson_path_not_exists error\njson_path_not_contains tags \"beta\"\njson_path_not_equals ok false",
+        )
+        .expect("negative assertions");
+
+        assert_eq!(
+            assertions,
+            vec![
+                ResponseAssertion {
+                    name: "header_not_exists x-debug".to_string(),
+                    kind: ResponseAssertionKind::HeaderNotExists {
+                        name: "x-debug".to_string(),
+                    },
+                },
+                ResponseAssertion {
+                    name: "body_equals {\"ok\":true}".to_string(),
+                    kind: ResponseAssertionKind::BodyEquals {
+                        text: "{\"ok\":true}".to_string(),
+                    },
+                },
+                ResponseAssertion {
+                    name: "body_not_contains error".to_string(),
+                    kind: ResponseAssertionKind::BodyNotContains {
+                        text: "error".to_string(),
+                    },
+                },
+                ResponseAssertion {
+                    name: "json_path_not_exists error".to_string(),
+                    kind: ResponseAssertionKind::JsonPathNotExists {
+                        path: "error".to_string(),
+                    },
+                },
+                ResponseAssertion {
+                    name: "json_path_not_contains tags \"beta\"".to_string(),
+                    kind: ResponseAssertionKind::JsonPathNotContains {
+                        path: "tags".to_string(),
+                        value: Value::from("beta"),
+                    },
+                },
+                ResponseAssertion {
+                    name: "json_path_not_equals ok false".to_string(),
+                    kind: ResponseAssertionKind::JsonPathNotEquals {
+                        path: "ok".to_string(),
+                        value: Value::Bool(false),
+                    },
+                },
+            ]
+        );
+        assert_eq!(
+            format_response_assertions(&assertions),
+            "header_not_exists x-debug\nbody_equals {\"ok\":true}\nbody_not_contains error\njson_path_not_exists error\njson_path_not_contains tags \"beta\"\njson_path_not_equals ok false"
+        );
+    }
+
+    #[test]
     fn parses_common_pm_test_assertions() {
         let assertions = parse_response_assertions(
             r#"pm.test("status is 201", () => { pm.response.to.have.status(201); })
@@ -9863,7 +10134,10 @@ pm.test("response time", () => { pm.expect(pm.response.responseTime).to.be.below
 pm.test("response size", () => { pm.expect(pm.response.responseSize).to.be.at.most(65536); })
 pm.test("header exists", () => { pm.response.to.have.header("X-Request-Id"); })
 pm.test("header has", () => { pm.expect(pm.response.headers.has("Content-Type")).to.be.true; })
+pm.test("header absent", () => { pm.expect(pm.response.headers.has("X-Debug")).to.be.false; })
+pm.test("body exact", () => { pm.expect(pm.response.text()).to.eql("ready"); })
 pm.test("body string", () => { pm.expect(pm.response.text()).to.have.string("ready"); })
+pm.test("body excludes", () => { pm.expect(pm.response.text()).to.not.include("error"); })
 pm.test("legacy body", () => { pm.expect(responseBody).to.contain("ok"); })
 pm.test("json bracket", () => { pm.expect(pm.response.json().data[0]["id"]).to.eql(42); })
 pm.test("json property", () => { pm.expect(pm.response.json().data).to.have.property("name", "Zen"); })
@@ -9873,8 +10147,12 @@ pm.test("json array type", () => { pm.expect(pm.response.json().data.items).to.b
 pm.test("json length", () => { pm.expect(pm.response.json().data.items).to.have.lengthOf(2); })
 pm.test("json length property", () => { pm.expect(pm.response.json().data.items.length).to.eql(2); })
 pm.test("json contains", () => { pm.expect(pm.response.json().data.items).to.deep.include({"id":1}); })
+pm.test("json not contains", () => { pm.expect(pm.response.json().data.items).to.not.deep.include({"id":999}); })
 pm.test("json string contains", () => { pm.expect(pm.response.json().message).to.contain("ready"); })
 pm.test("json exists", () => { pm.expect(pm.response.json().data.id).to.exist; })
+pm.test("json missing", () => { pm.expect(pm.response.json().error).to.not.exist; })
+pm.test("json undefined", () => { pm.expect(pm.response.json().debug).to.be.undefined; })
+pm.test("json not equal", () => { pm.expect(pm.response.json().ok).to.not.eql(false); })
 pm.test("json bool", () => { pm.expect(pm.response.json().ok).to.be.true; })
 pm.test("json null", () => { pm.expect(pm.response.json().error).to.be.null; })"#,
         )
@@ -9916,9 +10194,27 @@ pm.test("json null", () => { pm.expect(pm.response.json().error).to.be.null; })"
                     },
                 },
                 ResponseAssertion {
+                    name: "header absent".to_string(),
+                    kind: ResponseAssertionKind::HeaderNotExists {
+                        name: "X-Debug".to_string(),
+                    },
+                },
+                ResponseAssertion {
+                    name: "body exact".to_string(),
+                    kind: ResponseAssertionKind::BodyEquals {
+                        text: "ready".to_string(),
+                    },
+                },
+                ResponseAssertion {
                     name: "body string".to_string(),
                     kind: ResponseAssertionKind::BodyContains {
                         text: "ready".to_string(),
+                    },
+                },
+                ResponseAssertion {
+                    name: "body excludes".to_string(),
+                    kind: ResponseAssertionKind::BodyNotContains {
+                        text: "error".to_string(),
                     },
                 },
                 ResponseAssertion {
@@ -9983,6 +10279,13 @@ pm.test("json null", () => { pm.expect(pm.response.json().error).to.be.null; })"
                     },
                 },
                 ResponseAssertion {
+                    name: "json not contains".to_string(),
+                    kind: ResponseAssertionKind::JsonPathNotContains {
+                        path: "data.items".to_string(),
+                        value: serde_json::json!({ "id": 999 }),
+                    },
+                },
+                ResponseAssertion {
                     name: "json string contains".to_string(),
                     kind: ResponseAssertionKind::JsonPathContains {
                         path: "message".to_string(),
@@ -9993,6 +10296,25 @@ pm.test("json null", () => { pm.expect(pm.response.json().error).to.be.null; })"
                     name: "json exists".to_string(),
                     kind: ResponseAssertionKind::JsonPathExists {
                         path: "data.id".to_string(),
+                    },
+                },
+                ResponseAssertion {
+                    name: "json missing".to_string(),
+                    kind: ResponseAssertionKind::JsonPathNotExists {
+                        path: "error".to_string(),
+                    },
+                },
+                ResponseAssertion {
+                    name: "json undefined".to_string(),
+                    kind: ResponseAssertionKind::JsonPathNotExists {
+                        path: "debug".to_string(),
+                    },
+                },
+                ResponseAssertion {
+                    name: "json not equal".to_string(),
+                    kind: ResponseAssertionKind::JsonPathNotEquals {
+                        path: "ok".to_string(),
+                        value: Value::Bool(false),
                     },
                 },
                 ResponseAssertion {

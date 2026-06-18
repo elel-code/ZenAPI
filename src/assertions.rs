@@ -18,13 +18,19 @@ pub enum ResponseAssertionKind {
     ResponseTimeBelow { max_ms: u128 },
     ResponseSizeBelow { max_bytes: usize },
     HeaderExists { name: String },
+    HeaderNotExists { name: String },
     HeaderEquals { name: String, value: String },
+    BodyEquals { text: String },
     BodyContains { text: String },
+    BodyNotContains { text: String },
     JsonPathExists { path: String },
+    JsonPathNotExists { path: String },
     JsonPathType { path: String, value_type: String },
     JsonPathLength { path: String, length: usize },
     JsonPathContains { path: String, value: Value },
+    JsonPathNotContains { path: String, value: Value },
     JsonPathEquals { path: String, value: Value },
+    JsonPathNotEquals { path: String, value: Value },
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -77,18 +83,35 @@ pub fn evaluate_response_assertion(
         ResponseAssertionKind::HeaderExists { name } => find_header(response, name)
             .is_none()
             .then(|| format!("missing header {name}")),
+        ResponseAssertionKind::HeaderNotExists { name } => find_header(response, name)
+            .is_some()
+            .then(|| format!("unexpected header {name}")),
         ResponseAssertionKind::HeaderEquals { name, value } => match find_header(response, name) {
             Some(actual) if actual == value => None,
             Some(actual) => Some(format!("expected header {name}={value}, got {actual}")),
             None => Some(format!("missing header {name}")),
         },
+        ResponseAssertionKind::BodyEquals { text } => (response.raw_body != *text)
+            .then(|| "response body does not equal expected text".to_string()),
         ResponseAssertionKind::BodyContains { text } => (!response.raw_body.contains(text))
             .then(|| format!("response body does not contain {text:?}")),
+        ResponseAssertionKind::BodyNotContains { text } => response
+            .raw_body
+            .contains(text)
+            .then(|| format!("response body contains forbidden text {text:?}")),
         ResponseAssertionKind::JsonPathExists { path } => {
             match serde_json::from_str::<Value>(&response.raw_body) {
                 Ok(json) => json_path_value(&json, path)
                     .is_none()
                     .then(|| format!("missing JSON path {}", display_json_path(path))),
+                Err(error) => Some(format!("failed to parse response JSON: {error}")),
+            }
+        }
+        ResponseAssertionKind::JsonPathNotExists { path } => {
+            match serde_json::from_str::<Value>(&response.raw_body) {
+                Ok(json) => json_path_value(&json, path)
+                    .is_some()
+                    .then(|| format!("unexpected JSON path {}", display_json_path(path))),
                 Err(error) => Some(format!("failed to parse response JSON: {error}")),
             }
         }
@@ -141,6 +164,19 @@ pub fn evaluate_response_assertion(
                 Err(error) => Some(format!("failed to parse response JSON: {error}")),
             }
         }
+        ResponseAssertionKind::JsonPathNotContains { path, value } => {
+            match serde_json::from_str::<Value>(&response.raw_body) {
+                Ok(json) => match json_path_value(&json, path) {
+                    Some(actual) if json_value_contains(actual, value) => Some(format!(
+                        "expected JSON path {} to not contain {value}, got {actual}",
+                        display_json_path(path)
+                    )),
+                    Some(_) => None,
+                    None => Some(format!("missing JSON path {}", display_json_path(path))),
+                },
+                Err(error) => Some(format!("failed to parse response JSON: {error}")),
+            }
+        }
         ResponseAssertionKind::JsonPathEquals { path, value } => {
             match serde_json::from_str::<Value>(&response.raw_body) {
                 Ok(json) => match json_path_value(&json, path) {
@@ -149,6 +185,19 @@ pub fn evaluate_response_assertion(
                         "expected JSON path {} to equal {value}, got {actual}",
                         display_json_path(path)
                     )),
+                    None => Some(format!("missing JSON path {}", display_json_path(path))),
+                },
+                Err(error) => Some(format!("failed to parse response JSON: {error}")),
+            }
+        }
+        ResponseAssertionKind::JsonPathNotEquals { path, value } => {
+            match serde_json::from_str::<Value>(&response.raw_body) {
+                Ok(json) => match json_path_value(&json, path) {
+                    Some(actual) if actual == value => Some(format!(
+                        "expected JSON path {} to not equal {value}",
+                        display_json_path(path)
+                    )),
+                    Some(_) => None,
                     None => Some(format!("missing JSON path {}", display_json_path(path))),
                 },
                 Err(error) => Some(format!("failed to parse response JSON: {error}")),
@@ -278,6 +327,12 @@ mod tests {
                 },
             },
             ResponseAssertion {
+                name: "header absent".to_string(),
+                kind: ResponseAssertionKind::HeaderNotExists {
+                    name: "X-Debug".to_string(),
+                },
+            },
+            ResponseAssertion {
                 name: "time".to_string(),
                 kind: ResponseAssertionKind::ResponseTimeBelow { max_ms: 50 },
             },
@@ -286,9 +341,21 @@ mod tests {
                 kind: ResponseAssertionKind::ResponseSizeBelow { max_bytes: 64 },
             },
             ResponseAssertion {
+                name: "body exact".to_string(),
+                kind: ResponseAssertionKind::BodyEquals {
+                    text: r#"{"user":{"name":"Zen"},"items":[{"id":1}]}"#.to_string(),
+                },
+            },
+            ResponseAssertion {
                 name: "body".to_string(),
                 kind: ResponseAssertionKind::BodyContains {
                     text: "Zen".to_string(),
+                },
+            },
+            ResponseAssertion {
+                name: "body absent".to_string(),
+                kind: ResponseAssertionKind::BodyNotContains {
+                    text: "error".to_string(),
                 },
             },
         ];
@@ -334,6 +401,26 @@ mod tests {
                 value: serde_json::json!({ "id": 1 }),
             },
         };
+        let not_exists = ResponseAssertion {
+            name: "not exists".to_string(),
+            kind: ResponseAssertionKind::JsonPathNotExists {
+                path: "error".to_string(),
+            },
+        };
+        let not_contains = ResponseAssertion {
+            name: "not contains".to_string(),
+            kind: ResponseAssertionKind::JsonPathNotContains {
+                path: "items".to_string(),
+                value: serde_json::json!({ "id": 999 }),
+            },
+        };
+        let not_equals = ResponseAssertion {
+            name: "not equals".to_string(),
+            kind: ResponseAssertionKind::JsonPathNotEquals {
+                path: "user.name".to_string(),
+                value: Value::from("Other"),
+            },
+        };
         let failing = ResponseAssertion {
             name: "wrong".to_string(),
             kind: ResponseAssertionKind::JsonPathEquals {
@@ -347,6 +434,9 @@ mod tests {
         assert!(evaluate_response_assertion(&response(), &typed).passed);
         assert!(evaluate_response_assertion(&response(), &length).passed);
         assert!(evaluate_response_assertion(&response(), &contains).passed);
+        assert!(evaluate_response_assertion(&response(), &not_exists).passed);
+        assert!(evaluate_response_assertion(&response(), &not_contains).passed);
+        assert!(evaluate_response_assertion(&response(), &not_equals).passed);
         let result = evaluate_response_assertion(&response(), &failing);
         assert!(!result.passed);
         assert!(
