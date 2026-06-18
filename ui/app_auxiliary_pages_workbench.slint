@@ -1,0 +1,364 @@
+import { AppAnalyticsPageHost } from "app_analytics_page_host.slint";
+import { AppApiKeysPageHost } from "app_api_keys_page_host.slint";
+import { AppCodegenPageHost } from "app_codegen_page_host.slint";
+import { AppDashboardPageHost } from "app_dashboard_page_host.slint";
+import { AppDocumentationPageHost } from "app_documentation_page_host.slint";
+import { AppEnvironmentPageHost } from "app_environment_page_host.slint";
+import { AppMockManagerPageHost } from "app_mock_manager_page_host.slint";
+import { AppRunnerPageHost } from "app_runner_page_host.slint";
+import { AppSettingsPageHost } from "app_settings_page_host.slint";
+import { AppTeamPageHost } from "app_team_page_host.slint";
+import { CollectionRow, EnvironmentRow, HistoryRow, MockLogRow, MockRuleRow, RouteRow, RunnerRow, VariableTableRow } from "types.slint";
+
+export component AppAuxiliaryPagesWorkbench inherits Rectangle {
+    in property <int> active_page_index;
+    in-out property <[RouteRow]> routes;
+    in-out property <[CollectionRow]> collection_rows;
+    in-out property <[HistoryRow]> history_rows;
+    in-out property <[RunnerRow]> runner_rows;
+    in-out property <[MockLogRow]> mock_logs;
+    in-out property <[MockRuleRow]> mock_rule_rows;
+    in-out property <[EnvironmentRow]> environment_rows;
+    in-out property <[VariableTableRow]> variable_rows;
+    in-out property <int> selected_route;
+    in-out property <int> selected_mock_rule;
+    in-out property <string> mock_log_filter;
+    in-out property <string> mock_log_path;
+    in property <string> selected_mock_method;
+    in property <string> selected_mock_path;
+    in property <string> selected_mock_summary;
+    in-out property <string> selected_mock_body;
+    in-out property <string> selected_mock_rule_source;
+    in-out property <string> selected_mock_rule_name;
+    in-out property <string> selected_mock_rule_value;
+    in-out property <string> selected_mock_rule_body;
+    in-out property <string> global_variables;
+    in-out property <string> environment_name;
+    in-out property <string> environment_draft_name;
+    in-out property <string> environment_variables;
+    in-out property <string> variables_json_preview;
+    in-out property <string> runner_summary;
+    in-out property <string> runner_delay_ms;
+    in-out property <string> runner_report_path;
+    in-out property <string> runner_report_format;
+    in-out property <bool> runner_stop_on_failure;
+    in-out property <bool> runner_active;
+    in-out property <string> codegen_language;
+    in-out property <string> codegen_output;
+    in property <string> codegen_metadata;
+    in-out property <string> codegen_path;
+    in property <string> spec_label;
+    in property <bool> spec_loaded;
+    in property <string> file_path;
+    in property <string> collection_name;
+    in property <string> collection_path;
+    in property <string> method;
+    in-out property <string> url;
+    in property <string> auth_mode;
+    in property <string> auth_config;
+    in property <string> auth_basic_username;
+    in property <int> auth_key_row_count;
+    in property <int> total_route_count;
+    in property <string> response_status;
+    in property <string> response_time;
+    in property <string> response_size;
+    in property <bool> busy;
+    in property <bool> server_running;
+    in property <string> server_status;
+    callback open_page(int);
+    callback select_route(int);
+    callback toggle_server();
+    callback save_mock_response(string);
+    callback select_mock_rule(int);
+    callback add_mock_rule(string);
+    callback save_mock_rule(int, string, string, string, string);
+    callback delete_mock_rule(int);
+    callback filter_mock_logs(string);
+    callback save_mock_logs(string);
+    callback pick_mock_log_path();
+    callback clear_mock_logs();
+    callback select_environment(string);
+    callback environment_name_changed(string);
+    callback add_environment(string);
+    callback rename_environment(string, string);
+    callback move_environment(string, int);
+    callback delete_environment(string);
+    callback update_variable_row(int, string, string, string);
+    callback add_variable(string);
+    callback delete_variable_row(int, string);
+    callback run_collection();
+    callback cancel_collection_run();
+    callback save_runner_report(string);
+    callback pick_runner_report_path();
+    callback generate_code();
+    callback copy_codegen();
+    callback save_codegen(string);
+    callback pick_codegen_path();
+    callback send_request();
+    in property <bool> preload_pages: true;
+    property <bool> dashboard_mounted: false;
+    property <bool> mock_manager_mounted: false;
+    property <bool> environment_mounted: false;
+    property <bool> runner_mounted: false;
+    property <bool> codegen_mounted: false;
+    property <bool> analytics_mounted: false;
+    property <bool> documentation_mounted: false;
+    property <bool> api_keys_mounted: false;
+    property <bool> team_mounted: false;
+    property <bool> settings_mounted: false;
+
+    background: transparent;
+    clip: true;
+
+    changed active_page_index => {
+        if (root.active_page_index == 0) {
+            root.dashboard_mounted = true;
+        } else if (root.active_page_index == 2) {
+            root.mock_manager_mounted = true;
+        } else if (root.active_page_index == 3) {
+            root.runner_mounted = true;
+        } else if (root.active_page_index == 4) {
+            root.environment_mounted = true;
+        } else if (root.active_page_index == 5) {
+            root.analytics_mounted = true;
+        } else if (root.active_page_index == 6) {
+            root.documentation_mounted = true;
+        } else if (root.active_page_index == 7) {
+            root.api_keys_mounted = true;
+        } else if (root.active_page_index == 8) {
+            root.team_mounted = true;
+        } else if (root.active_page_index == 9) {
+            root.settings_mounted = true;
+        } else if (root.active_page_index == 10) {
+            root.codegen_mounted = true;
+        }
+    }
+
+    if root.preload_pages || root.dashboard_mounted: AppDashboardPageHost {
+        visible: root.active_page_index == 0;
+        width: parent.width;
+        height: parent.height;
+        route_count: root.total_route_count;
+        history_count: root.history_rows.length;
+        mock_count: root.mock_logs.length;
+        runner_summary: root.runner_summary;
+        server_running: root.server_running;
+        server_status: root.server_status;
+        response_status: root.response_status;
+        open_page(page_index) => {
+            root.open_page(page_index);
+        }
+    }
+
+    if root.preload_pages || root.mock_manager_mounted: AppMockManagerPageHost {
+        visible: root.active_page_index == 2;
+        width: parent.width;
+        height: parent.height;
+        routes <=> root.routes;
+        mock_logs <=> root.mock_logs;
+        mock_rule_rows <=> root.mock_rule_rows;
+        selected_route <=> root.selected_route;
+        selected_mock_rule <=> root.selected_mock_rule;
+        mock_log_filter <=> root.mock_log_filter;
+        mock_log_path <=> root.mock_log_path;
+        selected_mock_method: root.selected_mock_method;
+        selected_mock_path: root.selected_mock_path;
+        selected_mock_summary: root.selected_mock_summary;
+        selected_mock_body <=> root.selected_mock_body;
+        selected_mock_rule_source <=> root.selected_mock_rule_source;
+        selected_mock_rule_name <=> root.selected_mock_rule_name;
+        selected_mock_rule_value <=> root.selected_mock_rule_value;
+        selected_mock_rule_body <=> root.selected_mock_rule_body;
+        busy: root.busy;
+        server_running: root.server_running;
+        server_status: root.server_status;
+        select_route(index) => {
+            root.select_route(index);
+        }
+        toggle_server => {
+            root.toggle_server();
+        }
+        save_mock_response(body) => {
+            root.save_mock_response(body);
+        }
+        select_mock_rule(row_id) => {
+            root.select_mock_rule(row_id);
+        }
+        add_mock_rule(source) => {
+            root.add_mock_rule(source);
+        }
+        save_mock_rule(row_id, source, name, value, body) => {
+            root.save_mock_rule(row_id, source, name, value, body);
+        }
+        delete_mock_rule(row_id) => {
+            root.delete_mock_rule(row_id);
+        }
+        filter_mock_logs(query) => {
+            root.filter_mock_logs(query);
+        }
+        save_mock_logs(path) => {
+            root.save_mock_logs(path);
+        }
+        pick_mock_log_path => {
+            root.pick_mock_log_path();
+        }
+        clear_mock_logs => {
+            root.clear_mock_logs();
+        }
+    }
+
+    if root.preload_pages || root.environment_mounted: AppEnvironmentPageHost {
+        visible: root.active_page_index == 4;
+        width: parent.width;
+        height: parent.height;
+        environment_rows <=> root.environment_rows;
+        variable_rows <=> root.variable_rows;
+        global_variables <=> root.global_variables;
+        environment_name <=> root.environment_name;
+        environment_draft_name <=> root.environment_draft_name;
+        environment_variables <=> root.environment_variables;
+        variables_json_preview <=> root.variables_json_preview;
+        busy: root.busy;
+        select_environment(name) => {
+            root.select_environment(name);
+        }
+        environment_name_changed(name) => {
+            root.environment_name_changed(name);
+        }
+        add_environment(name) => {
+            root.add_environment(name);
+        }
+        rename_environment(old_name, new_name) => {
+            root.rename_environment(old_name, new_name);
+        }
+        move_environment(name, delta) => {
+            root.move_environment(name, delta);
+        }
+        delete_environment(name) => {
+            root.delete_environment(name);
+        }
+        update_variable_row(row_id, scope, name, value) => {
+            root.update_variable_row(row_id, scope, name, value);
+        }
+        add_variable(scope) => {
+            root.add_variable(scope);
+        }
+        delete_variable_row(row_id, scope) => {
+            root.delete_variable_row(row_id, scope);
+        }
+    }
+
+    if root.preload_pages || root.runner_mounted: AppRunnerPageHost {
+        visible: root.active_page_index == 3;
+        width: parent.width;
+        height: parent.height;
+        collection_rows <=> root.collection_rows;
+        runner_rows <=> root.runner_rows;
+        runner_summary <=> root.runner_summary;
+        runner_delay_ms <=> root.runner_delay_ms;
+        runner_report_path <=> root.runner_report_path;
+        runner_report_format <=> root.runner_report_format;
+        runner_stop_on_failure <=> root.runner_stop_on_failure;
+        runner_active <=> root.runner_active;
+        busy: root.busy;
+        run_collection => {
+            root.run_collection();
+        }
+        cancel_collection_run => {
+            root.cancel_collection_run();
+        }
+        save_runner_report(path) => {
+            root.save_runner_report(path);
+        }
+        pick_runner_report_path => {
+            root.pick_runner_report_path();
+        }
+    }
+
+    if root.preload_pages || root.codegen_mounted: AppCodegenPageHost {
+        visible: root.active_page_index == 10;
+        width: parent.width;
+        height: parent.height;
+        codegen_language <=> root.codegen_language;
+        codegen_output <=> root.codegen_output;
+        codegen_metadata: root.codegen_metadata;
+        codegen_path <=> root.codegen_path;
+        busy: root.busy;
+        generate_code => {
+            root.generate_code();
+        }
+        copy_codegen => {
+            root.copy_codegen();
+        }
+        save_codegen(path) => {
+            root.save_codegen(path);
+        }
+        pick_codegen_path => {
+            root.pick_codegen_path();
+        }
+    }
+
+    if root.preload_pages || root.analytics_mounted: AppAnalyticsPageHost {
+        visible: root.active_page_index == 5;
+        width: parent.width;
+        height: parent.height;
+        route_count: root.total_route_count;
+        history_count: root.history_rows.length;
+        mock_logs: root.mock_logs;
+        response_status: root.response_status;
+        response_time: root.response_time;
+        response_size: root.response_size;
+    }
+
+    if root.preload_pages || root.documentation_mounted: AppDocumentationPageHost {
+        visible: root.active_page_index == 6;
+        width: parent.width;
+        height: parent.height;
+        routes: root.routes;
+        selected_route <=> root.selected_route;
+        method: root.method;
+        url <=> root.url;
+        auth_mode: root.auth_mode;
+        busy: root.busy;
+        select_route(index) => {
+            root.select_route(index);
+        }
+        send_request => {
+            root.send_request();
+        }
+    }
+
+    if root.preload_pages || root.api_keys_mounted: AppApiKeysPageHost {
+        visible: root.active_page_index == 7;
+        width: parent.width;
+        height: parent.height;
+        auth_mode: root.auth_mode;
+        auth_config: root.auth_config;
+        auth_basic_username: root.auth_basic_username;
+        auth_key_row_count: root.auth_key_row_count;
+        url: root.url;
+    }
+
+    if root.preload_pages || root.team_mounted: AppTeamPageHost {
+        visible: root.active_page_index == 8;
+        width: parent.width;
+        height: parent.height;
+        spec_label: root.spec_label;
+        spec_loaded: root.spec_loaded;
+        collection_name: root.collection_name;
+        route_count: root.total_route_count;
+    }
+
+    if root.preload_pages || root.settings_mounted: AppSettingsPageHost {
+        visible: root.active_page_index == 9;
+        width: parent.width;
+        height: parent.height;
+        spec_label: root.spec_label;
+        spec_loaded: root.spec_loaded;
+        file_path: root.file_path;
+        collection_name: root.collection_name;
+        collection_path: root.collection_path;
+        route_count: root.total_route_count;
+        history_count: root.history_rows.length;
+    }
+}
