@@ -5,6 +5,7 @@ import { TextField } from "text_field.slint";
 import { ActionButton } from "action_button.slint";
 import { BodyModeButton } from "mode_button.slint";
 import { UiText } from "widgets.slint";
+import { RealtimeWebSocketPanel } from "realtime_websocket_panel.slint";
 
 export component RealtimeEditorPanel inherits Rectangle {
     in-out property <string> realtime_mode;
@@ -77,154 +78,26 @@ export component RealtimeEditorPanel inherits Rectangle {
             }
         }
 
-        if root.realtime_mode == "ws": HorizontalLayout {
-            spacing: 12px;
-            vertical-stretch: 1;
-
-            Rectangle {
-                horizontal-stretch: 1;
-                vertical-stretch: 1;
-                background: transparent;
-
-                VerticalLayout {
-                    padding: 0px;
-                    spacing: 10px;
-
-                    HorizontalLayout {
-                        height: 34px;
-                        spacing: 8px;
-                        alignment: center;
-
-                        BodyModeButton {
-                            mode: "text";
-                            label: "Text";
-                            button_width: 58px;
-                            selected: root.websocket_message_mode == "text";
-                            enabled: !root.busy;
-                            picked(mode) => {
-                                root.websocket_message_mode = mode;
-                            }
-                        }
-
-                        BodyModeButton {
-                            mode: "binary";
-                            label: "Binary";
-                            button_width: 72px;
-                            selected: root.websocket_message_mode == "binary";
-                            enabled: !root.busy;
-                            picked(mode) => {
-                                root.websocket_message_mode = mode;
-                            }
-                        }
-
-                        TextField {
-                            text <=> root.websocket_protocols;
-                            placeholder: "subprotocols: chat, superchat";
-                            mono: true;
-                            enabled: !root.busy;
-                        }
-                    }
-
-                    LabeledEditor {
-                        label: root.websocket_message_mode == "binary" ? "WebSocket Binary Bytes" : "WebSocket Message";
-                        text <=> root.realtime_message;
-                    }
-
-                    if root.websocket_event_history == "": DataPanel {
-                        height: 132px;
-                        title: "WebSocket History";
-                        body: "Open a session or send a one-shot message to capture sent and received frames here.";
-                    }
-
-                    if root.websocket_event_history != "": CodePane {
-                        height: 180px;
-                        text: root.websocket_event_history;
-                        read_only: true;
-                    }
-                }
+        if root.realtime_mode == "ws": RealtimeWebSocketPanel {
+            realtime_message <=> root.realtime_message;
+            websocket_message_mode <=> root.websocket_message_mode;
+            websocket_protocols <=> root.websocket_protocols;
+            websocket_event_history <=> root.websocket_event_history;
+            busy: root.busy;
+            open_websocket => {
+                root.open_websocket();
             }
-
-            Rectangle {
-                width: 190px;
-                vertical-stretch: 1;
-                background: Theme.surface_container;
-                border-radius: 8px;
-                border-width: 1px;
-                border-color: Theme.outline_variant;
-
-                VerticalLayout {
-                    padding: 14px;
-                    spacing: 10px;
-
-                    UiText {
-                        text: "SESSION";
-                        height: 20px;
-                        horizontal-stretch: 1;
-                        color: Theme.on_surface_variant;
-                        font-size: 12px;
-                        font-weight: 800;
-                        vertical-alignment: center;
-                        overflow: elide;
-                    }
-
-                    ActionButton {
-                        text: "Open";
-                        button_width: 162px;
-                        enabled: !root.busy;
-                        clicked => {
-                            root.open_websocket();
-                        }
-                    }
-
-                    ActionButton {
-                        text: "Send";
-                        button_width: 162px;
-                        primary: true;
-                        enabled: !root.busy;
-                        clicked => {
-                            root.run_websocket();
-                        }
-                    }
-
-                    ActionButton {
-                        text: "End";
-                        button_width: 162px;
-                        warning: true;
-                        enabled: !root.busy;
-                        clicked => {
-                            root.close_websocket();
-                        }
-                    }
-
-                    ActionButton {
-                        text: "Copy";
-                        button_width: 162px;
-                        enabled: root.websocket_event_history != "";
-                        clicked => {
-                            root.copy_websocket_events();
-                        }
-                    }
-
-                    ActionButton {
-                        text: "Clear";
-                        button_width: 162px;
-                        warning: true;
-                        enabled: root.websocket_event_history != "";
-                        clicked => {
-                            root.clear_websocket_events();
-                        }
-                    }
-
-                    UiText {
-                        text: root.websocket_message_mode == "binary" ? "Binary mode sends hex bytes over an open session." : "Open uses request headers and subprotocols.";
-                        horizontal-stretch: 1;
-                        vertical-stretch: 1;
-                        color: Theme.outline;
-                        font-size: 12px;
-                        vertical-alignment: top;
-                        overflow: elide;
-                    }
-                }
+            run_websocket => {
+                root.run_websocket();
+            }
+            close_websocket => {
+                root.close_websocket();
+            }
+            copy_websocket_events => {
+                root.copy_websocket_events();
+            }
+            clear_websocket_events => {
+                root.clear_websocket_events();
             }
         }
 
