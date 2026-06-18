@@ -1,12 +1,8 @@
-import { LabeledEditor } from "editors.slint";
 import { Theme } from "theme.slint";
-import { TextField } from "text_field.slint";
 import { CollectionRow, RunnerRow } from "types.slint";
-import { ActionButton } from "action_button.slint";
-import { BodyModeButton } from "mode_button.slint";
+import { RunnerReportPanel } from "runner_report_panel.slint";
 import { RunnerResultsPanel } from "runner_results_panel.slint";
 import { RunnerSidebarPanel } from "runner_sidebar_panel.slint";
-import { UiText } from "widgets.slint";
 
 export component RunnerPage inherits Rectangle {
     in-out property <[CollectionRow]> collection_rows;
@@ -54,88 +50,17 @@ export component RunnerPage inherits Rectangle {
             }
         }
 
-        Rectangle {
-            width: 320px;
-            vertical-stretch: 1;
-            background: Theme.surface_container_lowest;
-
-            VerticalLayout {
-                padding: 16px;
-                spacing: 12px;
-
-                UiText {
-                    text: "REPORT";
-                    height: 24px;
-                    horizontal-stretch: 1;
-                    color: Theme.on_surface;
-                    font-size: 13px;
-                    font-weight: 800;
-                    vertical-alignment: center;
-                    overflow: elide;
-                }
-
-                LabeledEditor {
-                    label: "Summary";
-                    text <=> root.runner_summary;
-                    read_only: true;
-                }
-
-                HorizontalLayout {
-                    height: 30px;
-                    spacing: 8px;
-
-                    BodyModeButton {
-                        mode: "text";
-                        label: "Text";
-                        button_width: 68px;
-                        selected: root.runner_report_format == "text";
-                        enabled: !root.busy && !root.runner_active;
-                        picked(mode) => {
-                            root.runner_report_format = mode;
-                        }
-                    }
-
-                    BodyModeButton {
-                        mode: "json";
-                        label: "JSON";
-                        button_width: 68px;
-                        selected: root.runner_report_format == "json";
-                        enabled: !root.busy && !root.runner_active;
-                        picked(mode) => {
-                            root.runner_report_format = mode;
-                        }
-                    }
-                }
-
-                HorizontalLayout {
-                    height: 34px;
-                    spacing: 8px;
-
-                    TextField {
-                        text <=> root.runner_report_path;
-                        placeholder: root.runner_report_format == "json" ? "runner-report.json" : "runner-report.txt";
-                        mono: true;
-                        enabled: !root.busy && !root.runner_active;
-                    }
-
-                    ActionButton {
-                        text: "Open";
-                        button_width: 58px;
-                        enabled: !root.busy && !root.runner_active;
-                        clicked => {
-                            root.pick_runner_report_path();
-                        }
-                    }
-
-                    ActionButton {
-                        text: "Save";
-                        button_width: 64px;
-                        enabled: !root.busy && !root.runner_active && root.runner_summary != "";
-                        clicked => {
-                            root.save_runner_report(root.runner_report_path);
-                        }
-                    }
-                }
+        RunnerReportPanel {
+            runner_summary <=> root.runner_summary;
+            runner_report_path <=> root.runner_report_path;
+            runner_report_format <=> root.runner_report_format;
+            runner_active <=> root.runner_active;
+            busy: root.busy;
+            save_runner_report(path) => {
+                root.save_runner_report(path);
+            }
+            pick_runner_report_path => {
+                root.pick_runner_report_path();
             }
         }
     }
