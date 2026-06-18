@@ -173,6 +173,7 @@
   Environment navigation panel, Environment variable table,
   Environment variable toolbar, Environment variable row,
   Environment details panel, Runner page,
+  Runner auxiliary host,
   Runner sidebar panel, Runner results panel, Runner report panel,
   Mock Manager page, Mock Manager row components, Mock Manager endpoint panel,
   Mock Manager config panel, Mock Manager rules panel, Mock Manager traffic panel,
