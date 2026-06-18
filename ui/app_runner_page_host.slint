@@ -1,0 +1,50 @@
+import { ScrollView } from "std-widgets.slint";
+import { CollectionRow, RunnerRow } from "types.slint";
+import { RunnerPage } from "runner_page.slint";
+
+export component AppRunnerPageHost inherits ScrollView {
+    in-out property <[CollectionRow]> collection_rows;
+    in-out property <[RunnerRow]> runner_rows;
+    in-out property <string> runner_summary;
+    in-out property <string> runner_delay_ms;
+    in-out property <string> runner_report_path;
+    in-out property <string> runner_report_format;
+    in-out property <bool> runner_stop_on_failure;
+    in-out property <bool> runner_active;
+    in property <bool> busy;
+    callback run_collection();
+    callback cancel_collection_run();
+    callback save_runner_report(string);
+    callback pick_runner_report_path();
+
+    viewport-width: max(self.visible-width, 1040px);
+    viewport-height: max(self.visible-height, 620px);
+    vertical-scrollbar-policy: ScrollBarPolicy.as-needed;
+    horizontal-scrollbar-policy: ScrollBarPolicy.as-needed;
+
+    RunnerPage {
+        width: max(parent.visible-width, 1040px);
+        height: max(parent.visible-height, 620px);
+        collection_rows <=> root.collection_rows;
+        runner_rows <=> root.runner_rows;
+        runner_summary <=> root.runner_summary;
+        runner_delay_ms <=> root.runner_delay_ms;
+        runner_report_path <=> root.runner_report_path;
+        runner_report_format <=> root.runner_report_format;
+        runner_stop_on_failure <=> root.runner_stop_on_failure;
+        runner_active <=> root.runner_active;
+        busy: root.busy;
+        run_collection => {
+            root.run_collection();
+        }
+        cancel_collection_run => {
+            root.cancel_collection_run();
+        }
+        save_runner_report(path) => {
+            root.save_runner_report(path);
+        }
+        pick_runner_report_path => {
+            root.pick_runner_report_path();
+        }
+    }
+}
