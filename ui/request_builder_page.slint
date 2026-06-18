@@ -171,18 +171,26 @@ export component RequestBuilderPage inherits ScrollView {
     callback load_grpc_descriptor_set(string);
     callback load_grpc_proto_file(string, string);
     callback load_grpc_reflection();
+    property <length> layout_min_width: 1240px;
+    property <length> layout_min_height: 560px;
+    property <length> sidebar_width: 240px;
+    property <length> response_width: 400px;
+    property <length> divider_width: 1px;
+    property <length> request_min_width: 560px;
+    property <length> fixed_pane_width: root.sidebar_width + root.divider_width + root.response_width + root.divider_width;
 
-    viewport-width: max(self.visible-width, 1240px);
-    viewport-height: max(self.visible-height, 560px);
+    viewport-width: max(self.visible-width, root.layout_min_width);
+    viewport-height: max(self.visible-height, root.layout_min_height);
     vertical-scrollbar-policy: ScrollBarPolicy.as-needed;
     horizontal-scrollbar-policy: ScrollBarPolicy.as-needed;
 
     HorizontalLayout {
-        width: max(parent.visible-width, 1240px);
-        height: max(parent.visible-height, 560px);
+        width: max(parent.visible-width, root.layout_min_width);
+        height: max(parent.visible-height, root.layout_min_height);
         spacing: 0px;
 
         RequestSidebarPane {
+            width: root.sidebar_width;
             workspace_routes <=> root.routes;
             workspace_collection_rows <=> root.collection_rows;
             workspace_history_rows <=> root.history_rows;
@@ -264,12 +272,12 @@ export component RequestBuilderPage inherits ScrollView {
         }
 
         Rectangle {
-            width: 1px;
+            width: root.divider_width;
             background: Theme.outline_variant;
         }
 
         RequestEditorPane {
-            width: max(560px, parent.width - 642px);
+            width: max(root.request_min_width, parent.width - root.fixed_pane_width);
             vertical-stretch: 1;
             method <=> root.method;
             url <=> root.url;
@@ -471,11 +479,12 @@ export component RequestBuilderPage inherits ScrollView {
         }
 
         Rectangle {
-            width: 1px;
+            width: root.divider_width;
             background: Theme.outline_variant;
         }
 
         ResponsePanel {
+            width: root.response_width;
             response_body <=> root.response_body;
             response_raw_body <=> root.response_raw_body;
             response_headers <=> root.response_headers;
