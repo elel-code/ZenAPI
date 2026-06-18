@@ -1,6 +1,6 @@
 import { ScrollView } from "std-widgets.slint";
-import { AnalyticsPage } from "analytics_page.slint";
 import { ApiKeysPage } from "api_keys_page.slint";
+import { AppAnalyticsPageHost } from "app_analytics_page_host.slint";
 import { AppCodegenPageHost } from "app_codegen_page_host.slint";
 import { AppDashboardPageHost } from "app_dashboard_page_host.slint";
 import { AppRunnerPageHost } from "app_runner_page_host.slint";
@@ -317,25 +317,16 @@ export component AppAuxiliaryPages inherits Rectangle {
         }
     }
 
-    if root.preload_pages || root.analytics_mounted: ScrollView {
+    if root.preload_pages || root.analytics_mounted: AppAnalyticsPageHost {
         visible: root.active_page_index == 5;
         width: parent.width;
         height: parent.height;
-        viewport-width: max(self.visible-width, 1040px);
-        viewport-height: max(self.visible-height, 620px);
-        vertical-scrollbar-policy: ScrollBarPolicy.as-needed;
-        horizontal-scrollbar-policy: ScrollBarPolicy.as-needed;
-
-        AnalyticsPage {
-            width: max(parent.visible-width, 1040px);
-            height: max(parent.visible-height, 620px);
-            route_count: root.total_route_count;
-            history_count: root.history_rows.length;
-            mock_logs: root.mock_logs;
-            response_status: root.response_status;
-            response_time: root.response_time;
-            response_size: root.response_size;
-        }
+        route_count: root.total_route_count;
+        history_count: root.history_rows.length;
+        mock_logs: root.mock_logs;
+        response_status: root.response_status;
+        response_time: root.response_time;
+        response_size: root.response_size;
     }
 
     if root.preload_pages || root.documentation_mounted: ScrollView {

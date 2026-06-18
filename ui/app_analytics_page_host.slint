@@ -1,0 +1,28 @@
+import { ScrollView } from "std-widgets.slint";
+import { AnalyticsPage } from "analytics_page.slint";
+import { MockLogRow } from "types.slint";
+
+export component AppAnalyticsPageHost inherits ScrollView {
+    in property <int> route_count;
+    in property <int> history_count;
+    in property <[MockLogRow]> mock_logs;
+    in property <string> response_status;
+    in property <string> response_time;
+    in property <string> response_size;
+
+    viewport-width: max(self.visible-width, 1040px);
+    viewport-height: max(self.visible-height, 620px);
+    vertical-scrollbar-policy: ScrollBarPolicy.as-needed;
+    horizontal-scrollbar-policy: ScrollBarPolicy.as-needed;
+
+    AnalyticsPage {
+        width: max(parent.visible-width, 1040px);
+        height: max(parent.visible-height, 620px);
+        route_count: root.route_count;
+        history_count: root.history_count;
+        mock_logs: root.mock_logs;
+        response_status: root.response_status;
+        response_time: root.response_time;
+        response_size: root.response_size;
+    }
+}
