@@ -172,7 +172,8 @@
   Request headers tab, Request headers tab host, Request realtime tab,
   Request realtime tab host,
   Request scripts tab host,
-  Response panel, Response header strip, Response tab strip, Response toolbar,
+  Response panel, Response panel workbench, Response header strip,
+  Response tab strip, Response toolbar,
   Response viewer, Sidebar, App navigation, App auxiliary pages with preloaded
   auxiliary page switching and fallback visited-page caching,
   App auxiliary pages workbench, Address bar,
