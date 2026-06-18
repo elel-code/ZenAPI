@@ -157,8 +157,10 @@
   Response panel, Response header strip, Response tab strip, Response toolbar,
   Response viewer, Sidebar, App navigation, Address bar,
   Dashboard page, Codegen page, Settings page, Team page, API Keys page,
-  Analytics page, Documentation page, Environment page, Environment navigation
-  panel, Environment variable table, Environment details panel, Runner page,
+  Analytics page, Documentation page, Documentation sidebar panel,
+  Documentation detail panel, Documentation try-it panel, Environment page,
+  Environment navigation panel, Environment variable table,
+  Environment details panel, Runner page,
   Runner sidebar panel, Runner results panel, Runner report panel,
   Mock Manager page, Mock Manager row components, Mock Manager endpoint panel,
   Mock Manager config panel, Mock Manager rules panel, Mock Manager traffic panel,
