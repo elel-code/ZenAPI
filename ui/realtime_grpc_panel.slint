@@ -1,6 +1,4 @@
-import { LabeledEditor } from "editors.slint";
-import { TextField } from "text_field.slint";
-import { ActionButton } from "action_button.slint";
+import { RealtimeGrpcEditorPanel } from "realtime_grpc_editor_panel.slint";
 import { RealtimeGrpcActionsPanel } from "realtime_grpc_actions_panel.slint";
 
 export component RealtimeGrpcPanel inherits HorizontalLayout {
@@ -25,117 +23,24 @@ export component RealtimeGrpcPanel inherits HorizontalLayout {
     spacing: 12px;
     vertical-stretch: 1;
 
-    Rectangle {
-        horizontal-stretch: 1;
-        vertical-stretch: 1;
-        background: transparent;
-
-        VerticalLayout {
-            padding: 0px;
-            spacing: 10px;
-
-            HorizontalLayout {
-                height: 36px;
-                spacing: 10px;
-
-                TextField {
-                    text <=> root.grpc_endpoint;
-                    placeholder: "http://localhost:50051";
-                    mono: true;
-                    enabled: !root.busy;
-                }
-
-                TextField {
-                    text <=> root.grpc_method;
-                    placeholder: "package.Service/Method";
-                    mono: true;
-                    enabled: !root.busy;
-                }
-            }
-
-            HorizontalLayout {
-                spacing: 12px;
-                vertical-stretch: 1;
-
-                LabeledEditor {
-                    label: "Metadata";
-                    text <=> root.grpc_metadata;
-                }
-
-                LabeledEditor {
-                    label: "Message";
-                    text <=> root.grpc_message;
-                }
-            }
-
-            LabeledEditor {
-                label: "Method Catalog";
-                text <=> root.grpc_method_catalog;
-                height: 92px;
-            }
-
-            HorizontalLayout {
-                height: 34px;
-                spacing: 8px;
-
-                TextField {
-                    text <=> root.grpc_descriptor_path;
-                    placeholder: "/absolute/path/to/schema.protoset or schema.proto";
-                    mono: true;
-                    enabled: !root.busy;
-                    horizontal-stretch: 1;
-                    accepted => {
-                        if !root.busy && root.grpc_descriptor_path != "" {
-                            root.load_grpc_descriptor_set(root.grpc_descriptor_path);
-                        }
-                    }
-                }
-
-                ActionButton {
-                    text: "Open";
-                    button_width: 54px;
-                    enabled: !root.busy && !root.grpc_streaming;
-                    clicked => {
-                        root.pick_grpc_descriptor_file();
-                    }
-                }
-
-                ActionButton {
-                    text: "Set";
-                    button_width: 46px;
-                    enabled: !root.busy && !root.grpc_streaming && root.grpc_descriptor_path != "";
-                    clicked => {
-                        root.load_grpc_descriptor_set(root.grpc_descriptor_path);
-                    }
-                }
-
-                ActionButton {
-                    text: "Proto";
-                    button_width: 58px;
-                    enabled: !root.busy && !root.grpc_streaming && root.grpc_descriptor_path != "";
-                    clicked => {
-                        root.load_grpc_proto_file(root.grpc_descriptor_path, root.grpc_protoc_path);
-                    }
-                }
-            }
-
-            HorizontalLayout {
-                height: 34px;
-                spacing: 8px;
-
-                TextField {
-                    text <=> root.grpc_protoc_path;
-                    placeholder: "protoc";
-                    mono: true;
-                    enabled: !root.busy;
-                    horizontal-stretch: 1;
-                    accepted => {
-                        if !root.busy && root.grpc_descriptor_path != "" {
-                            root.load_grpc_proto_file(root.grpc_descriptor_path, root.grpc_protoc_path);
-                        }
-                    }
-                }
-            }
+    RealtimeGrpcEditorPanel {
+        grpc_endpoint <=> root.grpc_endpoint;
+        grpc_method <=> root.grpc_method;
+        grpc_metadata <=> root.grpc_metadata;
+        grpc_message <=> root.grpc_message;
+        grpc_method_catalog <=> root.grpc_method_catalog;
+        grpc_descriptor_path <=> root.grpc_descriptor_path;
+        grpc_protoc_path <=> root.grpc_protoc_path;
+        grpc_streaming: root.grpc_streaming;
+        busy: root.busy;
+        pick_grpc_descriptor_file => {
+            root.pick_grpc_descriptor_file();
+        }
+        load_grpc_descriptor_set(path) => {
+            root.load_grpc_descriptor_set(path);
+        }
+        load_grpc_proto_file(path, protoc_path) => {
+            root.load_grpc_proto_file(path, protoc_path);
         }
     }
 
