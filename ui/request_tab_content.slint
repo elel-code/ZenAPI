@@ -1,7 +1,7 @@
 import { ScrollView } from "std-widgets.slint";
 import { Theme } from "theme.slint";
 import { KeyValueTableRow, TestAssertionRow } from "types.slint";
-import { AuthEditorPanel } from "auth_panel.slint";
+import { RequestAuthTabHost } from "request_auth_tab_host.slint";
 import { RequestBodyTabHost } from "request_body_tab_host.slint";
 import { RequestHeadersTab } from "request_headers_tab.slint";
 import { RequestParamsTab } from "request_params_tab.slint";
@@ -207,31 +207,31 @@ export component RequestTabContent inherits ScrollView {
             }
         }
 
-        if root.preload_tabs || root.active_tab == "auth": AuthEditorPanel {
+        if root.preload_tabs || root.active_tab == "auth": RequestAuthTabHost {
             visible: root.active_tab == "auth";
             x: 16px;
             y: 16px;
             width: parent.width - 32px;
             height: parent.height - 32px;
-            auth_mode <=> root.auth_mode;
-            auth_config <=> root.auth_config;
-            auth_basic_username <=> root.auth_basic_username;
-            auth_basic_password <=> root.auth_basic_password;
-            auth_key_rows <=> root.auth_key_rows;
-            busy: root.busy;
-            auth_mode_changed(mode) => {
+            workspace_auth_mode <=> root.auth_mode;
+            workspace_auth_config <=> root.auth_config;
+            workspace_auth_basic_username <=> root.auth_basic_username;
+            workspace_auth_basic_password <=> root.auth_basic_password;
+            workspace_auth_key_rows <=> root.auth_key_rows;
+            workspace_busy: root.busy;
+            workspace_auth_mode_changed(mode) => {
                 root.auth_mode_changed(mode);
             }
-            update_basic_auth(username, password) => {
+            workspace_update_basic_auth(username, password) => {
                 root.update_basic_auth(username, password);
             }
-            add_auth_key => {
+            workspace_add_auth_key => {
                 root.add_auth_key();
             }
-            update_auth_key_row(row_id, key, value) => {
+            workspace_update_auth_key_row(row_id, key, value) => {
                 root.update_auth_key_row(row_id, key, value);
             }
-            delete_auth_key_row(row_id) => {
+            workspace_delete_auth_key_row(row_id) => {
                 root.delete_auth_key_row(row_id);
             }
         }

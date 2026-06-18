@@ -1,0 +1,38 @@
+import { AuthEditorPanel } from "auth_panel.slint";
+import { KeyValueTableRow } from "types.slint";
+
+export component RequestAuthTabHost inherits AuthEditorPanel {
+    in-out property <string> workspace_auth_mode;
+    in-out property <string> workspace_auth_config;
+    in-out property <string> workspace_auth_basic_username;
+    in-out property <string> workspace_auth_basic_password;
+    in-out property <[KeyValueTableRow]> workspace_auth_key_rows;
+    in property <bool> workspace_busy;
+    callback workspace_auth_mode_changed(string);
+    callback workspace_update_basic_auth(string, string);
+    callback workspace_add_auth_key();
+    callback workspace_update_auth_key_row(int, string, string);
+    callback workspace_delete_auth_key_row(int);
+
+    auth_mode <=> root.workspace_auth_mode;
+    auth_config <=> root.workspace_auth_config;
+    auth_basic_username <=> root.workspace_auth_basic_username;
+    auth_basic_password <=> root.workspace_auth_basic_password;
+    auth_key_rows <=> root.workspace_auth_key_rows;
+    busy: root.workspace_busy;
+    auth_mode_changed(mode) => {
+        root.workspace_auth_mode_changed(mode);
+    }
+    update_basic_auth(username, password) => {
+        root.workspace_update_basic_auth(username, password);
+    }
+    add_auth_key => {
+        root.workspace_add_auth_key();
+    }
+    update_auth_key_row(row_id, key, value) => {
+        root.workspace_update_auth_key_row(row_id, key, value);
+    }
+    delete_auth_key_row(row_id) => {
+        root.workspace_delete_auth_key_row(row_id);
+    }
+}
