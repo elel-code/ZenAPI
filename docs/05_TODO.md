@@ -165,6 +165,7 @@
   Request body tab host,
   Request params tab,
   Request headers tab, Request realtime tab,
+  Request realtime tab host,
   Response panel, Response header strip, Response tab strip, Response toolbar,
   Response viewer, Sidebar, App navigation, App auxiliary pages with preloaded
   auxiliary page switching and fallback visited-page caching, Address bar,
