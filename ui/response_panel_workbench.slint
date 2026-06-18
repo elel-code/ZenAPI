@@ -1,0 +1,209 @@
+import { Theme } from "theme.slint";
+import { RunnerRow } from "types.slint";
+import { ResponseHeader } from "response_header.slint";
+import { ResponseTabStrip } from "response_tab_strip.slint";
+import { ResponseToolbar } from "response_toolbar.slint";
+import { ResponseViewer } from "response_viewer.slint";
+
+export component ResponsePanelWorkbench inherits Rectangle {
+    in-out property <string> response_body;
+    in-out property <string> response_raw_body;
+    in-out property <string> response_headers;
+    in-out property <string> response_cookies;
+    in-out property <string> folded_response_body;
+    in-out property <string> folded_response_raw_body;
+    in-out property <string> folded_response_headers;
+    in-out property <string> folded_response_cookies;
+    in-out property <string> codegen_language;
+    in-out property <string> codegen_output;
+    in-out property <string> codegen_path;
+    in-out property <[RunnerRow]> runner_rows;
+    in-out property <string> runner_summary;
+    in-out property <string> runner_delay_ms;
+    in-out property <string> runner_report_path;
+    in-out property <string> runner_report_format;
+    in-out property <bool> runner_stop_on_failure;
+    in-out property <bool> runner_active;
+    in property <string> response_status;
+    in property <string> response_meta;
+    in property <string> response_time;
+    in property <string> response_size;
+    in property <string> response_tone;
+    in property <bool> busy;
+    callback generate_code();
+    callback save_codegen(string);
+    callback pick_codegen_path();
+    callback run_collection();
+    callback cancel_collection_run();
+    callback save_runner_report(string);
+    callback pick_runner_report_path();
+    callback copy_response(string, string, int, int);
+    callback format_response(string);
+    callback summarize_graphql_schema(string, string);
+    property <string> active_tab: "pretty";
+    property <bool> pretty_response_folded: false;
+    property <bool> raw_response_folded: false;
+    property <bool> headers_response_folded: false;
+    property <bool> cookies_response_folded: false;
+    property <int> pretty_selection_anchor: 0;
+    property <int> pretty_selection_cursor: 0;
+    property <int> raw_selection_anchor: 0;
+    property <int> raw_selection_cursor: 0;
+    property <int> headers_selection_anchor: 0;
+    property <int> headers_selection_cursor: 0;
+    property <int> cookies_selection_anchor: 0;
+    property <int> cookies_selection_cursor: 0;
+    property <bool> active_response_folded: root.active_tab == "pretty" ? root.pretty_response_folded : root.active_tab == "raw" ? root.raw_response_folded : root.active_tab == "headers" ? root.headers_response_folded : root.cookies_response_folded;
+    property <bool> all_responses_folded: root.pretty_response_folded && root.raw_response_folded && root.headers_response_folded && root.cookies_response_folded;
+    property <bool> any_response_folded: root.pretty_response_folded || root.raw_response_folded || root.headers_response_folded || root.cookies_response_folded;
+    property <string> active_response_text: root.active_tab == "pretty" ? root.response_body : root.active_tab == "raw" ? root.response_raw_body : root.active_tab == "headers" ? root.response_headers : root.response_cookies;
+    property <string> active_response_display_text: root.active_response_folded ? (root.active_tab == "pretty" ? root.folded_response_body : root.active_tab == "raw" ? root.folded_response_raw_body : root.active_tab == "headers" ? root.folded_response_headers : root.folded_response_cookies) : root.active_response_text;
+    property <int> active_response_selection_anchor: root.active_tab == "pretty" ? root.pretty_selection_anchor : root.active_tab == "raw" ? root.raw_selection_anchor : root.active_tab == "headers" ? root.headers_selection_anchor : root.cookies_selection_anchor;
+    property <int> active_response_selection_cursor: root.active_tab == "pretty" ? root.pretty_selection_cursor : root.active_tab == "raw" ? root.raw_selection_cursor : root.active_tab == "headers" ? root.headers_selection_cursor : root.cookies_selection_cursor;
+    property <bool> response_ready: root.response_status != "Idle" || root.response_headers != "" || root.response_time != "" || root.response_size != "" || root.response_raw_body != root.response_body;
+
+    function set_response_selection(tab: string, anchor: int, cursor: int) {
+        if (tab == "pretty") {
+            root.pretty_selection_anchor = anchor;
+            root.pretty_selection_cursor = cursor;
+        } else if (tab == "raw") {
+            root.raw_selection_anchor = anchor;
+            root.raw_selection_cursor = cursor;
+        } else if (tab == "headers") {
+            root.headers_selection_anchor = anchor;
+            root.headers_selection_cursor = cursor;
+        } else if (tab == "cookies") {
+            root.cookies_selection_anchor = anchor;
+            root.cookies_selection_cursor = cursor;
+        }
+    }
+
+    function clear_response_selection(tab: string) {
+        root.set_response_selection(tab, 0, 0);
+    }
+
+    function clear_all_response_selections() {
+        root.clear_response_selection("pretty");
+        root.clear_response_selection("raw");
+        root.clear_response_selection("headers");
+        root.clear_response_selection("cookies");
+    }
+
+    changed response_body => {
+        root.clear_response_selection("pretty");
+    }
+
+    changed response_raw_body => {
+        root.clear_response_selection("raw");
+    }
+
+    changed response_headers => {
+        root.clear_response_selection("headers");
+    }
+
+    changed response_cookies => {
+        root.clear_response_selection("cookies");
+    }
+
+    changed folded_response_body => {
+        root.clear_response_selection("pretty");
+    }
+
+    changed folded_response_raw_body => {
+        root.clear_response_selection("raw");
+    }
+
+    changed folded_response_headers => {
+        root.clear_response_selection("headers");
+    }
+
+    changed folded_response_cookies => {
+        root.clear_response_selection("cookies");
+    }
+
+    width: 400px;
+    vertical-stretch: 1;
+    background: Theme.surface_container_lowest;
+
+    VerticalLayout {
+        padding: 0px;
+        spacing: 0px;
+
+        ResponseHeader {
+            response_status: root.response_status;
+            response_time: root.response_time;
+            response_size: root.response_size;
+            response_tone: root.response_tone;
+        }
+
+        Rectangle {
+            height: 1px;
+            background: Theme.outline_variant;
+        }
+
+        ResponseTabStrip {
+            active_tab <=> root.active_tab;
+            picked(mode) => {
+                root.clear_response_selection(mode);
+            }
+        }
+
+        Rectangle {
+            height: 1px;
+            background: Theme.outline_variant;
+        }
+
+        ResponseToolbar {
+            active_tab <=> root.active_tab;
+            pretty_response_folded <=> root.pretty_response_folded;
+            raw_response_folded <=> root.raw_response_folded;
+            headers_response_folded <=> root.headers_response_folded;
+            cookies_response_folded <=> root.cookies_response_folded;
+            active_response_folded: root.active_response_folded;
+            all_responses_folded: root.all_responses_folded;
+            any_response_folded: root.any_response_folded;
+            busy: root.busy;
+            active_response_text: root.active_response_text;
+            active_response_display_text: root.active_response_display_text;
+            active_response_selection_anchor: root.active_response_selection_anchor;
+            active_response_selection_cursor: root.active_response_selection_cursor;
+            summarize_graphql_schema(tab, text) => {
+                root.summarize_graphql_schema(tab, text);
+            }
+            format_response(tab) => {
+                root.format_response(tab);
+            }
+            copy_response(tab, text, anchor, cursor) => {
+                root.copy_response(tab, text, anchor, cursor);
+            }
+            clear_response_selection(tab) => {
+                root.clear_response_selection(tab);
+            }
+            clear_all_response_selections() => {
+                root.clear_all_response_selections();
+            }
+        }
+
+        Rectangle {
+            height: 1px;
+            background: Theme.outline_variant;
+        }
+
+        ResponseViewer {
+            response_body <=> root.response_body;
+            response_raw_body <=> root.response_raw_body;
+            response_headers <=> root.response_headers;
+            response_cookies <=> root.response_cookies;
+            folded_response_body <=> root.folded_response_body;
+            folded_response_raw_body <=> root.folded_response_raw_body;
+            folded_response_headers <=> root.folded_response_headers;
+            folded_response_cookies <=> root.folded_response_cookies;
+            active_tab: root.active_tab;
+            active_response_folded: root.active_response_folded;
+            response_ready: root.response_ready;
+            set_response_selection(tab, anchor, cursor) => {
+                root.set_response_selection(tab, anchor, cursor);
+            }
+        }
+    }
+}
