@@ -15,6 +15,8 @@ pub struct ResponseAssertion {
 pub enum ResponseAssertionKind {
     StatusEquals { status: u16 },
     StatusInRange { min: u16, max: u16 },
+    ResponseTimeBelow { max_ms: u128 },
+    ResponseSizeBelow { max_bytes: usize },
     HeaderExists { name: String },
     HeaderEquals { name: String, value: String },
     BodyContains { text: String },
@@ -54,6 +56,21 @@ pub fn evaluate_response_assertion(
                 format!(
                     "expected status between {min} and {max}, got {}",
                     response.status
+                )
+            })
+        }
+        ResponseAssertionKind::ResponseTimeBelow { max_ms } => (response.elapsed_ms > *max_ms)
+            .then(|| {
+                format!(
+                    "expected response time <= {max_ms} ms, got {} ms",
+                    response.elapsed_ms
+                )
+            }),
+        ResponseAssertionKind::ResponseSizeBelow { max_bytes } => {
+            (response.body_bytes > *max_bytes).then(|| {
+                format!(
+                    "expected response size <= {max_bytes} B, got {} B",
+                    response.body_bytes
                 )
             })
         }
@@ -259,6 +276,14 @@ mod tests {
                     name: "Content-Type".to_string(),
                     value: "application/json".to_string(),
                 },
+            },
+            ResponseAssertion {
+                name: "time".to_string(),
+                kind: ResponseAssertionKind::ResponseTimeBelow { max_ms: 50 },
+            },
+            ResponseAssertion {
+                name: "size".to_string(),
+                kind: ResponseAssertionKind::ResponseSizeBelow { max_bytes: 64 },
             },
             ResponseAssertion {
                 name: "body".to_string(),

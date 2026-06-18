@@ -6310,6 +6310,16 @@ fn response_assertion_ui_fields(assertion: &ResponseAssertion) -> (String, Strin
             min.to_string(),
             max.to_string(),
         ),
+        ResponseAssertionKind::ResponseTimeBelow { max_ms } => (
+            "response_time_below".to_string(),
+            max_ms.to_string(),
+            String::new(),
+        ),
+        ResponseAssertionKind::ResponseSizeBelow { max_bytes } => (
+            "response_size_below".to_string(),
+            max_bytes.to_string(),
+            String::new(),
+        ),
         ResponseAssertionKind::HeaderExists { name } => {
             ("header_exists".to_string(), name.clone(), String::new())
         }
@@ -6417,6 +6427,12 @@ fn test_assertion_template(template: &str) -> Option<(&'static str, &'static str
     match template.trim().to_ascii_lowercase().as_str() {
         "status" | "status_equals" => Some(("status_equals", "200", "")),
         "range" | "status_in_range" => Some(("status_in_range", "200", "299")),
+        "time" | "response_time" | "response_time_below" => {
+            Some(("response_time_below", "500", ""))
+        }
+        "size" | "response_size" | "response_size_below" => {
+            Some(("response_size_below", "65536", ""))
+        }
         "header" | "header_equals" => Some(("header_equals", "content-type", "application/json")),
         "body" | "body_contains" => Some(("body_contains", "ok", "")),
         "json_exists" | "json_path_exists" => Some(("json_path_exists", "data.id", "")),
@@ -6433,7 +6449,9 @@ fn test_assertion_template(template: &str) -> Option<(&'static str, &'static str
 fn next_test_assertion_template(kind: &str) -> (&'static str, &'static str, &'static str) {
     match kind.trim().to_ascii_lowercase().as_str() {
         "status" | "status_equals" | "status=" => ("status_in_range", "200", "299"),
-        "range" | "status_in_range" => ("header_exists", "content-type", ""),
+        "range" | "status_in_range" => ("response_time_below", "500", ""),
+        "time" | "response_time" | "response_time_below" => ("response_size_below", "65536", ""),
+        "size" | "response_size" | "response_size_below" => ("header_exists", "content-type", ""),
         "header" | "header_exists" | "header?" => {
             ("header_equals", "content-type", "application/json")
         }
@@ -7513,6 +7531,16 @@ fn parse_response_assertion_line(line: &str) -> Result<ResponseAssertion> {
                 .and_then(|value| parse_status(value, kind))?;
             ResponseAssertionKind::StatusInRange { min, max }
         }
+        "time" | "response_time" | "response_time_below" | "response_time_under" => {
+            ResponseAssertionKind::ResponseTimeBelow {
+                max_ms: parse_response_time_ms(args, kind)?,
+            }
+        }
+        "size" | "response_size" | "response_size_below" | "response_size_under" => {
+            ResponseAssertionKind::ResponseSizeBelow {
+                max_bytes: parse_response_size_bytes(args, kind)?,
+            }
+        }
         "header" | "header_exists" | "header?" => ResponseAssertionKind::HeaderExists {
             name: require_assertion_arg(args, kind)?,
         },
@@ -7572,6 +7600,8 @@ fn parse_pm_test_assertion_line(line: &str) -> Result<Option<ResponseAssertion>>
     let body = &trimmed[body_start..];
     let kind = if let Some(status) = parse_pm_status_assertion(body)? {
         status
+    } else if let Some(metric) = parse_pm_metric_assertion(body)? {
+        metric
     } else if let Some(header) = parse_pm_header_assertion(body) {
         header
     } else if let Some(body_contains) = parse_pm_body_assertion(body) {
@@ -7632,6 +7662,22 @@ fn parse_pm_status_assertion(body: &str) -> Result<Option<ResponseAssertionKind>
                 max: parse_status(max, "pm.expect status range")?,
             }));
         }
+    }
+
+    Ok(None)
+}
+
+fn parse_pm_metric_assertion(body: &str) -> Result<Option<ResponseAssertionKind>> {
+    if let Some(value) = expect_upper_bound_argument(body, "pm.response.responseTime") {
+        return Ok(Some(ResponseAssertionKind::ResponseTimeBelow {
+            max_ms: parse_response_time_ms(value, "pm.expect response time")?,
+        }));
+    }
+
+    if let Some(value) = expect_upper_bound_argument(body, "pm.response.responseSize") {
+        return Ok(Some(ResponseAssertionKind::ResponseSizeBelow {
+            max_bytes: parse_response_size_bytes(value, "pm.expect response size")?,
+        }));
     }
 
     Ok(None)
@@ -7871,6 +7917,22 @@ fn expect_within_arguments<'a>(body: &'a str, subject: &str) -> Option<(&'a str,
     let args = call_argument_after(haystack, ".to.be.within(")?;
     let parts = split_js_arguments(args);
     Some((*parts.first()?, *parts.get(1)?))
+}
+
+fn expect_upper_bound_argument<'a>(body: &'a str, subject: &str) -> Option<&'a str> {
+    let haystack = &body[body.find(subject)? + subject.len()..];
+    for marker in [
+        ".to.be.below(",
+        ".to.be.lessThan(",
+        ".to.be.at.most(",
+        ".to.be.lte(",
+        ".to.be.most(",
+    ] {
+        if let Some(value) = call_argument_after(haystack, marker) {
+            return Some(value);
+        }
+    }
+    None
 }
 
 fn call_argument_after<'a>(body: &'a str, marker: &str) -> Option<&'a str> {
@@ -8220,6 +8282,20 @@ fn parse_status(value: &str, kind: &str) -> Result<u16> {
         .map_err(|_| anyhow!("{kind} expects an HTTP status code"))
 }
 
+fn parse_response_time_ms(value: &str, kind: &str) -> Result<u128> {
+    value
+        .trim()
+        .parse::<u128>()
+        .map_err(|_| anyhow!("{kind} expects milliseconds"))
+}
+
+fn parse_response_size_bytes(value: &str, kind: &str) -> Result<usize> {
+    value
+        .trim()
+        .parse::<usize>()
+        .map_err(|_| anyhow!("{kind} expects bytes"))
+}
+
 fn parse_json_length(value: &str, kind: &str) -> Result<usize> {
     value
         .trim()
@@ -8238,6 +8314,12 @@ fn format_response_assertions(assertions: &[ResponseAssertion]) -> String {
             ResponseAssertionKind::StatusEquals { status } => format!("status_equals {status}"),
             ResponseAssertionKind::StatusInRange { min, max } => {
                 format!("status_in_range {min} {max}")
+            }
+            ResponseAssertionKind::ResponseTimeBelow { max_ms } => {
+                format!("response_time_below {max_ms}")
+            }
+            ResponseAssertionKind::ResponseSizeBelow { max_bytes } => {
+                format!("response_size_below {max_bytes}")
             }
             ResponseAssertionKind::HeaderExists { name } => format!("header_exists {name}"),
             ResponseAssertionKind::HeaderEquals { name, value } => {
@@ -9456,6 +9538,18 @@ mod tests {
             next_test_assertion_template("status_equals"),
             ("status_in_range", "200", "299")
         );
+        assert_eq!(
+            next_test_assertion_template("status_in_range"),
+            ("response_time_below", "500", "")
+        );
+        assert_eq!(
+            next_test_assertion_template("response_time_below"),
+            ("response_size_below", "65536", "")
+        );
+        assert_eq!(
+            next_test_assertion_template("response_size_below"),
+            ("header_exists", "content-type", "")
+        );
         let (kind, target, expected) = next_test_assertion_template("header_exists");
         assert_eq!(
             update_test_assertion_text(input, 1, kind, target, expected),
@@ -9516,6 +9610,14 @@ mod tests {
         assert_eq!(
             add_test_assertion_template_text("status_equals 200", "json_contains").unwrap(),
             "status_equals 200\njson_path_contains data.items {\"id\":1}"
+        );
+        assert_eq!(
+            add_test_assertion_template_text("status_equals 200", "time").unwrap(),
+            "status_equals 200\nresponse_time_below 500"
+        );
+        assert_eq!(
+            add_test_assertion_template_text("status_equals 200", "size").unwrap(),
+            "status_equals 200\nresponse_size_below 65536"
         );
         assert_eq!(
             add_custom_test_assertion_text("status_equals 200", "status_in_range", "200", "299",)
@@ -9633,7 +9735,7 @@ mod tests {
     #[test]
     fn parses_and_formats_native_test_assertions() {
         let assertions = parse_response_assertions(
-            "status_equals 200\nheader_equals Content-Type application/json\njson_path_exists data.id\njson_path_type data.items array\njson_path_length data.items 2\njson_path_contains data.items {\"id\":1}\njson_path_equals ok true",
+            "status_equals 200\nresponse_time_below 500\nresponse_size_below 65536\nheader_equals Content-Type application/json\njson_path_exists data.id\njson_path_type data.items array\njson_path_length data.items 2\njson_path_contains data.items {\"id\":1}\njson_path_equals ok true",
         )
         .expect("assertions");
 
@@ -9643,6 +9745,14 @@ mod tests {
                 ResponseAssertion {
                     name: "status_equals 200".to_string(),
                     kind: ResponseAssertionKind::StatusEquals { status: 200 },
+                },
+                ResponseAssertion {
+                    name: "response_time_below 500".to_string(),
+                    kind: ResponseAssertionKind::ResponseTimeBelow { max_ms: 500 },
+                },
+                ResponseAssertion {
+                    name: "response_size_below 65536".to_string(),
+                    kind: ResponseAssertionKind::ResponseSizeBelow { max_bytes: 65536 },
                 },
                 ResponseAssertion {
                     name: "header_equals Content-Type application/json".to_string(),
@@ -9689,7 +9799,7 @@ mod tests {
         );
         assert_eq!(
             format_response_assertions(&assertions),
-            "status_equals 200\nheader_equals Content-Type application/json\njson_path_exists data.id\njson_path_type data.items array\njson_path_length data.items 2\njson_path_contains data.items {\"id\":1}\njson_path_equals ok true"
+            "status_equals 200\nresponse_time_below 500\nresponse_size_below 65536\nheader_equals Content-Type application/json\njson_path_exists data.id\njson_path_type data.items array\njson_path_length data.items 2\njson_path_contains data.items {\"id\":1}\njson_path_equals ok true"
         );
     }
 
@@ -9749,6 +9859,8 @@ pm.test("json id", () => { pm.expect(pm.response.json().data.id).to.eql(42); })"
             r#"pm.test("success range", () => { pm.response.to.be.success; })
 pm.test("status within", () => { pm.expect(pm.response.code).to.be.within(200, 299); })
 pm.test("legacy status", function () { pm.expect(responseCode.code).to.equal(202); })
+pm.test("response time", () => { pm.expect(pm.response.responseTime).to.be.below(500); })
+pm.test("response size", () => { pm.expect(pm.response.responseSize).to.be.at.most(65536); })
 pm.test("header exists", () => { pm.response.to.have.header("X-Request-Id"); })
 pm.test("header has", () => { pm.expect(pm.response.headers.has("Content-Type")).to.be.true; })
 pm.test("body string", () => { pm.expect(pm.response.text()).to.have.string("ready"); })
@@ -9782,6 +9894,14 @@ pm.test("json null", () => { pm.expect(pm.response.json().error).to.be.null; })"
                 ResponseAssertion {
                     name: "legacy status".to_string(),
                     kind: ResponseAssertionKind::StatusEquals { status: 202 },
+                },
+                ResponseAssertion {
+                    name: "response time".to_string(),
+                    kind: ResponseAssertionKind::ResponseTimeBelow { max_ms: 500 },
+                },
+                ResponseAssertion {
+                    name: "response size".to_string(),
+                    kind: ResponseAssertionKind::ResponseSizeBelow { max_bytes: 65536 },
                 },
                 ResponseAssertion {
                     name: "header exists".to_string(),
