@@ -4,10 +4,10 @@ import { AppApiKeysPageHost } from "app_api_keys_page_host.slint";
 import { AppCodegenPageHost } from "app_codegen_page_host.slint";
 import { AppDashboardPageHost } from "app_dashboard_page_host.slint";
 import { AppDocumentationPageHost } from "app_documentation_page_host.slint";
+import { AppEnvironmentPageHost } from "app_environment_page_host.slint";
 import { AppRunnerPageHost } from "app_runner_page_host.slint";
 import { AppSettingsPageHost } from "app_settings_page_host.slint";
 import { AppTeamPageHost } from "app_team_page_host.slint";
-import { EnvironmentPage } from "environment_page.slint";
 import { MockManagerPage } from "mock_manager_page.slint";
 import { CollectionRow, EnvironmentRow, HistoryRow, MockLogRow, MockRuleRow, RouteRow, RunnerRow, VariableTableRow } from "types.slint";
 
@@ -217,53 +217,44 @@ export component AppAuxiliaryPages inherits Rectangle {
         }
     }
 
-    if root.preload_pages || root.environment_mounted: ScrollView {
+    if root.preload_pages || root.environment_mounted: AppEnvironmentPageHost {
         visible: root.active_page_index == 4;
         width: parent.width;
         height: parent.height;
-        viewport-width: max(self.visible-width, 1180px);
-        viewport-height: max(self.visible-height, 620px);
-        vertical-scrollbar-policy: ScrollBarPolicy.as-needed;
-        horizontal-scrollbar-policy: ScrollBarPolicy.as-needed;
-
-        EnvironmentPage {
-            width: max(parent.visible-width, 1180px);
-            height: max(parent.visible-height, 620px);
-            environment_rows <=> root.environment_rows;
-            variable_rows <=> root.variable_rows;
-            global_variables <=> root.global_variables;
-            environment_name <=> root.environment_name;
-            environment_draft_name <=> root.environment_draft_name;
-            environment_variables <=> root.environment_variables;
-            variables_json_preview <=> root.variables_json_preview;
-            busy: root.busy;
-            select_environment(name) => {
-                root.select_environment(name);
-            }
-            environment_name_changed(name) => {
-                root.environment_name_changed(name);
-            }
-            add_environment(name) => {
-                root.add_environment(name);
-            }
-            rename_environment(old_name, new_name) => {
-                root.rename_environment(old_name, new_name);
-            }
-            move_environment(name, delta) => {
-                root.move_environment(name, delta);
-            }
-            delete_environment(name) => {
-                root.delete_environment(name);
-            }
-            update_variable_row(row_id, scope, name, value) => {
-                root.update_variable_row(row_id, scope, name, value);
-            }
-            add_variable(scope) => {
-                root.add_variable(scope);
-            }
-            delete_variable_row(row_id, scope) => {
-                root.delete_variable_row(row_id, scope);
-            }
+        environment_rows <=> root.environment_rows;
+        variable_rows <=> root.variable_rows;
+        global_variables <=> root.global_variables;
+        environment_name <=> root.environment_name;
+        environment_draft_name <=> root.environment_draft_name;
+        environment_variables <=> root.environment_variables;
+        variables_json_preview <=> root.variables_json_preview;
+        busy: root.busy;
+        select_environment(name) => {
+            root.select_environment(name);
+        }
+        environment_name_changed(name) => {
+            root.environment_name_changed(name);
+        }
+        add_environment(name) => {
+            root.add_environment(name);
+        }
+        rename_environment(old_name, new_name) => {
+            root.rename_environment(old_name, new_name);
+        }
+        move_environment(name, delta) => {
+            root.move_environment(name, delta);
+        }
+        delete_environment(name) => {
+            root.delete_environment(name);
+        }
+        update_variable_row(row_id, scope, name, value) => {
+            root.update_variable_row(row_id, scope, name, value);
+        }
+        add_variable(scope) => {
+            root.add_variable(scope);
+        }
+        delete_variable_row(row_id, scope) => {
+            root.delete_variable_row(row_id, scope);
         }
     }
 
