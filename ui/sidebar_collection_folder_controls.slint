@@ -1,0 +1,104 @@
+import { Theme } from "theme.slint";
+import { ActionButton } from "action_button.slint";
+import { TextField } from "text_field.slint";
+import { UiText } from "widgets.slint";
+
+export component SidebarCollectionFolderControls inherits Rectangle {
+    in-out property <string> selected_collection_folder;
+    in-out property <string> collection_move_target_label;
+    in-out property <string> collection_folder_name;
+    in property <bool> busy;
+    callback add_collection_folder(string);
+    callback rename_collection_folder(string, string);
+    callback delete_collection_folder(string);
+    callback reorder_collection_folder(string, int);
+
+    height: 72px;
+    horizontal-stretch: 1;
+    background: transparent;
+
+    VerticalLayout {
+        padding: 0px;
+        spacing: 8px;
+
+        HorizontalLayout {
+            height: 34px;
+            spacing: 8px;
+            alignment: center;
+
+            TextField {
+                text <=> root.collection_folder_name;
+                placeholder: "folder name";
+                enabled: !root.busy;
+                horizontal-stretch: 1;
+                accepted => {
+                    if !root.busy && root.collection_folder_name != "" {
+                        root.add_collection_folder(root.collection_folder_name);
+                    }
+                }
+            }
+
+            ActionButton {
+                text: "Folder";
+                button_width: 62px;
+                enabled: !root.busy && root.collection_folder_name != "";
+                clicked => {
+                    root.add_collection_folder(root.collection_folder_name);
+                }
+            }
+        }
+
+        HorizontalLayout {
+            height: 30px;
+            spacing: 6px;
+            alignment: center;
+
+            UiText {
+                text: root.selected_collection_folder == "" ? "Folder target: Collection" : "Folder target: " + root.collection_move_target_label;
+                horizontal-stretch: 1;
+                height: parent.height;
+                color: Theme.outline;
+                font-size: 11px;
+                vertical-alignment: center;
+                overflow: elide;
+            }
+
+            ActionButton {
+                text: "Up";
+                button_width: 34px;
+                enabled: !root.busy && root.selected_collection_folder != "";
+                clicked => {
+                    root.reorder_collection_folder(root.selected_collection_folder, -1);
+                }
+            }
+
+            ActionButton {
+                text: "Dn";
+                button_width: 34px;
+                enabled: !root.busy && root.selected_collection_folder != "";
+                clicked => {
+                    root.reorder_collection_folder(root.selected_collection_folder, 1);
+                }
+            }
+
+            ActionButton {
+                text: "Ren";
+                button_width: 40px;
+                enabled: !root.busy && root.selected_collection_folder != "" && root.collection_folder_name != "";
+                clicked => {
+                    root.rename_collection_folder(root.selected_collection_folder, root.collection_folder_name);
+                }
+            }
+
+            ActionButton {
+                text: "Del";
+                button_width: 40px;
+                warning: true;
+                enabled: !root.busy && root.selected_collection_folder != "";
+                clicked => {
+                    root.delete_collection_folder(root.selected_collection_folder);
+                }
+            }
+        }
+    }
+}

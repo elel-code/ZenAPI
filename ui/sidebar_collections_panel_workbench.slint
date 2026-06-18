@@ -1,10 +1,11 @@
 import { Theme } from "theme.slint";
 import { ActionButton } from "action_button.slint";
-import { TextField } from "text_field.slint";
 import { CollectionRow, RouteRow } from "types.slint";
 import { UiText } from "widgets.slint";
 import { SidebarFolderRow } from "sidebar_rows.slint";
 import { SidebarCollectionFilePanel } from "sidebar_collection_file_panel.slint";
+import { SidebarCollectionFolderControls } from "sidebar_collection_folder_controls.slint";
+import { SidebarCollectionRequestControls } from "sidebar_collection_request_controls.slint";
 import { SidebarCollectionTree } from "sidebar_collection_tree.slint";
 
 export component SidebarCollectionsPanelWorkbench inherits Rectangle {
@@ -102,83 +103,22 @@ export component SidebarCollectionsPanelWorkbench inherits Rectangle {
             }
         }
 
-        HorizontalLayout {
-            height: 34px;
-            spacing: 8px;
-            alignment: center;
-
-            TextField {
-                text <=> root.collection_folder_name;
-                placeholder: "folder name";
-                enabled: !root.busy;
-                horizontal-stretch: 1;
-                accepted => {
-                    if !root.busy && root.collection_folder_name != "" {
-                        root.add_collection_folder(root.collection_folder_name);
-                    }
-                }
+        SidebarCollectionFolderControls {
+            selected_collection_folder <=> root.selected_collection_folder;
+            collection_move_target_label <=> root.collection_move_target_label;
+            collection_folder_name <=> root.collection_folder_name;
+            busy: root.busy;
+            add_collection_folder(name) => {
+                root.add_collection_folder(name);
             }
-
-            ActionButton {
-                text: "Folder";
-                button_width: 62px;
-                enabled: !root.busy && root.collection_folder_name != "";
-                clicked => {
-                    root.add_collection_folder(root.collection_folder_name);
-                }
+            rename_collection_folder(folder_path, name) => {
+                root.rename_collection_folder(folder_path, name);
             }
-        }
-
-        HorizontalLayout {
-            height: 30px;
-            spacing: 6px;
-            alignment: center;
-
-            UiText {
-                text: root.selected_collection_folder == "" ? "Folder target: Collection" : "Folder target: " + root.collection_move_target_label;
-                horizontal-stretch: 1;
-                height: parent.height;
-                color: Theme.outline;
-                font-size: 11px;
-                vertical-alignment: center;
-                overflow: elide;
+            delete_collection_folder(folder_path) => {
+                root.delete_collection_folder(folder_path);
             }
-
-            ActionButton {
-                text: "Up";
-                button_width: 34px;
-                enabled: !root.busy && root.selected_collection_folder != "";
-                clicked => {
-                    root.reorder_collection_folder(root.selected_collection_folder, -1);
-                }
-            }
-
-            ActionButton {
-                text: "Dn";
-                button_width: 34px;
-                enabled: !root.busy && root.selected_collection_folder != "";
-                clicked => {
-                    root.reorder_collection_folder(root.selected_collection_folder, 1);
-                }
-            }
-
-            ActionButton {
-                text: "Ren";
-                button_width: 40px;
-                enabled: !root.busy && root.selected_collection_folder != "" && root.collection_folder_name != "";
-                clicked => {
-                    root.rename_collection_folder(root.selected_collection_folder, root.collection_folder_name);
-                }
-            }
-
-            ActionButton {
-                text: "Del";
-                button_width: 40px;
-                warning: true;
-                enabled: !root.busy && root.selected_collection_folder != "";
-                clicked => {
-                    root.delete_collection_folder(root.selected_collection_folder);
-                }
+            reorder_collection_folder(folder_path, delta) => {
+                root.reorder_collection_folder(folder_path, delta);
             }
         }
 
@@ -199,92 +139,26 @@ export component SidebarCollectionsPanelWorkbench inherits Rectangle {
             }
         }
 
-        HorizontalLayout {
-            height: 34px;
-            spacing: 6px;
-            alignment: center;
-
-            TextField {
-                text <=> root.collection_request_name;
-                placeholder: "request name";
-                enabled: !root.busy && root.selected_collection_request >= 0;
-                horizontal-stretch: 1;
-                accepted => {
-                    if !root.busy && root.selected_collection_request >= 0 && root.collection_request_name != "" {
-                        root.rename_collection_request(root.selected_collection_request, root.collection_request_name);
-                    }
-                }
+        SidebarCollectionRequestControls {
+            selected_collection_request <=> root.selected_collection_request;
+            selected_collection_folder <=> root.selected_collection_folder;
+            collection_move_target_label <=> root.collection_move_target_label;
+            collection_request_name <=> root.collection_request_name;
+            busy: root.busy;
+            rename_collection_request(row_id, name) => {
+                root.rename_collection_request(row_id, name);
             }
-
-            ActionButton {
-                text: "Ren";
-                button_width: 40px;
-                enabled: !root.busy && root.selected_collection_request >= 0 && root.collection_request_name != "";
-                clicked => {
-                    root.rename_collection_request(root.selected_collection_request, root.collection_request_name);
-                }
+            duplicate_collection_request(row_id) => {
+                root.duplicate_collection_request(row_id);
             }
-        }
-
-        HorizontalLayout {
-            height: 30px;
-            spacing: 6px;
-            alignment: center;
-
-            UiText {
-                text: "Target: " + root.collection_move_target_label;
-                horizontal-stretch: 1;
-                height: parent.height;
-                color: Theme.outline;
-                font-size: 11px;
-                vertical-alignment: center;
-                overflow: elide;
+            delete_collection_request(row_id) => {
+                root.delete_collection_request(row_id);
             }
-
-            ActionButton {
-                text: "Up";
-                button_width: 34px;
-                enabled: !root.busy && root.selected_collection_request >= 0;
-                clicked => {
-                    root.reorder_collection_request(root.selected_collection_request, -1);
-                }
+            move_collection_request(row_id, folder_path) => {
+                root.move_collection_request(row_id, folder_path);
             }
-
-            ActionButton {
-                text: "Dn";
-                button_width: 34px;
-                enabled: !root.busy && root.selected_collection_request >= 0;
-                clicked => {
-                    root.reorder_collection_request(root.selected_collection_request, 1);
-                }
-            }
-
-            ActionButton {
-                text: "Move";
-                button_width: 50px;
-                enabled: !root.busy && root.selected_collection_request >= 0;
-                clicked => {
-                    root.move_collection_request(root.selected_collection_request, root.selected_collection_folder);
-                }
-            }
-
-            ActionButton {
-                text: "Dup";
-                button_width: 42px;
-                enabled: !root.busy && root.selected_collection_request >= 0;
-                clicked => {
-                    root.duplicate_collection_request(root.selected_collection_request);
-                }
-            }
-
-            ActionButton {
-                text: "Del";
-                button_width: 40px;
-                warning: true;
-                enabled: !root.busy && root.selected_collection_request >= 0;
-                clicked => {
-                    root.delete_collection_request(root.selected_collection_request);
-                }
+            reorder_collection_request(row_id, delta) => {
+                root.reorder_collection_request(row_id, delta);
             }
         }
     }

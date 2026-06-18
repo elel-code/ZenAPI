@@ -1,0 +1,115 @@
+import { Theme } from "theme.slint";
+import { ActionButton } from "action_button.slint";
+import { TextField } from "text_field.slint";
+import { UiText } from "widgets.slint";
+
+export component SidebarCollectionRequestControls inherits Rectangle {
+    in-out property <int> selected_collection_request;
+    in-out property <string> selected_collection_folder;
+    in-out property <string> collection_move_target_label;
+    in-out property <string> collection_request_name;
+    in property <bool> busy;
+    callback rename_collection_request(int, string);
+    callback duplicate_collection_request(int);
+    callback delete_collection_request(int);
+    callback move_collection_request(int, string);
+    callback reorder_collection_request(int, int);
+
+    height: 72px;
+    horizontal-stretch: 1;
+    background: transparent;
+
+    VerticalLayout {
+        padding: 0px;
+        spacing: 8px;
+
+        HorizontalLayout {
+            height: 34px;
+            spacing: 6px;
+            alignment: center;
+
+            TextField {
+                text <=> root.collection_request_name;
+                placeholder: "request name";
+                enabled: !root.busy && root.selected_collection_request >= 0;
+                horizontal-stretch: 1;
+                accepted => {
+                    if !root.busy && root.selected_collection_request >= 0 && root.collection_request_name != "" {
+                        root.rename_collection_request(root.selected_collection_request, root.collection_request_name);
+                    }
+                }
+            }
+
+            ActionButton {
+                text: "Ren";
+                button_width: 40px;
+                enabled: !root.busy && root.selected_collection_request >= 0 && root.collection_request_name != "";
+                clicked => {
+                    root.rename_collection_request(root.selected_collection_request, root.collection_request_name);
+                }
+            }
+        }
+
+        HorizontalLayout {
+            height: 30px;
+            spacing: 6px;
+            alignment: center;
+
+            UiText {
+                text: "Target: " + root.collection_move_target_label;
+                horizontal-stretch: 1;
+                height: parent.height;
+                color: Theme.outline;
+                font-size: 11px;
+                vertical-alignment: center;
+                overflow: elide;
+            }
+
+            ActionButton {
+                text: "Up";
+                button_width: 34px;
+                enabled: !root.busy && root.selected_collection_request >= 0;
+                clicked => {
+                    root.reorder_collection_request(root.selected_collection_request, -1);
+                }
+            }
+
+            ActionButton {
+                text: "Dn";
+                button_width: 34px;
+                enabled: !root.busy && root.selected_collection_request >= 0;
+                clicked => {
+                    root.reorder_collection_request(root.selected_collection_request, 1);
+                }
+            }
+
+            ActionButton {
+                text: "Move";
+                button_width: 50px;
+                enabled: !root.busy && root.selected_collection_request >= 0;
+                clicked => {
+                    root.move_collection_request(root.selected_collection_request, root.selected_collection_folder);
+                }
+            }
+
+            ActionButton {
+                text: "Dup";
+                button_width: 42px;
+                enabled: !root.busy && root.selected_collection_request >= 0;
+                clicked => {
+                    root.duplicate_collection_request(root.selected_collection_request);
+                }
+            }
+
+            ActionButton {
+                text: "Del";
+                button_width: 40px;
+                warning: true;
+                enabled: !root.busy && root.selected_collection_request >= 0;
+                clicked => {
+                    root.delete_collection_request(root.selected_collection_request);
+                }
+            }
+        }
+    }
+}
