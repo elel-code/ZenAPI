@@ -6,7 +6,7 @@ import { RequestBodyTabHost } from "request_body_tab_host.slint";
 import { RequestHeadersTabHost } from "request_headers_tab_host.slint";
 import { RequestParamsTabHost } from "request_params_tab_host.slint";
 import { RequestRealtimeTabHost } from "request_realtime_tab_host.slint";
-import { ScriptsEditorPanel } from "scripts_panel.slint";
+import { RequestScriptsTabHost } from "request_scripts_tab_host.slint";
 
 export component RequestTabContent inherits ScrollView {
     in property <string> active_tab;
@@ -314,31 +314,31 @@ export component RequestTabContent inherits ScrollView {
             }
         }
 
-        if root.preload_tabs || root.active_tab == "scripts": ScriptsEditorPanel {
+        if root.preload_tabs || root.active_tab == "scripts": RequestScriptsTabHost {
             visible: root.active_tab == "scripts";
             x: 16px;
             y: 16px;
             width: parent.width - 32px;
             height: parent.height - 32px;
-            pre_request_script <=> root.pre_request_script;
-            test_assertion_rows <=> root.test_assertion_rows;
-            busy: root.busy;
-            add_test_assertion => {
+            workspace_pre_request_script <=> root.pre_request_script;
+            workspace_test_assertion_rows <=> root.test_assertion_rows;
+            workspace_busy: root.busy;
+            workspace_add_test_assertion => {
                 root.add_test_assertion();
             }
-            add_test_assertion_template(template) => {
+            workspace_add_test_assertion_template(template) => {
                 root.add_test_assertion_template(template);
             }
-            add_custom_test_assertion(kind, target, expected) => {
+            workspace_add_custom_test_assertion(kind, target, expected) => {
                 root.add_custom_test_assertion(kind, target, expected);
             }
-            update_test_assertion_row(row_id, kind, target, expected) => {
+            workspace_update_test_assertion_row(row_id, kind, target, expected) => {
                 root.update_test_assertion_row(row_id, kind, target, expected);
             }
-            cycle_test_assertion_kind(row_id, kind) => {
+            workspace_cycle_test_assertion_kind(row_id, kind) => {
                 root.cycle_test_assertion_kind(row_id, kind);
             }
-            delete_test_assertion_row(row_id) => {
+            workspace_delete_test_assertion_row(row_id) => {
                 root.delete_test_assertion_row(row_id);
             }
         }

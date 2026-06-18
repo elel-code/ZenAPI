@@ -1,0 +1,36 @@
+import { ScriptsEditorPanel } from "scripts_panel.slint";
+import { TestAssertionRow } from "types.slint";
+
+export component RequestScriptsTabHost inherits ScriptsEditorPanel {
+    in-out property <string> workspace_pre_request_script;
+    in-out property <[TestAssertionRow]> workspace_test_assertion_rows;
+    in property <bool> workspace_busy;
+    callback workspace_add_test_assertion();
+    callback workspace_add_test_assertion_template(string);
+    callback workspace_add_custom_test_assertion(string, string, string);
+    callback workspace_update_test_assertion_row(int, string, string, string);
+    callback workspace_cycle_test_assertion_kind(int, string);
+    callback workspace_delete_test_assertion_row(int);
+
+    pre_request_script <=> root.workspace_pre_request_script;
+    test_assertion_rows <=> root.workspace_test_assertion_rows;
+    busy: root.workspace_busy;
+    add_test_assertion => {
+        root.workspace_add_test_assertion();
+    }
+    add_test_assertion_template(template) => {
+        root.workspace_add_test_assertion_template(template);
+    }
+    add_custom_test_assertion(kind, target, expected) => {
+        root.workspace_add_custom_test_assertion(kind, target, expected);
+    }
+    update_test_assertion_row(row_id, kind, target, expected) => {
+        root.workspace_update_test_assertion_row(row_id, kind, target, expected);
+    }
+    cycle_test_assertion_kind(row_id, kind) => {
+        root.workspace_cycle_test_assertion_kind(row_id, kind);
+    }
+    delete_test_assertion_row(row_id) => {
+        root.workspace_delete_test_assertion_row(row_id);
+    }
+}
