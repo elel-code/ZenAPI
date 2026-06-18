@@ -159,7 +159,8 @@
   Tests assertion row,
   Request Builder page, Request panel, Request tab strip,
   Request tab content with preloaded tab switching,
-  Request Builder pane size constraints, Request params tab,
+  Request Builder pane size constraints, Bottom navigation,
+  Request params tab,
   Request headers tab, Request realtime tab,
   Response panel, Response header strip, Response tab strip, Response toolbar,
   Response viewer, Sidebar, App navigation, App auxiliary pages with preloaded
