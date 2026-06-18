@@ -1,14 +1,13 @@
-import { ScrollView } from "std-widgets.slint";
 import { AppAnalyticsPageHost } from "app_analytics_page_host.slint";
 import { AppApiKeysPageHost } from "app_api_keys_page_host.slint";
 import { AppCodegenPageHost } from "app_codegen_page_host.slint";
 import { AppDashboardPageHost } from "app_dashboard_page_host.slint";
 import { AppDocumentationPageHost } from "app_documentation_page_host.slint";
 import { AppEnvironmentPageHost } from "app_environment_page_host.slint";
+import { AppMockManagerPageHost } from "app_mock_manager_page_host.slint";
 import { AppRunnerPageHost } from "app_runner_page_host.slint";
 import { AppSettingsPageHost } from "app_settings_page_host.slint";
 import { AppTeamPageHost } from "app_team_page_host.slint";
-import { MockManagerPage } from "mock_manager_page.slint";
 import { CollectionRow, EnvironmentRow, HistoryRow, MockLogRow, MockRuleRow, RouteRow, RunnerRow, VariableTableRow } from "types.slint";
 
 export component AppAuxiliaryPages inherits Rectangle {
@@ -151,69 +150,60 @@ export component AppAuxiliaryPages inherits Rectangle {
         }
     }
 
-    if root.preload_pages || root.mock_manager_mounted: ScrollView {
+    if root.preload_pages || root.mock_manager_mounted: AppMockManagerPageHost {
         visible: root.active_page_index == 2;
         width: parent.width;
         height: parent.height;
-        viewport-width: max(self.visible-width, 1160px);
-        viewport-height: max(self.visible-height, 620px);
-        vertical-scrollbar-policy: ScrollBarPolicy.as-needed;
-        horizontal-scrollbar-policy: ScrollBarPolicy.as-needed;
-
-        MockManagerPage {
-            width: max(parent.visible-width, 1160px);
-            height: max(parent.visible-height, 620px);
-            routes <=> root.routes;
-            mock_logs <=> root.mock_logs;
-            mock_rule_rows <=> root.mock_rule_rows;
-            selected_route <=> root.selected_route;
-            selected_mock_rule <=> root.selected_mock_rule;
-            mock_log_filter <=> root.mock_log_filter;
-            mock_log_path <=> root.mock_log_path;
-            selected_mock_method: root.selected_mock_method;
-            selected_mock_path: root.selected_mock_path;
-            selected_mock_summary: root.selected_mock_summary;
-            selected_mock_body <=> root.selected_mock_body;
-            selected_mock_rule_source <=> root.selected_mock_rule_source;
-            selected_mock_rule_name <=> root.selected_mock_rule_name;
-            selected_mock_rule_value <=> root.selected_mock_rule_value;
-            selected_mock_rule_body <=> root.selected_mock_rule_body;
-            busy: root.busy;
-            server_running: root.server_running;
-            server_status: root.server_status;
-            select_route(index) => {
-                root.select_route(index);
-            }
-            toggle_server => {
-                root.toggle_server();
-            }
-            save_mock_response(body) => {
-                root.save_mock_response(body);
-            }
-            select_mock_rule(row_id) => {
-                root.select_mock_rule(row_id);
-            }
-            add_mock_rule(source) => {
-                root.add_mock_rule(source);
-            }
-            save_mock_rule(row_id, source, name, value, body) => {
-                root.save_mock_rule(row_id, source, name, value, body);
-            }
-            delete_mock_rule(row_id) => {
-                root.delete_mock_rule(row_id);
-            }
-            filter_mock_logs(query) => {
-                root.filter_mock_logs(query);
-            }
-            save_mock_logs(path) => {
-                root.save_mock_logs(path);
-            }
-            pick_mock_log_path => {
-                root.pick_mock_log_path();
-            }
-            clear_mock_logs => {
-                root.clear_mock_logs();
-            }
+        routes <=> root.routes;
+        mock_logs <=> root.mock_logs;
+        mock_rule_rows <=> root.mock_rule_rows;
+        selected_route <=> root.selected_route;
+        selected_mock_rule <=> root.selected_mock_rule;
+        mock_log_filter <=> root.mock_log_filter;
+        mock_log_path <=> root.mock_log_path;
+        selected_mock_method: root.selected_mock_method;
+        selected_mock_path: root.selected_mock_path;
+        selected_mock_summary: root.selected_mock_summary;
+        selected_mock_body <=> root.selected_mock_body;
+        selected_mock_rule_source <=> root.selected_mock_rule_source;
+        selected_mock_rule_name <=> root.selected_mock_rule_name;
+        selected_mock_rule_value <=> root.selected_mock_rule_value;
+        selected_mock_rule_body <=> root.selected_mock_rule_body;
+        busy: root.busy;
+        server_running: root.server_running;
+        server_status: root.server_status;
+        select_route(index) => {
+            root.select_route(index);
+        }
+        toggle_server => {
+            root.toggle_server();
+        }
+        save_mock_response(body) => {
+            root.save_mock_response(body);
+        }
+        select_mock_rule(row_id) => {
+            root.select_mock_rule(row_id);
+        }
+        add_mock_rule(source) => {
+            root.add_mock_rule(source);
+        }
+        save_mock_rule(row_id, source, name, value, body) => {
+            root.save_mock_rule(row_id, source, name, value, body);
+        }
+        delete_mock_rule(row_id) => {
+            root.delete_mock_rule(row_id);
+        }
+        filter_mock_logs(query) => {
+            root.filter_mock_logs(query);
+        }
+        save_mock_logs(path) => {
+            root.save_mock_logs(path);
+        }
+        pick_mock_log_path => {
+            root.pick_mock_log_path();
+        }
+        clear_mock_logs => {
+            root.clear_mock_logs();
         }
     }
 
