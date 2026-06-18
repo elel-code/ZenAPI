@@ -150,8 +150,9 @@
   tab controls in `ui/tab_controls.slint`,
   moved metric cards, data panels, and mock log rows into `ui/cards.slint`,
   moved code/editor panes into `ui/editors.slint`, and the Realtime editor
-  business panel, shared Key/Value table panel, Body editor panel, Header
-  editor panel, Auth editor panel, Scripts editor panel, Tests assertion panel,
+  business panel, Realtime WebSocket panel, Realtime SSE panel, Realtime gRPC
+  panel, shared Key/Value table panel, Body editor panel, Header editor panel,
+  Auth editor panel, Scripts editor panel, Tests assertion panel,
   Request panel, Response panel, Sidebar, App navigation, Address bar,
   Dashboard page, Codegen page, Settings page, Team page, API Keys page,
   Analytics page, Documentation page, Environment page, Environment navigation
