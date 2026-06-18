@@ -164,7 +164,8 @@
   Response panel, Response header strip, Response tab strip, Response toolbar,
   Response viewer, Sidebar, App navigation, App auxiliary pages with preloaded
   auxiliary page switching and fallback visited-page caching, Address bar,
-  Dashboard page, Codegen page, Settings page, Team page, API Keys page,
+  Dashboard page, Dashboard auxiliary host, Codegen page, Settings page,
+  Team page, API Keys page,
   API Keys shared components, API Keys list panel, API Keys detail panel,
   API Keys integration panel, Analytics page, Documentation page,
   Documentation sidebar panel,
