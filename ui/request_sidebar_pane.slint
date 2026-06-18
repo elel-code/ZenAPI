@@ -31,6 +31,8 @@ export component RequestSidebarPane inherits Sidebar {
     callback workspace_move_collection_request(int, string);
     callback workspace_import_collection(string);
     callback workspace_add_collection_folder(string);
+    callback workspace_rename_collection_folder(string, string);
+    callback workspace_delete_collection_folder(string);
     callback workspace_save_current_request();
     callback workspace_save_collection(string);
     callback workspace_export_postman_collection(string);
@@ -89,6 +91,12 @@ export component RequestSidebarPane inherits Sidebar {
     }
     add_collection_folder(name) => {
         root.workspace_add_collection_folder(name);
+    }
+    rename_collection_folder(folder_path, name) => {
+        root.workspace_rename_collection_folder(folder_path, name);
+    }
+    delete_collection_folder(folder_path) => {
+        root.workspace_delete_collection_folder(folder_path);
     }
     save_current_request => {
         root.workspace_save_current_request();

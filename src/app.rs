@@ -1141,6 +1141,105 @@ fn wire_collection_actions(app: &AppWindow, state: Arc<Mutex<AppState>>) {
     });
 
     let weak_app = app.as_weak();
+    let rename_folder_state = state.clone();
+    app.on_rename_collection_folder(move |folder_path, name| {
+        let Some(app) = weak_app.upgrade() else {
+            return;
+        };
+        if app.get_busy() {
+            return;
+        }
+
+        let Some((renamed_name, new_path, request_count, rows)) =
+            rename_folder_state.lock().ok().and_then(|mut state| {
+                let (renamed_name, new_path) = rename_collection_folder_at(
+                    &mut state.collection,
+                    folder_path.as_str(),
+                    name.as_str(),
+                )?;
+                let request_count = count_collection_requests(&state.collection.items);
+                let rows = collection_model(&state.collection);
+                Some((renamed_name, new_path, request_count, rows))
+            })
+        else {
+            app.set_collection_status("Folder rename failed".into());
+            set_response(
+                &app,
+                "Collection folder rename failed",
+                "",
+                "error",
+                "Select a folder and enter a new folder name.",
+            );
+            return;
+        };
+
+        app.set_collection_rows(rows);
+        app.set_selected_collection_folder(new_path.clone().into());
+        app.set_collection_move_target_label(collection_folder_label(&new_path).into());
+        app.set_collection_folder_name("".into());
+        app.set_collection_status(format!("Renamed folder / {request_count} requests").into());
+        set_response(
+            &app,
+            "Collection folder renamed",
+            &renamed_name,
+            "success",
+            &format!("Folder path: {}", collection_folder_label(&new_path)),
+        );
+    });
+
+    let weak_app = app.as_weak();
+    let delete_folder_state = state.clone();
+    app.on_delete_collection_folder(move |folder_path| {
+        let Some(app) = weak_app.upgrade() else {
+            return;
+        };
+        if app.get_busy() {
+            return;
+        }
+
+        let Some((removed, removed_count, request_count, rows)) =
+            delete_folder_state.lock().ok().and_then(|mut state| {
+                let removed =
+                    remove_collection_folder_at(&mut state.collection, folder_path.as_str())?;
+                let removed_count = count_collection_requests(&removed.items);
+                let request_count = count_collection_requests(&state.collection.items);
+                let rows = collection_model(&state.collection);
+                Some((removed, removed_count, request_count, rows))
+            })
+        else {
+            app.set_collection_status("Folder delete failed".into());
+            set_response(
+                &app,
+                "Collection folder delete failed",
+                "",
+                "error",
+                "Select a folder before deleting it.",
+            );
+            return;
+        };
+
+        let root_label = if app.get_collection_name().is_empty() {
+            "Collection".to_string()
+        } else {
+            app.get_collection_name().to_string()
+        };
+        app.set_collection_rows(rows);
+        app.set_selected_collection_folder("".into());
+        app.set_collection_move_target_label(root_label.into());
+        app.set_selected_collection_request(-1);
+        app.set_collection_request_name("".into());
+        app.set_collection_folder_name("".into());
+        app.set_collection_status(format!("Deleted folder / {request_count} requests").into());
+        set_response(
+            &app,
+            "Collection folder deleted",
+            &removed.name,
+            "neutral",
+            &format!("Removed {removed_count} saved requests from this folder."),
+        );
+    });
+
+    let weak_app = app.as_weak();
     let add_state = state.clone();
     app.on_save_current_request(move || {
         let Some(app) = weak_app.upgrade() else {
@@ -4862,6 +4961,71 @@ fn add_collection_folder_in(
     parent.push(folder);
 
     Some(name.to_string())
+}
+
+fn rename_collection_folder_at(
+    collection: &mut ApiCollection,
+    folder_path_key: &str,
+    name: &str,
+) -> Option<(String, String)> {
+    let name = name.trim();
+    if name.is_empty() {
+        return None;
+    }
+
+    let mut folder_path = parse_collection_folder_path_key(folder_path_key)?;
+    let folder_name = folder_path.pop()?;
+    let parent_items = if folder_path.is_empty() {
+        &mut collection.items
+    } else {
+        collection_folder_items_mut(&mut collection.items, &folder_path)?
+    };
+
+    let folder = parent_items.iter_mut().find_map(|item| match item {
+        CollectionItem::Folder(folder) if folder.name == folder_name => Some(folder),
+        _ => None,
+    })?;
+    folder.name = name.to_string();
+
+    folder_path.push(name.to_string());
+    Some((
+        folder.name.clone(),
+        collection_folder_path_key(&folder_path),
+    ))
+}
+
+fn remove_collection_folder_at(
+    collection: &mut ApiCollection,
+    folder_path_key: &str,
+) -> Option<CollectionFolder> {
+    let folder_path = parse_collection_folder_path_key(folder_path_key)?;
+    if folder_path.is_empty() {
+        return None;
+    }
+
+    remove_collection_folder_at_items(&mut collection.items, &folder_path)
+}
+
+fn remove_collection_folder_at_items(
+    items: &mut Vec<CollectionItem>,
+    folder_path: &[String],
+) -> Option<CollectionFolder> {
+    let (target, rest) = folder_path.split_first()?;
+    let position = items.iter().position(|item| {
+        matches!(item, CollectionItem::Folder(folder) if folder.name.as_str() == target.as_str())
+    })?;
+
+    if rest.is_empty() {
+        let CollectionItem::Folder(folder) = items.remove(position) else {
+            unreachable!("collection folder kind checked before removal");
+        };
+        return Some(folder);
+    }
+
+    let CollectionItem::Folder(folder) = &mut items[position] else {
+        unreachable!("collection folder kind checked before recursion");
+    };
+    remove_collection_folder_at_items(&mut folder.items, rest)
 }
 
 fn collection_folder_items_mut<'a>(
@@ -10742,6 +10906,90 @@ pm.test("json alias contains", () => { const json = pm.response.json(); pm.expec
         assert_eq!(
             collection_folder_label(r#"["Users","Admin"]"#),
             "Users / Admin"
+        );
+    }
+
+    #[test]
+    fn renames_collection_folders_by_path() {
+        use slint::Model;
+
+        let mut collection = ApiCollection {
+            name: "Demo".to_string(),
+            description: String::new(),
+            items: vec![CollectionItem::Folder(CollectionFolder {
+                name: "Users".to_string(),
+                description: String::new(),
+                items: vec![CollectionItem::Folder(CollectionFolder {
+                    name: "Admin".to_string(),
+                    description: String::new(),
+                    items: vec![CollectionItem::Request(saved_request(
+                        "Suspend user",
+                        "POST",
+                        "https://api.example.com/users/suspend",
+                    ))],
+                })],
+            })],
+        };
+
+        assert_eq!(
+            rename_collection_folder_at(&mut collection, r#"["Users","Admin"]"#, "Ops"),
+            Some(("Ops".to_string(), r#"["Users","Ops"]"#.to_string()))
+        );
+        assert!(rename_collection_folder_at(&mut collection, "", "Root").is_none());
+        assert!(rename_collection_folder_at(&mut collection, r#"["Missing"]"#, "Nope").is_none());
+        assert!(
+            rename_collection_folder_at(&mut collection, r#"["Users","Ops"]"#, "   ").is_none()
+        );
+
+        let rows = collection_model(&collection);
+        let folder = rows.row_data(1).expect("renamed folder row");
+        assert!(folder.is_folder);
+        assert_eq!(folder.name.as_str(), "  Ops");
+        assert_eq!(folder.folder_path.as_str(), r#"["Users","Ops"]"#);
+        assert_eq!(
+            collection_request_at(&collection, 0).map(|request| request.name.as_str()),
+            Some("Suspend user")
+        );
+    }
+
+    #[test]
+    fn removes_collection_folders_by_path() {
+        let mut collection = ApiCollection {
+            name: "Demo".to_string(),
+            description: String::new(),
+            items: vec![
+                CollectionItem::Folder(CollectionFolder {
+                    name: "Users".to_string(),
+                    description: String::new(),
+                    items: vec![CollectionItem::Folder(CollectionFolder {
+                        name: "Admin".to_string(),
+                        description: String::new(),
+                        items: vec![CollectionItem::Request(saved_request(
+                            "Suspend user",
+                            "POST",
+                            "https://api.example.com/users/suspend",
+                        ))],
+                    })],
+                }),
+                CollectionItem::Request(saved_request(
+                    "Health",
+                    "GET",
+                    "https://api.example.com/health",
+                )),
+            ],
+        };
+
+        let removed = remove_collection_folder_at(&mut collection, r#"["Users","Admin"]"#)
+            .expect("removed folder");
+
+        assert_eq!(removed.name, "Admin");
+        assert_eq!(count_collection_requests(&removed.items), 1);
+        assert_eq!(count_collection_requests(&collection.items), 1);
+        assert!(remove_collection_folder_at(&mut collection, "").is_none());
+        assert!(remove_collection_folder_at(&mut collection, r#"["Missing"]"#).is_none());
+        assert_eq!(
+            collection_request_at(&collection, 0).map(|request| request.name.as_str()),
+            Some("Health")
         );
     }
 

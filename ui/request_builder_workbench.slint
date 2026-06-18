@@ -100,6 +100,8 @@ export component RequestBuilderWorkbench inherits ScrollView {
     callback move_collection_request(int, string);
     callback import_collection(string);
     callback add_collection_folder(string);
+    callback rename_collection_folder(string, string);
+    callback delete_collection_folder(string);
     callback save_current_request();
     callback save_collection(string);
     callback export_postman_collection(string);
@@ -238,6 +240,12 @@ export component RequestBuilderWorkbench inherits ScrollView {
             }
             workspace_add_collection_folder(name) => {
                 root.add_collection_folder(name);
+            }
+            workspace_rename_collection_folder(folder_path, name) => {
+                root.rename_collection_folder(folder_path, name);
+            }
+            workspace_delete_collection_folder(folder_path) => {
+                root.delete_collection_folder(folder_path);
             }
             workspace_save_current_request => {
                 root.save_current_request();

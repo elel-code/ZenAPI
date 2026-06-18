@@ -29,6 +29,8 @@ export component SidebarCollectionsPanelWorkbench inherits Rectangle {
     callback move_collection_request(int, string);
     callback import_collection(string);
     callback add_collection_folder(string);
+    callback rename_collection_folder(string, string);
+    callback delete_collection_folder(string);
     callback save_current_request();
     callback pick_collection_import_file();
     callback pick_collection_save_path();
@@ -121,6 +123,41 @@ export component SidebarCollectionsPanelWorkbench inherits Rectangle {
                 enabled: !root.busy && root.collection_folder_name != "";
                 clicked => {
                     root.add_collection_folder(root.collection_folder_name);
+                }
+            }
+        }
+
+        HorizontalLayout {
+            height: 30px;
+            spacing: 6px;
+            alignment: center;
+
+            UiText {
+                text: root.selected_collection_folder == "" ? "Folder target: Collection" : "Folder target: " + root.collection_move_target_label;
+                horizontal-stretch: 1;
+                height: parent.height;
+                color: Theme.outline;
+                font-size: 11px;
+                vertical-alignment: center;
+                overflow: elide;
+            }
+
+            ActionButton {
+                text: "Ren";
+                button_width: 40px;
+                enabled: !root.busy && root.selected_collection_folder != "" && root.collection_folder_name != "";
+                clicked => {
+                    root.rename_collection_folder(root.selected_collection_folder, root.collection_folder_name);
+                }
+            }
+
+            ActionButton {
+                text: "Del";
+                button_width: 40px;
+                warning: true;
+                enabled: !root.busy && root.selected_collection_folder != "";
+                clicked => {
+                    root.delete_collection_folder(root.selected_collection_folder);
                 }
             }
         }
