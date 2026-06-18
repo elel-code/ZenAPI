@@ -157,7 +157,8 @@
   Auth mode toolbar, Auth token panel, Auth basic panel,
   Auth API key panel, Scripts editor panel, Tests assertion panel,
   Tests assertion row,
-  Request Builder page, Request panel, Request tab strip, Request tab content,
+  Request Builder page, Request panel, Request tab strip,
+  Request tab content with preloaded tab switching,
   Request Builder pane size constraints, Request params tab,
   Request headers tab, Request realtime tab,
   Response panel, Response header strip, Response tab strip, Response toolbar,
@@ -196,7 +197,7 @@
 
 | Area | Status | Notes |
 |------|--------|-------|
-| App shell | Multi-page Slint shell restored | Responsive page stack with the Request page kept mounted, auxiliary pages preloaded and switched by visibility, compact single-row request address bar, lightweight read-only code blocks, global navigation, compact navigation, request-sidebar OpenAPI import, and overflow scrollbars |
+| App shell | Multi-page Slint shell restored | Responsive page stack with the Request page kept mounted, request tabs and auxiliary pages preloaded and switched by visibility, compact single-row request address bar, lightweight read-only code blocks, global navigation, compact navigation, request-sidebar OpenAPI import, and overflow scrollbars |
 | OpenAPI import | Implemented | JSON/YAML parser and Slint route list wired |
 | HTTP client | Core implemented | Slint wires method, URL, params, headers, auth, variables, and body modes |
 | Mock server | Core implemented | Slint start/stop toggle wired |
