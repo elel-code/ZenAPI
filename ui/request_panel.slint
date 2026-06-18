@@ -1,11 +1,11 @@
 import { Theme } from "theme.slint";
 import { KeyValueTableRow, TestAssertionRow } from "types.slint";
-import { WorkspaceTab } from "tab_controls.slint";
 import { AuthEditorPanel } from "auth_panel.slint";
 import { BodyEditorPanel } from "body_panel.slint";
 import { HeaderEditorPanel } from "header_panel.slint";
 import { KeyValueTablePanel } from "key_value_table_panel.slint";
 import { RealtimeEditorPanel } from "realtime_editor_panel.slint";
+import { RequestTabStrip } from "request_tab_strip.slint";
 import { ScriptsEditorPanel } from "scripts_panel.slint";
 
 export component RequestPanel inherits Rectangle {
@@ -111,33 +111,8 @@ export component RequestPanel inherits Rectangle {
         padding: 0px;
         spacing: 0px;
 
-        Rectangle {
-            height: 44px;
-            horizontal-stretch: 1;
-            background: Theme.surface_container_low;
-
-            HorizontalLayout {
-                padding-left: 20px;
-                padding-right: 20px;
-                spacing: 12px;
-                alignment: center;
-
-                for item in [
-                    { mode: "params", label: "Params" },
-                    { mode: "headers", label: "Headers" },
-                    { mode: "body", label: "Body" },
-                    { mode: "auth", label: "Auth" },
-                    { mode: "realtime", label: "Realtime" },
-                    { mode: "scripts", label: "Scripts" },
-                ]: WorkspaceTab {
-                    mode: item.mode;
-                    label: item.label;
-                    selected: root.active_tab == item.mode;
-                    picked(mode) => {
-                        root.active_tab = mode;
-                    }
-                }
-            }
+        RequestTabStrip {
+            active_tab <=> root.active_tab;
         }
 
         Rectangle {

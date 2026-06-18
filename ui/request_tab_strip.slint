@@ -1,0 +1,33 @@
+import { Theme } from "theme.slint";
+import { WorkspaceTab } from "tab_controls.slint";
+
+export component RequestTabStrip inherits Rectangle {
+    in-out property <string> active_tab;
+
+    height: 44px;
+    horizontal-stretch: 1;
+    background: Theme.surface_container_low;
+
+    HorizontalLayout {
+        padding-left: 20px;
+        padding-right: 20px;
+        spacing: 12px;
+        alignment: center;
+
+        for item in [
+            { mode: "params", label: "Params" },
+            { mode: "headers", label: "Headers" },
+            { mode: "body", label: "Body" },
+            { mode: "auth", label: "Auth" },
+            { mode: "realtime", label: "Realtime" },
+            { mode: "scripts", label: "Scripts" },
+        ]: WorkspaceTab {
+            mode: item.mode;
+            label: item.label;
+            selected: root.active_tab == item.mode;
+            picked(mode) => {
+                root.active_tab = mode;
+            }
+        }
+    }
+}
