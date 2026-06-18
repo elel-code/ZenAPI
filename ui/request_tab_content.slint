@@ -5,7 +5,7 @@ import { RequestAuthTabHost } from "request_auth_tab_host.slint";
 import { RequestBodyTabHost } from "request_body_tab_host.slint";
 import { RequestHeadersTab } from "request_headers_tab.slint";
 import { RequestParamsTab } from "request_params_tab.slint";
-import { RequestRealtimeTab } from "request_realtime_tab.slint";
+import { RequestRealtimeTabHost } from "request_realtime_tab_host.slint";
 import { ScriptsEditorPanel } from "scripts_panel.slint";
 
 export component RequestTabContent inherits ScrollView {
@@ -236,80 +236,80 @@ export component RequestTabContent inherits ScrollView {
             }
         }
 
-        if root.preload_tabs || root.active_tab == "realtime": RequestRealtimeTab {
+        if root.preload_tabs || root.active_tab == "realtime": RequestRealtimeTabHost {
             visible: root.active_tab == "realtime";
             width: parent.width;
             height: parent.height;
-            realtime_mode <=> root.realtime_mode;
-            realtime_message <=> root.realtime_message;
-            websocket_message_mode <=> root.websocket_message_mode;
-            websocket_protocols <=> root.websocket_protocols;
-            websocket_event_history <=> root.websocket_event_history;
-            sse_max_events <=> root.sse_max_events;
-            sse_last_event_id <=> root.sse_last_event_id;
-            sse_streaming <=> root.sse_streaming;
-            sse_event_history <=> root.sse_event_history;
-            grpc_endpoint <=> root.grpc_endpoint;
-            grpc_method <=> root.grpc_method;
-            grpc_metadata <=> root.grpc_metadata;
-            grpc_message <=> root.grpc_message;
-            grpc_method_catalog <=> root.grpc_method_catalog;
-            grpc_descriptor_path <=> root.grpc_descriptor_path;
-            grpc_protoc_path <=> root.grpc_protoc_path;
-            grpc_streaming <=> root.grpc_streaming;
-            busy: root.busy;
-            open_websocket => {
+            workspace_realtime_mode <=> root.realtime_mode;
+            workspace_realtime_message <=> root.realtime_message;
+            workspace_websocket_message_mode <=> root.websocket_message_mode;
+            workspace_websocket_protocols <=> root.websocket_protocols;
+            workspace_websocket_event_history <=> root.websocket_event_history;
+            workspace_sse_max_events <=> root.sse_max_events;
+            workspace_sse_last_event_id <=> root.sse_last_event_id;
+            workspace_sse_streaming <=> root.sse_streaming;
+            workspace_sse_event_history <=> root.sse_event_history;
+            workspace_grpc_endpoint <=> root.grpc_endpoint;
+            workspace_grpc_method <=> root.grpc_method;
+            workspace_grpc_metadata <=> root.grpc_metadata;
+            workspace_grpc_message <=> root.grpc_message;
+            workspace_grpc_method_catalog <=> root.grpc_method_catalog;
+            workspace_grpc_descriptor_path <=> root.grpc_descriptor_path;
+            workspace_grpc_protoc_path <=> root.grpc_protoc_path;
+            workspace_grpc_streaming <=> root.grpc_streaming;
+            workspace_busy: root.busy;
+            workspace_open_websocket => {
                 root.open_websocket();
             }
-            run_websocket => {
+            workspace_run_websocket => {
                 root.run_websocket();
             }
-            close_websocket => {
+            workspace_close_websocket => {
                 root.close_websocket();
             }
-            copy_websocket_events => {
+            workspace_copy_websocket_events => {
                 root.copy_websocket_events();
             }
-            clear_websocket_events => {
+            workspace_clear_websocket_events => {
                 root.clear_websocket_events();
             }
-            run_sse => {
+            workspace_run_sse => {
                 root.run_sse();
             }
-            open_sse_stream => {
+            workspace_open_sse_stream => {
                 root.open_sse_stream();
             }
-            close_sse_stream => {
+            workspace_close_sse_stream => {
                 root.close_sse_stream();
             }
-            copy_sse_events => {
+            workspace_copy_sse_events => {
                 root.copy_sse_events();
             }
-            clear_sse_events => {
+            workspace_clear_sse_events => {
                 root.clear_sse_events();
             }
-            invoke_grpc_unary => {
+            workspace_invoke_grpc_unary => {
                 root.invoke_grpc_unary();
             }
-            invoke_grpc_server_streaming => {
+            workspace_invoke_grpc_server_streaming => {
                 root.invoke_grpc_server_streaming();
             }
-            stop_grpc_stream => {
+            workspace_stop_grpc_stream => {
                 root.stop_grpc_stream();
             }
-            build_grpc_draft => {
+            workspace_build_grpc_draft => {
                 root.build_grpc_draft();
             }
-            pick_grpc_descriptor_file => {
+            workspace_pick_grpc_descriptor_file => {
                 root.pick_grpc_descriptor_file();
             }
-            load_grpc_descriptor_set(path) => {
+            workspace_load_grpc_descriptor_set(path) => {
                 root.load_grpc_descriptor_set(path);
             }
-            load_grpc_proto_file(path, protoc_path) => {
+            workspace_load_grpc_proto_file(path, protoc_path) => {
                 root.load_grpc_proto_file(path, protoc_path);
             }
-            load_grpc_reflection => {
+            workspace_load_grpc_reflection => {
                 root.load_grpc_reflection();
             }
         }

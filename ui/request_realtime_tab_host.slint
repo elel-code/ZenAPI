@@ -1,0 +1,113 @@
+import { RequestRealtimeTab } from "request_realtime_tab.slint";
+
+export component RequestRealtimeTabHost inherits RequestRealtimeTab {
+    in-out property <string> workspace_realtime_mode;
+    in-out property <string> workspace_realtime_message;
+    in-out property <string> workspace_websocket_message_mode;
+    in-out property <string> workspace_websocket_protocols;
+    in-out property <string> workspace_websocket_event_history;
+    in-out property <string> workspace_sse_max_events;
+    in-out property <string> workspace_sse_last_event_id;
+    in-out property <bool> workspace_sse_streaming;
+    in-out property <string> workspace_sse_event_history;
+    in-out property <string> workspace_grpc_endpoint;
+    in-out property <string> workspace_grpc_method;
+    in-out property <string> workspace_grpc_metadata;
+    in-out property <string> workspace_grpc_message;
+    in-out property <string> workspace_grpc_method_catalog;
+    in-out property <string> workspace_grpc_descriptor_path;
+    in-out property <string> workspace_grpc_protoc_path;
+    in-out property <bool> workspace_grpc_streaming;
+    in property <bool> workspace_busy;
+    callback workspace_open_websocket();
+    callback workspace_run_websocket();
+    callback workspace_close_websocket();
+    callback workspace_copy_websocket_events();
+    callback workspace_clear_websocket_events();
+    callback workspace_run_sse();
+    callback workspace_open_sse_stream();
+    callback workspace_close_sse_stream();
+    callback workspace_copy_sse_events();
+    callback workspace_clear_sse_events();
+    callback workspace_invoke_grpc_unary();
+    callback workspace_invoke_grpc_server_streaming();
+    callback workspace_stop_grpc_stream();
+    callback workspace_build_grpc_draft();
+    callback workspace_pick_grpc_descriptor_file();
+    callback workspace_load_grpc_descriptor_set(string);
+    callback workspace_load_grpc_proto_file(string, string);
+    callback workspace_load_grpc_reflection();
+
+    realtime_mode <=> root.workspace_realtime_mode;
+    realtime_message <=> root.workspace_realtime_message;
+    websocket_message_mode <=> root.workspace_websocket_message_mode;
+    websocket_protocols <=> root.workspace_websocket_protocols;
+    websocket_event_history <=> root.workspace_websocket_event_history;
+    sse_max_events <=> root.workspace_sse_max_events;
+    sse_last_event_id <=> root.workspace_sse_last_event_id;
+    sse_streaming <=> root.workspace_sse_streaming;
+    sse_event_history <=> root.workspace_sse_event_history;
+    grpc_endpoint <=> root.workspace_grpc_endpoint;
+    grpc_method <=> root.workspace_grpc_method;
+    grpc_metadata <=> root.workspace_grpc_metadata;
+    grpc_message <=> root.workspace_grpc_message;
+    grpc_method_catalog <=> root.workspace_grpc_method_catalog;
+    grpc_descriptor_path <=> root.workspace_grpc_descriptor_path;
+    grpc_protoc_path <=> root.workspace_grpc_protoc_path;
+    grpc_streaming <=> root.workspace_grpc_streaming;
+    busy: root.workspace_busy;
+    open_websocket => {
+        root.workspace_open_websocket();
+    }
+    run_websocket => {
+        root.workspace_run_websocket();
+    }
+    close_websocket => {
+        root.workspace_close_websocket();
+    }
+    copy_websocket_events => {
+        root.workspace_copy_websocket_events();
+    }
+    clear_websocket_events => {
+        root.workspace_clear_websocket_events();
+    }
+    run_sse => {
+        root.workspace_run_sse();
+    }
+    open_sse_stream => {
+        root.workspace_open_sse_stream();
+    }
+    close_sse_stream => {
+        root.workspace_close_sse_stream();
+    }
+    copy_sse_events => {
+        root.workspace_copy_sse_events();
+    }
+    clear_sse_events => {
+        root.workspace_clear_sse_events();
+    }
+    invoke_grpc_unary => {
+        root.workspace_invoke_grpc_unary();
+    }
+    invoke_grpc_server_streaming => {
+        root.workspace_invoke_grpc_server_streaming();
+    }
+    stop_grpc_stream => {
+        root.workspace_stop_grpc_stream();
+    }
+    build_grpc_draft => {
+        root.workspace_build_grpc_draft();
+    }
+    pick_grpc_descriptor_file => {
+        root.workspace_pick_grpc_descriptor_file();
+    }
+    load_grpc_descriptor_set(path) => {
+        root.workspace_load_grpc_descriptor_set(path);
+    }
+    load_grpc_proto_file(path, protoc_path) => {
+        root.workspace_load_grpc_proto_file(path, protoc_path);
+    }
+    load_grpc_reflection => {
+        root.workspace_load_grpc_reflection();
+    }
+}
