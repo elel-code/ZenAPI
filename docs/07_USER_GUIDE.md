@@ -329,6 +329,10 @@ Supported actions:
 - Create a root-level folder with the folder name field and `Folder`.
 - Select a folder row, then use the folder name field and `Folder` to create a
   nested child folder.
+- Select a folder row, type a new folder name, then use `Ren` in the folder
+  target row to rename it.
+- Select a folder row and use `Del` in the folder target row to delete that
+  folder and its saved requests.
 - Restore a collection request into the request builder.
 - Show and select imported collection folders as tree rows in the sidebar.
 - Rename the selected request with the request name field and `Ren`.

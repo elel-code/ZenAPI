@@ -91,10 +91,10 @@
   saves native JSON, exports Postman JSON, exposes native file pickers for
   collection import/save/Postman export, and restores saved requests from a
   sidebar list with imported folder rows visible, selects folder rows, creates
-  root-level and nested folders, includes pre-request/tests text, and
-  saves current requests into the selected folder or collection root,
-  duplicates/deletes saved requests, with request rename and folder reparenting
-  wired; drag/drop remains pending.
+  root-level and nested folders, renames/deletes selected folders, includes
+  pre-request/tests text, saves current requests into the selected folder or
+  collection root, duplicates/deletes saved requests, with request rename and
+  folder reparenting wired; drag/drop remains pending.
 - [~] Rebuild History UI for local request history, filtering, restore, delete,
   and clear; current Slint baseline records recent requests and restores method,
   URL, query params, headers, auth config, body mode, body preview, pre-request
@@ -229,7 +229,7 @@
 | HTTP client | Core implemented | Slint wires method, URL, params, headers, auth, variables, and body modes |
 | Mock server | Core implemented | Slint start/stop toggle wired |
 | Variables | Domain implemented | Slint baseline has a three-pane environment page with dynamic persisted environment rows, environment add/delete/rename/reorder, editable variable rows, scope badges, masked preview, and local persistence for global/per-environment values/order |
-| Collections | Domain implemented | Slint baseline supports load/save/export, folder row display/selection, root and nested folder creation, and request restore/rename/duplicate/delete/move |
+| Collections | Domain implemented | Slint baseline supports load/save/export, folder row display/selection, root and nested folder creation, selected-folder rename/delete, and request restore/rename/duplicate/delete/move |
 | History | Domain implemented | Slint baseline records, filters, deletes, restores, and persists recent requests |
 | Codegen | Domain + Slint page implemented | Dedicated page generates, copies, and saves snippets |
 | Runner | Domain + Slint page + CLI implemented | Dedicated page runs/cancels collections and saves reports; CLI remains stable |
