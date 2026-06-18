@@ -1,0 +1,151 @@
+import { Theme } from "theme.slint";
+import { MethodChip, StatusDot } from "status_components.slint";
+import { UiText } from "widgets.slint";
+
+export component MockRouteLine inherits Rectangle {
+    in property <string> method;
+    in property <string> path;
+    in property <bool> selected;
+    callback picked();
+
+    height: 46px;
+    horizontal-stretch: 1;
+    border-radius: 6px;
+    border-width: 0px;
+    background: root.selected ? Theme.surface_variant : touch.has-hover ? Theme.surface_container_high : transparent;
+
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.picked();
+        }
+    }
+
+    Rectangle {
+        width: 2px;
+        height: parent.height - 10px;
+        y: 5px;
+        background: root.selected ? Theme.primary : transparent;
+    }
+
+    MethodChip {
+        x: 10px;
+        y: 12px;
+        method: root.method;
+    }
+
+    UiText {
+        x: 82px;
+        text: root.path;
+        width: parent.width - 108px;
+        height: parent.height;
+        font-family: "JetBrains Mono";
+        font-size: 12px;
+        color: root.selected ? Theme.on_surface : Theme.on_surface_variant;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+
+    StatusDot {
+        x: parent.width - 18px;
+        y: 19px;
+        tone: root.selected ? "active" : "inactive";
+    }
+}
+
+export component MockConfigField inherits Rectangle {
+    in property <string> label;
+    in property <string> value;
+
+    width: 150px;
+    height: 52px;
+    background: transparent;
+
+    UiText {
+        y: 2px;
+        text: root.label;
+        width: parent.width;
+        height: 16px;
+        color: Theme.on_surface_variant;
+        font-size: 11px;
+        font-weight: 800;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+
+    UiText {
+        y: 22px;
+        text: root.value;
+        width: parent.width;
+        height: 28px;
+        color: Theme.on_surface;
+        font-family: "JetBrains Mono";
+        font-size: 12px;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+}
+
+export component MockRuleLine inherits Rectangle {
+    in property <int> row_id;
+    in property <string> source;
+    in property <string> name;
+    in property <string> value;
+    in property <string> body_preview;
+    in property <bool> selected;
+    callback picked(int);
+
+    height: 54px;
+    horizontal-stretch: 1;
+    border-radius: 6px;
+    border-width: 1px;
+    border-color: root.selected ? Theme.primary : Theme.outline_variant;
+    background: root.selected ? Theme.surface_variant : touch.has-hover ? Theme.surface_container_high : Theme.surface;
+
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.picked(root.row_id);
+        }
+    }
+
+    UiText {
+        x: 12px;
+        y: 7px;
+        text: root.source;
+        width: 48px;
+        height: 18px;
+        color: root.selected ? Theme.primary : Theme.on_surface_variant;
+        font-family: "JetBrains Mono";
+        font-size: 11px;
+        font-weight: 800;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+
+    UiText {
+        x: 66px;
+        y: 7px;
+        text: root.name + "=" + root.value;
+        width: parent.width - 78px;
+        height: 18px;
+        color: Theme.on_surface;
+        font-family: "JetBrains Mono";
+        font-size: 12px;
+        font-weight: 700;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+
+    UiText {
+        x: 12px;
+        y: 29px;
+        width: parent.width - 24px;
+        height: 18px;
+        text: root.body_preview;
+        color: Theme.on_surface_variant;
+        font-size: 12px;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+}
