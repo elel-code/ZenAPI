@@ -1,0 +1,208 @@
+import { ListView } from "std-widgets.slint";
+import { DataPanel } from "cards.slint";
+import { Theme } from "theme.slint";
+import { TextField } from "text_field.slint";
+import { RunnerRow } from "types.slint";
+import { ActionButton } from "action_button.slint";
+import { BodyModeButton } from "mode_button.slint";
+import { UiText } from "widgets.slint";
+
+component RunnerPageTitle inherits Rectangle {
+    in property <string> title;
+    in property <string> subtitle;
+
+    height: 62px;
+    horizontal-stretch: 1;
+    background: transparent;
+
+    UiText {
+        text: root.title;
+        x: 0px;
+        y: 0px;
+        width: parent.width;
+        height: 34px;
+        color: Theme.on_surface;
+        font-size: 26px;
+        font-weight: 800;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+
+    UiText {
+        text: root.subtitle;
+        x: 0px;
+        y: 36px;
+        width: parent.width;
+        height: 22px;
+        color: Theme.on_surface_variant;
+        font-size: 13px;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+}
+
+component RunnerResultLine inherits Rectangle {
+    in property <string> method;
+    in property <string> name;
+    in property <string> status;
+    in property <string> detail;
+    in property <string> tone;
+
+    height: 48px;
+    horizontal-stretch: 1;
+    border-radius: 6px;
+    background: touch.has-hover ? Theme.surface_container_high : Theme.surface_container;
+
+    touch := TouchArea {}
+
+    UiText {
+        x: 10px;
+        text: root.method;
+        width: 48px;
+        height: parent.height;
+        font-family: "JetBrains Mono";
+        font-size: 11px;
+        color: Theme.secondary;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+
+    UiText {
+        x: 66px;
+        y: 6px;
+        text: root.name;
+        width: parent.width - 150px;
+        height: 20px;
+        color: Theme.on_surface;
+        font-size: 12px;
+        font-weight: 800;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+
+    UiText {
+        x: 66px;
+        y: 26px;
+        text: root.detail;
+        width: parent.width - 150px;
+        height: 16px;
+        color: Theme.on_surface_variant;
+        font-size: 11px;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+
+    UiText {
+        x: parent.width - 74px;
+        text: root.status;
+        width: 64px;
+        height: parent.height;
+        color: root.tone == "error" ? Theme.error : Theme.secondary;
+        font-size: 12px;
+        font-weight: 800;
+        horizontal-alignment: right;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+}
+
+export component RunnerResultsPanelWorkbench inherits Rectangle {
+    in-out property <[RunnerRow]> runner_rows;
+    in-out property <string> runner_summary;
+    in-out property <string> runner_delay_ms;
+    in-out property <bool> runner_stop_on_failure;
+    in-out property <bool> runner_active;
+    in property <bool> busy;
+    callback run_collection();
+    callback cancel_collection_run();
+
+    horizontal-stretch: 1;
+    vertical-stretch: 1;
+    background: Theme.surface;
+
+    VerticalLayout {
+        padding: 20px;
+        spacing: 16px;
+
+        RunnerPageTitle {
+            title: "Automated Test Suite";
+            subtitle: root.runner_summary == "" ? "No runner results yet." : root.runner_summary;
+        }
+
+        HorizontalLayout {
+            height: 38px;
+            spacing: 10px;
+
+            BodyModeButton {
+                mode: "continue";
+                label: "continue";
+                button_width: 90px;
+                selected: !root.runner_stop_on_failure;
+                enabled: !root.busy && !root.runner_active;
+                picked(mode) => {
+                    root.runner_stop_on_failure = false;
+                }
+            }
+
+            BodyModeButton {
+                mode: "stop";
+                label: "stop fail";
+                button_width: 90px;
+                selected: root.runner_stop_on_failure;
+                enabled: !root.busy && !root.runner_active;
+                picked(mode) => {
+                    root.runner_stop_on_failure = true;
+                }
+            }
+
+            TextField {
+                text <=> root.runner_delay_ms;
+                placeholder: "Delay ms";
+                mono: true;
+                enabled: !root.busy && !root.runner_active;
+                width: 110px;
+                height: 38px;
+            }
+
+            ActionButton {
+                text: "Run Suite";
+                button_width: 104px;
+                primary: true;
+                enabled: !root.busy && !root.runner_active;
+                clicked => {
+                    root.run_collection();
+                }
+            }
+
+            ActionButton {
+                text: "Cancel";
+                button_width: 82px;
+                warning: true;
+                enabled: root.runner_active;
+                clicked => {
+                    root.cancel_collection_run();
+                }
+            }
+        }
+
+        if root.runner_rows.length == 0: DataPanel {
+            title: "Results";
+            body: "Run a collection to populate request results.";
+        }
+
+        if root.runner_rows.length != 0: ListView {
+            horizontal-stretch: 1;
+            vertical-stretch: 1;
+            vertical-scrollbar-policy: ScrollBarPolicy.as-needed;
+            horizontal-scrollbar-policy: ScrollBarPolicy.as-needed;
+
+            for result in root.runner_rows: RunnerResultLine {
+                method: result.method;
+                name: result.name;
+                status: result.status;
+                detail: result.detail;
+                tone: result.tone;
+            }
+        }
+    }
+}
