@@ -21,6 +21,7 @@ pub enum ResponseAssertionKind {
     JsonPathExists { path: String },
     JsonPathType { path: String, value_type: String },
     JsonPathLength { path: String, length: usize },
+    JsonPathContains { path: String, value: Value },
     JsonPathEquals { path: String, value: Value },
 }
 
@@ -105,6 +106,19 @@ pub fn evaluate_response_assertion(
                             display_json_path(path)
                         )),
                     },
+                    None => Some(format!("missing JSON path {}", display_json_path(path))),
+                },
+                Err(error) => Some(format!("failed to parse response JSON: {error}")),
+            }
+        }
+        ResponseAssertionKind::JsonPathContains { path, value } => {
+            match serde_json::from_str::<Value>(&response.raw_body) {
+                Ok(json) => match json_path_value(&json, path) {
+                    Some(actual) if json_value_contains(actual, value) => None,
+                    Some(actual) => Some(format!(
+                        "expected JSON path {} to contain {value}, got {actual}",
+                        display_json_path(path)
+                    )),
                     None => Some(format!("missing JSON path {}", display_json_path(path))),
                 },
                 Err(error) => Some(format!("failed to parse response JSON: {error}")),
@@ -205,6 +219,18 @@ fn json_value_length(value: &Value) -> Option<usize> {
     }
 }
 
+fn json_value_contains(actual: &Value, expected: &Value) -> bool {
+    match (actual, expected) {
+        (Value::Array(values), expected) => values.iter().any(|value| value == expected),
+        (Value::Object(actual), Value::Object(expected)) => expected
+            .iter()
+            .all(|(key, value)| actual.get(key) == Some(value)),
+        (Value::Object(actual), Value::String(key)) => actual.contains_key(key),
+        (Value::String(actual), Value::String(expected)) => actual.contains(expected),
+        _ => false,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -276,6 +302,13 @@ mod tests {
                 length: 1,
             },
         };
+        let contains = ResponseAssertion {
+            name: "contains".to_string(),
+            kind: ResponseAssertionKind::JsonPathContains {
+                path: "items".to_string(),
+                value: serde_json::json!({ "id": 1 }),
+            },
+        };
         let failing = ResponseAssertion {
             name: "wrong".to_string(),
             kind: ResponseAssertionKind::JsonPathEquals {
@@ -288,6 +321,7 @@ mod tests {
         assert!(evaluate_response_assertion(&response(), &passing).passed);
         assert!(evaluate_response_assertion(&response(), &typed).passed);
         assert!(evaluate_response_assertion(&response(), &length).passed);
+        assert!(evaluate_response_assertion(&response(), &contains).passed);
         let result = evaluate_response_assertion(&response(), &failing);
         assert!(!result.passed);
         assert!(
