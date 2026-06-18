@@ -163,6 +163,7 @@
   Request builder editor host,
   Request builder response host,
   Request tab content with preloaded tab switching,
+  Request tab content workbench,
   Request Builder pane size constraints, Bottom navigation,
   Request auth tab host,
   Request body tab host,
