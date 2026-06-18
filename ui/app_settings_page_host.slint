@@ -1,0 +1,29 @@
+import { ScrollView } from "std-widgets.slint";
+import { SettingsPage } from "settings_page.slint";
+
+export component AppSettingsPageHost inherits ScrollView {
+    in property <string> spec_label;
+    in property <bool> spec_loaded;
+    in property <string> file_path;
+    in property <string> collection_name;
+    in property <string> collection_path;
+    in property <int> route_count;
+    in property <int> history_count;
+
+    viewport-width: max(self.visible-width, 1040px);
+    viewport-height: max(self.visible-height, 620px);
+    vertical-scrollbar-policy: ScrollBarPolicy.as-needed;
+    horizontal-scrollbar-policy: ScrollBarPolicy.as-needed;
+
+    SettingsPage {
+        width: max(parent.visible-width, 1040px);
+        height: max(parent.visible-height, 620px);
+        spec_label: root.spec_label;
+        spec_loaded: root.spec_loaded;
+        file_path: root.file_path;
+        collection_name: root.collection_name;
+        collection_path: root.collection_path;
+        route_count: root.route_count;
+        history_count: root.history_count;
+    }
+}

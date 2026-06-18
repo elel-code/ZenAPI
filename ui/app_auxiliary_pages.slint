@@ -5,10 +5,10 @@ import { AppCodegenPageHost } from "app_codegen_page_host.slint";
 import { AppDashboardPageHost } from "app_dashboard_page_host.slint";
 import { AppDocumentationPageHost } from "app_documentation_page_host.slint";
 import { AppRunnerPageHost } from "app_runner_page_host.slint";
+import { AppSettingsPageHost } from "app_settings_page_host.slint";
 import { AppTeamPageHost } from "app_team_page_host.slint";
 import { EnvironmentPage } from "environment_page.slint";
 import { MockManagerPage } from "mock_manager_page.slint";
-import { SettingsPage } from "settings_page.slint";
 import { CollectionRow, EnvironmentRow, HistoryRow, MockLogRow, MockRuleRow, RouteRow, RunnerRow, VariableTableRow } from "types.slint";
 
 export component AppAuxiliaryPages inherits Rectangle {
@@ -368,25 +368,16 @@ export component AppAuxiliaryPages inherits Rectangle {
         route_count: root.total_route_count;
     }
 
-    if root.preload_pages || root.settings_mounted: ScrollView {
+    if root.preload_pages || root.settings_mounted: AppSettingsPageHost {
         visible: root.active_page_index == 9;
         width: parent.width;
         height: parent.height;
-        viewport-width: max(self.visible-width, 1040px);
-        viewport-height: max(self.visible-height, 620px);
-        vertical-scrollbar-policy: ScrollBarPolicy.as-needed;
-        horizontal-scrollbar-policy: ScrollBarPolicy.as-needed;
-
-        SettingsPage {
-            width: max(parent.visible-width, 1040px);
-            height: max(parent.visible-height, 620px);
-            spec_label: root.spec_label;
-            spec_loaded: root.spec_loaded;
-            file_path: root.file_path;
-            collection_name: root.collection_name;
-            collection_path: root.collection_path;
-            route_count: root.total_route_count;
-            history_count: root.history_rows.length;
-        }
+        spec_label: root.spec_label;
+        spec_loaded: root.spec_loaded;
+        file_path: root.file_path;
+        collection_name: root.collection_name;
+        collection_path: root.collection_path;
+        route_count: root.total_route_count;
+        history_count: root.history_rows.length;
     }
 }
