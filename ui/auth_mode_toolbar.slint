@@ -1,0 +1,40 @@
+import { BodyModeButton } from "mode_button.slint";
+
+export component AuthModeToolbar inherits Rectangle {
+    in-out property <string> auth_mode;
+    in property <bool> busy;
+    callback auth_mode_changed(string);
+
+    height: 30px;
+    horizontal-stretch: 1;
+    background: transparent;
+
+    HorizontalLayout {
+        spacing: 8px;
+        alignment: center;
+
+        for item in [
+            { mode: "none", label: "none", width: 54px },
+            { mode: "bearer", label: "bearer", width: 64px },
+            { mode: "oauth2", label: "oauth2", width: 68px },
+            { mode: "basic", label: "basic", width: 58px },
+            { mode: "jwt", label: "jwt", width: 46px },
+            { mode: "api-header", label: "api hdr", width: 70px },
+            { mode: "api-query", label: "api qry", width: 76px },
+        ]: BodyModeButton {
+            mode: item.mode;
+            label: item.label;
+            button_width: item.width;
+            selected: root.auth_mode == item.mode;
+            enabled: !root.busy;
+            picked(mode) => {
+                root.auth_mode = mode;
+                root.auth_mode_changed(mode);
+            }
+        }
+
+        Rectangle {
+            horizontal-stretch: 1;
+        }
+    }
+}
