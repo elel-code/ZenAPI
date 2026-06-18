@@ -73,10 +73,10 @@ pm.test("status is 200", () => {
 
 The parser is not a JavaScript runtime. It accepts common status/status-range,
 header exists/header equality, body contains/string, JSON dot/bracket path
-equality, JSON property equality, `const`/`let`/`var` aliases assigned from
-`pm.response.json()`, and JSON boolean/null checks, while full Postman
-compatibility still requires a dedicated sandboxed scripting engine and
-compatibility tests.
+existence/equality, JSON property existence/equality, `const`/`let`/`var`
+aliases assigned from `pm.response.json()`, and JSON boolean/null checks, while
+full Postman compatibility still requires a dedicated sandboxed scripting
+engine and compatibility tests.
 
 ## Result Model
 
@@ -157,6 +157,7 @@ Supported assertion kinds:
 | `header_exists` | Case-insensitive response header presence |
 | `header_equals` | Case-insensitive response header value comparison |
 | `body_contains` | Raw body substring check |
+| `json_path_exists` | Dot-path JSON presence check, including numeric array indexes |
 | `json_path_equals` | Dot-path JSON value comparison, including numeric array indexes |
 
 Runner behavior:
@@ -169,9 +170,9 @@ Runner behavior:
 - The Slint request editor includes a native Tests panel that configures these
   assertions without a script engine.
 - Common single-line `pm.test(...)` status, status-range, header exists/header
-  equality, body contains/string, JSON dot/bracket path equality, JSON property
-  equality, `const`/`let`/`var` JSON aliases, and JSON boolean/null checks are
-  converted to the same native assertions.
+  equality, body contains/string, JSON dot/bracket path existence/equality,
+  JSON property existence/equality, `const`/`let`/`var` JSON aliases, and JSON
+  boolean/null checks are converted to the same native assertions.
 - Saving a request to a collection preserves configured assertions, and
   restoring a collection request brings them back into the Tests panel.
 

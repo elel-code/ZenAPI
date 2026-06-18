@@ -142,18 +142,20 @@ fields append a parser-validated row with `Build`. Supported kinds include:
 - `header_exists`: header exists.
 - `header_equals`: header equals.
 - `body_contains`: body contains text.
+- `json_path_exists`: JSON path exists.
 - `json_path_equals`: JSON path equals a value.
 
-For `json_path_equals` assertions, use dot paths such as `data.items.0.id`;
-expected values can be JSON literals such as `true`, `42`, or `"name"`. Kind
-cycling fills the next supported assertion template.
+For JSON path assertions, use dot paths such as `data.items.0.id`; expected
+values for `json_path_equals` can be JSON literals such as `true`, `42`, or
+`"name"`. Kind cycling fills the next supported assertion template.
 
 The parser also accepts common single-line Postman-style `pm.test(...)`
 assertions for response status/status ranges, response headers, response text
-contains/string checks, JSON dot or bracket path equality, JSON property
-equality, `const`/`let`/`var` aliases assigned from `pm.response.json()`, and
-JSON boolean/null expectations. These are converted to native assertions;
-arbitrary JavaScript and full `pm.*` runtime compatibility are not implemented.
+contains/string checks, JSON dot or bracket path existence/equality, JSON
+property existence/equality, `const`/`let`/`var` aliases assigned from
+`pm.response.json()`, and JSON boolean/null expectations. These are converted
+to native assertions; arbitrary JavaScript and full `pm.*` runtime
+compatibility are not implemented.
 
 Tests run when a request is sent and when a collection is run. Tests are saved
 with collection requests and restored with them.
