@@ -159,7 +159,7 @@
   Request Builder page, Request panel, Request tab strip, Request tab content,
   Request params tab, Request headers tab, Request realtime tab,
   Response panel, Response header strip, Response tab strip, Response toolbar,
-  Response viewer, Sidebar, App navigation, Address bar,
+  Response viewer, Sidebar, App navigation, App auxiliary pages, Address bar,
   Dashboard page, Codegen page, Settings page, Team page, API Keys page,
   API Keys shared components, API Keys list panel, API Keys detail panel,
   API Keys integration panel, Analytics page, Documentation page,
