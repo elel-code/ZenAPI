@@ -1,0 +1,100 @@
+import { ListView } from "std-widgets.slint";
+import { DataPanel } from "cards.slint";
+import { Theme } from "theme.slint";
+import { RouteRow } from "types.slint";
+import { UiText } from "widgets.slint";
+
+component DocNavLine inherits Rectangle {
+    in property <string> label;
+    in property <string> method;
+    in property <bool> selected;
+    callback picked();
+
+    height: 34px;
+    horizontal-stretch: 1;
+    border-radius: 6px;
+    border-width: root.selected ? 1px : 0px;
+    border-color: Theme.primary;
+    background: root.selected ? Theme.surface_variant : touch.has-hover ? Theme.surface_container_high : transparent;
+
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.picked();
+        }
+    }
+
+    UiText {
+        x: 10px;
+        text: root.label;
+        width: parent.width - 72px;
+        height: parent.height;
+        color: root.selected ? Theme.primary : Theme.on_surface_variant;
+        font-size: 12px;
+        font-weight: root.selected ? 800 : 600;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+
+    UiText {
+        x: parent.width - 54px;
+        text: root.method;
+        width: 44px;
+        height: parent.height;
+        color: root.method == "POST" ? Theme.secondary : root.method == "DELETE" ? Theme.error : root.method == "PUT" ? Theme.tertiary : Theme.primary;
+        font-family: "JetBrains Mono";
+        font-size: 10px;
+        font-weight: 800;
+        horizontal-alignment: right;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+}
+
+export component DocumentationSidebarPanel inherits Rectangle {
+    in property <[RouteRow]> routes;
+    in-out property <int> selected_route;
+    callback select_route(int);
+
+    width: 280px;
+    vertical-stretch: 1;
+    background: Theme.surface_container_low;
+
+    VerticalLayout {
+        padding: 16px;
+        spacing: 12px;
+
+        UiText {
+            text: "ENDPOINTS";
+            height: 20px;
+            horizontal-stretch: 1;
+            color: Theme.on_surface_variant;
+            font-size: 12px;
+            font-weight: 800;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+
+        if root.routes.length == 0: DataPanel {
+            title: "No Endpoints";
+            body: "Import an OpenAPI document to populate API Docs.";
+        }
+
+        if root.routes.length != 0: ListView {
+            horizontal-stretch: 1;
+            vertical-stretch: 1;
+            vertical-scrollbar-policy: ScrollBarPolicy.as-needed;
+            horizontal-scrollbar-policy: ScrollBarPolicy.as-needed;
+
+            for route[i] in root.routes: DocNavLine {
+                label: route.summary == "" ? route.path : route.summary;
+                method: route.method;
+                selected: root.selected_route == i;
+                picked => {
+                    root.selected_route = i;
+                    root.select_route(i);
+                }
+            }
+        }
+    }
+}

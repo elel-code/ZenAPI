@@ -1,0 +1,82 @@
+import { DataPanel } from "cards.slint";
+import { Theme } from "theme.slint";
+import { UiText } from "widgets.slint";
+
+component DocumentationPageTitle inherits Rectangle {
+    in property <string> title;
+    in property <string> subtitle;
+
+    height: 62px;
+    horizontal-stretch: 1;
+    background: transparent;
+
+    UiText {
+        text: root.title;
+        x: 0px;
+        y: 0px;
+        width: parent.width;
+        height: 34px;
+        color: Theme.on_surface;
+        font-size: 26px;
+        font-weight: 800;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+
+    UiText {
+        text: root.subtitle;
+        x: 0px;
+        y: 36px;
+        width: parent.width;
+        height: 22px;
+        color: Theme.on_surface_variant;
+        font-size: 13px;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+}
+
+export component DocumentationDetailPanel inherits Rectangle {
+    in property <int> route_count;
+    in property <string> method;
+    in property <string> url;
+
+    horizontal-stretch: 1;
+    vertical-stretch: 1;
+    background: Theme.surface;
+
+    VerticalLayout {
+        padding: 28px;
+        spacing: 18px;
+
+        DocumentationPageTitle {
+            title: root.method + " Endpoint";
+            subtitle: "Detailed endpoint reference, parameters, and response shape.";
+        }
+
+        DataPanel {
+            title: "Endpoint";
+            body: root.url == "" ? "No request URL selected." : root.method + " " + root.url;
+        }
+
+        HorizontalLayout {
+            height: 164px;
+            spacing: 16px;
+
+            DataPanel {
+                title: "Path Parameters";
+                body: root.route_count == 0 ? "Import an OpenAPI document to inspect endpoint parameters." : "Parameter details are derived from the imported spec when available.";
+            }
+
+            DataPanel {
+                title: "Query Parameters";
+                body: root.route_count == 0 ? "No query parameters available." : "Use the Request Params tab to edit query values before executing.";
+            }
+        }
+
+        DataPanel {
+            title: "Returns";
+            body: root.route_count == 0 ? "No response schema available." : "Response examples and schemas are available in imported route metadata when supported.";
+        }
+    }
+}

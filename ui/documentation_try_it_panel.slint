@@ -1,0 +1,120 @@
+import { DataPanel } from "cards.slint";
+import { ReadOnlyCodeBlock } from "editors.slint";
+import { Theme } from "theme.slint";
+import { TextField } from "text_field.slint";
+import { ActionButton } from "action_button.slint";
+import { BodyModeButton } from "mode_button.slint";
+import { UiText } from "widgets.slint";
+
+export component DocumentationTryItPanel inherits Rectangle {
+    in property <int> route_count;
+    in property <string> method;
+    in-out property <string> url;
+    in property <string> auth_mode;
+    in property <bool> busy;
+    callback send_request();
+
+    property <string> sample_language: "curl";
+    property <string> sample_url: root.url == "" ? "<request-url>" : root.url;
+    property <string> auth_hint: root.auth_mode == "bearer" ? "Authorization: Bearer <configured-token>" : root.auth_mode == "oauth2" ? "Authorization: Bearer <configured-access-token>" : root.auth_mode == "jwt" ? "Authorization: Bearer <configured-jwt>" : root.auth_mode == "basic" ? "Authorization: Basic <base64-credentials>" : root.auth_mode == "api-header" ? "<configured-header>: <configured-value>" : "";
+    property <string> auth_header_pair: root.auth_mode == "bearer" ? "\"Authorization\": \"Bearer <configured-token>\"" : root.auth_mode == "oauth2" ? "\"Authorization\": \"Bearer <configured-access-token>\"" : root.auth_mode == "jwt" ? "\"Authorization\": \"Bearer <configured-jwt>\"" : root.auth_mode == "basic" ? "\"Authorization\": \"Basic <base64-credentials>\"" : root.auth_mode == "api-header" ? "\"<configured-header>\": \"<configured-value>\"" : "";
+    property <bool> has_header_auth: root.auth_hint != "";
+    property <string> sample_code: root.sample_language == "python"
+        ? (root.auth_mode == "api-query"
+                ? "import requests\n\nresponse = requests.request(\n    \"" + root.method + "\",\n    \"" + root.sample_url + "\",\n    params={\"<configured-key>\": \"<configured-value>\"},\n)\nprint(response.text)"
+            : root.has_header_auth
+                ? "import requests\n\nresponse = requests.request(\n    \"" + root.method + "\",\n    \"" + root.sample_url + "\",\n    headers={" + root.auth_header_pair + "},\n)\nprint(response.text)"
+                : "import requests\n\nresponse = requests.request(\"" + root.method + "\", \"" + root.sample_url + "\")\nprint(response.text)")
+        : root.sample_language == "node"
+            ? (root.auth_mode == "api-query"
+                ? "const response = await fetch(\"" + root.sample_url + "?<configured-key>=<configured-value>\", {\n  method: \"" + root.method + "\"\n});\n\nconsole.log(await response.text());"
+                : root.has_header_auth
+                    ? "const response = await fetch(\"" + root.sample_url + "\", {\n  method: \"" + root.method + "\",\n  headers: { " + root.auth_header_pair + " }\n});\n\nconsole.log(await response.text());"
+                    : "const response = await fetch(\"" + root.sample_url + "\", {\n  method: \"" + root.method + "\"\n});\n\nconsole.log(await response.text());")
+            : root.auth_mode == "api-query"
+                ? "curl -X " + root.method + " \"" + root.sample_url + "?<configured-key>=<configured-value>\""
+                : root.has_header_auth
+                    ? "curl -X " + root.method + " \"" + root.sample_url + "\" \\\n  -H \"" + root.auth_hint + "\""
+                    : "curl -X " + root.method + " \"" + root.sample_url + "\"";
+
+    width: 400px;
+    vertical-stretch: 1;
+    background: Theme.surface_container_lowest;
+
+    VerticalLayout {
+        padding: 16px;
+        spacing: 12px;
+
+        HorizontalLayout {
+            height: 30px;
+            spacing: 8px;
+
+            BodyModeButton {
+                mode: "curl";
+                label: "cURL";
+                selected: root.sample_language == "curl";
+                picked(mode) => {
+                    root.sample_language = mode;
+                }
+            }
+
+            BodyModeButton {
+                mode: "python";
+                label: "Python";
+                selected: root.sample_language == "python";
+                button_width: 84px;
+                picked(mode) => {
+                    root.sample_language = mode;
+                }
+            }
+
+            BodyModeButton {
+                mode: "node";
+                label: "Node.js";
+                selected: root.sample_language == "node";
+                button_width: 84px;
+                picked(mode) => {
+                    root.sample_language = mode;
+                }
+            }
+        }
+
+        ReadOnlyCodeBlock {
+            height: 144px;
+            text: root.sample_code;
+        }
+
+        DataPanel {
+            title: "Response";
+            body: root.route_count == 0 ? "Import an OpenAPI document, then execute a request to inspect responses." : "Execute the selected request to inspect the live response in the Response pane.";
+        }
+
+        UiText {
+            text: "TRY IT OUT";
+            height: 20px;
+            horizontal-stretch: 1;
+            color: Theme.on_surface_variant;
+            font-size: 12px;
+            font-weight: 800;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+
+        TextField {
+            text <=> root.url;
+            placeholder: "Request URL";
+            mono: true;
+            enabled: !root.busy;
+        }
+
+        ActionButton {
+            text: "Execute Request";
+            primary: true;
+            button_width: 368px;
+            enabled: !root.busy;
+            clicked => {
+                root.send_request();
+            }
+        }
+    }
+}
