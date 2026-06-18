@@ -72,13 +72,14 @@ pm.test("status is 200", () => {
 ```
 
 The parser is not a JavaScript runtime. It accepts common status/status-range,
-header exists/header equality, body contains/string, JSON dot/bracket path
-existence/equality, JSON property existence/equality, `const`/`let`/`var`
-aliases assigned from `pm.response.json()`, JSON value type checks such as
-`to.be.an("array")`, JSON length checks such as `to.have.lengthOf(2)`, and
-JSON include/contain checks such as `to.deep.include({"id":1})`, and JSON
-boolean/null checks, while full Postman compatibility still requires a
-dedicated sandboxed scripting engine and compatibility tests.
+response time/size upper bounds, header exists/header equality, body
+contains/string, JSON dot/bracket path existence/equality, JSON property
+existence/equality, `const`/`let`/`var` aliases assigned from
+`pm.response.json()`, JSON value type checks such as `to.be.an("array")`,
+JSON length checks such as `to.have.lengthOf(2)`, JSON include/contain checks
+such as `to.deep.include({"id":1})`, and JSON boolean/null checks, while full
+Postman compatibility still requires a dedicated sandboxed scripting engine
+and compatibility tests.
 
 ## Result Model
 
@@ -156,6 +157,8 @@ Supported assertion kinds:
 |-----------|---------|
 | `status_equals` | Exact status match |
 | `status_in_range` | Inclusive status range |
+| `response_time_below` | Response time upper bound in milliseconds |
+| `response_size_below` | Response body size upper bound in bytes |
 | `header_exists` | Case-insensitive response header presence |
 | `header_equals` | Case-insensitive response header value comparison |
 | `body_contains` | Raw body substring check |
@@ -175,10 +178,11 @@ Runner behavior:
 - The Slint request editor includes a native Tests panel that configures these
   assertions without a script engine.
 - Common single-line `pm.test(...)` status, status-range, header exists/header
-  equality, body contains/string, JSON dot/bracket path existence/equality,
-  JSON property existence/equality, `const`/`let`/`var` JSON aliases, JSON
-  value type checks, JSON length checks, JSON include/contain checks, and JSON
-  boolean/null checks are converted to the same native assertions.
+  equality, response time/size upper bounds, body contains/string, JSON
+  dot/bracket path existence/equality, JSON property existence/equality,
+  `const`/`let`/`var` JSON aliases, JSON value type checks, JSON length checks,
+  JSON include/contain checks, and JSON boolean/null checks are converted to
+  the same native assertions.
 - Saving a request to a collection preserves configured assertions, and
   restoring a collection request brings them back into the Tests panel.
 

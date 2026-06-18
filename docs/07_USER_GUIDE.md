@@ -139,6 +139,8 @@ fields append a parser-validated row with `Build`. Supported kinds include:
 
 - `status_equals`: status equals.
 - `status_in_range`: status is within a range.
+- `response_time_below`: response time is at or below a millisecond limit.
+- `response_size_below`: response body size is at or below a byte limit.
 - `header_exists`: header exists.
 - `header_equals`: header equals.
 - `body_contains`: body contains text.
@@ -156,13 +158,13 @@ values for `json_path_equals` can be JSON literals such as `true`, `42`, or
 cycling fills the next supported assertion template.
 
 The parser also accepts common single-line Postman-style `pm.test(...)`
-assertions for response status/status ranges, response headers, response text
-contains/string checks, JSON dot or bracket path existence/equality, JSON
-property existence/equality, `const`/`let`/`var` aliases assigned from
-`pm.response.json()`, JSON value type checks, JSON length checks, JSON
-include/contain checks, and JSON boolean/null expectations. These are
-converted to native assertions; arbitrary JavaScript and full `pm.*` runtime
-compatibility are not implemented.
+assertions for response status/status ranges, response time/size upper bounds,
+response headers, response text contains/string checks, JSON dot or bracket
+path existence/equality, JSON property existence/equality, `const`/`let`/`var`
+aliases assigned from `pm.response.json()`, JSON value type checks, JSON
+length checks, JSON include/contain checks, and JSON boolean/null
+expectations. These are converted to native assertions; arbitrary JavaScript
+and full `pm.*` runtime compatibility are not implemented.
 
 Tests run when a request is sent and when a collection is run. Tests are saved
 with collection requests and restored with them.
