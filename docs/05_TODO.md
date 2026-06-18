@@ -155,8 +155,9 @@
   Request panel, Response panel, Sidebar, App navigation, Address bar,
   Dashboard page, Codegen page, Settings page, Team page, API Keys page,
   Analytics page, Documentation page, Environment page, Runner page, Mock
-  Manager page, request editor pane, and request sidebar pane now live in
-  dedicated Slint files; additional large panels still need extraction.
+  Manager page, request editor pane, request sidebar pane, sidebar rows,
+  sidebar OpenAPI import panel, and sidebar History panel now live in dedicated
+  Slint files; additional large panels still need extraction.
 
 ## Phase 4: Verification And Release
 
