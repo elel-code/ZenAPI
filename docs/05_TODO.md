@@ -162,7 +162,7 @@
   Tests assertion panel workbench, Tests assertion row,
   Request Builder page, Request Builder workbench, Request panel,
   Request panel workbench, Request tab strip,
-  Request builder editor host,
+  Request builder editor host, Request builder editor host workbench,
   Request builder response host,
   Request tab content with preloaded tab switching,
   Request tab content workbench,
