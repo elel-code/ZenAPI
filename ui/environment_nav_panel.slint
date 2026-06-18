@@ -1,0 +1,165 @@
+import { ListView } from "std-widgets.slint";
+import { StatusDot } from "status_components.slint";
+import { Theme } from "theme.slint";
+import { EnvironmentRow } from "types.slint";
+import { ActionButton } from "action_button.slint";
+import { UiText } from "widgets.slint";
+
+component EnvironmentNavRow inherits Rectangle {
+    in property <string> mode;
+    in property <string> label;
+    in property <string> detail;
+    in property <string> tone: "inactive";
+    in property <bool> selected: false;
+    callback picked(string);
+
+    height: 52px;
+    horizontal-stretch: 1;
+    border-radius: 6px;
+    border-width: root.selected ? 1px : 0px;
+    border-color: Theme.outline_variant;
+    background: root.selected ? Theme.surface_variant : nav_touch.has-hover ? Theme.surface_container_high : transparent;
+
+    nav_touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.picked(root.mode);
+        }
+    }
+
+    StatusDot {
+        x: 14px;
+        y: 18px;
+        tone: root.selected ? "active" : root.tone;
+    }
+
+    UiText {
+        x: 32px;
+        y: 7px;
+        text: root.label;
+        width: parent.width - 44px;
+        height: 20px;
+        color: root.selected ? Theme.on_surface : Theme.on_surface_variant;
+        font-size: 14px;
+        font-weight: root.selected ? 800 : 600;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+
+    UiText {
+        x: 32px;
+        y: 28px;
+        text: root.detail;
+        width: parent.width - 44px;
+        height: 16px;
+        color: Theme.outline;
+        font-size: 11px;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+}
+
+export component EnvironmentNavPanel inherits Rectangle {
+    in property <[EnvironmentRow]> environment_rows;
+    in-out property <string> environment_name;
+    in property <bool> busy;
+    callback select_environment(string);
+    callback move_environment(string, int);
+
+    width: 256px;
+    vertical-stretch: 1;
+    background: Theme.surface_container;
+
+    VerticalLayout {
+        padding: 0px;
+        spacing: 0px;
+
+        Rectangle {
+            height: 68px;
+            horizontal-stretch: 1;
+            background: Theme.surface_container;
+
+            UiText {
+                x: 16px;
+                text: "Environments";
+                width: parent.width - 32px;
+                height: parent.height;
+                color: Theme.on_surface;
+                font-size: 20px;
+                font-weight: 800;
+                vertical-alignment: center;
+                overflow: elide;
+            }
+        }
+
+        Rectangle {
+            height: 1px;
+            horizontal-stretch: 1;
+            background: Theme.outline_variant;
+        }
+
+        Rectangle {
+            horizontal-stretch: 1;
+            vertical-stretch: 1;
+            background: transparent;
+
+            VerticalLayout {
+                padding: 10px;
+                spacing: 6px;
+
+                if root.environment_rows.length == 0: UiText {
+                    text: "No environments";
+                    height: 28px;
+                    horizontal-stretch: 1;
+                    color: Theme.outline;
+                    font-size: 12px;
+                    vertical-alignment: center;
+                    overflow: elide;
+                }
+
+                if root.environment_rows.length != 0: ListView {
+                    horizontal-stretch: 1;
+                    vertical-stretch: 1;
+                    vertical-scrollbar-policy: ScrollBarPolicy.as-needed;
+                    horizontal-scrollbar-policy: ScrollBarPolicy.as-needed;
+
+                    for item[i] in root.environment_rows: HorizontalLayout {
+                        height: 52px;
+                        horizontal-stretch: 1;
+                        spacing: 4px;
+                        alignment: center;
+
+                        EnvironmentNavRow {
+                            mode: item.name;
+                            label: item.label;
+                            detail: item.detail;
+                            tone: item.tone;
+                            selected: root.environment_name == item.name;
+                            picked(mode) => {
+                                root.select_environment(mode);
+                            }
+                        }
+
+                        ActionButton {
+                            text: "^";
+                            button_width: 30px;
+                            enabled: !root.busy && i > 0;
+                            clicked => {
+                                root.move_environment(item.name, -1);
+                            }
+                        }
+
+                        ActionButton {
+                            text: "v";
+                            button_width: 30px;
+                            enabled: !root.busy && i < root.environment_rows.length - 1;
+                            clicked => {
+                                root.move_environment(item.name, 1);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
