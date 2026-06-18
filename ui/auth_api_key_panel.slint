@@ -1,0 +1,37 @@
+import { KeyValueTablePanel } from "key_value_table_panel.slint";
+import { KeyValueTableRow } from "types.slint";
+
+export component AuthApiKeyPanel inherits Rectangle {
+    in-out property <[KeyValueTableRow]> rows;
+    in property <string> title;
+    in property <string> key_header;
+    in property <string> helper;
+    in property <bool> busy;
+    callback add_auth_key();
+    callback update_auth_key_row(int, string, string);
+    callback delete_auth_key_row(int);
+
+    horizontal-stretch: 1;
+    vertical-stretch: 1;
+    background: transparent;
+
+    KeyValueTablePanel {
+        width: parent.width;
+        height: parent.height;
+        rows <=> root.rows;
+        title: root.title;
+        key_header: root.key_header;
+        value_header: "Value";
+        helper: root.helper;
+        busy: root.busy;
+        add_row => {
+            root.add_auth_key();
+        }
+        update_row(row_id, key, value) => {
+            root.update_auth_key_row(row_id, key, value);
+        }
+        delete_row(row_id) => {
+            root.delete_auth_key_row(row_id);
+        }
+    }
+}

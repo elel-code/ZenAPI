@@ -1,6 +1,6 @@
 import { DataPanel } from "cards.slint";
-import { KeyValueTablePanel } from "key_value_table_panel.slint";
 import { KeyValueTableRow } from "types.slint";
+import { AuthApiKeyPanel } from "auth_api_key_panel.slint";
 import { AuthBasicPanel } from "auth_basic_panel.slint";
 import { AuthModeToolbar } from "auth_mode_toolbar.slint";
 import { AuthTokenPanel } from "auth_token_panel.slint";
@@ -72,38 +72,36 @@ export component AuthEditorPanel inherits Rectangle {
             }
         }
 
-        if root.auth_mode == "api-header": KeyValueTablePanel {
+        if root.auth_mode == "api-header": AuthApiKeyPanel {
             rows <=> root.auth_key_rows;
             title: "API Key Header";
             key_header: "Header";
-            value_header: "Value";
             helper: "Stored as key=value lines, for example x-api-key={{apiKey}}.";
             busy: root.busy;
-            add_row => {
+            add_auth_key => {
                 root.add_auth_key();
             }
-            update_row(row_id, key, value) => {
+            update_auth_key_row(row_id, key, value) => {
                 root.update_auth_key_row(row_id, key, value);
             }
-            delete_row(row_id) => {
+            delete_auth_key_row(row_id) => {
                 root.delete_auth_key_row(row_id);
             }
         }
 
-        if root.auth_mode == "api-query": KeyValueTablePanel {
+        if root.auth_mode == "api-query": AuthApiKeyPanel {
             rows <=> root.auth_key_rows;
             title: "API Key Query";
             key_header: "Param";
-            value_header: "Value";
             helper: "Stored as key=value lines, for example api_key={{apiKey}}.";
             busy: root.busy;
-            add_row => {
+            add_auth_key => {
                 root.add_auth_key();
             }
-            update_row(row_id, key, value) => {
+            update_auth_key_row(row_id, key, value) => {
                 root.update_auth_key_row(row_id, key, value);
             }
-            delete_row(row_id) => {
+            delete_auth_key_row(row_id) => {
                 root.delete_auth_key_row(row_id);
             }
         }
