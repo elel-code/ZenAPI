@@ -153,6 +153,7 @@
   business panel, Realtime WebSocket panel, Realtime SSE panel, Realtime gRPC
   panel, shared Key/Value table panel, Body editor panel, Header editor panel,
   Auth editor panel, Scripts editor panel, Tests assertion panel,
+  Tests assertion row,
   Request Builder page, Request panel, Request tab strip, Request tab content,
   Response panel, Response header strip, Response tab strip, Response toolbar,
   Response viewer, Sidebar, App navigation, Address bar,
