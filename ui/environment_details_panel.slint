@@ -1,0 +1,132 @@
+import { ReadOnlyCodeBlock } from "editors.slint";
+import { Theme } from "theme.slint";
+import { UiText } from "widgets.slint";
+
+export component VariableDetailsPanel inherits Rectangle {
+    in property <string> preview;
+
+    width: 288px;
+    vertical-stretch: 1;
+    background: Theme.surface_container_low;
+
+    VerticalLayout {
+        padding: 16px;
+        spacing: 14px;
+
+        UiText {
+            text: "Variable Details";
+            height: 28px;
+            horizontal-stretch: 1;
+            color: Theme.on_surface;
+            font-size: 18px;
+            font-weight: 800;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+
+        UiText {
+            text: "JSON Preview";
+            height: 20px;
+            horizontal-stretch: 1;
+            color: Theme.on_surface_variant;
+            font-size: 12px;
+            font-weight: 800;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+
+        ReadOnlyCodeBlock {
+            height: 230px;
+            text: root.preview;
+        }
+
+        Rectangle {
+            height: 112px;
+            horizontal-stretch: 1;
+            border-radius: 8px;
+            border-width: 1px;
+            border-color: Theme.outline_variant;
+            background: Theme.surface_container;
+
+            VerticalLayout {
+                padding: 12px;
+                spacing: 8px;
+
+                UiText {
+                    text: "Secret Masking";
+                    height: 18px;
+                    horizontal-stretch: 1;
+                    color: Theme.on_surface;
+                    font-size: 13px;
+                    font-weight: 800;
+                    vertical-alignment: center;
+                    overflow: elide;
+                }
+
+                UiText {
+                    text: "Preview masks names containing key, token, or secret as ********.";
+                    horizontal-stretch: 1;
+                    vertical-stretch: 1;
+                    color: Theme.on_surface_variant;
+                    font-size: 12px;
+                    wrap: word-wrap;
+                    vertical-alignment: top;
+                }
+            }
+        }
+
+        Rectangle {
+            height: 126px;
+            horizontal-stretch: 1;
+            border-radius: 8px;
+            background: Theme.surface_variant;
+
+            VerticalLayout {
+                padding: 12px;
+                spacing: 8px;
+
+                UiText {
+                    text: "Pro Tip";
+                    height: 18px;
+                    horizontal-stretch: 1;
+                    color: Theme.on_surface;
+                    font-size: 13px;
+                    font-weight: 800;
+                    vertical-alignment: center;
+                    overflow: elide;
+                }
+
+                UiText {
+                    text: "Reference variables from requests with double braces.";
+                    height: 34px;
+                    horizontal-stretch: 1;
+                    color: Theme.on_surface_variant;
+                    font-size: 12px;
+                    wrap: word-wrap;
+                    vertical-alignment: top;
+                }
+
+                Rectangle {
+                    height: 32px;
+                    horizontal-stretch: 1;
+                    border-radius: 4px;
+                    border-width: 1px;
+                    border-color: Theme.outline_variant;
+                    background: Theme.surface_dim;
+
+                    UiText {
+                        x: 8px;
+                        text: "DB_URL={{DB_HOST}}:{{DB_PORT}}";
+                        width: parent.width - 16px;
+                        height: parent.height;
+                        color: Theme.tertiary;
+                        font-family: "JetBrains Mono";
+                        font-size: 11px;
+                        vertical-alignment: center;
+                        overflow: elide;
+                    }
+                }
+            }
+        }
+    }
+}
