@@ -142,15 +142,22 @@ fields append a parser-validated row with `Build`. Supported kinds include:
 - `response_time_below`: response time is at or below a millisecond limit.
 - `response_size_below`: response body size is at or below a byte limit.
 - `header_exists`: header exists.
+- `header_not_exists`: header does not exist.
 - `header_equals`: header equals.
+- `body_equals`: raw body exactly equals text.
 - `body_contains`: body contains text.
+- `body_not_contains`: body does not contain text.
 - `json_path_exists`: JSON path exists.
+- `json_path_not_exists`: JSON path does not exist.
 - `json_path_type`: JSON path has a value type (`array`, `object`, `string`,
   `number`, `boolean`, or `null`).
 - `json_path_length`: JSON array, object, or string length equals a number.
 - `json_path_contains`: JSON array contains a value, object contains a key or
   object subset, or string contains text.
+- `json_path_not_contains`: JSON array, object, or string does not contain a
+  value/key/subset/text.
 - `json_path_equals`: JSON path equals a value.
+- `json_path_not_equals`: JSON path does not equal a value.
 
 For JSON path assertions, use dot paths such as `data.items.0.id`; expected
 values for `json_path_equals` can be JSON literals such as `true`, `42`, or
@@ -159,10 +166,11 @@ cycling fills the next supported assertion template.
 
 The parser also accepts common single-line Postman-style `pm.test(...)`
 assertions for response status/status ranges, response time/size upper bounds,
-response headers, response text contains/string checks, JSON dot or bracket
-path existence/equality, JSON property existence/equality, `const`/`let`/`var`
-aliases assigned from `pm.response.json()`, JSON value type checks, JSON
-length checks, JSON include/contain checks, and JSON boolean/null
+response header presence/absence/equality, response text exact/contains/
+not-contains checks, JSON dot or bracket path existence/absence/equality/
+not-equality, JSON property existence/equality, `const`/`let`/`var` aliases
+assigned from `pm.response.json()`, JSON value type checks, JSON length checks,
+JSON include/contain/not-include/not-contain checks, and JSON boolean/null
 expectations. These are converted to native assertions; arbitrary JavaScript
 and full `pm.*` runtime compatibility are not implemented.
 

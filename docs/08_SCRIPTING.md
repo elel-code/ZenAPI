@@ -72,14 +72,15 @@ pm.test("status is 200", () => {
 ```
 
 The parser is not a JavaScript runtime. It accepts common status/status-range,
-response time/size upper bounds, header exists/header equality, body
-contains/string, JSON dot/bracket path existence/equality, JSON property
-existence/equality, `const`/`let`/`var` aliases assigned from
+response time/size upper bounds, header exists/not-exists/header equality, body
+exact/contains/not-contains, JSON dot/bracket path existence/not-existence/
+equality/not-equality, JSON property existence/equality,
+`const`/`let`/`var` aliases assigned from
 `pm.response.json()`, JSON value type checks such as `to.be.an("array")`,
 JSON length checks such as `to.have.lengthOf(2)`, JSON include/contain checks
-such as `to.deep.include({"id":1})`, and JSON boolean/null checks, while full
-Postman compatibility still requires a dedicated sandboxed scripting engine
-and compatibility tests.
+such as `to.deep.include({"id":1})`, JSON not-include/not-contain checks, and
+JSON boolean/null checks, while full Postman compatibility still requires a
+dedicated sandboxed scripting engine and compatibility tests.
 
 ## Result Model
 
@@ -160,13 +161,19 @@ Supported assertion kinds:
 | `response_time_below` | Response time upper bound in milliseconds |
 | `response_size_below` | Response body size upper bound in bytes |
 | `header_exists` | Case-insensitive response header presence |
+| `header_not_exists` | Case-insensitive response header absence |
 | `header_equals` | Case-insensitive response header value comparison |
+| `body_equals` | Exact raw body text comparison |
 | `body_contains` | Raw body substring check |
+| `body_not_contains` | Raw body substring absence check |
 | `json_path_exists` | Dot-path JSON presence check, including numeric array indexes |
+| `json_path_not_exists` | Dot-path JSON absence check, including numeric array indexes |
 | `json_path_type` | Dot-path JSON value type check; `$` targets the JSON root |
 | `json_path_length` | Dot-path JSON array, object, or string length check |
 | `json_path_contains` | Dot-path JSON array element, object subset/key, or string contains check |
+| `json_path_not_contains` | Dot-path JSON array element, object subset/key, or string absence check |
 | `json_path_equals` | Dot-path JSON value comparison, including numeric array indexes |
+| `json_path_not_equals` | Dot-path JSON negative value comparison, including numeric array indexes |
 
 Runner behavior:
 
@@ -177,12 +184,13 @@ Runner behavior:
 - Assertion failures appear in runner summaries and response summary text.
 - The Slint request editor includes a native Tests panel that configures these
   assertions without a script engine.
-- Common single-line `pm.test(...)` status, status-range, header exists/header
-  equality, response time/size upper bounds, body contains/string, JSON
-  dot/bracket path existence/equality, JSON property existence/equality,
-  `const`/`let`/`var` JSON aliases, JSON value type checks, JSON length checks,
-  JSON include/contain checks, and JSON boolean/null checks are converted to
-  the same native assertions.
+- Common single-line `pm.test(...)` status, status-range, header exists/
+  not-exists/header equality, response time/size upper bounds, body exact/
+  contains/not-contains, JSON dot/bracket path existence/not-existence/
+  equality/not-equality, JSON property existence/equality, `const`/`let`/`var`
+  JSON aliases, JSON value type checks, JSON length checks, JSON include/
+  contain/not-include/not-contain checks, and JSON boolean/null checks are
+  converted to the same native assertions.
 - Saving a request to a collection preserves configured assertions, and
   restoring a collection request brings them back into the Tests panel.
 

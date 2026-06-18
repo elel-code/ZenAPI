@@ -116,12 +116,14 @@
   saves/restores both fields with collection requests. Kind cycling and Status,
   Header, Body, and JSON assertion template builders are wired, plus a custom
   Kind/Target/Expect builder that validates against the native assertion parser.
-  Common single-line `pm.test(...)` status, status-range, header exists/header
-  equals, response time/size bounds, body contains/string, JSON dot/bracket
-  path existence/equality, JSON property existence/equality,
+  Common single-line `pm.test(...)` status, status-range, header exists/
+  not-exists/header equals, response time/size bounds, body exact/contains/
+  not-contains, JSON dot/bracket path existence/not-existence/equality/
+  not-equality, JSON property existence/equality,
   `const`/`let`/`var` JSON aliases, and JSON value type/length/include/
-  contain/boolean/null expectations are mapped into native assertions; a full
-  JavaScript runtime and complete Postman `pm.*` compatibility remain pending.
+  contain/not-include/not-contain/boolean/null expectations are mapped into
+  native assertions; a full JavaScript runtime and complete Postman `pm.*`
+  compatibility remain pending.
 - [~] Rebuild WebSocket and SSE panels using the restored client modules;
   current Slint Request Builder has a visible Realtime tab with WebSocket
   one-shot text send, persistent open/send/close text and binary sessions with
