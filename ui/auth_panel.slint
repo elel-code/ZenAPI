@@ -1,11 +1,9 @@
 import { DataPanel } from "cards.slint";
 import { KeyValueTablePanel } from "key_value_table_panel.slint";
-import { Theme } from "theme.slint";
-import { TextField } from "text_field.slint";
 import { KeyValueTableRow } from "types.slint";
+import { AuthBasicPanel } from "auth_basic_panel.slint";
 import { AuthModeToolbar } from "auth_mode_toolbar.slint";
 import { AuthTokenPanel } from "auth_token_panel.slint";
-import { UiText } from "widgets.slint";
 
 export component AuthEditorPanel inherits Rectangle {
     in-out property <string> auth_mode;
@@ -65,66 +63,12 @@ export component AuthEditorPanel inherits Rectangle {
             busy: root.busy;
         }
 
-        if root.auth_mode == "basic": Rectangle {
-            height: 98px;
-            horizontal-stretch: 1;
-            background: transparent;
-
-            VerticalLayout {
-                padding: 0px;
-                spacing: 8px;
-
-                UiText {
-                    text: "Basic Credentials";
-                    height: 20px;
-                    horizontal-stretch: 1;
-                    color: Theme.on_surface_variant;
-                    font-size: 12px;
-                    font-weight: 800;
-                    vertical-alignment: center;
-                    overflow: elide;
-                }
-
-                HorizontalLayout {
-                    height: 36px;
-                    spacing: 10px;
-
-                    TextField {
-                        text <=> root.auth_basic_username;
-                        placeholder: "username";
-                        mono: true;
-                        enabled: !root.busy;
-                        edited => {
-                            root.update_basic_auth(root.auth_basic_username, root.auth_basic_password);
-                        }
-                        accepted => {
-                            root.update_basic_auth(root.auth_basic_username, root.auth_basic_password);
-                        }
-                    }
-
-                    TextField {
-                        text <=> root.auth_basic_password;
-                        placeholder: "password";
-                        mono: true;
-                        enabled: !root.busy;
-                        edited => {
-                            root.update_basic_auth(root.auth_basic_username, root.auth_basic_password);
-                        }
-                        accepted => {
-                            root.update_basic_auth(root.auth_basic_username, root.auth_basic_password);
-                        }
-                    }
-                }
-
-                UiText {
-                    text: "Saved as username:password and base64 encoded before sending.";
-                    height: 18px;
-                    horizontal-stretch: 1;
-                    color: Theme.outline;
-                    font-size: 12px;
-                    vertical-alignment: center;
-                    overflow: elide;
-                }
+        if root.auth_mode == "basic": AuthBasicPanel {
+            username <=> root.auth_basic_username;
+            password <=> root.auth_basic_password;
+            busy: root.busy;
+            update_basic_auth(username, password) => {
+                root.update_basic_auth(username, password);
             }
         }
 
