@@ -1,14 +1,13 @@
 import { ListView } from "std-widgets.slint";
-import { DataPanel, MockLogLine } from "cards.slint";
 import { CodePane } from "editors.slint";
 import { Theme } from "theme.slint";
-import { TextField } from "text_field.slint";
 import { MockLogRow, MockRuleRow, RouteRow } from "types.slint";
 import { ActionButton } from "action_button.slint";
 import { MethodChip } from "status_components.slint";
 import { UiText } from "widgets.slint";
 import { MockConfigField, MockRouteLine } from "mock_manager_components.slint";
 import { MockManagerRulesPanel } from "mock_manager_rules_panel.slint";
+import { MockManagerTrafficPanel } from "mock_manager_traffic_panel.slint";
 
 export component MockManagerPage inherits Rectangle {
     in-out property <[RouteRow]> routes;
@@ -331,99 +330,22 @@ export component MockManagerPage inherits Rectangle {
                     background: Theme.outline_variant;
                 }
 
-                Rectangle {
-                    vertical-stretch: 1;
-                    horizontal-stretch: 1;
-                    background: Theme.surface_container_lowest;
-
-                    VerticalLayout {
-                        padding: 14px;
-                        spacing: 10px;
-
-                        HorizontalLayout {
-                            height: 34px;
-                            spacing: 8px;
-                            alignment: center;
-
-                            UiText {
-                                text: "LIVE TRAFFIC";
-                                height: parent.height;
-                                horizontal-stretch: 1;
-                                color: Theme.on_surface;
-                                font-size: 12px;
-                                font-weight: 800;
-                                vertical-alignment: center;
-                                overflow: elide;
-                            }
-
-                            ActionButton {
-                                text: "Clear";
-                                button_width: 62px;
-                                warning: true;
-                                enabled: !root.busy && root.mock_logs.length > 0;
-                                clicked => {
-                                    root.clear_mock_logs();
-                                }
-                            }
-                        }
-
-                        TextField {
-                            text <=> root.mock_log_filter;
-                            placeholder: "Filter traffic";
-                            mono: true;
-                            enabled: !root.busy;
-                            edited => {
-                                root.filter_mock_logs(root.mock_log_filter);
-                            }
-                        }
-
-                        if root.mock_logs.length == 0: DataPanel {
-                            title: "No requests";
-                            body: "Incoming mock traffic appears here.";
-                        }
-
-                        if root.mock_logs.length != 0: ListView {
-                            horizontal-stretch: 1;
-                            vertical-stretch: 1;
-                            vertical-scrollbar-policy: ScrollBarPolicy.as-needed;
-                            horizontal-scrollbar-policy: ScrollBarPolicy.as-needed;
-
-                            for log in root.mock_logs: MockLogLine {
-                                method: log.method;
-                                path: log.path;
-                                status: log.status;
-                            }
-                        }
-
-                        HorizontalLayout {
-                            height: 34px;
-                            spacing: 8px;
-
-                            TextField {
-                                text <=> root.mock_log_path;
-                                placeholder: "mock-logs.json";
-                                mono: true;
-                                enabled: !root.busy;
-                            }
-
-                            ActionButton {
-                                text: "Open";
-                                button_width: 58px;
-                                enabled: !root.busy;
-                                clicked => {
-                                    root.pick_mock_log_path();
-                                }
-                            }
-
-                            ActionButton {
-                                text: "Save";
-                                button_width: 62px;
-                                enabled: !root.busy && root.mock_logs.length > 0;
-                                clicked => {
-                                    root.save_mock_logs(root.mock_log_path);
-                                }
-                            }
-                        }
+                MockManagerTrafficPanel {
+                    mock_logs: root.mock_logs;
+                    mock_log_filter <=> root.mock_log_filter;
+                    mock_log_path <=> root.mock_log_path;
+                    busy: root.busy;
+                    filter_mock_logs(query) => {
+                        root.filter_mock_logs(query);
+                    }
+                    save_mock_logs(path) => {
+                        root.save_mock_logs(path);
+                    }
+                    pick_mock_log_path => {
+                        root.pick_mock_log_path();
+                    }
+                    clear_mock_logs => {
+                        root.clear_mock_logs();
                     }
                 }
             }
