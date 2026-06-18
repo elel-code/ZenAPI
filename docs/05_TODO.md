@@ -151,10 +151,10 @@
   moved metric cards, data panels, and mock log rows into `ui/cards.slint`,
   moved code/editor panes into `ui/editors.slint`, and the Realtime editor
   business panel, Realtime WebSocket panel, Realtime SSE panel, Realtime gRPC
-  panel, shared Key/Value table panel, Body editor panel, Body mode toolbar,
-  Body content panel, Header editor panel, Auth editor panel, Auth mode toolbar,
-  Auth token panel, Auth basic panel, Auth API key panel, Scripts editor panel,
-  Tests assertion panel,
+  panel, Realtime gRPC actions panel, shared Key/Value table panel, Body editor
+  panel, Body mode toolbar, Body content panel, Header editor panel, Auth editor
+  panel, Auth mode toolbar, Auth token panel, Auth basic panel,
+  Auth API key panel, Scripts editor panel, Tests assertion panel,
   Tests assertion row,
   Request Builder page, Request panel, Request tab strip, Request tab content,
   Request Builder pane size constraints, Request params tab,
