@@ -164,7 +164,7 @@
   Request auth tab host,
   Request body tab host,
   Request params tab, Request params tab host,
-  Request headers tab, Request realtime tab,
+  Request headers tab, Request headers tab host, Request realtime tab,
   Request realtime tab host,
   Response panel, Response header strip, Response tab strip, Response toolbar,
   Response viewer, Sidebar, App navigation, App auxiliary pages with preloaded
