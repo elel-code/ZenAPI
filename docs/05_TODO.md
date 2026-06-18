@@ -173,7 +173,8 @@
   Request scripts tab host,
   Response panel, Response header strip, Response tab strip, Response toolbar,
   Response viewer, Sidebar, App navigation, App auxiliary pages with preloaded
-  auxiliary page switching and fallback visited-page caching, Address bar,
+  auxiliary page switching and fallback visited-page caching,
+  App auxiliary pages workbench, Address bar,
   Dashboard page, Dashboard auxiliary host, Codegen page,
   Codegen auxiliary host, Settings page, Settings auxiliary host,
   Team page, API Keys page,
