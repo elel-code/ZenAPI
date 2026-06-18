@@ -3,8 +3,8 @@ import { Theme } from "theme.slint";
 import { KeyValueTableRow, TestAssertionRow } from "types.slint";
 import { AuthEditorPanel } from "auth_panel.slint";
 import { BodyEditorPanel } from "body_panel.slint";
-import { HeaderEditorPanel } from "header_panel.slint";
 import { RealtimeEditorPanel } from "realtime_editor_panel.slint";
+import { RequestHeadersTab } from "request_headers_tab.slint";
 import { RequestParamsTab } from "request_params_tab.slint";
 import { ScriptsEditorPanel } from "scripts_panel.slint";
 
@@ -136,11 +136,9 @@ export component RequestTabContent inherits ScrollView {
             }
         }
 
-        if root.active_tab == "headers": HeaderEditorPanel {
-            x: 16px;
-            y: 16px;
-            width: parent.width - 32px;
-            height: parent.height - 32px;
+        if root.active_tab == "headers": RequestHeadersTab {
+            width: parent.width;
+            height: parent.height;
             request_headers <=> root.request_headers;
             header_rows <=> root.header_rows;
             header_import_path <=> root.header_import_path;

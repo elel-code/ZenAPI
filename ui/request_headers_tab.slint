@@ -1,0 +1,54 @@
+import { KeyValueTableRow } from "types.slint";
+import { HeaderEditorPanel } from "header_panel.slint";
+
+export component RequestHeadersTab inherits Rectangle {
+    in-out property <string> request_headers;
+    in-out property <[KeyValueTableRow]> header_rows;
+    in-out property <string> header_import_path;
+    in property <bool> busy;
+    callback apply_header_preset(string);
+    callback add_header();
+    callback paste_headers();
+    callback import_headers(string);
+    callback pick_header_import_file();
+    callback update_header_row(int, string, string);
+    callback delete_header_row(int);
+    callback copy_headers();
+
+    background: transparent;
+
+    HeaderEditorPanel {
+        x: 16px;
+        y: 16px;
+        width: parent.width - 32px;
+        height: parent.height - 32px;
+        request_headers <=> root.request_headers;
+        header_rows <=> root.header_rows;
+        header_import_path <=> root.header_import_path;
+        busy: root.busy;
+        apply_header_preset(preset) => {
+            root.apply_header_preset(preset);
+        }
+        add_header => {
+            root.add_header();
+        }
+        paste_headers => {
+            root.paste_headers();
+        }
+        import_headers(path) => {
+            root.import_headers(path);
+        }
+        pick_header_import_file => {
+            root.pick_header_import_file();
+        }
+        update_header_row(row_id, key, value) => {
+            root.update_header_row(row_id, key, value);
+        }
+        delete_header_row(row_id) => {
+            root.delete_header_row(row_id);
+        }
+        copy_headers => {
+            root.copy_headers();
+        }
+    }
+}
