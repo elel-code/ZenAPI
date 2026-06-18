@@ -1,0 +1,41 @@
+import { ScrollView } from "std-widgets.slint";
+import { CodegenPage } from "codegen_page.slint";
+
+export component AppCodegenPageHost inherits ScrollView {
+    in-out property <string> codegen_language;
+    in-out property <string> codegen_output;
+    in property <string> codegen_metadata;
+    in-out property <string> codegen_path;
+    in property <bool> busy;
+    callback generate_code();
+    callback copy_codegen();
+    callback save_codegen(string);
+    callback pick_codegen_path();
+
+    viewport-width: max(self.visible-width, 840px);
+    viewport-height: max(self.visible-height, 620px);
+    vertical-scrollbar-policy: ScrollBarPolicy.as-needed;
+    horizontal-scrollbar-policy: ScrollBarPolicy.as-needed;
+
+    CodegenPage {
+        width: max(parent.visible-width, 840px);
+        height: max(parent.visible-height, 620px);
+        codegen_language <=> root.codegen_language;
+        codegen_output <=> root.codegen_output;
+        codegen_metadata: root.codegen_metadata;
+        codegen_path <=> root.codegen_path;
+        busy: root.busy;
+        generate_code => {
+            root.generate_code();
+        }
+        copy_codegen => {
+            root.copy_codegen();
+        }
+        save_codegen(path) => {
+            root.save_codegen(path);
+        }
+        pick_codegen_path => {
+            root.pick_codegen_path();
+        }
+    }
+}

@@ -1,8 +1,8 @@
 import { ScrollView } from "std-widgets.slint";
 import { AnalyticsPage } from "analytics_page.slint";
 import { ApiKeysPage } from "api_keys_page.slint";
+import { AppCodegenPageHost } from "app_codegen_page_host.slint";
 import { AppDashboardPageHost } from "app_dashboard_page_host.slint";
-import { CodegenPage } from "codegen_page.slint";
 import { DocumentationPage } from "documentation_page.slint";
 import { EnvironmentPage } from "environment_page.slint";
 import { MockManagerPage } from "mock_manager_page.slint";
@@ -303,35 +303,26 @@ export component AppAuxiliaryPages inherits Rectangle {
         }
     }
 
-    if root.preload_pages || root.codegen_mounted: ScrollView {
+    if root.preload_pages || root.codegen_mounted: AppCodegenPageHost {
         visible: root.active_page_index == 10;
         width: parent.width;
         height: parent.height;
-        viewport-width: max(self.visible-width, 840px);
-        viewport-height: max(self.visible-height, 620px);
-        vertical-scrollbar-policy: ScrollBarPolicy.as-needed;
-        horizontal-scrollbar-policy: ScrollBarPolicy.as-needed;
-
-        CodegenPage {
-            width: max(parent.visible-width, 840px);
-            height: max(parent.visible-height, 620px);
-            codegen_language <=> root.codegen_language;
-            codegen_output <=> root.codegen_output;
-            codegen_metadata: root.codegen_metadata;
-            codegen_path <=> root.codegen_path;
-            busy: root.busy;
-            generate_code => {
-                root.generate_code();
-            }
-            copy_codegen => {
-                root.copy_codegen();
-            }
-            save_codegen(path) => {
-                root.save_codegen(path);
-            }
-            pick_codegen_path => {
-                root.pick_codegen_path();
-            }
+        codegen_language <=> root.codegen_language;
+        codegen_output <=> root.codegen_output;
+        codegen_metadata: root.codegen_metadata;
+        codegen_path <=> root.codegen_path;
+        busy: root.busy;
+        generate_code => {
+            root.generate_code();
+        }
+        copy_codegen => {
+            root.copy_codegen();
+        }
+        save_codegen(path) => {
+            root.save_codegen(path);
+        }
+        pick_codegen_path => {
+            root.pick_codegen_path();
         }
     }
 
