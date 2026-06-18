@@ -3,7 +3,7 @@ import { Theme } from "theme.slint";
 import { KeyValueTableRow, TestAssertionRow } from "types.slint";
 import { RequestAuthTabHost } from "request_auth_tab_host.slint";
 import { RequestBodyTabHost } from "request_body_tab_host.slint";
-import { RequestHeadersTab } from "request_headers_tab.slint";
+import { RequestHeadersTabHost } from "request_headers_tab_host.slint";
 import { RequestParamsTabHost } from "request_params_tab_host.slint";
 import { RequestRealtimeTabHost } from "request_realtime_tab_host.slint";
 import { ScriptsEditorPanel } from "scripts_panel.slint";
@@ -138,36 +138,36 @@ export component RequestTabContent inherits ScrollView {
             }
         }
 
-        if root.preload_tabs || root.active_tab == "headers": RequestHeadersTab {
+        if root.preload_tabs || root.active_tab == "headers": RequestHeadersTabHost {
             visible: root.active_tab == "headers";
             width: parent.width;
             height: parent.height;
-            request_headers <=> root.request_headers;
-            header_rows <=> root.header_rows;
-            header_import_path <=> root.header_import_path;
-            busy: root.busy;
-            apply_header_preset(preset) => {
+            workspace_request_headers <=> root.request_headers;
+            workspace_header_rows <=> root.header_rows;
+            workspace_header_import_path <=> root.header_import_path;
+            workspace_busy: root.busy;
+            workspace_apply_header_preset(preset) => {
                 root.apply_header_preset(preset);
             }
-            add_header => {
+            workspace_add_header => {
                 root.add_header();
             }
-            paste_headers => {
+            workspace_paste_headers => {
                 root.paste_headers();
             }
-            import_headers(path) => {
+            workspace_import_headers(path) => {
                 root.import_headers(path);
             }
-            pick_header_import_file => {
+            workspace_pick_header_import_file => {
                 root.pick_header_import_file();
             }
-            update_header_row(row_id, key, value) => {
+            workspace_update_header_row(row_id, key, value) => {
                 root.update_header_row(row_id, key, value);
             }
-            delete_header_row(row_id) => {
+            workspace_delete_header_row(row_id) => {
                 root.delete_header_row(row_id);
             }
-            copy_headers => {
+            workspace_copy_headers => {
                 root.copy_headers();
             }
         }

@@ -1,0 +1,46 @@
+import { RequestHeadersTab } from "request_headers_tab.slint";
+import { KeyValueTableRow } from "types.slint";
+
+export component RequestHeadersTabHost inherits RequestHeadersTab {
+    in-out property <string> workspace_request_headers;
+    in-out property <[KeyValueTableRow]> workspace_header_rows;
+    in-out property <string> workspace_header_import_path;
+    in property <bool> workspace_busy;
+    callback workspace_apply_header_preset(string);
+    callback workspace_add_header();
+    callback workspace_paste_headers();
+    callback workspace_import_headers(string);
+    callback workspace_pick_header_import_file();
+    callback workspace_update_header_row(int, string, string);
+    callback workspace_delete_header_row(int);
+    callback workspace_copy_headers();
+
+    request_headers <=> root.workspace_request_headers;
+    header_rows <=> root.workspace_header_rows;
+    header_import_path <=> root.workspace_header_import_path;
+    busy: root.workspace_busy;
+    apply_header_preset(preset) => {
+        root.workspace_apply_header_preset(preset);
+    }
+    add_header => {
+        root.workspace_add_header();
+    }
+    paste_headers => {
+        root.workspace_paste_headers();
+    }
+    import_headers(path) => {
+        root.workspace_import_headers(path);
+    }
+    pick_header_import_file => {
+        root.workspace_pick_header_import_file();
+    }
+    update_header_row(row_id, key, value) => {
+        root.workspace_update_header_row(row_id, key, value);
+    }
+    delete_header_row(row_id) => {
+        root.workspace_delete_header_row(row_id);
+    }
+    copy_headers => {
+        root.workspace_copy_headers();
+    }
+}
