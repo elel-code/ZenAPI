@@ -95,7 +95,7 @@ export component AppAuxiliaryPagesWorkbench inherits Rectangle {
     callback save_codegen(string);
     callback pick_codegen_path();
     callback send_request();
-    in property <bool> preload_pages: true;
+    in property <bool> preload_pages: false;
     property <bool> dashboard_mounted: false;
     property <bool> mock_manager_mounted: false;
     property <bool> environment_mounted: false;

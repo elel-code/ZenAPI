@@ -609,7 +609,7 @@ export component AppWindow inherits Window {
                 }
 
                 AppAuxiliaryPages {
-                    visible: true;
+                    visible: root.active_page_index != 1;
                     width: parent.width;
                     height: parent.height;
                     active_page_index: root.active_page_index;
