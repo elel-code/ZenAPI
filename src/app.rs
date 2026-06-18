@@ -1240,6 +1240,95 @@ fn wire_collection_actions(app: &AppWindow, state: Arc<Mutex<AppState>>) {
     });
 
     let weak_app = app.as_weak();
+    let reorder_folder_state = state.clone();
+    app.on_reorder_collection_folder(move |folder_path, delta| {
+        let Some(app) = weak_app.upgrade() else {
+            return;
+        };
+        if app.get_busy() {
+            return;
+        }
+
+        let Some((folder_name, new_path, request_count, rows)) =
+            reorder_folder_state.lock().ok().and_then(|mut state| {
+                let (folder_name, new_path) = reorder_collection_folder_at(
+                    &mut state.collection,
+                    folder_path.as_str(),
+                    delta,
+                )?;
+                let request_count = count_collection_requests(&state.collection.items);
+                let rows = collection_model(&state.collection);
+                Some((folder_name, new_path, request_count, rows))
+            })
+        else {
+            app.set_collection_status("Folder reorder failed".into());
+            set_response(
+                &app,
+                "Collection folder reorder failed",
+                "",
+                "error",
+                "Select a folder that can move in that direction.",
+            );
+            return;
+        };
+
+        app.set_collection_rows(rows);
+        app.set_selected_collection_folder(new_path.clone().into());
+        app.set_collection_move_target_label(collection_folder_label(&new_path).into());
+        app.set_collection_status(format!("Reordered folder / {request_count} requests").into());
+        set_response(
+            &app,
+            "Collection folder reordered",
+            &folder_name,
+            "success",
+            &format!("Folder path: {}", collection_folder_label(&new_path)),
+        );
+    });
+
+    let weak_app = app.as_weak();
+    let reorder_request_state = state.clone();
+    app.on_reorder_collection_request(move |id, delta| {
+        let Some(app) = weak_app.upgrade() else {
+            return;
+        };
+        if app.get_busy() || id < 0 {
+            return;
+        }
+
+        let Some((request, new_id, request_count, rows)) =
+            reorder_request_state.lock().ok().and_then(|mut state| {
+                let (request, new_id) =
+                    reorder_collection_request_at(&mut state.collection, id as usize, delta)?;
+                let request_count = count_collection_requests(&state.collection.items);
+                let rows = collection_model(&state.collection);
+                Some((request, new_id, request_count, rows))
+            })
+        else {
+            app.set_collection_status("Request reorder failed".into());
+            set_response(
+                &app,
+                "Collection request reorder failed",
+                "",
+                "error",
+                "Select a saved request that can move in that direction.",
+            );
+            return;
+        };
+
+        app.set_collection_rows(rows);
+        app.set_selected_collection_request(new_id);
+        app.set_collection_request_name(request.name.clone().into());
+        app.set_collection_status(format!("Reordered {request_count} requests").into());
+        set_response(
+            &app,
+            "Collection request reordered",
+            &request.name,
+            "success",
+            &request.url,
+        );
+    });
+
+    let weak_app = app.as_weak();
     let add_state = state.clone();
     app.on_save_current_request(move || {
         let Some(app) = weak_app.upgrade() else {
@@ -5028,6 +5117,37 @@ fn remove_collection_folder_at_items(
     remove_collection_folder_at_items(&mut folder.items, rest)
 }
 
+fn reorder_collection_folder_at(
+    collection: &mut ApiCollection,
+    folder_path_key: &str,
+    delta: i32,
+) -> Option<(String, String)> {
+    if delta == 0 {
+        return None;
+    }
+
+    let mut folder_path = parse_collection_folder_path_key(folder_path_key)?;
+    let folder_name = folder_path.pop()?;
+    let parent_items = if folder_path.is_empty() {
+        &mut collection.items
+    } else {
+        collection_folder_items_mut(&mut collection.items, &folder_path)?
+    };
+
+    let position = parent_items.iter().position(|item| {
+        matches!(item, CollectionItem::Folder(folder) if folder.name.as_str() == folder_name.as_str())
+    })?;
+    let next_position = if delta < 0 {
+        position.checked_sub(1)?
+    } else {
+        (position + 1 < parent_items.len()).then_some(position + 1)?
+    };
+    parent_items.swap(position, next_position);
+
+    folder_path.push(folder_name.clone());
+    Some((folder_name, collection_folder_path_key(&folder_path)))
+}
+
 fn collection_folder_items_mut<'a>(
     items: &'a mut Vec<CollectionItem>,
     folder_path: &[String],
@@ -5318,6 +5438,69 @@ fn move_collection_request_to_folder(
     let target_items = collection_folder_items_mut(&mut collection.items, &target_path)?;
     target_items.push(CollectionItem::Request(request.clone()));
     Some(request)
+}
+
+fn reorder_collection_request_at(
+    collection: &mut ApiCollection,
+    index: usize,
+    delta: i32,
+) -> Option<(CollectionRequest, i32)> {
+    if delta == 0 {
+        return None;
+    }
+
+    let mut current = 0usize;
+    reorder_collection_request_at_items(&mut collection.items, index, &mut current, delta)
+}
+
+fn reorder_collection_request_at_items(
+    items: &mut Vec<CollectionItem>,
+    target: usize,
+    current: &mut usize,
+    delta: i32,
+) -> Option<(CollectionRequest, i32)> {
+    let mut position = 0;
+    while position < items.len() {
+        if matches!(&items[position], CollectionItem::Request(_)) {
+            if *current == target {
+                let request = match &items[position] {
+                    CollectionItem::Request(request) => request.clone(),
+                    CollectionItem::Folder(_) => unreachable!("collection request kind checked"),
+                };
+                let (next_position, new_index) = if delta < 0 {
+                    let next_position = position.checked_sub(1)?;
+                    let skipped = collection_item_request_count(&items[next_position]);
+                    (next_position, target.saturating_sub(skipped))
+                } else {
+                    let next_position = (position + 1 < items.len()).then_some(position + 1)?;
+                    let skipped = collection_item_request_count(&items[next_position]);
+                    (next_position, target + skipped)
+                };
+                items.swap(position, next_position);
+                return Some((request, new_index as i32));
+            }
+            *current += 1;
+            position += 1;
+            continue;
+        }
+
+        if let CollectionItem::Folder(folder) = &mut items[position] {
+            if let Some(result) =
+                reorder_collection_request_at_items(&mut folder.items, target, current, delta)
+            {
+                return Some(result);
+            }
+        }
+        position += 1;
+    }
+    None
+}
+
+fn collection_item_request_count(item: &CollectionItem) -> usize {
+    match item {
+        CollectionItem::Folder(folder) => count_collection_requests(&folder.items),
+        CollectionItem::Request(_) => 1,
+    }
 }
 
 fn collection_request_from_codegen(request: &CodegenRequest) -> CollectionRequest {
@@ -10991,6 +11174,103 @@ pm.test("json alias contains", () => { const json = pm.response.json(); pm.expec
             collection_request_at(&collection, 0).map(|request| request.name.as_str()),
             Some("Health")
         );
+    }
+
+    #[test]
+    fn reorders_collection_requests_with_flattened_ids() {
+        use slint::Model;
+
+        let mut collection = ApiCollection {
+            name: "Demo".to_string(),
+            description: String::new(),
+            items: vec![
+                CollectionItem::Folder(CollectionFolder {
+                    name: "Users".to_string(),
+                    description: String::new(),
+                    items: vec![CollectionItem::Request(saved_request(
+                        "List users",
+                        "GET",
+                        "https://api.example.com/users",
+                    ))],
+                }),
+                CollectionItem::Request(saved_request(
+                    "Health",
+                    "GET",
+                    "https://api.example.com/health",
+                )),
+            ],
+        };
+
+        let (moved, new_id) =
+            reorder_collection_request_at(&mut collection, 1, -1).expect("move over folder");
+
+        assert_eq!(moved.name, "Health");
+        assert_eq!(new_id, 0);
+        assert_eq!(
+            collection_request_at(&collection, 0).map(|request| request.name.as_str()),
+            Some("Health")
+        );
+        assert_eq!(
+            collection_request_at(&collection, 1).map(|request| request.name.as_str()),
+            Some("List users")
+        );
+
+        let rows = collection_model(&collection);
+        let health = rows.row_data(0).expect("health request row");
+        assert!(!health.is_folder);
+        assert_eq!(health.id, 0);
+        assert_eq!(health.name.as_str(), "Health");
+
+        let (moved, new_id) =
+            reorder_collection_request_at(&mut collection, 0, 1).expect("move below folder");
+        assert_eq!(moved.name, "Health");
+        assert_eq!(new_id, 1);
+        assert!(reorder_collection_request_at(&mut collection, 1, 1).is_none());
+    }
+
+    #[test]
+    fn reorders_collection_folders_within_parent() {
+        use slint::Model;
+
+        let mut collection = ApiCollection {
+            name: "Demo".to_string(),
+            description: String::new(),
+            items: vec![CollectionItem::Folder(CollectionFolder {
+                name: "Users".to_string(),
+                description: String::new(),
+                items: vec![
+                    CollectionItem::Folder(CollectionFolder {
+                        name: "Admin".to_string(),
+                        description: String::new(),
+                        items: Vec::new(),
+                    }),
+                    CollectionItem::Folder(CollectionFolder {
+                        name: "Audit".to_string(),
+                        description: String::new(),
+                        items: Vec::new(),
+                    }),
+                ],
+            })],
+        };
+
+        assert_eq!(
+            reorder_collection_folder_at(&mut collection, r#"["Users","Audit"]"#, -1),
+            Some(("Audit".to_string(), r#"["Users","Audit"]"#.to_string()))
+        );
+        assert!(
+            reorder_collection_folder_at(&mut collection, r#"["Users","Audit"]"#, -1).is_none()
+        );
+
+        let rows = collection_model(&collection);
+        let audit = rows.row_data(1).expect("audit folder row");
+        assert!(audit.is_folder);
+        assert_eq!(audit.name.as_str(), "  Audit");
+        assert_eq!(audit.folder_path.as_str(), r#"["Users","Audit"]"#);
+
+        let admin = rows.row_data(2).expect("admin folder row");
+        assert!(admin.is_folder);
+        assert_eq!(admin.name.as_str(), "  Admin");
+        assert_eq!(admin.folder_path.as_str(), r#"["Users","Admin"]"#);
     }
 
     #[test]

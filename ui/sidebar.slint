@@ -32,10 +32,12 @@ export component Sidebar inherits Rectangle {
     callback duplicate_collection_request(int);
     callback delete_collection_request(int);
     callback move_collection_request(int, string);
+    callback reorder_collection_request(int, int);
     callback import_collection(string);
     callback add_collection_folder(string);
     callback rename_collection_folder(string, string);
     callback delete_collection_folder(string);
+    callback reorder_collection_folder(string, int);
     callback save_current_request();
     callback save_collection(string);
     callback export_postman_collection(string);
@@ -103,6 +105,9 @@ export component Sidebar inherits Rectangle {
             move_collection_request(row_id, folder_path) => {
                 root.move_collection_request(row_id, folder_path);
             }
+            reorder_collection_request(row_id, delta) => {
+                root.reorder_collection_request(row_id, delta);
+            }
             import_collection(path) => {
                 root.import_collection(path);
             }
@@ -114,6 +119,9 @@ export component Sidebar inherits Rectangle {
             }
             delete_collection_folder(folder_path) => {
                 root.delete_collection_folder(folder_path);
+            }
+            reorder_collection_folder(folder_path, delta) => {
+                root.reorder_collection_folder(folder_path, delta);
             }
             save_current_request => {
                 root.save_current_request();

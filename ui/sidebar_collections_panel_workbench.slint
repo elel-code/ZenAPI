@@ -27,10 +27,12 @@ export component SidebarCollectionsPanelWorkbench inherits Rectangle {
     callback duplicate_collection_request(int);
     callback delete_collection_request(int);
     callback move_collection_request(int, string);
+    callback reorder_collection_request(int, int);
     callback import_collection(string);
     callback add_collection_folder(string);
     callback rename_collection_folder(string, string);
     callback delete_collection_folder(string);
+    callback reorder_collection_folder(string, int);
     callback save_current_request();
     callback pick_collection_import_file();
     callback pick_collection_save_path();
@@ -143,6 +145,24 @@ export component SidebarCollectionsPanelWorkbench inherits Rectangle {
             }
 
             ActionButton {
+                text: "Up";
+                button_width: 34px;
+                enabled: !root.busy && root.selected_collection_folder != "";
+                clicked => {
+                    root.reorder_collection_folder(root.selected_collection_folder, -1);
+                }
+            }
+
+            ActionButton {
+                text: "Dn";
+                button_width: 34px;
+                enabled: !root.busy && root.selected_collection_folder != "";
+                clicked => {
+                    root.reorder_collection_folder(root.selected_collection_folder, 1);
+                }
+            }
+
+            ActionButton {
                 text: "Ren";
                 button_width: 40px;
                 enabled: !root.busy && root.selected_collection_folder != "" && root.collection_folder_name != "";
@@ -219,6 +239,24 @@ export component SidebarCollectionsPanelWorkbench inherits Rectangle {
                 font-size: 11px;
                 vertical-alignment: center;
                 overflow: elide;
+            }
+
+            ActionButton {
+                text: "Up";
+                button_width: 34px;
+                enabled: !root.busy && root.selected_collection_request >= 0;
+                clicked => {
+                    root.reorder_collection_request(root.selected_collection_request, -1);
+                }
+            }
+
+            ActionButton {
+                text: "Dn";
+                button_width: 34px;
+                enabled: !root.busy && root.selected_collection_request >= 0;
+                clicked => {
+                    root.reorder_collection_request(root.selected_collection_request, 1);
+                }
             }
 
             ActionButton {
