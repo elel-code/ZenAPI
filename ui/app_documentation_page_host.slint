@@ -1,0 +1,36 @@
+import { ScrollView } from "std-widgets.slint";
+import { DocumentationPage } from "documentation_page.slint";
+import { RouteRow } from "types.slint";
+
+export component AppDocumentationPageHost inherits ScrollView {
+    in property <[RouteRow]> routes;
+    in-out property <int> selected_route;
+    in property <string> method;
+    in-out property <string> url;
+    in property <string> auth_mode;
+    in property <bool> busy;
+    callback select_route(int);
+    callback send_request();
+
+    viewport-width: max(self.visible-width, 1040px);
+    viewport-height: max(self.visible-height, 620px);
+    vertical-scrollbar-policy: ScrollBarPolicy.as-needed;
+    horizontal-scrollbar-policy: ScrollBarPolicy.as-needed;
+
+    DocumentationPage {
+        width: max(parent.visible-width, 1040px);
+        height: max(parent.visible-height, 620px);
+        routes: root.routes;
+        selected_route <=> root.selected_route;
+        method: root.method;
+        url <=> root.url;
+        auth_mode: root.auth_mode;
+        busy: root.busy;
+        select_route(index) => {
+            root.select_route(index);
+        }
+        send_request => {
+            root.send_request();
+        }
+    }
+}

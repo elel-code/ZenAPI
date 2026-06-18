@@ -3,8 +3,8 @@ import { ApiKeysPage } from "api_keys_page.slint";
 import { AppAnalyticsPageHost } from "app_analytics_page_host.slint";
 import { AppCodegenPageHost } from "app_codegen_page_host.slint";
 import { AppDashboardPageHost } from "app_dashboard_page_host.slint";
+import { AppDocumentationPageHost } from "app_documentation_page_host.slint";
 import { AppRunnerPageHost } from "app_runner_page_host.slint";
-import { DocumentationPage } from "documentation_page.slint";
 import { EnvironmentPage } from "environment_page.slint";
 import { MockManagerPage } from "mock_manager_page.slint";
 import { SettingsPage } from "settings_page.slint";
@@ -329,30 +329,21 @@ export component AppAuxiliaryPages inherits Rectangle {
         response_size: root.response_size;
     }
 
-    if root.preload_pages || root.documentation_mounted: ScrollView {
+    if root.preload_pages || root.documentation_mounted: AppDocumentationPageHost {
         visible: root.active_page_index == 6;
         width: parent.width;
         height: parent.height;
-        viewport-width: max(self.visible-width, 1040px);
-        viewport-height: max(self.visible-height, 620px);
-        vertical-scrollbar-policy: ScrollBarPolicy.as-needed;
-        horizontal-scrollbar-policy: ScrollBarPolicy.as-needed;
-
-        DocumentationPage {
-            width: max(parent.visible-width, 1040px);
-            height: max(parent.visible-height, 620px);
-            routes: root.routes;
-            selected_route <=> root.selected_route;
-            method: root.method;
-            url <=> root.url;
-            auth_mode: root.auth_mode;
-            busy: root.busy;
-            select_route(index) => {
-                root.select_route(index);
-            }
-            send_request => {
-                root.send_request();
-            }
+        routes: root.routes;
+        selected_route <=> root.selected_route;
+        method: root.method;
+        url <=> root.url;
+        auth_mode: root.auth_mode;
+        busy: root.busy;
+        select_route(index) => {
+            root.select_route(index);
+        }
+        send_request => {
+            root.send_request();
         }
     }
 
