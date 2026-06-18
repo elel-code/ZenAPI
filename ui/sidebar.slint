@@ -1,10 +1,7 @@
-import { ListView } from "std-widgets.slint";
 import { Theme } from "theme.slint";
-import { TextField } from "text_field.slint";
 import { CollectionRow, HistoryRow, RouteRow } from "types.slint";
-import { ActionButton } from "action_button.slint";
-import { UiText } from "widgets.slint";
-import { SidebarFolderRow, SidebarProfile, SidebarRequestLink } from "sidebar_rows.slint";
+import { SidebarProfile } from "sidebar_rows.slint";
+import { SidebarCollectionsPanel } from "sidebar_collections_panel.slint";
 import { SidebarHistoryPanel } from "sidebar_history_panel.slint";
 import { SidebarOpenApiPanel } from "sidebar_openapi_panel.slint";
 
@@ -72,300 +69,55 @@ export component Sidebar inherits Rectangle {
             }
         }
 
-        Rectangle {
-            horizontal-stretch: 1;
-            vertical-stretch: 1;
-            background: transparent;
-
-            VerticalLayout {
-                padding: 0px;
-                spacing: 8px;
-
-                HorizontalLayout {
-                    height: 24px;
-                    spacing: 8px;
-                    alignment: center;
-
-                    UiText {
-                        text: "COLLECTIONS";
-                        horizontal-stretch: 1;
-                        height: parent.height;
-                        color: Theme.on_surface_variant;
-                        font-size: 12px;
-                        font-weight: 800;
-                        vertical-alignment: center;
-                        overflow: elide;
-                    }
-
-                    ActionButton {
-                        text: "+";
-                        button_width: 30px;
-                        enabled: !root.busy;
-                        clicked => {
-                            root.save_current_request();
-                        }
-                    }
-                }
-
-                SidebarFolderRow {
-                    label: root.collection_name == "" ? "Collection" : root.collection_name;
-                    selected: root.selected_collection_folder == "" && root.selected_collection_request < 0;
-                    interactive: true;
-                    picked => {
-                        root.selected_collection_folder = "";
-                        root.collection_move_target_label = root.collection_name == "" ? "Collection" : root.collection_name;
-                        root.selected_collection_request = -1;
-                        root.collection_request_name = "";
-                    }
-                }
-
-                HorizontalLayout {
-                    height: 34px;
-                    spacing: 6px;
-                    alignment: center;
-
-                    TextField {
-                        text <=> root.collection_path;
-                        placeholder: "collection json";
-                        mono: true;
-                        enabled: !root.busy;
-                        horizontal-stretch: 1;
-                        accepted => {
-                            if !root.busy && root.collection_path != "" {
-                                root.import_collection(root.collection_path);
-                            }
-                        }
-                    }
-
-                    ActionButton {
-                        text: "Open";
-                        button_width: 52px;
-                        enabled: !root.busy;
-                        clicked => {
-                            root.pick_collection_import_file();
-                        }
-                    }
-
-                    ActionButton {
-                        text: "Load";
-                        button_width: 50px;
-                        enabled: !root.busy && root.collection_path != "";
-                        clicked => {
-                            root.import_collection(root.collection_path);
-                        }
-                    }
-                }
-
-                HorizontalLayout {
-                    height: 30px;
-                    spacing: 6px;
-                    alignment: center;
-
-                    UiText {
-                        text: root.collection_status == "" ? "Native/Postman JSON" : root.collection_status;
-                        horizontal-stretch: 1;
-                        height: parent.height;
-                        color: Theme.outline;
-                        font-size: 11px;
-                        vertical-alignment: center;
-                        overflow: elide;
-                    }
-
-                    ActionButton {
-                        text: "Save";
-                        button_width: 48px;
-                        enabled: !root.busy;
-                        clicked => {
-                            root.pick_collection_save_path();
-                        }
-                    }
-
-                    ActionButton {
-                        text: "PM";
-                        button_width: 38px;
-                        enabled: !root.busy;
-                        clicked => {
-                            root.pick_postman_collection_path();
-                        }
-                    }
-                }
-
-                HorizontalLayout {
-                    height: 34px;
-                    spacing: 8px;
-                    alignment: center;
-
-                    TextField {
-                        text <=> root.collection_folder_name;
-                        placeholder: "folder name";
-                        enabled: !root.busy;
-                        horizontal-stretch: 1;
-                        accepted => {
-                            if !root.busy && root.collection_folder_name != "" {
-                                root.add_collection_folder(root.collection_folder_name);
-                            }
-                        }
-                    }
-
-                    ActionButton {
-                        text: "Folder";
-                        button_width: 62px;
-                        enabled: !root.busy && root.collection_folder_name != "";
-                        clicked => {
-                            root.add_collection_folder(root.collection_folder_name);
-                        }
-                    }
-                }
-
-                Rectangle {
-                    height: root.collection_rows.length == 0 && root.routes.length == 0 ? 34px : 170px;
-                    horizontal-stretch: 1;
-                    background: transparent;
-
-                    Rectangle {
-                        x: 19px;
-                        width: 1px;
-                        height: parent.height;
-                        background: Theme.outline_variant;
-                    }
-
-                    if root.collection_rows.length == 0 && root.routes.length == 0: UiText {
-                        x: 32px;
-                        text: root.total_route_count == 0 ? "No requests" : "No matching routes";
-                        width: parent.width - 32px;
-                        height: 30px;
-                        color: Theme.outline;
-                        font-size: 12px;
-                        vertical-alignment: center;
-                        overflow: elide;
-                    }
-
-                    if root.collection_rows.length != 0: ListView {
-                        x: 32px;
-                        width: parent.width - 32px;
-                        height: parent.height;
-                        vertical-scrollbar-policy: ScrollBarPolicy.as-needed;
-                        horizontal-scrollbar-policy: ScrollBarPolicy.as-needed;
-
-                        for entry in root.collection_rows: Rectangle {
-                            height: entry.is_folder ? 36px : 30px;
-                            horizontal-stretch: 1;
-                            background: transparent;
-
-                            if entry.is_folder: SidebarFolderRow {
-                                label: entry.name;
-                                selected: root.selected_collection_folder == entry.folder_path;
-                                interactive: true;
-                                picked => {
-                                    root.selected_collection_folder = entry.folder_path;
-                                    root.collection_move_target_label = entry.name;
-                                    root.selected_collection_request = -1;
-                                    root.collection_request_name = "";
-                                }
-                            }
-
-                            if !entry.is_folder: SidebarRequestLink {
-                                method: entry.method;
-                                label: entry.name;
-                                selected: root.selected_collection_request == entry.id;
-                                picked => {
-                                    root.selected_collection_request = entry.id;
-                                    root.select_collection_request(entry.id);
-                                }
-                            }
-                        }
-                    }
-
-                    if root.collection_rows.length == 0 && root.routes.length != 0: ListView {
-                        x: 32px;
-                        width: parent.width - 32px;
-                        height: parent.height;
-                        vertical-scrollbar-policy: ScrollBarPolicy.as-needed;
-                        horizontal-scrollbar-policy: ScrollBarPolicy.as-needed;
-
-                        for route[i] in root.routes: SidebarRequestLink {
-                            method: route.method;
-                            label: route.summary == "" ? route.path : route.summary;
-                            selected: root.selected_route == i;
-                            picked => {
-                                root.selected_route = i;
-                                root.select_route(i);
-                            }
-                        }
-                    }
-                }
-
-                HorizontalLayout {
-                    height: 34px;
-                    spacing: 6px;
-                    alignment: center;
-
-                    TextField {
-                        text <=> root.collection_request_name;
-                        placeholder: "request name";
-                        enabled: !root.busy && root.selected_collection_request >= 0;
-                        horizontal-stretch: 1;
-                        accepted => {
-                            if !root.busy && root.selected_collection_request >= 0 && root.collection_request_name != "" {
-                                root.rename_collection_request(root.selected_collection_request, root.collection_request_name);
-                            }
-                        }
-                    }
-
-                    ActionButton {
-                        text: "Ren";
-                        button_width: 40px;
-                        enabled: !root.busy && root.selected_collection_request >= 0 && root.collection_request_name != "";
-                        clicked => {
-                            root.rename_collection_request(root.selected_collection_request, root.collection_request_name);
-                        }
-                    }
-                }
-
-                HorizontalLayout {
-                    height: 30px;
-                    spacing: 6px;
-                    alignment: center;
-
-                    UiText {
-                        text: "Target: " + root.collection_move_target_label;
-                        horizontal-stretch: 1;
-                        height: parent.height;
-                        color: Theme.outline;
-                        font-size: 11px;
-                        vertical-alignment: center;
-                        overflow: elide;
-                    }
-
-                    ActionButton {
-                        text: "Move";
-                        button_width: 50px;
-                        enabled: !root.busy && root.selected_collection_request >= 0;
-                        clicked => {
-                            root.move_collection_request(root.selected_collection_request, root.selected_collection_folder);
-                        }
-                    }
-
-                    ActionButton {
-                        text: "Dup";
-                        button_width: 42px;
-                        enabled: !root.busy && root.selected_collection_request >= 0;
-                        clicked => {
-                            root.duplicate_collection_request(root.selected_collection_request);
-                        }
-                    }
-
-                    ActionButton {
-                        text: "Del";
-                        button_width: 40px;
-                        warning: true;
-                        enabled: !root.busy && root.selected_collection_request >= 0;
-                        clicked => {
-                            root.delete_collection_request(root.selected_collection_request);
-                        }
-                    }
-                }
-
+        SidebarCollectionsPanel {
+            routes: root.routes;
+            collection_rows: root.collection_rows;
+            selected_route <=> root.selected_route;
+            selected_collection_request <=> root.selected_collection_request;
+            selected_collection_folder <=> root.selected_collection_folder;
+            collection_move_target_label <=> root.collection_move_target_label;
+            collection_request_name <=> root.collection_request_name;
+            collection_folder_name <=> root.collection_folder_name;
+            collection_name <=> root.collection_name;
+            collection_path <=> root.collection_path;
+            collection_status: root.collection_status;
+            total_route_count: root.total_route_count;
+            busy: root.busy;
+            select_route(index) => {
+                root.select_route(index);
+            }
+            select_collection_request(row_id) => {
+                root.select_collection_request(row_id);
+            }
+            rename_collection_request(row_id, name) => {
+                root.rename_collection_request(row_id, name);
+            }
+            duplicate_collection_request(row_id) => {
+                root.duplicate_collection_request(row_id);
+            }
+            delete_collection_request(row_id) => {
+                root.delete_collection_request(row_id);
+            }
+            move_collection_request(row_id, folder_path) => {
+                root.move_collection_request(row_id, folder_path);
+            }
+            import_collection(path) => {
+                root.import_collection(path);
+            }
+            add_collection_folder(name) => {
+                root.add_collection_folder(name);
+            }
+            save_current_request => {
+                root.save_current_request();
+            }
+            pick_collection_import_file => {
+                root.pick_collection_import_file();
+            }
+            pick_collection_save_path => {
+                root.pick_collection_save_path();
+            }
+            pick_postman_collection_path => {
+                root.pick_postman_collection_path();
             }
         }
 
