@@ -82,7 +82,7 @@ export component BodyContentPanel inherits Rectangle {
         title: "URL Encoded";
         key_header: "Field";
         value_header: "Value";
-        helper: "Stored as key=value lines for transport compatibility.";
+        helper: "Stored as key=value lines before sending.";
         busy: root.busy;
         add_row => {
             root.add_body_field();

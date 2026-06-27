@@ -511,8 +511,8 @@ mod tests {
             ("user".to_string(), "p:a:s:s".to_string())
         );
         assert_eq!(
-            split_basic_auth_config("legacy-user"),
-            ("legacy-user".to_string(), String::new())
+            split_basic_auth_config("username-only"),
+            ("username-only".to_string(), String::new())
         );
 
         assert_eq!(format_basic_auth_config("user", "pass"), "user:pass");

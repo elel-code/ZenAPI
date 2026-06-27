@@ -163,7 +163,6 @@ struct RequestProjectionInput {
 struct EnvironmentProfiles {
     active_name: String,
     values_by_name: BTreeMap<String, String>,
-    #[serde(default)]
     order: Vec<String>,
 }
 
@@ -172,7 +171,6 @@ struct EnvironmentWorkspace {
     active_name: String,
     global_variables: String,
     values_by_name: BTreeMap<String, String>,
-    #[serde(default)]
     order: Vec<String>,
 }
 
@@ -8089,11 +8087,7 @@ fn parse_pm_status_assertion(body: &str) -> Result<Option<ResponseAssertionKind>
         }));
     }
 
-    for subject in [
-        "pm.response.code",
-        "pm.response.status",
-        "responseCode.code",
-    ] {
+    for subject in ["pm.response.code", "pm.response.status"] {
         if let Some(value) = expect_equal_argument(body, subject) {
             return Ok(Some(ResponseAssertionKind::StatusEquals {
                 status: parse_status(value, "pm.expect status")?,
@@ -8167,10 +8161,7 @@ fn parse_pm_header_assertion(body: &str) -> Option<ResponseAssertionKind> {
 }
 
 fn parse_pm_body_assertion(body: &str) -> Option<ResponseAssertionKind> {
-    if !body.contains("pm.response.text()")
-        && !body.contains("pm.response.body")
-        && !body.contains("responseBody")
-    {
+    if !body.contains("pm.response.text()") && !body.contains("pm.response.body") {
         return None;
     }
 
@@ -8194,7 +8185,7 @@ fn parse_pm_body_assertion(body: &str) -> Option<ResponseAssertionKind> {
         }
     }
 
-    for subject in ["pm.response.text()", "pm.response.body", "responseBody"] {
+    for subject in ["pm.response.text()", "pm.response.body"] {
         if let Some(value) = expect_equal_argument(body, subject) {
             return Some(ResponseAssertionKind::BodyEquals {
                 text: strip_js_string_value(value),
@@ -9721,7 +9712,7 @@ mod tests {
     }
 
     #[test]
-    fn reorders_environment_profiles_and_backfills_missing_order() {
+    fn reorders_environment_profiles_using_saved_order() {
         let workspace: EnvironmentWorkspace = serde_json::from_str(
             r#"{
                 "active_name": "prod",
@@ -9730,10 +9721,11 @@ mod tests {
                     "dev": "baseUrl=http://127.0.0.1:8080",
                     "prod": "baseUrl=https://api.example.com",
                     "test": "baseUrl=https://staging.example.com"
-                }
+                },
+                "order": ["dev", "prod", "test"]
             }"#,
         )
-        .expect("legacy workspace");
+        .expect("workspace");
         let mut profiles = EnvironmentProfiles::from_workspace(Some(workspace), "dev", "");
 
         assert_eq!(
@@ -10437,11 +10429,10 @@ pm.test("json id", () => { pm.expect(pm.response.json().data.id).to.eql(42); })"
     }
 
     #[test]
-    fn parses_additional_pm_compatibility_assertions() {
+    fn parses_additional_pm_assertions() {
         let assertions = parse_response_assertions(
             r#"pm.test("success range", () => { pm.response.to.be.success; })
 pm.test("status within", () => { pm.expect(pm.response.code).to.be.within(200, 299); })
-pm.test("legacy status", function () { pm.expect(responseCode.code).to.equal(202); })
 pm.test("response time", () => { pm.expect(pm.response.responseTime).to.be.below(500); })
 pm.test("response size", () => { pm.expect(pm.response.responseSize).to.be.at.most(65536); })
 pm.test("header exists", () => { pm.response.to.have.header("X-Request-Id"); })
@@ -10450,7 +10441,6 @@ pm.test("header absent", () => { pm.expect(pm.response.headers.has("X-Debug")).t
 pm.test("body exact", () => { pm.expect(pm.response.text()).to.eql("ready"); })
 pm.test("body string", () => { pm.expect(pm.response.text()).to.have.string("ready"); })
 pm.test("body excludes", () => { pm.expect(pm.response.text()).to.not.include("error"); })
-pm.test("legacy body", () => { pm.expect(responseBody).to.contain("ok"); })
 pm.test("json bracket", () => { pm.expect(pm.response.json().data[0]["id"]).to.eql(42); })
 pm.test("json property", () => { pm.expect(pm.response.json().data).to.have.property("name", "Zen"); })
 pm.test("json property exists", () => { pm.expect(pm.response.json().data).to.have.property("name"); })
@@ -10480,10 +10470,6 @@ pm.test("json null", () => { pm.expect(pm.response.json().error).to.be.null; })"
                 ResponseAssertion {
                     name: "status within".to_string(),
                     kind: ResponseAssertionKind::StatusInRange { min: 200, max: 299 },
-                },
-                ResponseAssertion {
-                    name: "legacy status".to_string(),
-                    kind: ResponseAssertionKind::StatusEquals { status: 202 },
                 },
                 ResponseAssertion {
                     name: "response time".to_string(),
@@ -10527,12 +10513,6 @@ pm.test("json null", () => { pm.expect(pm.response.json().error).to.be.null; })"
                     name: "body excludes".to_string(),
                     kind: ResponseAssertionKind::BodyNotContains {
                         text: "error".to_string(),
-                    },
-                },
-                ResponseAssertion {
-                    name: "legacy body".to_string(),
-                    kind: ResponseAssertionKind::BodyContains {
-                        text: "ok".to_string(),
                     },
                 },
                 ResponseAssertion {

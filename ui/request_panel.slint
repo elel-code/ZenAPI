@@ -1,3 +1,313 @@
-import { RequestPanelWorkbench } from "request_panel_workbench.slint";
+import { Theme } from "theme.slint";
+import { KeyValueTableRow, TestAssertionRow } from "types.slint";
+import { RequestTabContent } from "request_tab_content.slint";
+import { RequestTabStrip } from "request_tab_strip.slint";
 
-export component RequestPanel inherits RequestPanelWorkbench {}
+export component RequestPanel inherits Rectangle {
+    in-out property <string> global_variables;
+    in-out property <string> environment_name;
+    in-out property <string> environment_variables;
+    in-out property <string> query_params;
+    in-out property <[KeyValueTableRow]> query_param_rows;
+    in-out property <string> query_param_import_path;
+    in-out property <string> request_headers;
+    in-out property <[KeyValueTableRow]> header_rows;
+    in-out property <string> header_import_path;
+    in-out property <string> auth_mode;
+    in-out property <string> auth_config;
+    in-out property <string> auth_basic_username;
+    in-out property <string> auth_basic_password;
+    in-out property <[KeyValueTableRow]> auth_key_rows;
+    in-out property <string> body_mode;
+    in-out property <string> raw_body_subtype;
+    in-out property <string> request_body;
+    in-out property <[KeyValueTableRow]> body_field_rows;
+    in-out property <string> form_file_field;
+    in-out property <string> form_file_path;
+    in-out property <string> graphql_variables;
+    in-out property <string> pre_request_script;
+    in-out property <string> request_tests;
+    in-out property <[TestAssertionRow]> test_assertion_rows;
+    in-out property <string> realtime_mode;
+    in-out property <string> realtime_message;
+    in-out property <string> websocket_message_mode;
+    in-out property <string> websocket_protocols;
+    in-out property <string> websocket_event_history;
+    in-out property <string> sse_max_events;
+    in-out property <string> sse_last_event_id;
+    in-out property <bool> sse_streaming;
+    in-out property <string> sse_event_history;
+    in-out property <string> grpc_endpoint;
+    in-out property <string> grpc_method;
+    in-out property <string> grpc_metadata;
+    in-out property <string> grpc_message;
+    in-out property <string> grpc_method_catalog;
+    in-out property <string> grpc_descriptor_path;
+    in-out property <string> grpc_protoc_path;
+    in-out property <bool> grpc_streaming;
+    in property <bool> busy;
+    callback open_websocket();
+    callback run_websocket();
+    callback close_websocket();
+    callback copy_websocket_events();
+    callback clear_websocket_events();
+    callback run_sse();
+    callback open_sse_stream();
+    callback close_sse_stream();
+    callback copy_sse_events();
+    callback clear_sse_events();
+    callback add_query_param();
+    callback paste_query_params();
+    callback import_query_params(string);
+    callback pick_query_param_import_file();
+    callback update_query_param_row(int, string, string);
+    callback delete_query_param_row(int);
+    callback add_header();
+    callback paste_headers();
+    callback import_headers(string);
+    callback pick_header_import_file();
+    callback update_header_row(int, string, string);
+    callback delete_header_row(int);
+    callback copy_headers();
+    callback auth_mode_changed(string);
+    callback update_basic_auth(string, string);
+    callback add_auth_key();
+    callback update_auth_key_row(int, string, string);
+    callback delete_auth_key_row(int);
+    callback fetch_oauth2_token();
+    callback body_mode_changed(string);
+    callback add_body_field();
+    callback add_body_file_field(string, string);
+    callback pick_form_file();
+    callback update_body_field_row(int, string, string);
+    callback delete_body_field_row(int);
+    callback add_test_assertion();
+    callback add_test_assertion_template(string);
+    callback add_custom_test_assertion(string, string, string);
+    callback update_test_assertion_row(int, string, string, string);
+    callback cycle_test_assertion_kind(int, string);
+    callback delete_test_assertion_row(int);
+    callback apply_graphql_template(string);
+    callback apply_header_preset(string);
+    callback invoke_grpc_unary();
+    callback invoke_grpc_server_streaming();
+    callback stop_grpc_stream();
+    callback build_grpc_draft();
+    callback pick_grpc_descriptor_file();
+    callback load_grpc_descriptor_set(string);
+    callback load_grpc_proto_file(string, string);
+    callback load_grpc_reflection();
+    property <string> active_tab: "body";
+
+    horizontal-stretch: 1;
+    vertical-stretch: 1;
+    background: Theme.surface_container_lowest;
+
+    VerticalLayout {
+        padding: 0px;
+        spacing: 0px;
+
+        RequestTabStrip {
+            active_tab <=> root.active_tab;
+        }
+
+        Rectangle {
+            height: 1px;
+            background: Theme.outline_variant;
+        }
+
+        RequestTabContent {
+            active_tab: root.active_tab;
+            query_param_rows <=> root.query_param_rows;
+            query_param_import_path <=> root.query_param_import_path;
+            request_headers <=> root.request_headers;
+            header_rows <=> root.header_rows;
+            header_import_path <=> root.header_import_path;
+            auth_mode <=> root.auth_mode;
+            auth_config <=> root.auth_config;
+            auth_basic_username <=> root.auth_basic_username;
+            auth_basic_password <=> root.auth_basic_password;
+            auth_key_rows <=> root.auth_key_rows;
+            body_mode <=> root.body_mode;
+            raw_body_subtype <=> root.raw_body_subtype;
+            request_body <=> root.request_body;
+            body_field_rows <=> root.body_field_rows;
+            form_file_field <=> root.form_file_field;
+            form_file_path <=> root.form_file_path;
+            graphql_variables <=> root.graphql_variables;
+            pre_request_script <=> root.pre_request_script;
+            test_assertion_rows <=> root.test_assertion_rows;
+            realtime_mode <=> root.realtime_mode;
+            realtime_message <=> root.realtime_message;
+            websocket_message_mode <=> root.websocket_message_mode;
+            websocket_protocols <=> root.websocket_protocols;
+            websocket_event_history <=> root.websocket_event_history;
+            sse_max_events <=> root.sse_max_events;
+            sse_last_event_id <=> root.sse_last_event_id;
+            sse_streaming <=> root.sse_streaming;
+            sse_event_history <=> root.sse_event_history;
+            grpc_endpoint <=> root.grpc_endpoint;
+            grpc_method <=> root.grpc_method;
+            grpc_metadata <=> root.grpc_metadata;
+            grpc_message <=> root.grpc_message;
+            grpc_method_catalog <=> root.grpc_method_catalog;
+            grpc_descriptor_path <=> root.grpc_descriptor_path;
+            grpc_protoc_path <=> root.grpc_protoc_path;
+            grpc_streaming <=> root.grpc_streaming;
+            busy: root.busy;
+            open_websocket => {
+                root.open_websocket();
+            }
+            run_websocket => {
+                root.run_websocket();
+            }
+            close_websocket => {
+                root.close_websocket();
+            }
+            copy_websocket_events => {
+                root.copy_websocket_events();
+            }
+            clear_websocket_events => {
+                root.clear_websocket_events();
+            }
+            run_sse => {
+                root.run_sse();
+            }
+            open_sse_stream => {
+                root.open_sse_stream();
+            }
+            close_sse_stream => {
+                root.close_sse_stream();
+            }
+            copy_sse_events => {
+                root.copy_sse_events();
+            }
+            clear_sse_events => {
+                root.clear_sse_events();
+            }
+            add_query_param => {
+                root.add_query_param();
+            }
+            paste_query_params => {
+                root.paste_query_params();
+            }
+            import_query_params(path) => {
+                root.import_query_params(path);
+            }
+            pick_query_param_import_file => {
+                root.pick_query_param_import_file();
+            }
+            update_query_param_row(row_id, key, value) => {
+                root.update_query_param_row(row_id, key, value);
+            }
+            delete_query_param_row(row_id) => {
+                root.delete_query_param_row(row_id);
+            }
+            add_header => {
+                root.add_header();
+            }
+            paste_headers => {
+                root.paste_headers();
+            }
+            import_headers(path) => {
+                root.import_headers(path);
+            }
+            pick_header_import_file => {
+                root.pick_header_import_file();
+            }
+            update_header_row(row_id, key, value) => {
+                root.update_header_row(row_id, key, value);
+            }
+            delete_header_row(row_id) => {
+                root.delete_header_row(row_id);
+            }
+            copy_headers => {
+                root.copy_headers();
+            }
+            auth_mode_changed(mode) => {
+                root.auth_mode_changed(mode);
+            }
+            update_basic_auth(username, password) => {
+                root.update_basic_auth(username, password);
+            }
+            add_auth_key => {
+                root.add_auth_key();
+            }
+            update_auth_key_row(row_id, key, value) => {
+                root.update_auth_key_row(row_id, key, value);
+            }
+            delete_auth_key_row(row_id) => {
+                root.delete_auth_key_row(row_id);
+            }
+            fetch_oauth2_token => {
+                root.fetch_oauth2_token();
+            }
+            body_mode_changed(mode) => {
+                root.body_mode_changed(mode);
+            }
+            add_body_field => {
+                root.add_body_field();
+            }
+            add_body_file_field(field, path) => {
+                root.add_body_file_field(field, path);
+            }
+            pick_form_file => {
+                root.pick_form_file();
+            }
+            update_body_field_row(row_id, key, value) => {
+                root.update_body_field_row(row_id, key, value);
+            }
+            delete_body_field_row(row_id) => {
+                root.delete_body_field_row(row_id);
+            }
+            add_test_assertion => {
+                root.add_test_assertion();
+            }
+            add_test_assertion_template(template) => {
+                root.add_test_assertion_template(template);
+            }
+            add_custom_test_assertion(kind, target, expected) => {
+                root.add_custom_test_assertion(kind, target, expected);
+            }
+            update_test_assertion_row(row_id, kind, target, expected) => {
+                root.update_test_assertion_row(row_id, kind, target, expected);
+            }
+            cycle_test_assertion_kind(row_id, kind) => {
+                root.cycle_test_assertion_kind(row_id, kind);
+            }
+            delete_test_assertion_row(row_id) => {
+                root.delete_test_assertion_row(row_id);
+            }
+            apply_graphql_template(template) => {
+                root.apply_graphql_template(template);
+            }
+            apply_header_preset(preset) => {
+                root.apply_header_preset(preset);
+            }
+            invoke_grpc_unary => {
+                root.invoke_grpc_unary();
+            }
+            invoke_grpc_server_streaming => {
+                root.invoke_grpc_server_streaming();
+            }
+            stop_grpc_stream => {
+                root.stop_grpc_stream();
+            }
+            build_grpc_draft => {
+                root.build_grpc_draft();
+            }
+            pick_grpc_descriptor_file => {
+                root.pick_grpc_descriptor_file();
+            }
+            load_grpc_descriptor_set(path) => {
+                root.load_grpc_descriptor_set(path);
+            }
+            load_grpc_proto_file(path, protoc_path) => {
+                root.load_grpc_proto_file(path, protoc_path);
+            }
+            load_grpc_reflection => {
+                root.load_grpc_reflection();
+            }
+        }
+    }
+}

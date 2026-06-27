@@ -3,8 +3,6 @@
 基于 Rust 和 Slint 构建的本地优先 API 工作站，将 API 测试客户端和本地 Mock
 服务器整合为一个原生可执行文件。
 
-[文档](docs/) · [设计笔记](docs/02_DESIGN.md) · [开发路线图](docs/05_TODO.md)
-
 ## 特性
 
 - **OpenAPI / Swagger 导入** — 加载本地 JSON 或 YAML 规格文件，解析路由并构建
@@ -49,8 +47,9 @@ cargo run
 ZenAPI/
 ├── ui/                         # Slint .slint UI 文件
 │   ├── app.slint               # 应用外壳和主布局
-│   ├── theme.slint             # 全局颜色/间距/字体 token
-│   └── widgets/                # 计划拆分的可复用 UI 组件
+│   ├── request_builder_page.slint
+│   ├── app_auxiliary_pages.slint
+│   └── theme.slint             # 全局颜色/间距/字体 token
 ├── src/
 │   ├── main.rs                 # Slint 应用入口
 │   ├── lib.rs                  # 库根文件
@@ -71,12 +70,6 @@ ZenAPI/
 │   ├── variables.rs            # 变量存储与插值替换
 │   ├── history.rs              # 请求历史模型与过滤
 │   └── codegen.rs              # 多语言代码片段生成
-├── docs/
-│   ├── 01_PRD.md               # 产品需求与 MVP 范围
-│   ├── 02_DESIGN.md            # 视觉与交互设计决策
-│   ├── 05_TODO.md              # Slint 迁移路线图与任务追踪
-│   └── 07_USER_GUIDE.md        # 用户指南
-├── stitch_nextgen_api_studio/  # 设计参考（Nexus API 设计系统）
 ├── Cargo.toml
 ├── Cargo.lock
 └── build.rs                    # slint-build 编译
@@ -93,24 +86,14 @@ ZenAPI/
 
 ## 设计系统
 
-ZenAPI 遵循 **Nexus API 设计系统** —— 一种暗色 "Geek Modernity" 美学，
-定义于 `stitch_nextgen_api_studio/nexus_api/DESIGN.md`。关键设计 token：
-
 - **背景色**: 深炭灰 `#13131b`
 - **主色**: Vibrant Indigo `#c0c1ff`
 - **次要色**: Cyber Mint `#4edea3`（成功状态、活跃端点）
 - **字体**: Inter（UI）+ JetBrains Mono（代码）
 - **图标**: Material Symbols Outlined
-- **布局**: 12 列流式网格，240px 可折叠侧边栏
+- **布局**: 240px 侧栏，搭配紧凑的请求、响应和辅助页面面板
 
-详见 [docs/02_DESIGN.md](docs/02_DESIGN.md) 获取完整实现指南。
-
-## 文档
-
-- [PRD](docs/01_PRD.md) — 产品需求与 MVP 范围
-- [DESIGN](docs/02_DESIGN.md) — 视觉与交互指南
-- [TODO](docs/05_TODO.md) — 开发路线图
-- [User Guide](docs/07_USER_GUIDE.md)
+当前 UI token 位于 `ui/theme.slint`。
 
 ## 平台支持
 

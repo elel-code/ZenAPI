@@ -3,8 +3,6 @@
 A local-first API workstation built with Rust and Slint, combining an API
 testing client with a local mock server in a single native executable.
 
-[Documentation](docs/) · [Design Notes](docs/02_DESIGN.md) · [Roadmap](docs/05_TODO.md)
-
 ## Features
 
 - **OpenAPI / Swagger import** — load local JSON or YAML specs, parse routes,
@@ -53,8 +51,9 @@ server starts on `http://127.0.0.1:8080`.
 ZenAPI/
 ├── ui/                         # Slint .slint UI files
 │   ├── app.slint               # Application shell and main layout
-│   ├── theme.slint             # Global color/spacing/typography tokens
-│   └── widgets/                # Planned reusable UI components
+│   ├── request_builder_page.slint
+│   ├── app_auxiliary_pages.slint
+│   └── theme.slint             # Global color/spacing/typography tokens
 ├── src/
 │   ├── main.rs                 # Slint application entry point
 │   ├── lib.rs                  # Library root
@@ -75,12 +74,6 @@ ZenAPI/
 │   ├── variables.rs            # Variable storage and interpolation
 │   ├── history.rs              # Request history model and filtering
 │   └── codegen.rs              # Multi-language snippet generation
-├── docs/
-│   ├── 01_PRD.md               # Product requirements and MVP scope
-│   ├── 02_DESIGN.md            # Visual and interaction design decisions
-│   ├── 05_TODO.md              # Slint migration roadmap and task tracking
-│   └── 07_USER_GUIDE.md        # User guide
-├── stitch_nextgen_api_studio/  # Design reference (Nexus API design system)
 ├── Cargo.toml
 ├── Cargo.lock
 └── build.rs                    # slint-build compilation
@@ -97,24 +90,14 @@ ZenAPI/
 
 ## Design System
 
-ZenAPI follows the **Nexus API design system** — a dark-themed "Geek Modernity"
-aesthetic defined in `stitch_nextgen_api_studio/nexus_api/DESIGN.md`. Key tokens:
-
 - **Background**: deep charcoal `#13131b`
 - **Primary**: Vibrant Indigo `#c0c1ff`
 - **Secondary**: Cyber Mint `#4edea3` (success states, active endpoints)
 - **Typography**: Inter (UI) + JetBrains Mono (code)
 - **Icons**: Material Symbols Outlined
-- **Layout**: 12-column fluid grid, 240px collapsible sidebar
+- **Layout**: 240px sidebar with dense request, response, and auxiliary panels
 
-See [docs/02_DESIGN.md](docs/02_DESIGN.md) for full implementation guidelines.
-
-## Documentation
-
-- [PRD](docs/01_PRD.md) — product requirements and MVP scope
-- [DESIGN](docs/02_DESIGN.md) — visual and interaction guidelines
-- [TODO](docs/05_TODO.md) — development roadmap
-- [User Guide](docs/07_USER_GUIDE.md)
+The active UI tokens live in `ui/theme.slint`.
 
 ## Platform Support
 
