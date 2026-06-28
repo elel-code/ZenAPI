@@ -12,6 +12,7 @@ pub fn run(args: Vec<String>) -> Result<()> {
     let command = args.first().map(String::as_str);
     match command {
         Some("run") => run_collection_command(&args[1..]),
+        Some("smoke") => run_smoke_command(&args[1..]),
         Some("--help") | Some("-h") => {
             print_usage();
             Ok(())
@@ -42,6 +43,20 @@ fn run_collection_command(args: &[String]) -> Result<()> {
     }
 
     Ok(())
+}
+
+fn run_smoke_command(args: &[String]) -> Result<()> {
+    match args.first().map(String::as_str) {
+        Some("ui-frame-latency") => {
+            let options = parse_ui_frame_latency_smoke_args(&args[1..])?;
+            crate::app::run_ui_frame_latency_smoke(options.samples, options.interval_ms)
+        }
+        Some("--help") | Some("-h") | None => {
+            print_smoke_usage();
+            Ok(())
+        }
+        Some(command) => bail!("unknown smoke command: {command}\n\n{}", smoke_usage()),
+    }
 }
 
 fn parse_run_args(args: &[String]) -> Result<ParsedRunArgs> {
@@ -90,6 +105,46 @@ fn parse_run_args(args: &[String]) -> Result<ParsedRunArgs> {
             delay_ms,
             failure_strategy,
         },
+    })
+}
+
+fn parse_ui_frame_latency_smoke_args(args: &[String]) -> Result<UiFrameLatencySmokeOptions> {
+    let mut samples = 120usize;
+    let mut interval_ms = 16u64;
+    let mut index = 0;
+
+    while index < args.len() {
+        match args[index].as_str() {
+            "--samples" => {
+                let value = args
+                    .get(index + 1)
+                    .ok_or_else(|| anyhow!("--samples requires a value"))?;
+                samples = value
+                    .parse::<usize>()
+                    .with_context(|| format!("invalid --samples value: {value}"))?;
+                index += 2;
+            }
+            "--interval-ms" => {
+                let value = args
+                    .get(index + 1)
+                    .ok_or_else(|| anyhow!("--interval-ms requires a value"))?;
+                interval_ms = value
+                    .parse::<u64>()
+                    .with_context(|| format!("invalid --interval-ms value: {value}"))?;
+                index += 2;
+            }
+            "--help" | "-h" => {
+                print_ui_frame_latency_smoke_usage();
+                std::process::exit(0);
+            }
+            value if value.starts_with('-') => bail!("unknown ui-frame-latency option: {value}"),
+            value => bail!("unexpected ui-frame-latency argument: {value}"),
+        }
+    }
+
+    Ok(UiFrameLatencySmokeOptions {
+        samples,
+        interval_ms,
     })
 }
 
@@ -157,17 +212,38 @@ fn print_run_usage() {
     println!("{}", run_usage());
 }
 
+fn print_smoke_usage() {
+    println!("{}", smoke_usage());
+}
+
+fn print_ui_frame_latency_smoke_usage() {
+    println!("{}", ui_frame_latency_smoke_usage());
+}
+
 fn usage() -> &'static str {
-    "Usage:\n  zenapi                 Start the Slint desktop app\n  zenapi run <collection.json> [--delay-ms N] [--stop-on-failure]\n"
+    "Usage:\n  zenapi                 Start the Slint desktop app\n  zenapi run <collection.json> [--delay-ms N] [--stop-on-failure]\n  zenapi smoke ui-frame-latency [--samples N] [--interval-ms N]\n"
 }
 
 fn run_usage() -> &'static str {
     "Usage:\n  zenapi run <collection.json> [--delay-ms N] [--stop-on-failure]\n\nOptions:\n  --delay-ms N          Delay between requests\n  --stop-on-failure     Stop after the first failed request\n  --continue-on-failure Continue after failures (default)\n"
 }
 
+fn smoke_usage() -> &'static str {
+    "Usage:\n  zenapi smoke ui-frame-latency [--samples N] [--interval-ms N]\n"
+}
+
+fn ui_frame_latency_smoke_usage() -> &'static str {
+    "Usage:\n  zenapi smoke ui-frame-latency [--samples N] [--interval-ms N]\n\nOptions:\n  --samples N           Number of timer intervals to sample (default: 120)\n  --interval-ms N       Frame budget interval in milliseconds (default: 16)\n"
+}
+
 struct ParsedRunArgs {
     collection_path: String,
     options: RunnerOptions,
+}
+
+struct UiFrameLatencySmokeOptions {
+    samples: usize,
+    interval_ms: u64,
 }
 
 #[cfg(test)]
@@ -190,6 +266,28 @@ mod tests {
             parsed.options.failure_strategy,
             FailureStrategy::StopOnFailure
         );
+    }
+
+    #[test]
+    fn parses_ui_frame_latency_smoke_options() {
+        let parsed = parse_ui_frame_latency_smoke_args(&[
+            "--samples".to_string(),
+            "30".to_string(),
+            "--interval-ms".to_string(),
+            "20".to_string(),
+        ])
+        .expect("parse");
+
+        assert_eq!(parsed.samples, 30);
+        assert_eq!(parsed.interval_ms, 20);
+    }
+
+    #[test]
+    fn uses_default_ui_frame_latency_smoke_options() {
+        let parsed = parse_ui_frame_latency_smoke_args(&[]).expect("parse");
+
+        assert_eq!(parsed.samples, 120);
+        assert_eq!(parsed.interval_ms, 16);
     }
 
     #[test]
